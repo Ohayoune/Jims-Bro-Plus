@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "name": "Practice",
+  "units": "kg",
+  "schedule": "rotation",
+  "cycle": ["Practice"],
+  "days": [
+    {
+      "name": "Practice",
+      "defaultRestSeconds": 60,
+      "exercises": [
+        { "name": "Goblet Squat", "sets": 2, "reps": "8-12", "repRange": "8-12", "weight": 16 },
+        { "name": "Push-Up", "sets": 2, "reps": "8-12", "repRange": "8-12", "bodyweight": true },
+        { "name": "Dumbbell Row", "sets": 2, "reps": "8-12", "repRange": "8-12", "weight": 20 }
+      ]
+    }
+  ]
+}
