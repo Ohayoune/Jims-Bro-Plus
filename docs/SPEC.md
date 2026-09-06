@@ -1,0 +1,440 @@
+# Jimm's Bro+ — Product Spec (v1)
+
+## 0. One paragraph
+
+A personal iPhone app that runs your workout for you. You import a plan (one workout or a whole week) as JSON that a chatbot wrote from your own description. The app then walks you through the day's exercises in order, set by set: it shows the target, you enter what you actually did, it logs the set and starts a rest timer that alerts you even when the phone is locked. It remembers everything: your plans, every set you've ever logged, the weight you used last time, and where you are in your weekly rotation. Local only, no account, no server.
+
+## 1. Decisions already made (change these if wrong)
+
+The original description left a few things open. These are the choices this spec is built on. Change the doc before building if any are wrong.
+
+| # | Decision | Why |
+|---|----------|-----|
+| D1 | The unit of logging is the **set**, not the exercise. Rest runs after every set. | "Bench press 3×10" is three separate efforts with rest between them. An exercise with one set behaves exactly like "log after each exercise". |
+| D2 | Each set logs **reps and weight** (weight optional). | Reps alone can't show progression. Weight is prefilled from last time so it costs zero taps when unchanged. |
+| D3 | **Supersets/circuits are supported** in v1 via a `group` tag. | Chatbot-written plans contain them constantly. Refusing them would break most imports. |
+| D4 | **Timed sets** (plank 45s, bike 10 min) are supported via `durationSeconds`. The work countdown reuses the rest timer. | Same reason as D3. |
+| D5 | Plans are **JSON**, produced by a chatbot from a prompt the app gives you. | Chatbots produce JSON reliably; Swift decodes it natively. A friendlier text format is listed under Later. |
+| D6 | A plan is always a list of **days**. A "daily" plan is a plan with one day. Weekly plans are either a **rotation** (do days in order, repeat) or **weekday-anchored** (Mon/Wed/Fri). | Covers both kinds of real plans without two code paths. |
+| D7 | Sessions store a **snapshot** of the day as performed, not a reference to the plan. | Plans get re-imported, edited, and deleted. History must survive that. |
+| D8 | Exercise identity across history is the **normalized name** (trim, case-insensitive, collapse whitespace). | No exercise database to maintain. The prompt tells the chatbot to keep names consistent. |
+| D9 | Native **SwiftUI iOS app**, files on disk, no cloud. | See §2. |
+| D10 | Logged weights keep the **unit of the plan** they were logged under. No unit conversion anywhere. | Conversion is where rounding bugs live. Display always shows the unit. |
+| D11 | Reps and weight are **prefilled with what you achieved last time** for that set, so a normal set is one tap and a better set is "+" then tap. Targets are used only when there is no history. **Revised in v1.1**: carry-forward across sets within the same session applies only to a **straight** exercise, where every main-set target weight is equal (or all absent). A **varied** exercise (targets differ across sets, e.g. a 50→60→70 kg pyramid) always prefills each set from last session's same set index, else that set's own target — never from a weight logged earlier in the same session. Reps for a step are computed once when its card appears and are never rewritten by a later weight edit; the user's own edits are never touched either way. | Owner request. Prefilling the target instead would hide progress and cost taps. Revision: a deliberately varied plan was fighting the user (v1.1 UX review, 2026-09-05); predictable beats clever. |
+| D12 | Every exercise carries a **rep range** (`repRange`, e.g. 8–12). Hit the top of the range on every set → the app suggests adding one weight step next time. Fall below the bottom of the range → it suggests holding or dropping a step. Never applied automatically; the suggestion is a chip you can tap. | Standard double progression. Note the owner first asked for "below the range → increase", which is inverted; below the range means the weight is too heavy. |
+| D14 | Between **sets** of the same exercise: countdown rest timer with alert. Between **exercises**: a count-up stopwatch on a "done" screen with one **Continue** button, no alert. **Revised in v1.1**: the full-screen "done" screen and its Continue gate are removed. When a block ends, the next step's card appears immediately (phase → `working`, no `.transition` phase); the finished block's name, duration and any advice appear as a status line on the new step's card, alongside a small count-up "moving on" time, until the next set is logged. No alert, no countdown — the owner still decides when to move on; only the mandatory tap is gone. | Owner request. You decide when you've walked to the next station; the app just shows how long it took. Revision: the mandatory Continue tap between every pair of exercises added no value and made the finished set's duration the largest thing on screen (v1.1 UX review, 2026-09-05). |
+| D15 | **Drop sets** are supported: a set can carry `drops`, each logged as its own sub-step with no rest before it. | Owner request. |
+| D16 | Every plan has a **cycle**: the ordered block of day names and rest days that repeats (`cycle`). Rotation plans default to the days in order; weekday plans derive a 7-day cycle. The cycle drives "Next up" and the calendar's projected workouts. | Owner asked for "a block where the plan repeats". This is the interpretation; it also gives the calendar a schedule to project. |
+| D17 | Starting a different day while a workout is in progress is **allowed but discouraged**: a popup defaults to "Keep going". | Owner request. |
+| D18 | Home is **quiet**: one Start card, a compact month calendar, one tiny sparkline. Everything else lives in the Plans, History and Settings tabs. A screen has one primary action; secondary actions go in a "···" menu. **Revised in v1.1**: quiet, but leading with the workout. The start card names the day, the plan and the day's exercises, and its button says what it will do ("Start Push", "Resume Push · 23 min", "Start Lower early"); the month grid becomes a 7-day strip that discloses to the month; and the tap-to-cycle sparkline is replaced by one activity line. | Owner asked twice for less clutter. §4.0 has the rules. Revision: v1.1 UX review, 2026-09-05 — Start was blind (nothing on Home said what was behind it) and the sparkline's hidden tap was undiscoverable rather than quiet. |
+| D19 | **Every set is timed.** A rep set's duration runs from the moment its card appears (rest ended, the block-done strip appeared, or the previous log when rest is 0) to Log set. Timed sets run from the Start tap. Stored per step and shown after the fact, not on the card. **Revised in v1.1**: storage is unchanged, but the number is demoted everywhere it is shown. A set's duration appears only as small text — in the Overview rows, Session detail, the status strip's "set 0:34", and behind Details on the Summary — and is never the largest thing on a screen. Removing the Continue gate (D14) makes a rep set's recorded duration include walking and fiddling, so it must never outrank a deliberately timed plank. | Owner request. No extra tap per set. Revision: v1.1 UX review, 2026-09-05. |
+| D20 | Three kinds of work: **reps**, **fixed duration** (countdown with a short **warning beep at 10 % remaining** and a **final beep** at the end), and **open duration** (`"durationSeconds": "max"`, a stopwatch you stop yourself, logging the seconds held). The warning beep is optional per exercise or set via `warningBeep`: `true` (10 %, the default), `false`, or a number of seconds before the end. | Owner asked for timed sets that show how long they take, and a warning beep before the final beep. |
+| D21 | `"bodyweight": true` on an exercise means no weight applies: the weight row is hidden, the JSON never needs a weight, and advice says "add load" instead of a number. A missing weight without the flag still shows an empty weight field. | Owner asked the JSON to accommodate sets with no weight. Distinguishes "no weight applies" from "the plan didn't say". |
+| D13 | History is stored **per set with a timestamp, reps, weight and unit**, so a time-vs-weight-and-reps chart per exercise is a pure read of existing data. v1 ships the Core query (`ExerciseHistory.series`) without the chart UI. | Owner wants the chart later; storage must not need a migration to add it. |
+| D22 (v1.1) | The workout is **one screen with five fixed zones** — header, exercise block, inputs, status strip, primary action — top to bottom, in that order, in every state. Working, resting, a running timed set and a block having just finished change what the zones *contain*; none of them ever appears, disappears, or changes position. In particular the primary button is always the same full-width control in the same place, and the header's Exercises, minimize and "···" controls are reachable in every state, rest included. | v1.1 UX review, 2026-09-05: the workout was three different full-screen layouts in sequence (card → rest → done screen). Controls moved under the thumb between them, and rest and the done screen carried no "···" at all, so the overview, skip, finish and any correction were unreachable exactly while the user had time to make one. |
+| D23 (v1.1) | **Undo** is available for the most recently logged or skipped step, until another step is logged or skipped after it: it restores the step to pending, clears its result, cancels any rest notification that started because of it, recomputes the exercise's progression advice, and re-enters that step as the current one. Not available once the session is completed (history editing, §4.10, covers that case instead). | v1.1 UX review: correcting the immediately previous set required Skip rest → ··· → Overview → edit → Save; a typo should be one tap to fix while rest keeps running. |
+| D24 (v1.1) | A **failed write is never reported as a success.** `AppModel` surfaces a `saveFailure` describing what failed; the data that couldn't be written is kept (the active session file, or the in-memory session pending its file) rather than discarded, and the app offers **Retry**. A session is only added to the "already persisted" set after its file write succeeds; `active-session.json` is only cleared once every completed session from it is confirmed on disk. On launch, an active-session file whose phase is already `completed` (a write that succeeded partially last time) is turned into a normal session file and cleared. | v1.1 UX review found `persistCompletedSessions` marking a session persisted before confirming its write succeeded, and every store write silently swallowed with `try?`. |
+| D25 (v1.1) | **Every delete of a plan or a session confirms**, with one concise dialog ("Delete Push Pull Legs?" / "Delete this workout?"). This applies to swipe-to-delete in the Plans and History lists and to Plan detail's "···" menu, matching the confirmation session detail already had. Delete all data keeps its existing, more serious confirmation. | v1.1 UX review found three of four delete paths deleting immediately with no confirmation and no undo, while session detail alone confirmed. |
+| D26 (v1.1) | Plans arrive through **Add plan**, not through a JSON text box: Paste plan, Create with a chatbot (three numbered steps), Import file, with the editor behind "Show text". The review step shows the exercises and their per-set targets, states errors in plain sentences before any path or code, separates warnings that changed the workout from tidying that did not, and offers "Set as current plan". Onboarding offers a short practice workout beside the full sample. | v1.1 UX review, 2026-09-05: the import screen read as a data-file editor for an app whose premise is a chatbot round-trip it never described, and its preview could not show whether the chatbot had produced the right exercises. |
+| D27 (v1.1) | A **skipped set can be recovered**, in both the live overview and history: the edit sheet becomes valid for a skipped step, not only a logged one. Saving sets its result, marks it logged, and sets `loggedAt` to the time of the save (replacing the earlier skip time, since the set is being addressed now). In the live workout only, a skipped step's row also offers **jump to it** as a way to do it properly instead of backfilling a result. | v1.1 UX review found the edit sheet already offered for skipped sets, but `SessionEngine.editSet` silently did nothing unless the step was already logged — an apparently successful Save that changed nothing. |
+
+| D28 (v1.1) | **Do later** moves an exercise's remaining sets — its whole block, so a superset moves together — to after the day's last pending step, and carries on with whatever is next. It is offered only when it would move something. The step order changes; `blockIndex` does not, so the block keeps its identity for rest resolution, durations and the block-done strip, and views order blocks by where their steps now sit. | The machine is taken. Skipping an exercise says you are not doing it; this says you are doing it later, which is what actually happens in a gym. |
+| D29 (v1.1) | A plan can be **edited in the app**: an exercise's name, set count, reps, rep range, weight and rest; reordering and deleting exercises; renaming and duplicating a day. Every edit is rendered back to plan JSON and re-imported, so it is validated and normalized by exactly the code an import is, and `sourceText` always matches the plan. The plan keeps its id, its import date and its cycle position. | A one-word change should not mean a round trip to a chatbot. Routing edits through the importer means an edit can never produce a plan the app would have refused to import. |
+| D30 (v1.1) | A logged set that beats every earlier logged set of that exercise — heaviest first, ties broken by reps; reps alone when there is no weight; seconds held for timed work; same units only (D10) — is a **personal record**, marked on the Summary and in session detail. The first session of an exercise sets none, since there is nothing to beat. History gains a search box that finds an exercise by name, and the exercise screen gains the top-weight chart of D13. | The data was already stored (§8.4); D13 always intended the chart. A PR is the one number worth interrupting for. |
+| D31 (v1.1) | A backup can be **restored**: Settings reads the file, says what is in it and what each choice would do, then offers **Merge** (adds only ids not already present; leaves current settings, the active plan, and anything edited since the backup alone) or **Replace all** (empties the store and takes the backup's plans, workouts, active plan and settings). A file that isn't a backup, or is from a newer app, is refused before anything is written. | SPEC §8.5 always said the export format is the on-disk format so this would be trivial. Export without restore is only half a backup. |
+
+## 2. Platform
+
+**Build a native iOS app in SwiftUI.** You have the two things it needs: a Mac (Xcode is free) and an iPhone.
+
+Why native and not a web app: the core feature is a rest timer that goes off while your phone is locked in your pocket. iOS Safari suspends a web page when the screen locks, and a web page cannot schedule "notify me in 90 seconds" without a push server. A web app's timer would only work with the screen on. iOS can also evict a website's stored data. Native gets local notifications, haptics, reliable storage, and keeps-screen-awake for free.
+
+Why not React Native / Flutter: you don't need Android, it still needs Xcode to install, and it adds a toolchain for an AI-built app to get tangled in.
+
+What it costs:
+
+| Route | Install lifetime | Price | Notes |
+|-------|------------------|-------|-------|
+| Free Apple ID in Xcode | 7 days, then re-run from Xcode (data survives) | $0 | Max 3 sideloaded apps at once. Fine for personal use. |
+| Apple Developer Program | 1 year, plus TestFlight | $99/yr | Only needed if the 7-day re-install annoys you or you want friends on it. |
+
+What you do vs. what the implementing agent does: the agent writes all code and tests and can run the app in the iOS Simulator. Installing on your physical iPhone is a one-time 5-minute manual step (plug in, trust, enable Developer Mode, choose your Team in Xcode). Steps are in `docs/BUILD_PLAN.md`.
+
+Targets: iOS 17.0+, iPhone only, portrait only, English only, light and dark mode, Dynamic Type.
+
+## 3. Vocabulary
+
+Use these words in code and UI. Don't invent synonyms.
+
+- **Plan** — an imported document. Has a name, units (kg/lb), a schedule type, and one or more Days.
+- **Day** — one workout: a named, ordered list of Exercises. ("Push", "Day 2", "Wednesday").
+- **Exercise** — one movement with an ordered list of Set Targets, optional notes, optional group tag.
+- **Set Target** — what you're supposed to do for one set: a rep target, a fixed duration, or an open duration; an optional weight (never, for bodyweight exercises); a resolved warning-beep offset for fixed durations; and a resolved rest time.
+- **Group** — exercises with the same `group` tag, listed consecutively, are done as a superset/circuit: one set of each in turn, then rest, then the next round.
+- **Drop** — a sub-set done immediately after a set with lower weight and no rest. A set with 2 drops is logged as 3 steps.
+- **Step** — one set (or one drop) of one exercise, in execution order. A Day flattens into a list of Steps (§6.2).
+- **Block** — one exercise, or one superset group, as an execution unit. Between blocks the app shows the "done" screen (D14).
+- **Cycle** — the ordered list of Days and rest days a Plan repeats (D16). "Cycle position" is where you are in it.
+- **Session** — one run-through of a Day on a date. Contains a snapshot of the exercises plus a result per step.
+- **Set Result** — what you actually did: reps (or seconds) and weight, or skipped.
+- **Cycle position** — per plan, the index in the cycle of the last completed entry. Drives "Next up" and the calendar projection.
+
+## 4. Screens
+
+### 4.0 Quiet UI rules (apply everywhere)
+Rewritten in v1.1's R2 milestone. The v1 text is kept underneath each rule that changed, so the change is deliberate rather than drift.
+
+- **One primary action per screen**, full width, accent colour, bottom-anchored above the keyboard. Secondary actions that the primary task itself needs while it is running may be visible buttons — Exercises, Undo, rest −30 / +30, Skip rest — and everything else goes behind "···" or a swipe. *(v1: "Never more than two visible buttons besides the primary." That rule put Overview, undo and Skip behind a menu that did not exist during rest, which made them unreachable exactly when they were needed — P2.)*
+- **Label what the value does not explain.** A bare `10` and `80` get small-caps **REPS** and **KG** labels; a volume figure is labelled Volume. A unit suffix is not a label. Do not label what is already self-evident (no "Notes:" before notes). *(v1: "No labels for things the value already says." Two unlabelled stepper rows were the most-reported confusion in both reviews — P5.)*
+- No decorative dividers, cards inside cards, or badges. Group with whitespace, or with one grouped/inset list style used consistently on every screen (R4).
+- **Large numbers are for values you act on right now**: the input values, a running countdown, a running timer. A number you are only being told about — a set's duration, a block's duration, a volume total — is body text. *(v1: "The most important number on a screen is the largest thing on it", which made the between-exercise block duration the hero of its own screen — D19, P1.)*
+- Show a line only when it has content (no "Notes: none", no empty "Last time").
+- Tab bar with four tabs: **Home · Plans · History · Settings**. No other navigation chrome on Home.
+- **Zones do not move.** Within one task, a control keeps its position across every state of that task: nothing appears, disappears or shifts under the thumb between working, resting and timed work (§4.5, D22, P1).
+
+### 4.1 Home (D18, rewritten in v1.1's R3)
+Three things, top to bottom, nothing else:
+1. **Start card**, which leads with the workout rather than with the calendar: the day's name as the headline ("Push"), a subtitle of the fragments that have data ("Push Pull Legs · 5 exercises · 48 min last time"), the day's first five exercise names and "and N more", then one button that says what it does — **Start Push**, **Resume Push · 23 min**, or, on a rest day, a "Rest day" headline with "Lower is next, Thu" and **Start Lower early**. **Preview** opens the day in Plan detail; **Another day** offers the plan's other days. No plans yet → "No plan yet" with **Add plan**, plus "Try the sample plan" and "Try a short practice workout". *(v1: "Next up · Pull" and a bare Start, which never said what you were about to do.)*
+2. **Calendar**: a **7-day strip of the current week** by default, with **Month** disclosing the full grid (7 columns, weeks as rows, ‹ › to change month, today outlined) and **Week** collapsing it again. Cells are at least 44 pt in both (P6). A day with a completed session shows a filled accent dot; a future day with a projected workout (§6.12) shows a hollow accent dot; a scheduled rest day shows a filled grey dot; a day the plan says nothing about shows no dot at all. Tapping a day shows one line under the grid: "Wed 10 · Legs · 52 min" (tap again → session detail), "Sat 13 · Push · projected" with a small **Start this** if it's today, or "Sun 14 · Rest day". Days with no dot show no line.
+3. **One activity line**: "2 workouts this week · 1 h 32 min", or "No workouts yet this week". "This week" is the calendar week containing today, the same seven days the strip above shows. *(v1 had a 44 pt sparkline whose metric changed on an undocumented tap. Both v1.1 reviews called it undiscoverable rather than quiet; `Sparkline`, `HomeMetric` and the Settings row that picked the metric were removed with it. `ExerciseHistory.series` — the per-exercise data behind the chart of D13/§10 — is untouched.)*
+
+### 4.2 Plans
+List of plans (active one marked). Tap → Plan detail. Primary action: **Add plan** (§4.4). Swipe to delete, with a confirmation dialog (D25 v1.1) — swiping no longer deletes immediately.
+
+### 4.3 Plan detail
+- Name, units, schedule, and the **repeat block**: the cycle as a row of chips, `Push · Pull · Legs · Push · Pull · Legs · Rest`, with "repeats every 7 days" beneath and the current position highlighted. Weekday plans show Mon…Sun with the day name or "rest" under each.
+- Days: each expands to its exercises (sets, target, rest, drops, rep range).
+- **Editing** (D29, v1.1): tapping an exercise opens a sheet for its name, set count, reps, rep range, weight and rest. Edit mode reorders and deletes exercises within a day; the day header's menu renames the day and duplicates it. Every change goes back through the import pipeline, and one it would refuse says why rather than appearing to work.
+- "···": Set as active, Rename, Copy JSON, **Replace**, Delete. Replace (v1.1) opens Import targeting this plan's id: saving it keeps the id and, if this plan was active, keeps it active. Delete confirms (D25 v1.1).
+- Any day has **Start** (override). If a session is in progress this triggers the switch popup (D17): "You're in the middle of Pull (5 of 16 sets). Switching workouts mid-session isn't recommended." Buttons: **Keep going** (default), Finish Pull and start Legs, Discard Pull and start Legs.
+
+### 4.4 Add plan (D26, rewritten in v1.1's R3)
+The chatbot round-trip is this app's premise, and the v1 screen — a JSON text box — never explained it. **Add plan** offers three ways in, and the editor is a detail behind "Show text":
+
+- **Paste plan**, the one you use when the chatbot's reply is already on the clipboard. It imports immediately; the button does nothing when the clipboard holds no text (O3).
+- **Create with a chatbot**, three numbered steps: 1 **Copy prompt** (the button reads "Copied" and goes back on its own after about two seconds), 2 paste it into your chatbot and describe your training, 3 copy its reply and come back. The draft in the editor survives leaving the app.
+- **Import file**, for a `.json` on disk.
+
+**Errors** lead with a plain sentence naming where the problem is — "Day 1, exercise 2, set 2 needs either a rep target or a duration." — with the path, the code and the importer's own message behind **Details (n)**, and **Copy fix-it prompt** unchanged. `IssueText.friendly` has a sentence for every `E_` code in PLAN_FORMAT §4 and falls back to the importer's message for one it doesn't know.
+
+**Review plan** replaces the v1 preview: name, units, schedule and cycle chips; the days as rows that expand to their exercises with **per-set** targets ("3 × 8–12 · 24 / 26 / 28 kg"), the first day already open; **material** warnings shown in yellow (a dropped unit, a removed load, a changed grouping, an inferred schedule) with **cleanup** warnings folded behind "Details (n)" (curly quotes, unknown fields, rounded weights — tidying that did not change the workout); a **"Set as current plan"** toggle, default on; then **Save plan**. Same-name conflict → Replace / Keep both / Cancel. The toggle's value is passed through as `makeActive`; the very first plan ever saved always becomes active regardless of it, since there is nothing to compare it to.
+
+### 4.5 Workout screen (v1.1, D22)
+One screen, five fixed zones, top to bottom, identical across every state below. Only the zones' contents change; none of them appears, disappears, or moves position between working, resting, a timed set, or a block having just finished.
+
+> **Build status**: built in R2. `WorkoutScreen.model(active:history:now:)` resolves the whole screen — zones, set rows, prefilled inputs, strip and primary action — as a `WorkoutScreenModel`, and the view only renders it, which is what makes "the zones never move" a unit test (O50) rather than a convention.
+
+1. **Header**: elapsed time · progress ("Exercise 2 of 5 · Set 2 of 3", or "· drop 1 of 2", or "A · round 2 of 3" for a superset member) · **Exercises** (opens the Overview sheet, §4.8, reachable in every state including rest) · minimize (returns to the tabs; the session and its timers keep running; Home shows "<Day> in progress · <elapsed>" with **Resume**) · "···" (Skip set, Skip exercise, Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one).
+2. **Exercise block**: the exercise's name (opens its history) and target line (with notes, truncated to one line), then the current exercise's set rows: finished rows show what was logged ("✓ 10 @ 80") and never how long it took (D19), the current row is highlighted with its target and last-time value, upcoming rows show their targets. A row carries the set's own target only — the exercise's notes appear once, on the target line above, rather than repeating on every row. In a block holding more than one exercise (a superset round) each row names its exercise instead of repeating the shared group tag, which would otherwise make two rows read identically. A superset shows the current round's members. Tapping a finished row opens the edit sheet; tapping an upcoming row jumps to it (§6.6 `jumpTo`).
+3. **Inputs**: small-caps labels **REPS** and the unit (**KG**/**LB**) above the − value + rows; the weight row is omitted for bodyweight exercises (D21); a "72.5 suggested" chip appears under the weight when §6.11 produced one. Timed sets replace the reps row with the timer block described below; the weight row stays unless bodyweight.
+4. **Status strip** (always present; its content depends on phase, per §4.6/§4.7 below).
+5. **Primary action**, bottom-anchored above the keyboard, full width: **Log set** while working or resting (logging during rest ends the rest early); **Start timer** / **Done** / **Stop** for a timed set, per D20. When the step waiting on the far side of a rest is a timed one, **Start timer** ends that rest and starts the work in the same tap, exactly as logging out of a rest does — the one button in the one slot is never inert.
+
+After logging, a step's seconds (D19) remain editable in the Overview like any other value.
+
+### 4.6 Rest, within the status strip (between sets of the same exercise, or after a superset round)
+The strip shows: countdown m:ss, −30 s / +30 s, **Skip rest**, and "Set logged · **Undo**" (D23) for as long as the rest runs. Alert at zero (§6.4); at zero the strip reads "Rest over · +0:12" until the next log. "set 0:34" (how long the set just logged took, D19) appears in the strip in small text, never as the largest element on the screen.
+
+### 4.7 Between exercises: the status strip's block-done state (D14, revised in v1.1)
+There is no separate screen and no Continue gate. The moment a block's last step is logged or skipped, the next step's card appears immediately (phase → `working`, §6.6) and the exercise block (zone 2) already shows the next exercise. The status strip instead reads the finished block's line — "Barbell Row done · 9:40 · try 72.5 kg next time" — with a small count-up "moving on · 0:42" beneath, until the next set is logged. No alert, no notification, no countdown; the strip clears automatically on the next log or skip, or can be dismissed directly (`dismissBlockDone`, §6.6). Timed-set and rest logic behave as normal from the moment the strip appears — there is no screen on which they are suspended.
+
+### 4.8 Overview (from "···", or the header's Exercises button)
+Every step grouped by exercise with status and set time ("10 @ 60 · 0:34"); finished blocks show duration and advice. Tap logged → edit; tap pending → jump (cancels rest, and clears any block-done strip). A **skipped** step (v1.1, D27) can also be edited: the sheet's Save now sets its result, marks it logged, and updates `loggedAt` — recovering it rather than silently doing nothing. Reachable in every workout state, including rest and a block-done strip (v1.1) — previously it was attached only to the step card and unreachable during rest.
+
+### 4.9 Summary (rewritten in v1.1's R4)
+Leads with "**Workout saved**", then one line of what happened — "Push · 48 min · 16 of 18 sets · Volume 12,400 kg", with the volume fragment omitted entirely when it is zero (a bodyweight day has no volume, and "Volume 0 kg" reads like a failure). Then one section per exercise: a **sentence** comparing it to last time — "2 more reps at the same weight", "+2.5 kg", "+2.5 kg, 1 fewer rep", "5 s longer held", "First time" — plus the progression advice when there is any. When the weights varied within the exercise no single sentence is true of it, so a compact "10 @ 60 → 10 @ 62.5" table appears under a volume headline instead. Set and block durations sit behind **Details** (D19). **Done**.
+
+*(v1 printed both sessions' raw sets — "10, 8@60 · last 10, 9@60 · kg" — and left the reader to do the subtraction, with the block duration beside it as if it mattered as much.)*
+
+### 4.10 History
+Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly. Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1).
+
+### 4.11 Settings
+Units, default rest, sound, vibration, notifications state, keep awake, weight step, Export, **Import backup** (D31, v1.1), Delete all data, About. (The home-chart metric row went with the sparkline in v1.1's R3.)
+
+## 5. Flows
+
+### 5.1 First run
+Home's empty state offers two ways to have something to run today:
+- **Try the sample plan** imports the bundled `SamplePlan.json` (same as `examples/valid/weekly-rotation.json`) and makes it active → Home shows "Push", its five exercises and **Start Push**.
+- **Try a short practice workout** (v1.1) imports the bundled `PracticePlan.json`: one day, three straight-set exercises (one of them bodyweight), 60 s rest, no supersets, drops or timed work — small enough to run through in a few minutes to learn the app. It goes through the same import pipeline as any other plan; nothing in `examples/` is involved.
+
+### 5.2 Getting a plan in (the loop that makes this app different)
+1. Settings has units and default rest. **Add plan** → **Copy prompt** (step 1 of the three the screen lists).
+2. User opens ChatGPT/Claude, pastes the prompt, adds their plan text below it ("Mon: bench 3×8 … " or "design me a 4-day upper/lower split").
+3. Chatbot replies with a ```json block. User copies it.
+4. Back in the app: **Paste plan** → **Review plan** (the exercises, the per-set targets, the warnings worth reading) → **Save plan**.
+5. If it fails validation: the sentence on screen says what and where; **Copy fix-it prompt** → paste into the same chat → chatbot outputs corrected JSON → repeat step 4.
+
+### 5.3 Running a workout
+Home → Start → step card → Log set → rest → … → last set of the exercise → done screen (count-up) → Continue → next exercise … → last step → Summary → Done. Notification permission is requested the first time a session starts (not at app launch). If denied, a one-time in-app banner explains that alerts only work with the app open.
+
+### 5.4 Interrupted workout
+The active session is written to disk after every event. If the app is killed (or the phone dies), the Home start card offers Resume on next launch. Resume restores the exact step and, if a rest was running, shows it with the correct remaining or overrun time computed from `endsAt`; if the done screen was showing, its stopwatch continues from its `startedAt`.
+
+## 6. Behaviors (precise rules)
+
+### 6.1 Import pipeline
+Four stages, each a pure function, each unit-tested:
+
+1. **Extract** (`String → String`): strip BOM and zero-width characters; if the text contains a fenced code block, take the content of the first fence (any language tag); else take from the first `{` or `[` to the matching last `}` or `]`. Order of checks: over 1 MB → `E_TOO_LARGE`; blank → `E_EMPTY`; contains the prompt marker (PROMPT.md) and no fenced code block → `E_PROMPT_PASTED`; more than one fence, or a second top-level value after the first → `E_MULTIPLE_OBJECTS`; no `{`/`[` at all → `E_NOT_JSON`. The brace scan must be string-aware (braces inside string values don't count). Prose removed around the JSON → `W_SURROUNDING_TEXT` (a bare fence with nothing outside it is not prose).
+2. **Decode** (`String → RawPlan`): strict `JSONDecoder` into lenient DTOs (every field optional, numbers-or-strings accepted where PLAN_FORMAT says so). If strict decode fails and the text contains curly quotes, replace them with straight quotes and retry; success → `W_CURLY_QUOTES_FIXED`. Still failing → `E_NOT_JSON` with the decoder's position/message.
+3. **Normalize** (`RawPlan → Plan + [Issue]`): apply every leniency rule in PLAN_FORMAT §3 (wrap a bare day/array, expand `sets: 3` shorthand, parse rep strings, resolve rest via the fallback chain, infer schedule, normalize weekday and group strings, assign UUIDs, default missing names).
+4. **Validate** (`Plan → [Issue]`): every rule in PLAN_FORMAT §4. Any `E_*` issue blocks import. `W_*` issues are shown in Preview and stored on the plan.
+
+The original pasted text is kept on the Plan as `sourceText` for Copy JSON.
+
+### 6.2 Flattening a Day into Steps
+Input: `[Exercise]` in order. Output: `[Step]` where `Step = (exerciseIndex, setIndex, dropIndex, blockIndex, isLastInRound, isLastInBlock)`.
+
+- Walk exercises in order. An exercise with no group, or whose group differs from its neighbors, is a block of one. Consecutive exercises with the same normalized group form one block. Blocks are numbered 0.. in order.
+- A block of one exercise with sets S yields, for each set k, the step (e,k,0) followed by (e,k,1)…(e,k,D) for its D drops. `isLastInRound` is true on the last of those (the last drop, or the set itself if no drops).
+- A block of exercises E1..En with set counts S1..Sn yields `max(S)` rounds. Round r yields, for each Ei with r < Si in listed order, the set step and its drop steps. `isLastInRound` is true only for the last step of each round.
+- `isLastInBlock` is true for the final step of a block.
+- Steps are numbered 0..N−1 in output order. Nothing else in the app reasons about groups or drops; it only sees Steps.
+
+### 6.3 Rest resolution
+Resolved at import into every Set Target as `restSeconds: Int`. Fallback chain, first non-nil wins:
+`set.restSeconds → exercise.restSeconds → day.defaultRestSeconds → plan.defaultRestSeconds → user default rest setting (at import time)`.
+
+At execution, after logging step i, with n = nextStep(after: i):
+- n == nil → the session completes.
+- `steps[i].isLastInBlock` and n is in a different block → **transition** (D14): the done screen with a count-up stopwatch; no countdown. The Set Target's `restSeconds` is unused here.
+- `!steps[i].isLastInRound` (the next step is a drop of this set, or the next superset member) → 0: the next step card appears immediately.
+- otherwise → countdown of `restSeconds` of step i's Set Target, except for grouped exercises where the rest after a round is the first explicit `restSeconds` found among the group's members in listed order, else the fallback chain. A value of 0 means no timer.
+
+If n is in the same block but earlier (the user jumped ahead and comes back), the rule for "otherwise" applies. If n is in an earlier block, transition.
+
+### 6.4 Rest timer
+- State is `RestState(endsAt: Date, nextStep: Int, startedAt: Date)`. Remaining = `endsAt − now`, recomputed on every tick (TimelineView, 1 s) and on every foreground event. Never store a countdown integer.
+- On rest start: schedule one local notification, identifier `"rest-timer"`, fire date `endsAt`, title "Rest over", body "Next: <exercise> · set k of n · <target>". Always `removePendingNotificationRequests(withIdentifiers: ["rest-timer"])` before scheduling and on skip/jump/finish/discard/app-quit-of-session.
+- +30 s / −30 s: `endsAt += 30` (or −30); if `endsAt <= now` the rest ends immediately. Reschedule the notification after each adjustment.
+- At `endsAt` while foregrounded: haptic (`.success`) and the sound (if enabled), overlay dismisses, phase → working(nextStep). Overrun label shows `now − endsAt` until the next log.
+- If the app is foregrounded after `endsAt` already passed: no sound (the notification did that), phase → working(nextStep), overrun label shown.
+- Audio: `AVAudioSession` category `.playback`, options `[.mixWithOthers, .duckOthers]`, activated only for the duration of the beep, so music keeps playing and the beep is audible on silent. Sound setting off → no audio session activity at all.
+- The done screen's stopwatch is `now − transition.startedAt`, rendered by the same TimelineView. It schedules nothing and plays nothing.
+- Work countdown for fixed-duration sets uses the same component with `endsAt = now + duration`, notification body "Time! <exercise> set k of n". "Done" early logs the elapsed seconds (rounded down); at zero it logs the full duration and moves to rest.
+- Warning beep (fixed durations, `warningBeepSeconds = w`, resolved at import per PLAN_FORMAT §3.12): at `endsAt − w` play a short, quieter tick plus a light haptic (respecting the sound and vibration settings). It is scheduled as a second local notification, identifier `"set-warning"`, body "{w} s left", with the bundled short `warning.caf`, so it also fires when the phone is locked. The final beep at `endsAt` is the normal alert plus the `"set-end"` notification. Both notifications are cancelled together on Done, Stop, skip, jump, finish, discard. Beep moments are computed from `startedAt`, never counted; a moment that passed while backgrounded is not replayed (the notification covered it).
+- Open-duration sets run a stopwatch from `startedAt`; **Stop** logs `floor(now − startedAt)`. If the target has a minimum, one beep (tick + haptic, and a `"set-minimum"` notification "30 s reached") plays at `startedAt + min`. Nothing else fires; there is no end.
+
+### 6.5 Memory: prefill and "last time"
+Same-name lookup uses the normalized name (D8) and only considers **completed** sessions, newest first. "Last session" below means the most recent completed session containing this exercise **with the same units as the current plan** and at least one logged set of it.
+
+Weight prefill for step (exercise E, set index k), first hit wins:
+1. Most recent logged weight for E **in the current session** (any earlier set index).
+2. Last session: weight logged at set index k if present, else the last logged weight for E in that session.
+3. The Set Target's weight.
+4. Empty.
+
+Reps prefill (D11), first hit wins:
+1. Last session: reps logged at set index k, **if the prefilled weight equals that set's weight** (same number, same unit; both nil counts as equal). This is the normal case: you did 10 @ 60 last week, the card shows 10 @ 60, and one "+" makes it 11.
+2. Last session has no set k (fewer sets last time) → the last logged reps for E in that session, same weight condition.
+3. Otherwise the target: fixed n → n; range (min, max) → min; amrap → empty.
+
+Dynamic rule: while the step card is showing, if the user changes the **weight** field to a value different from the last session's weight for that set, and has not yet edited the reps field, the reps field re-prefills from rule 3 (the target). Changing the weight back restores rule 1. Once the user edits reps, the app stops touching it.
+
+Seconds prefill for fixed-duration sets: last session's seconds at index k, else the target duration. Open-duration sets have no prefill (the stopwatch decides); the "Last time" line shows last session's seconds ("0:52, **0:48**, 0:40").
+
+Drops: lookups use (set index, drop index). Weight prefill for a drop, first hit: same drop last session (same conditions as above); the drop's target weight; the previous step's logged weight (so the user only taps −). Reps prefill for a drop: last session's reps at that drop if the weight matches, else the drop's target (AMRAP → empty).
+
+"Last time" line: from the last session: reps per set joined by ", ", drops joined to their set with "↓" ("10↓8↓6"), and weight(s). The entry whose set index equals the current step's set index is rendered **bold**. If all weights equal show "@ 60 kg" once; if they differ show per set "10@60, 8@65"; if none show reps only. Skipped sets show "–". If the last session had fewer sets than the current index, nothing is bold.
+
+Under the weight field: "Last: <last session's weight at index k, or last logged weight> kg". Absent if none. When §6.11 produced a suggestion for E in the last session, a chip "Suggested: 62.5 kg" appears next to it; tapping sets the weight field (and triggers the dynamic rule above).
+
+### 6.6 Session state machine
+Pure struct `SessionEngine` with `apply(_ event: Event, now: Date) -> [Effect]`. Effects: `scheduleNotification(at:body:)`, `cancelNotification`, `playAlert`, `persist`, `sessionCompleted`.
+
+```
+enum Phase { case working(step: Int), resting(RestState), transition(TransitionState), completed }
+
+enum Event {
+  case logSet(step: Int, result: SetResult)
+  case editSet(step: Int, result: SetResult)      // no phase change, no timer
+  case skipSet(step: Int)
+  case skipExercise(exerciseIndex: Int)           // all pending steps of that exercise → skipped
+  case jumpTo(step: Int)                          // cancels rest, phase → working(step)
+  case adjustRest(seconds: Int)
+  case skipRest
+  case restElapsed                                // from tick or foreground check
+  case startTimer(step: Int)                      // timed sets: begins the countdown/stopwatch
+  case stopTimer(step: Int)                       // open duration: logs elapsed seconds
+  case timerDone(step: Int)                       // fixed duration, early: logs elapsed seconds
+  case timerElapsed(step: Int)                    // fixed duration reached zero: logs the target
+  case continueTransition                         // done screen → working(nextStep)
+  case renameExercise(exerciseIndex: Int, name: String)
+  case finish                                     // remaining pending → skipped, → completed
+}
+```
+
+Rules:
+- Whenever the phase becomes `working(step)` (from any event), set `steps[step].startedAt = now` unless the step is a timed set, whose `startedAt` is set by `.startTimer` instead. Re-entering a step (jump back) resets it.
+- `startTimer(step)`: timed sets only; sets `startedAt = now`, phase stays working. Effects: fixed duration → `scheduleNotification("set-end", endsAt)` and, if `warningBeepSeconds` is set, `scheduleNotification("set-warning", endsAt − w)`; open duration with a minimum → `scheduleNotification("set-minimum", startedAt + min)`. `stopTimer`/`timerDone`/`timerElapsed`/skip/jump emit `cancelNotification` for all three ids. `stopTimer` (open) / `timerDone` (fixed, early) log `floor(now − startedAt)` seconds via the normal logSet path; `timerElapsed` (fixed, at zero) logs the full duration.
+- `nextStep(after i)`: first pending step with index > i; else first pending step with any index; else nil.
+- `logSet(i)`: set result, status = logged, `loggedAt = now`. Let n = nextStep(after: i). If n == nil → completed. Else per §6.3: transition → `transition(startedAt: now, nextStep: n)` (no notification, `adviceForBlockJustFinished` computed); rest 0 → working(n); else resting(endsAt: now + rest, nextStep: n) + scheduleNotification.
+- `skipSet(i)`: status = skipped, `loggedAt = now`, then the same advance logic but **never starts a countdown**: transition if the block ended, else working(n), or completed.
+- `skipExercise`: mark that exercise's pending steps skipped (loggedAt = now), then transition if a block ended and another remains, else working(nextStep(after: current)) or completed.
+- `continueTransition`: only valid in `transition` → working(nextStep). Any other phase: no-op.
+- `jumpTo` from `transition` → working(step) (stopwatch discarded).
+- Any event that changes phase away from resting emits `cancelNotification`.
+- `finish` with pending steps: the UI must confirm ("3 sets not done. Finish anyway?"); the engine just does it.
+- `finish` or completing with **zero logged steps**: UI asks "Nothing was logged. Discard this workout?" → discard (no session saved, no rotation advance). "Save anyway" is not offered.
+- Completed session: `endedAt = now`, moved from `active-session.json` to `sessions/<id>.json`, rotation pointer updated (§6.8), summary shown.
+- Every event ends with `persist`.
+
+### 6.11 Progression advice (D12)
+Evaluated for an exercise E the moment its last step in the session is logged or skipped, and again on the Summary and in history. Pure function `ProgressionAdvice.evaluate(exercise: SessionExercise, steps: [SessionStep], weightStep: Double) -> Advice?`.
+
+Inputs: `range = E.repRange` (min, max). The logged rep-based **main** sets of E this session (dropIndex 0; drops are ignored): `n` sets with reps `r_1..r_n` and weights `w_1..w_n`.
+
+Preconditions (return nil if any fails): E has a rep range; n ≥ 1; every logged set is rep-based; all `w_i` are equal (one working weight; nil when E is bodyweight or no weight was logged). Skipped sets are ignored; if every set was skipped, nil.
+
+Let `achieved = Σ r_i`, `ceiling = n × max`, `floor = n × min`, `tolerance = 1`.
+- `achieved ≥ ceiling − tolerance` → `.increase(to: w + weightStep)`. Message: "All sets hit the top of {min}–{max}. Try {w + step} {unit} next time." Bodyweight (w nil) → `.increaseLoad`: "You've completed the range. Add load or a harder variation." `tolerance = 1` means missing a single rep across the whole exercise still counts as done; that is the owner's "close to completing" rule.
+- `achieved < floor` → `.decrease(to: max(0, w − weightStep))`. Message: "Below {min}–{max} across {n} sets. Try {w − step} {unit} next time, or keep {w} and build up." Bodyweight → `.decreaseLoad`: "Below the range. Try an easier variation or fewer sets."
+- otherwise → nil (inside the range; keep the weight). The UI shows nothing.
+
+The advice is stored on the completed session's exercise (`advice`) so the next session can show the "Suggested" chip without recomputing across history. Advice is never applied to the weight field automatically.
+
+### 6.12 Calendar projection
+`Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.
+- Past and today: `.completed` for days with ≥ 1 completed session (any plan). Past days without a session are `.none`, never `.rest` — a day you didn't train is not a scheduled rest day.
+- Future days (and today if no session yet):
+  - weekday plan → `.projected` for days whose weekday has a Day, `.rest` for every other weekday (a weekday plan names all its training days, so the remainder are rest).
+  - rotation plan whose cycle contains at least one `.rest` entry → starting tomorrow, walk the cycle one entry per calendar day from `cyclePosition + 1`; `.day` → projected, `.rest` → rest. A `.day` entry whose index no longer exists is `.none`, not `.rest`.
+  - rotation plan with no rest entries → project only tomorrow as Next up, nothing further, and no rest days (a rest-free cycle would paint every day, which would be misleading).
+- Projection never shows more than 62 days ahead (two months); past that every day is `.none`.
+
+### 6.7 Stats
+- Session duration = `endedAt − startedAt` wall clock. No pause feature. Elapsed time is shown in the workout header and on the rest overlay.
+- Set duration (D19) = `loggedAt − startedAt` for a logged step, in whole seconds; nil if `startedAt` is missing (pre-D19 data) or the step was skipped. Shown as "0:34". Average set time per session appears on the Summary.
+- Exercise duration (for an ungrouped exercise, or for a whole superset block): `end − start` where `end` = `loggedAt` of the block's last logged-or-skipped step, and `start` = `loggedAt` of the last step logged before the block began (the previous block's last step), or `session.startedAt` for the first block. Transition time between blocks therefore counts toward the exercise that follows it, so block durations sum to the session duration. The done screen shows the block that just finished (its duration excludes the stopwatch now running). Not shown until the block is finished (all its steps logged or skipped); never shown for a block with zero logged steps. Skipped steps get `loggedAt` set to the skip time so this works.
+- `ExerciseHistory.series(name, units) -> [ExercisePoint]`: one point per completed session containing the exercise, oldest first: `date`, `sets: [SetResult]`, `setSeconds: [Int?]`, `topWeight`, `topSetReps` (reps at topWeight), `topSeconds` (longest duration set), `volume`, `units`. This is the data source for the time-vs-weight-and-reps chart, which v1.1's R5 built on top of it with no schema change (D13, D30); it must run under 50 ms for 1000 sessions.
+- Sets logged/total counts steps; skipped steps count in total only.
+- Volume = Σ (reps × weight) over logged rep-based steps (drops included) that have a weight. Timed steps and weightless steps contribute 0. Displayed in the session's units. Never summed across sessions with different units (History list shows per-session volume only).
+- Exercise best = the logged set with the highest weight; tie → more reps. Rep-based sets only. Shown as "Best: 100 kg × 5". If no weighted sets: most reps.
+- "This time vs last time" on Summary compares per exercise to the most recent earlier completed session containing that exercise.
+
+### 6.8 Plans, active plan, cycle, weekday (D16)
+- Many plans may exist; exactly one is active (or none). Importing a plan makes it active if none is active; otherwise it asks.
+- Every plan has `cycle: [CycleEntry]`, `CycleEntry = .day(dayIndex) | .rest`, length 1–31, resolved at import (PLAN_FORMAT §3.10): explicit `cycle` for rotation plans, else the days in order with no rest; weekday plans always derive `[Mon…Sun]` with `.rest` for unlisted weekdays and ignore an explicit cycle.
+- Rotation: `cyclePosition: Int?` = index in the cycle of the last completed entry. **Next up** = the first `.day` entry after `cyclePosition` (wrapping; from index 0 if nil). Rest entries are skipped by Next up but used by the calendar.
+- On session completion for plan P, day D (matched by normalized name in P's current days): `cyclePosition` = the first index after the current position (wrapping) whose entry is D; if D isn't in the cycle, unchanged. Discarded sessions never move it. Deleted plan / unknown day: nothing happens.
+- Replacing a plan: keep the position by matching the day name at the old position to the new cycle (first occurrence); if it doesn't exist, nil.
+- Weekday plans: Home shows the day whose weekday equals today (local calendar); else "Rest day" and the next weekday that has one. `cyclePosition` is unused.
+- Starting any Day from Plan detail or the calendar is always allowed regardless of the cycle. If a session is in progress it triggers the D17 popup; "Finish X and start Y" finishes X exactly like Finish (pending → skipped, advice, cycle advance) then starts Y; "Discard X and start Y" discards X.
+- Two sessions on the same calendar day are allowed. A session's `date` for grouping = local calendar date of `startedAt`.
+
+### 6.9 Exercise name matching
+`normalized(name) = name.trimmingCharacters(whitespacesAndNewlines).lowercased()` then collapse runs of whitespace to one space. No diacritic folding. Used for history lookup, plan-name conflicts, day lookup for the pointer, and group tags (uppercased instead of lowercased).
+
+### 6.10 Input rules
+- Reps field: digits only, max 3 characters, 0 allowed (a failed set logs as 0, no confirmation), empty disables Log set.
+- Weight field: digits plus one decimal separator; accept both `.` and `,`; one decimal place kept; 0 allowed; empty allowed (logs no weight); max 10000.
+- Seconds field (timed sets): digits, max 5 characters, 0 allowed.
+- − / + buttons never go below 0. Long-press repeats.
+
+## 7. Data model (Core, Codable, no UI imports)
+
+```swift
+struct Plan: Codable, Identifiable {
+    var id: UUID
+    var name: String
+    var units: WeightUnit                 // kg | lb
+    var schedule: Schedule                // rotation | weekday
+    var days: [Day]
+    var importedAt: Date
+    var sourceText: String                // original paste
+    var warnings: [Issue]                 // W_* from import
+    var cycle: [CycleEntry]               // resolved at import (§6.8)
+    var cyclePosition: Int?
+}
+struct Day: Codable, Identifiable { var id: UUID; var name: String; var weekday: Weekday?; var exercises: [Exercise] }
+struct Exercise: Codable, Identifiable { var id: UUID; var name: String; var group: String?; var notes: String?; var repRange: RepRange?; var bodyweight: Bool; var sets: [SetTarget] }
+struct RepRange: Codable, Equatable { var min: Int; var max: Int }   // 1 ≤ min ≤ max ≤ 1000
+struct SetTarget: Codable { var work: WorkTarget; var weight: Double?; var restSeconds: Int; var warningBeepSeconds: Int?; var drops: [DropTarget] }   // rest and warning offset already resolved; warning only on fixed durations
+struct DropTarget: Codable, Equatable { var work: WorkTarget; var weight: Double? }   // work defaults to .reps(.amrap(min: nil))
+enum WorkTarget: Codable { case reps(RepTarget); case duration(seconds: Int); case openDuration(minSeconds: Int?) }
+enum RepTarget: Codable { case fixed(Int); case range(min: Int, max: Int); case amrap(min: Int?) }
+enum Weekday: String, Codable, CaseIterable { case monday, tuesday, wednesday, thursday, friday, saturday, sunday }
+
+struct Step: Equatable { let exerciseIndex: Int; let setIndex: Int; let dropIndex: Int; let blockIndex: Int; let isLastInRound: Bool; let isLastInBlock: Bool }
+enum CycleEntry: Codable, Equatable { case day(Int), rest }
+
+struct Session: Codable, Identifiable {
+    var id: UUID
+    var planId: UUID?; var planName: String; var dayName: String
+    var units: WeightUnit
+    var startedAt: Date; var endedAt: Date?
+    var exercises: [SessionExercise]      // snapshot; names editable for this session
+    var steps: [SessionStep]              // flattened, in order
+}
+struct SessionExercise: Codable, Identifiable { var id: UUID; var name: String; var group: String?; var notes: String?; var repRange: RepRange?; var bodyweight: Bool; var targets: [SetTarget]; var advice: Advice? }
+enum Advice: Codable, Equatable { case increase(to: Double), increaseLoad, decrease(to: Double), decreaseLoad }
+struct ExercisePoint: Equatable { var date: Date; var sets: [SetResult]; var setSeconds: [Int?]; var topWeight: Double?; var topSetReps: Int?; var topSeconds: Int?; var volume: Double; var units: WeightUnit }
+struct SessionStep: Codable { var exerciseIndex: Int; var setIndex: Int; var dropIndex: Int; var blockIndex: Int; var isLastInRound: Bool; var isLastInBlock: Bool; var status: StepStatus; var result: SetResult?; var startedAt: Date?; var loggedAt: Date? }   // setSeconds = loggedAt − startedAt
+enum StepStatus: String, Codable { case pending, logged, skipped }
+enum SetResult: Codable { case reps(count: Int, weight: Double?); case duration(seconds: Int, weight: Double?) }
+
+struct ActiveSession: Codable { var session: Session; var phase: Phase; var lastRestEndedAt: Date? }
+struct RestState: Codable { var startedAt: Date; var endsAt: Date; var nextStep: Int; var isWork: Bool }  // isWork = timed-set countdown
+struct TransitionState: Codable { var startedAt: Date; var nextStep: Int; var finishedBlock: Int }
+
+struct Settings: Codable { var units: WeightUnit; var defaultRestSeconds: Int; var sound: Bool; var vibration: Bool; var keepAwake: Bool; var weightStepKg: Double; var weightStepLb: Double; var homeMetric: HomeMetric }
+enum HomeMetric: String, Codable, CaseIterable { case duration, volume, setsLogged, avgWeight, avgReps, exercises }
+
+struct Issue: Codable, Equatable { var severity: Severity; var code: String; var path: String; var message: String }   // e.g. ("error","E_REPS_INVALID","days[0].exercises[2].reps","…")
+```
+
+## 8. Persistence
+
+### 8.1 Layout
+```
+<Application Support>/JimmsBro/
+  settings.json            Settings
+  plans.json               { "fileVersion": 1, "activePlanId": UUID?, "plans": [Plan] }
+  active-session.json      { "fileVersion": 1, ...ActiveSession }   present only during a workout
+  sessions/<uuid>.json     { "fileVersion": 1, ...Session }          one file per completed session
+```
+Application Support is included in iCloud/iTunes device backups by default. Set file protection to `.completeUntilFirstUserAuthentication` so background writes never fail on a locked phone.
+
+### 8.2 Writes
+All I/O goes through one `Store` actor. Every write is atomic: encode to `Data`, write to a temp file in the same directory, then `FileManager.replaceItemAt`. The active session is written after every engine event. Encoder uses ISO-8601 dates and sorted keys (stable diffs, testable).
+
+### 8.3 Reads and corruption
+On launch, load settings, plans, active session, and all session files into memory. Any file that fails to decode is renamed to `<name>.corrupt-<unixtime>` and treated as absent; the app shows one alert "A data file couldn't be read and was set aside" listing the file names. Never crash. Never delete.
+
+### 8.4 Why this is enough for charts
+Every logged set carries `loggedAt`, reps or seconds, weight and the session's unit, and sessions are immutable snapshots. A per-exercise chart over time (D13) is `ExerciseHistory.series` over the in-memory session list. No index, no migration, no extra file.
+
+### 8.5 Export and restore
+`{ "exportedAt", "appVersion", "fileVersion": 1, "settings", "plans", "sessions": [...], "activePlanId" }` written to a temp file and offered via ShareLink. `activePlanId` was added in v1.1 and is optional, so a v1 backup still restores — it just leaves the first plan active.
+
+**Restoring** (D31, v1.1): Settings → Import backup reads the file and reports its date, its app version, how many plans and workouts it holds, and how many of each a Merge would actually add. Nothing is written until **Merge** or **Replace all** is chosen. Merge adds only ids not already on disk and leaves the current settings, the active plan and anything edited since the backup untouched; Replace all empties the store first and takes the backup's settings and active plan. A running workout is discarded before either. A file that isn't a backup, or whose `fileVersion` is newer than this app's, is refused with a message before anything is written.
+
+### 8.6 Data survival on the free-account 7-day reinstall
+Re-running from Xcode over the existing install keeps the container. Deleting the app deletes everything. Settings shows this sentence next to Export.
+
+## 9. Non-functional
+- Launch to Home under 1 s with 1000 sessions on disk.
+- No network permission needed. No analytics.
+- VoiceOver: every control labeled; timer end announced; step card reads as one element ("Bench press, set 2 of 4, target 8 to 12 reps at 60 kilograms").
+- Dynamic Type up to accessibility XL without clipping the Log button off screen.
+- 44 pt minimum tap targets; the Log set button spans the width above the keyboard.
+
+## 10. Later (explicitly out of v1)
+- Live Activity / Dynamic Island rest timer (the Date-based design makes this a drop-in).
+- Sync across devices. Apple Watch. Apple Health. (~~Import a backup file~~ — built in v1.1's R5, D31.)
+- Estimated 1RM; PR *celebrations* (the marker itself shipped in v1.1's R5, D30). ~~The time-vs-weight-and-reps chart per exercise~~ — built in v1.1's R5 (D13, D30).
+- Add an exercise mid-session; per-session notes. (~~Reorder~~ within a workout is D28's Do later; reordering a *plan's* exercises is D29.)
+- ~~Editing plans inside the app~~ — built in v1.1's R5 (D29). Still out: adding an exercise to a day, and editing an individual set independently of the others.
+- Add a pasted single Day to an existing plan (helps when the chatbot truncates a long week).
+- An optional nudge on the done screen after N minutes; `transitionSeconds` between superset members.
+- A warning beep before the **rest** timer ends ("get ready"); a "Start set" tap for exact rep-set timing.
+- An agenda view for the calendar; tapping a projected day to reschedule. (~~Week view~~ — built in v1.1's R3, D18.)
+- Manual rest start (auto-start off), pause, custom sounds.
+- Applying progression advice to the weight field automatically; per-exercise `tolerance`.
+- A compact text plan format (`Bench 3x10 @60 r90`).
+- Localization, iPad, landscape.
+
+## 11. Open questions for the owner
+None block v1. Confirm D1, D2 and D10 in §1, and pick the free vs paid Apple route in §2.
