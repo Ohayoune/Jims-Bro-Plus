@@ -1,0 +1,308 @@
+import Foundation
+
+enum Event {
+    case logSet(step: Int, result: SetResult), editSet(step: Int, result: SetResult)
+    case skipSet(step: Int), skipExercise(exerciseIndex: Int), jumpTo(step: Int)
+    case adjustRest(seconds: Int), skipRest, restElapsed
+    case startTimer(step: Int), stopTimer(step: Int), timerDone(step: Int), timerElapsed(step: Int)
+    /// D23 v1.1: undoes the most recently logged-or-skipped step, if nothing was logged after it.
+    case undoLog(step: Int)
+    /// D14 v1.1: clears the status strip's block-just-finished state; replaces `continueTransition`,
+    /// since the next step's card is already showing by the time this fires.
+    case dismissBlockDone
+    /// D28 v1.1 (R5): moves an exercise's remaining sets to the end of the day — the machine is
+    /// taken, so do it later rather than skipping it.
+    case deferExercise(exerciseIndex: Int)
+    case renameExercise(exerciseIndex: Int, name: String), finish
+    case setWorkWeight(step: Int, weight: Double?)
+}
+enum Effect: Equatable {
+    case scheduleNotification(id: String, at: Date, body: String)
+    case cancelNotification(id: String)
+    case playAlert(TimerBeep)
+    /// v1.1 (D22/P6): the confirmation a logged set gets. An effect rather than a view-side
+    /// call so "exactly once per logged set" is assertable in Core (O59).
+    case playFeedback(Feedback)
+    case persist, sessionCompleted
+}
+struct SessionEngine {
+    private(set) var active: ActiveSession
+    var settings: Settings
+    var history: [Session]
+    var session: Session { active.session }
+    var phase: Phase { active.phase }
+    var loggedCount: Int { session.steps.filter { $0.status == .logged }.count }
+    var initialEffects: [Effect] { [.persist] }
+    var adviceForBlockJustFinished: [Advice] {
+        guard let blockDone = active.blockDone else { return [] }
+        let indices = Set(session.steps.filter { $0.blockIndex == blockDone.finishedBlock }.map(\.exerciseIndex))
+        return indices.sorted().compactMap { session.exercises[safe: $0]?.advice }
+    }
+    /// Whether `undoLog` would currently succeed, so the UI can show or hide the affordance.
+    var canUndo: Bool { active.canUndo }
+    init(session: Session, settings: Settings = Settings(), history: [Session] = [], now: Date) {
+        self.settings = settings
+        self.history = history
+        active = ActiveSession(session: session, phase: session.steps.isEmpty ? .completed : .working(step: 0))
+        if let index = session.steps.indices.first { enterWorking(index, now: now) }
+    }
+    init(active: ActiveSession, settings: Settings = Settings(), history: [Session] = []) { self.active = active; self.settings = settings; self.history = history }
+    func elapsed(now: Date) -> TimeInterval { max(0, (session.endedAt ?? now).timeIntervalSince(session.startedAt)) }
+    func nextStep(after index: Int) -> Int? {
+        session.steps.indices.first { $0 > index && session.steps[$0].status == .pending }
+        ?? session.steps.indices.first { session.steps[$0].status == .pending }
+    }
+    private var currentStep: Int? {
+        switch phase { case let .working(i): return i; case let .resting(s): return s.nextStep; case .completed: return nil }
+    }
+    private mutating func enterWorking(_ index: Int, now: Date) {
+        active.phase = .working(step: index)
+        active.timerRunning = false; active.deliveredBeeps = []
+        guard active.session.steps.indices.contains(index) else { return }
+        active.workWeight = Prefill.values(session: session, step: index, history: history).weight
+        active.session.steps[index].startedAt = session.target(at: index)?.work.isTimed == true ? nil : now
+    }
+    private mutating func cancelWork() -> [Effect] {
+        active.timerRunning = false; active.deliveredBeeps = []
+        return ["set-end","set-warning","set-minimum"].map { .cancelNotification(id: $0) }
+    }
+    private mutating func reevaluateAdvice(_ e: Int) {
+        guard session.exercises.indices.contains(e) else { return }
+        let steps = session.steps.filter { $0.exerciseIndex == e }
+        guard !steps.contains(where: { $0.status == .pending }) else { return }
+        active.session.exercises[e].advice = ProgressionAdvice.evaluate(exercise: session.exercises[e], steps: steps, weightStep: settings.weightStep(for: session.units))
+    }
+    private mutating func complete(now: Date) -> [Effect] {
+        active.session.endedAt = now; active.phase = .completed; active.blockDone = nil
+        for e in session.exercises.indices { reevaluateAdvice(e) }
+        return [.sessionCompleted]
+    }
+    /// SPEC §6.3 (v1.1): a finished block advances straight into `working(next)` — there is no
+    /// separate phase for it — with `BlockDone` recording what the status strip shows.
+    private mutating func advance(after index: Int, now: Date, skipped: Bool) -> [Effect] {
+        active.blockDone = nil
+        let next = nextStep(after: index)
+        guard let next else { return complete(now: now) }
+        let advance = RestResolution.after(index, next: next, steps: session.steps, exercises: session.exercises)
+        switch advance {
+        case .completed: return complete(now: now)
+        case .blockDone:
+            let finishedBlock = session.steps[index].blockIndex
+            enterWorking(next, now: now)
+            active.blockDone = BlockDone(finishedBlock: finishedBlock, startedAt: now)
+            return []
+        case let .rest(seconds):
+            if skipped || seconds == 0 { enterWorking(next, now: now); return [] }
+            let endsAt = now.addingTimeInterval(Double(seconds))
+            active.phase = .resting(RestState(startedAt: now, endsAt: endsAt, nextStep: next))
+            return [.cancelNotification(id: "rest-timer"), .scheduleNotification(id: "rest-timer", at: endsAt, body: nextBody(next))]
+        }
+    }
+    private func nextBody(_ index: Int) -> String {
+        guard let step = session.steps[safe: index], let e = session.exercises[safe: step.exerciseIndex], let target = session.target(at: index) else { return "Next set" }
+        return "Next: \(e.name) · set \(step.setIndex + 1) of \(e.targets.count) · \(TargetText.work(target.work))"
+    }
+    private func valid(_ result: SetResult) -> Bool {
+        let count = result.reps ?? result.seconds ?? -1
+        return count >= 0 && count <= 99_999 && (result.weight.map { $0.isFinite && (0...10000).contains($0) } ?? true)
+    }
+    private func cleaned(_ result: SetResult, step: Int) -> SetResult {
+        guard let s = session.steps[safe: step], session.exercises[safe: s.exerciseIndex]?.bodyweight == true else { return result }
+        switch result { case let .reps(n,_): return .reps(count:n,weight:nil); case let .duration(n,_): return .duration(seconds:n,weight:nil) }
+    }
+    @discardableResult mutating func apply(_ event: Event, now: Date) -> [Effect] {
+        var effects: [Effect] = []
+        let oldPhase = phase
+        switch event {
+        case let .logSet(i, result), let .editSet(i, result):
+            guard session.steps.indices.contains(i), valid(result) else { return [] }
+            let isEdit: Bool
+            if case .editSet = event { isEdit = true } else { isEdit = false }
+            let previousStatus = session.steps[i].status
+            // D27 v1.1: editSet now also recovers a skipped step, not only a logged one.
+            if isEdit && previousStatus == .pending { return [] }
+            if !isEdit && phase == .completed { return [] }
+            active.session.steps[i].result = cleaned(result, step: i)
+            active.session.steps[i].status = .logged
+            if !isEdit {
+                active.session.steps[i].loggedAt = now
+            } else if previousStatus == .skipped {
+                // Recovering a skip: the old skip timestamp no longer describes anything real.
+                active.session.steps[i].loggedAt = now
+            }
+            reevaluateAdvice(session.steps[i].exerciseIndex)
+            if !isEdit {
+                active.lastCompletedStep = i
+                effects.append(.playFeedback(.logged))
+                effects += cancelWork(); effects += advance(after: i, now: now, skipped: false)
+            }
+        case let .skipSet(i):
+            guard session.steps.indices.contains(i), phase != .completed else { return [] }
+            effects += cancelWork()
+            active.session.steps[i].status = .skipped; active.session.steps[i].result = nil; active.session.steps[i].loggedAt = now
+            active.lastCompletedStep = i
+            reevaluateAdvice(session.steps[i].exerciseIndex)
+            effects += advance(after: i, now: now, skipped: true)
+        case let .skipExercise(e):
+            guard session.exercises.indices.contains(e), let current = currentStep else { return [] }
+            let pending = session.steps.indices.filter { session.steps[$0].exerciseIndex == e && session.steps[$0].status == .pending }
+            guard !pending.isEmpty else { return [] }
+            effects += cancelWork()
+            active.blockDone = nil
+            for i in pending { active.session.steps[i].status = .skipped; active.session.steps[i].result = nil; active.session.steps[i].loggedAt = now }
+            reevaluateAdvice(e)
+            let block = session.steps[pending[0]].blockIndex
+            if let next = nextStep(after: current), !session.steps.contains(where: { $0.blockIndex == block && $0.status == .pending }), session.steps[next].blockIndex != block {
+                enterWorking(next, now: now)
+                active.blockDone = BlockDone(finishedBlock: block, startedAt: now)
+            } else { effects += advance(after: current, now: now, skipped: true) }
+        case let .jumpTo(i):
+            guard session.steps.indices.contains(i), phase != .completed else { return [] }
+            effects += cancelWork()
+            if case .resting = phase { active.lastRestEndedAt = now }
+            active.blockDone = nil
+            enterWorking(i, now: now)
+        case let .undoLog(i):
+            // Valid only for the single most recently logged-or-skipped step, and only until
+            // something else has been logged or skipped after it (D23 v1.1).
+            guard phase != .completed, active.lastCompletedStep == i,
+                  let status = session.steps[safe: i]?.status, status != .pending
+            else { return [] }
+            effects += cancelWork()
+            let e = session.steps[i].exerciseIndex
+            active.blockDone = nil
+            active.lastCompletedStep = nil
+            active.session.steps[i].status = .pending
+            active.session.steps[i].result = nil
+            active.session.steps[i].loggedAt = nil
+            if session.exercises.indices.contains(e) { active.session.exercises[e].advice = nil }
+            enterWorking(i, now: now)
+        case let .adjustRest(seconds):
+            guard case var .resting(rest) = phase else { return [] }
+            rest.endsAt = rest.endsAt.addingTimeInterval(Double(seconds))
+            effects.append(.cancelNotification(id: "rest-timer"))
+            if rest.endsAt <= now { active.lastRestEndedAt = rest.endsAt; enterWorking(rest.nextStep, now: now) }
+            else { active.phase = .resting(rest); effects.append(.scheduleNotification(id: "rest-timer", at: rest.endsAt, body: nextBody(rest.nextStep))) }
+        case .skipRest, .restElapsed:
+            guard case let .resting(rest) = phase else { return [] }
+            if case .restElapsed = event {
+                guard now >= rest.endsAt else { return [] }
+                if now.timeIntervalSince(rest.endsAt) < 1 { effects.append(.playAlert(.end)) }
+                active.lastRestEndedAt = rest.endsAt
+            } else { active.lastRestEndedAt = now }
+            enterWorking(rest.nextStep, now: now)
+        case let .startTimer(i):
+            // v1.1 (D22): a timed set can be started straight out of rest, exactly as a reps set
+            // can be logged out of it. Without this the one primary button would do nothing
+            // whenever the step waiting on the other side of a rest happens to be timed.
+            if case let .resting(rest) = phase, rest.nextStep == i, !active.timerRunning,
+               session.target(at: i)?.work.isTimed == true {
+                active.lastRestEndedAt = now
+                enterWorking(i, now: now)
+            }
+            guard case let .working(current) = phase, current == i, !active.timerRunning, let target = session.target(at: i), target.work.isTimed else { return [] }
+            active.session.steps[i].startedAt = now; active.timerRunning = true; active.deliveredBeeps = []
+            effects += ["set-end","set-warning","set-minimum"].map { .cancelNotification(id: $0) }
+            switch target.work {
+            case let .duration(n):
+                let end = now.addingTimeInterval(Double(n))
+                effects.append(.scheduleNotification(id: "set-end", at: end, body: "Time! " + nextBody(i).replacingOccurrences(of: "Next: ", with: "")))
+                if let w = target.warning { effects.append(.scheduleNotification(id: "set-warning", at: end.addingTimeInterval(-Double(w)), body: "\(w) s left")) }
+            case let .openDuration(minimum): if let minimum { effects.append(.scheduleNotification(id: "set-minimum", at: now.addingTimeInterval(Double(minimum)), body: "\(minimum) s reached")) }
+            case .reps: break
+            }
+        case let .stopTimer(i), let .timerDone(i), let .timerElapsed(i):
+            guard case let .working(current) = phase, current == i, active.timerRunning, let start = session.steps[safe: i]?.startedAt, let target = session.target(at: i) else { return [] }
+            let seconds: Int
+            switch (event, target.work) {
+            case (.stopTimer, .openDuration), (.timerDone, .duration): seconds = wholeSeconds(now.timeIntervalSince(start))
+            case let (.timerElapsed, .duration(n)):
+                guard now >= start.addingTimeInterval(Double(n)) else { return [] }; seconds = n
+            default: return []
+            }
+            // Timed work logs the same prefilled/edited weight displayed by the card.
+            effects += apply(.logSet(step: i, result: .duration(seconds: seconds, weight: active.workWeight)), now: now).filter { $0 != .persist }
+        case .dismissBlockDone:
+            guard active.blockDone != nil else { return [] }
+            active.blockDone = nil
+        case let .deferExercise(e):
+            guard let moved = self.defer(exercise: e, now: now) else { return [] }
+            effects += moved
+        case let .renameExercise(e, name):
+            guard session.exercises.indices.contains(e), !name.trimmed.isEmpty else { return [] }
+            active.session.exercises[e].name = String(name.trimmed.prefix(100))
+        case let .setWorkWeight(i, weight):
+            guard case let .working(current) = phase, current == i, let step = session.steps[safe: i],
+                  weight.map({ $0.isFinite && (0...10000).contains($0) }) ?? true else { return [] }
+            active.workWeight = session.exercises[safe: step.exerciseIndex]?.bodyweight == true ? nil : weight
+        case .finish:
+            guard phase != .completed else { return [] }
+            effects += cancelWork()
+            for i in session.steps.indices where session.steps[i].status == .pending { active.session.steps[i].status = .skipped; active.session.steps[i].loggedAt = now }
+            effects += complete(now: now)
+        }
+        if case .resting = oldPhase, phase != oldPhase, !effects.contains(.cancelNotification(id: "rest-timer")) { effects.insert(.cancelNotification(id: "rest-timer"), at: 0) }
+        effects.append(.persist)
+        return effects
+    }
+    /// D28 (v1.1): moves the whole block containing `e` — a superset moves together, since its
+    /// members are one thing you do at one station — to after the day's last pending step, and
+    /// carries on with whatever is now next. Returns nil when there is nothing to do: no pending
+    /// steps in that block, or nothing pending outside it to move behind.
+    ///
+    /// The step array is reordered in place, so every index that points into it (the phase,
+    /// `lastCompletedStep`) is remapped through the permutation. `blockIndex` is deliberately
+    /// left alone — it identifies the block, and rewriting it would break `blockDone`, the
+    /// block durations and the rest resolution; views order blocks by where their steps now sit.
+    private mutating func `defer`(exercise e: Int, now: Date) -> [Effect]? {
+        guard phase != .completed, session.exercises.indices.contains(e) else { return nil }
+        let steps = session.steps
+        guard let any = steps.firstIndex(where: { $0.exerciseIndex == e }) else { return nil }
+        let block = steps[any].blockIndex
+        let moving = steps.indices.filter { steps[$0].blockIndex == block }
+        guard moving.contains(where: { steps[$0].status == .pending }) else { return nil }
+        guard let lastPendingElsewhere = steps.indices.last(where: {
+            steps[$0].blockIndex != block && steps[$0].status == .pending
+        }) else { return nil }
+
+        // The new order: everything else, with the moved block reinserted after the last
+        // pending step that is staying put.
+        var order = steps.indices.filter { steps[$0].blockIndex != block }
+        guard let seam = order.firstIndex(of: lastPendingElsewhere) else { return nil }
+        order.insert(contentsOf: moving, at: seam + 1)
+
+        var remap: [Int: Int] = [:]
+        for (new, old) in order.enumerated() { remap[old] = new }
+        active.session.steps = order.map { steps[$0] }
+
+        let current = currentStep.flatMap { remap[$0] }
+        active.blockDone = nil
+        let effects = cancelWork()
+        if let last = active.lastCompletedStep { active.lastCompletedStep = remap[last] }
+        // Whatever we were on has moved; carry on with the first pending step from the top.
+        // The caller's tail adds `.persist` and cancels a rest this interrupted.
+        let next = active.session.steps.indices.first { active.session.steps[$0].status == .pending }
+            ?? current
+        if let next { enterWorking(next, now: now) }
+        return effects
+    }
+
+    /// Call on foreground entry with replayMissed=false before ticking; missed notifications are not replayed.
+    mutating func beepDue(now: Date, replayMissed: Bool = true) -> [TimerBeep] {
+        guard case let .working(i) = phase, active.timerRunning, let start = session.steps[safe: i]?.startedAt, let target = session.target(at: i) else { return [] }
+        var moments: [(TimerBeep,Date)] = []
+        switch target.work {
+        case let .duration(n):
+            if let w = target.warning { moments.append((.warning, start.addingTimeInterval(Double(n-w)))) }
+            moments.append((.end, start.addingTimeInterval(Double(n))))
+        case let .openDuration(n): if let n { moments.append((.minimum, start.addingTimeInterval(Double(n)))) }
+        case .reps: break
+        }
+        var due: [TimerBeep] = []
+        for (beep, date) in moments where date <= now && !active.deliveredBeeps.contains(beep) {
+            active.deliveredBeeps.insert(beep)
+            if replayMissed { due.append(beep) }
+        }
+        return due
+    }
+}
