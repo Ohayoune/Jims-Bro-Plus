@@ -1,0 +1,29 @@
+{
+  "name": "Boundaries",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Max reps",
+          "sets": 50,
+          "reps": 1000,
+          "weight": 10000,
+          "restSeconds": 3600
+        },
+        {
+          "name": "Max duration",
+          "sets": 1,
+          "durationSeconds": 86400,
+          "restSeconds": 0
+        },
+        {
+          "name": "Zero weight",
+          "sets": 1,
+          "reps": 1,
+          "weight": 0
+        }
+      ]
+    }
+  ]
+}

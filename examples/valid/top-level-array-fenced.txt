@@ -1,0 +1,3 @@
+```json
+[{"name": "Only day", "exercises": [{"name": "Row", "sets": 1, "reps": 10}]}]
+```

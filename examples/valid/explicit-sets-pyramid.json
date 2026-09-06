@@ -1,0 +1,50 @@
+{
+  "name": "Pyramid",
+  "units": "kg",
+  "days": [
+    {
+      "name": "Chest",
+      "exercises": [
+        {
+          "name": "Barbell Bench Press",
+          "restSeconds": 120,
+          "sets": [
+            {
+              "reps": 12,
+              "weight": 50
+            },
+            {
+              "reps": 10,
+              "weight": 60
+            },
+            {
+              "reps": 8,
+              "weight": 70
+            },
+            {
+              "reps": 6,
+              "weight": 80
+            },
+            {
+              "reps": "AMRAP",
+              "weight": 60,
+              "restSeconds": 180
+            }
+          ]
+        },
+        {
+          "name": "Cable Fly",
+          "weight": 15,
+          "reps": 15,
+          "sets": [
+            {},
+            {},
+            {
+              "reps": "12-15"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

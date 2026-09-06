@@ -1,0 +1,24 @@
+[
+  {
+    "name": "Day 1",
+    "exercises": [
+      {
+        "name": "Barbell Bench Press",
+        "sets": 3,
+        "reps": 8,
+        "weight": 60
+      }
+    ]
+  },
+  {
+    "name": "Day 2",
+    "exercises": [
+      {
+        "name": "Barbell Back Squat",
+        "sets": 3,
+        "reps": 8,
+        "weight": 80
+      }
+    ]
+  }
+]

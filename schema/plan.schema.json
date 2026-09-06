@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jimmsbro.local/plan.schema.json",
+  "title": "Jimm's Bro+ workout plan (schemaVersion 1, strict shape)",
+  "description": "The canonical shape. The app additionally accepts the leniency forms in docs/PLAN_FORMAT.md §3 (bare day, numeric strings, curly quotes, rep strings like '8-12', weight strings like '60kg').",
+  "type": "object",
+  "required": [
+    "days"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "units": {
+      "type": "string",
+      "enum": [
+        "kg",
+        "lb"
+      ]
+    },
+    "defaultRestSeconds": {
+      "$ref": "#/$defs/rest"
+    },
+    "schedule": {
+      "type": "string",
+      "enum": [
+        "rotation",
+        "weekday"
+      ]
+    },
+    "days": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 31,
+      "items": {
+        "$ref": "#/$defs/day"
+      }
+    },
+    "cycle": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 31,
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "rest": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3600
+    },
+    "reps": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        {
+          "type": "string",
+          "pattern": "^\\s*(\\d{1,4}\\s*[-–—/]\\s*\\d{1,4}|\\d{1,4}\\s*to\\s*\\d{1,4}|\\d{1,4}\\s*\\+?|(?i:amrap|max|failure|to failure|as many as possible))\\s*(?i:reps?)?\\s*$"
+        }
+      ]
+    },
+    "weight": {
+      "oneOf": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "day": {
+      "type": "object",
+      "required": [
+        "exercises"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "weekday": {
+          "type": "string",
+          "pattern": "^(?i:mon|tue|wed|thu|fri|sat|sun)[a-z]*$"
+        },
+        "defaultRestSeconds": {
+          "$ref": "#/$defs/rest"
+        },
+        "exercises": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/exercise"
+          }
+        }
+      }
+    },
+    "exercise": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "group": {
+          "type": [
+            "string",
+            "integer",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 500
+        },
+        "sets": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 50,
+              "items": {
+                "$ref": "#/$defs/set"
+              }
+            }
+          ]
+        },
+        "reps": {
+          "$ref": "#/$defs/reps"
+        },
+        "repRange": {
+          "$ref": "#/$defs/repRange"
+        },
+        "durationSeconds": {
+          "$ref": "#/$defs/duration"
+        },
+        "weight": {
+          "$ref": "#/$defs/weight"
+        },
+        "restSeconds": {
+          "$ref": "#/$defs/rest"
+        },
+        "drops": {
+          "$ref": "#/$defs/drops"
+        },
+        "bodyweight": {
+          "type": "boolean"
+        },
+        "warningBeep": {
+          "$ref": "#/$defs/warningBeep"
+        }
+      }
+    },
+    "set": {
+      "type": "object",
+      "properties": {
+        "reps": {
+          "$ref": "#/$defs/reps"
+        },
+        "durationSeconds": {
+          "$ref": "#/$defs/duration"
+        },
+        "weight": {
+          "$ref": "#/$defs/weight"
+        },
+        "restSeconds": {
+          "$ref": "#/$defs/rest"
+        },
+        "drops": {
+          "$ref": "#/$defs/drops"
+        },
+        "warningBeep": {
+          "$ref": "#/$defs/warningBeep"
+        }
+      },
+      "not": {
+        "required": [
+          "reps",
+          "durationSeconds"
+        ]
+      }
+    },
+    "repRange": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        {
+          "type": "string",
+          "pattern": "^\\s*\\d{1,4}\\s*(?:[-–—/]|to)\\s*\\d{1,4}\\s*$|^\\s*\\d{1,4}\\s*$"
+        }
+      ]
+    },
+    "drop": {
+      "type": "object",
+      "properties": {
+        "weight": {
+          "$ref": "#/$defs/weight"
+        },
+        "reps": {
+          "$ref": "#/$defs/reps"
+        }
+      }
+    },
+    "drops": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/drop"
+      }
+    },
+    "duration": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        {
+          "type": "string",
+          "pattern": "^\\s*(\\d{1,5}\\s*\\+?|(?i:max|open|amsap|as long as possible|to failure))\\s*$"
+        }
+      ]
+    },
+    "warningBeep": {
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86399
+        }
+      ]
+    }
+  }
+}

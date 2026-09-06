@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "name": "Mon Wed Fri Full Body",
+  "units": "kg",
+  "schedule": "weekday",
+  "days": [
+    {
+      "name": "Full Body A",
+      "weekday": "monday",
+      "exercises": [
+        {
+          "name": "Barbell Back Squat",
+          "sets": 3,
+          "reps": 5,
+          "weight": 100,
+          "restSeconds": 180
+        },
+        {
+          "name": "Barbell Bench Press",
+          "sets": 3,
+          "reps": 5,
+          "weight": 80,
+          "restSeconds": 150
+        },
+        {
+          "name": "Barbell Row",
+          "sets": 3,
+          "reps": 5,
+          "weight": 70,
+          "restSeconds": 120
+        }
+      ]
+    },
+    {
+      "name": "Full Body B",
+      "weekday": "Wed",
+      "exercises": [
+        {
+          "name": "Deadlift",
+          "sets": 1,
+          "reps": 5,
+          "weight": 140,
+          "restSeconds": 180
+        },
+        {
+          "name": "Overhead Press",
+          "sets": 3,
+          "reps": 5,
+          "weight": 50,
+          "restSeconds": 150
+        },
+        {
+          "name": "Pull-Up",
+          "sets": 3,
+          "reps": "AMRAP",
+          "restSeconds": 120
+        }
+      ]
+    },
+    {
+      "name": "Full Body C",
+      "weekday": "FRIDAY",
+      "exercises": [
+        {
+          "name": "Barbell Back Squat",
+          "sets": 3,
+          "reps": 5,
+          "weight": 102.5,
+          "restSeconds": 180
+        },
+        {
+          "name": "Barbell Bench Press",
+          "sets": 3,
+          "reps": 5,
+          "weight": 82.5,
+          "restSeconds": 150
+        },
+        {
+          "name": "Barbell Row",
+          "sets": 3,
+          "reps": 5,
+          "weight": 72.5,
+          "restSeconds": 120
+        }
+      ]
+    }
+  ]
+}

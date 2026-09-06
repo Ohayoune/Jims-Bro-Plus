@@ -1,0 +1,18 @@
+{
+  "name": null,
+  "days": [
+    {
+      "name": null,
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 2,
+          "reps": 10,
+          "weight": null,
+          "notes": null,
+          "group": null
+        }
+      ]
+    }
+  ]
+}

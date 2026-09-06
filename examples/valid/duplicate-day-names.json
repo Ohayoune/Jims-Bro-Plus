@@ -1,0 +1,35 @@
+{
+  "name": "Dupes",
+  "days": [
+    {
+      "name": "Push",
+      "exercises": [
+        {
+          "name": "Barbell Bench Press",
+          "sets": 3,
+          "reps": 8
+        }
+      ]
+    },
+    {
+      "name": "push ",
+      "exercises": [
+        {
+          "name": "Overhead Press",
+          "sets": 3,
+          "reps": 8
+        }
+      ]
+    },
+    {
+      "name": "Push",
+      "exercises": [
+        {
+          "name": "Dip",
+          "sets": 3,
+          "reps": 8
+        }
+      ]
+    }
+  ]
+}

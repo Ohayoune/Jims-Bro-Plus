@@ -1,0 +1,19 @@
+{
+  "name": "X",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": [
+            {
+              "reps": 10,
+              "durationSeconds": 30
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

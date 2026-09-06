@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1",
+  "name": "Lenient",
+  "units": "KGS",
+  "days": [
+    {
+      "name": "Mixed",
+      "exercises": [
+        {
+          "name": "  Barbell Bench Press ",
+          "sets": "4",
+          "reps": "8 to 12",
+          "weight": "60kg",
+          "restSeconds": "90"
+        },
+        {
+          "name": "Incline Press",
+          "sets": 3.0,
+          "reps": "12-8",
+          "weight": "22,5"
+        },
+        {
+          "name": "Pull-Up",
+          "sets": 3,
+          "reps": "to failure",
+          "weight": "bodyweight"
+        },
+        {
+          "name": "Dip",
+          "sets": 3,
+          "reps": "10 +",
+          "weight": "+10kg"
+        },
+        {
+          "name": "Curl",
+          "sets": 2,
+          "reps": "12 reps",
+          "weight": "135 lbs"
+        },
+        {
+          "name": "Hammer Curl",
+          "sets": 2,
+          "reps": 10.0,
+          "weight": 12.55
+        }
+      ]
+    }
+  ]
+}

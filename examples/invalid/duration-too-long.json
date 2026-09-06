@@ -1,0 +1,15 @@
+{
+  "name": "X",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Bike",
+          "sets": 1,
+          "durationSeconds": 86401
+        }
+      ]
+    }
+  ]
+}

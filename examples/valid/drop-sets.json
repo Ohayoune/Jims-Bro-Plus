@@ -1,0 +1,66 @@
+{
+  "name": "Drops",
+  "units": "kg",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Cable Fly",
+          "sets": 3,
+          "reps": 12,
+          "weight": 20,
+          "restSeconds": 60,
+          "drops": [
+            {
+              "weight": 15
+            },
+            {
+              "weight": 10,
+              "reps": "8-10"
+            }
+          ]
+        },
+        {
+          "name": "Leg Extension",
+          "reps": 12,
+          "weight": 50,
+          "restSeconds": 60,
+          "sets": [
+            {},
+            {},
+            {
+              "drops": [
+                {
+                  "weight": 40
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Lat Pulldown",
+          "sets": 2,
+          "reps": 10,
+          "weight": 60,
+          "drops": [
+            {
+              "weight": 45
+            }
+          ],
+          "restSeconds": 90
+        },
+        {
+          "name": "Plank",
+          "sets": 2,
+          "durationSeconds": 30,
+          "drops": [
+            {
+              "weight": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

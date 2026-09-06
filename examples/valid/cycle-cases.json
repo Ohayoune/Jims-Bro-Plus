@@ -1,0 +1,41 @@
+{
+  "name": "Cycle",
+  "cycle": [
+    "upper",
+    "REST",
+    "Lower",
+    "off"
+  ],
+  "days": [
+    {
+      "name": "Upper",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 1,
+          "reps": 10
+        }
+      ]
+    },
+    {
+      "name": "Lower",
+      "exercises": [
+        {
+          "name": "Squat",
+          "sets": 1,
+          "reps": 10
+        }
+      ]
+    },
+    {
+      "name": "Arms",
+      "exercises": [
+        {
+          "name": "Curl",
+          "sets": 1,
+          "reps": 10
+        }
+      ]
+    }
+  ]
+}

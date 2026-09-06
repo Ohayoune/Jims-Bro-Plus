@@ -1,0 +1,16 @@
+{
+  "name": "X",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Plank",
+          "sets": 3,
+          "durationSeconds": 30,
+          "warningBeep": 0
+        }
+      ]
+    }
+  ]
+}

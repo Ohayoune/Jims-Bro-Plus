@@ -1,0 +1,28 @@
+{
+  "name": "Rotation ignores weekdays",
+  "schedule": "rotation",
+  "days": [
+    {
+      "name": "A",
+      "weekday": "monday",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 1,
+          "reps": 10
+        }
+      ]
+    },
+    {
+      "name": "B",
+      "weekday": "wednesday",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 1,
+          "reps": 10
+        }
+      ]
+    }
+  ]
+}

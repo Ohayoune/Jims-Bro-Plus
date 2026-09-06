@@ -1,0 +1,22 @@
+Here is your plan in the requested format:
+
+```json
+{
+  "name": "From chat",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 3,
+          "reps": 10,
+          "restSeconds": 60
+        }
+      ]
+    }
+  ]
+}
+```
+
+Let me know if you want any changes!

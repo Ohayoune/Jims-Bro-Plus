@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "name": "Push Pull Legs",
+  "units": "kg",
+  "defaultRestSeconds": 90,
+  "schedule": "rotation",
+  "cycle": [
+    "Push",
+    "Pull",
+    "Legs",
+    "Push",
+    "Pull",
+    "Legs",
+    "rest"
+  ],
+  "days": [
+    {
+      "name": "Push",
+      "defaultRestSeconds": 120,
+      "exercises": [
+        {
+          "name": "Barbell Bench Press",
+          "sets": 4,
+          "reps": "6-8",
+          "weight": 80,
+          "restSeconds": 150,
+          "notes": "Pause on chest"
+        },
+        {
+          "name": "Incline Dumbbell Press",
+          "sets": [
+            {
+              "reps": 12,
+              "weight": 24
+            },
+            {
+              "reps": 10,
+              "weight": 26
+            },
+            {
+              "reps": 8,
+              "weight": 28
+            }
+          ],
+          "repRange": "8-12",
+          "restSeconds": 90
+        },
+        {
+          "name": "Lateral Raise",
+          "group": "A",
+          "sets": 3,
+          "reps": 15,
+          "repRange": "12-15",
+          "weight": 10,
+          "restSeconds": 60
+        },
+        {
+          "name": "Tricep Pushdown",
+          "group": "A",
+          "sets": 3,
+          "reps": 12,
+          "repRange": "10-12",
+          "weight": 25,
+          "restSeconds": 60,
+          "drops": [
+            {
+              "weight": 20
+            },
+            {
+              "weight": 15
+            }
+          ]
+        },
+        {
+          "name": "Plank",
+          "sets": 3,
+          "durationSeconds": 45,
+          "warningBeep": true,
+          "bodyweight": true,
+          "restSeconds": 45
+        }
+      ]
+    },
+    {
+      "name": "Pull",
+      "exercises": [
+        {
+          "name": "Deadlift",
+          "sets": 3,
+          "reps": 5,
+          "weight": 120,
+          "restSeconds": 180
+        },
+        {
+          "name": "Pull-Up",
+          "sets": 4,
+          "reps": "AMRAP",
+          "restSeconds": 120
+        },
+        {
+          "name": "Barbell Row",
+          "sets": 3,
+          "reps": "8-10",
+          "weight": 70,
+          "restSeconds": 90
+        },
+        {
+          "name": "Face Pull",
+          "group": "B",
+          "sets": 3,
+          "reps": 15,
+          "weight": 15
+        },
+        {
+          "name": "Dumbbell Curl",
+          "group": "B",
+          "sets": 3,
+          "reps": 12,
+          "weight": 12,
+          "restSeconds": 60
+        }
+      ]
+    },
+    {
+      "name": "Legs",
+      "exercises": [
+        {
+          "name": "Barbell Back Squat",
+          "sets": 4,
+          "reps": "5",
+          "repRange": "4-6",
+          "weight": 100,
+          "restSeconds": 180
+        },
+        {
+          "name": "Romanian Deadlift",
+          "sets": 3,
+          "reps": "8-10",
+          "weight": 80,
+          "restSeconds": 120
+        },
+        {
+          "name": "Leg Press",
+          "sets": 3,
+          "reps": "10-12",
+          "weight": 160,
+          "restSeconds": 90
+        },
+        {
+          "name": "Walking Lunge",
+          "sets": 2,
+          "reps": 20,
+          "weight": 16,
+          "restSeconds": 60,
+          "notes": "10 each side"
+        },
+        {
+          "name": "Standing Calf Raise",
+          "sets": 4,
+          "reps": "12-15",
+          "weight": 60,
+          "restSeconds": 45
+        }
+      ]
+    }
+  ]
+}

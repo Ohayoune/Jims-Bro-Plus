@@ -1,0 +1,58 @@
+{
+  "name": "Calisthenics",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Push-Up",
+          "sets": 3,
+          "reps": "15+",
+          "bodyweight": true,
+          "restSeconds": 60
+        },
+        {
+          "name": "Pull-Up",
+          "sets": 3,
+          "reps": "AMRAP",
+          "weight": "bodyweight",
+          "restSeconds": 90
+        },
+        {
+          "name": "Dip",
+          "sets": 3,
+          "reps": 10,
+          "weight": 10,
+          "restSeconds": 90
+        },
+        {
+          "name": "Pistol Squat",
+          "sets": 2,
+          "reps": 6,
+          "bodyweight": true,
+          "weight": 5,
+          "restSeconds": 60
+        },
+        {
+          "name": "Bodyweight Row",
+          "sets": 2,
+          "reps": 12,
+          "bodyweight": false,
+          "warningBeep": true,
+          "restSeconds": 60
+        },
+        {
+          "name": "Nordic Curl",
+          "sets": 2,
+          "reps": 5,
+          "bodyweight": true,
+          "drops": [
+            {
+              "weight": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

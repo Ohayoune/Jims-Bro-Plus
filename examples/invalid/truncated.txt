@@ -1,0 +1,9 @@
+```json
+{
+  "name": "From chat",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name"

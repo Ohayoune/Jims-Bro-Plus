@@ -1,0 +1,40 @@
+{
+  "name": "Groups",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Curl",
+          "group": "A",
+          "sets": 3,
+          "reps": 12
+        },
+        {
+          "name": "Pushdown",
+          "group": "A",
+          "sets": 3,
+          "reps": 12
+        },
+        {
+          "name": "Barbell Back Squat",
+          "group": "B",
+          "sets": 3,
+          "reps": 5
+        },
+        {
+          "name": "Lateral Raise",
+          "group": "A",
+          "sets": 3,
+          "reps": 15
+        },
+        {
+          "name": "Plank",
+          "group": " ",
+          "sets": 2,
+          "durationSeconds": 30
+        }
+      ]
+    }
+  ]
+}

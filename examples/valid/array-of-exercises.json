@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Kettlebell Swing",
+    "sets": 5,
+    "reps": 20,
+    "weight": 24,
+    "restSeconds": 60
+  },
+  {
+    "name": "Goblet Squat",
+    "sets": 3,
+    "reps": 12,
+    "weight": 24,
+    "restSeconds": 60
+  }
+]

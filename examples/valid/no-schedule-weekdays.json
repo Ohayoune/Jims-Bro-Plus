@@ -1,0 +1,29 @@
+{
+  "name": "Inferred weekday",
+  "days": [
+    {
+      "name": "Upper",
+      "weekday": "tuesday",
+      "exercises": [
+        {
+          "name": "Barbell Bench Press",
+          "sets": 3,
+          "reps": 8,
+          "weight": 70
+        }
+      ]
+    },
+    {
+      "name": "Lower",
+      "weekday": "thursday",
+      "exercises": [
+        {
+          "name": "Barbell Back Squat",
+          "sets": 3,
+          "reps": 8,
+          "weight": 90
+        }
+      ]
+    }
+  ]
+}

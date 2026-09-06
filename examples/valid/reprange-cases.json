@@ -1,0 +1,73 @@
+{
+  "name": "Rep ranges",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Explicit",
+          "sets": 3,
+          "reps": 10,
+          "repRange": "8-12"
+        },
+        {
+          "name": "From reps range",
+          "sets": 3,
+          "reps": "8-12"
+        },
+        {
+          "name": "None",
+          "sets": 3,
+          "reps": 10
+        },
+        {
+          "name": "Outside",
+          "sets": 3,
+          "reps": 15,
+          "repRange": "8-12"
+        },
+        {
+          "name": "Timed",
+          "sets": 2,
+          "durationSeconds": 30,
+          "repRange": "8-12"
+        },
+        {
+          "name": "Single number",
+          "sets": 3,
+          "reps": 10,
+          "repRange": 10
+        },
+        {
+          "name": "Swapped",
+          "sets": 3,
+          "reps": 10,
+          "repRange": "12-8"
+        },
+        {
+          "name": "Per-set reps only",
+          "sets": [
+            {
+              "reps": 12
+            },
+            {
+              "reps": 10
+            }
+          ],
+          "repRange": "8-12"
+        },
+        {
+          "name": "Per-set no range",
+          "sets": [
+            {
+              "reps": "8-12"
+            },
+            {
+              "reps": "8-12"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

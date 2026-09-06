@@ -1,0 +1,14 @@
+{
+  "name": "X",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 3
+        }
+      ]
+    }
+  ]
+}

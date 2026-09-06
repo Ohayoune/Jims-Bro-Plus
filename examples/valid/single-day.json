@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "name": "Quick Upper",
+  "units": "kg",
+  "days": [
+    {
+      "name": "Quick Upper",
+      "exercises": [
+        {
+          "name": "Push-Up",
+          "sets": 3,
+          "reps": "15+",
+          "restSeconds": 60
+        },
+        {
+          "name": "Dumbbell Row",
+          "sets": 3,
+          "reps": 12,
+          "weight": 20,
+          "restSeconds": 60
+        }
+      ]
+    }
+  ]
+}

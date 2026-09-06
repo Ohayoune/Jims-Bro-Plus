@@ -1,0 +1,16 @@
+{
+  "name": "🏋️ Программа",
+  "days": [
+    {
+      "name": "胸 Chest",
+      "exercises": [
+        {
+          "name": "Développé couché",
+          "sets": 3,
+          "reps": 8,
+          "weight": 60
+        }
+      ]
+    }
+  ]
+}

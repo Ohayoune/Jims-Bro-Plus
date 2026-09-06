@@ -1,0 +1,16 @@
+{
+  "name": "Braces {in} strings",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 1,
+          "reps": 10,
+          "notes": "hold {tight} and [breathe]"
+        }
+      ]
+    }
+  ]
+}

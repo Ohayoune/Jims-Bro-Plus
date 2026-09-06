@@ -1,0 +1,26 @@
+{
+  "name": "X",
+  "days": [
+    {
+      "name": "A",
+      "weekday": "monday",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 3,
+          "reps": 10
+        }
+      ]
+    },
+    {
+      "name": "B",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 3,
+          "reps": 10
+        }
+      ]
+    }
+  ]
+}

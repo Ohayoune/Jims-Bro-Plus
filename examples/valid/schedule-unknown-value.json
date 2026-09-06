@@ -1,0 +1,16 @@
+{
+  "name": "Schedule typo",
+  "schedule": "Weekly",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 1,
+          "reps": 10
+        }
+      ]
+    }
+  ]
+}

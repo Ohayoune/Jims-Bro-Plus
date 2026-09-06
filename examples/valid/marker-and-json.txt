@@ -1,0 +1,20 @@
+JIMMSBRO-PLAN-PROMPT-V1
+(I pasted the prompt above by mistake but here is the plan too)
+```json
+{
+  "name": "From chat",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 3,
+          "reps": 10,
+          "restSeconds": 60
+        }
+      ]
+    }
+  ]
+}
+```

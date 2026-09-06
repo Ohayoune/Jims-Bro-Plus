@@ -1,0 +1,17 @@
+{
+  "name": "X",
+  "schedule": "weekday",
+  "days": [
+    {
+      "name": "A",
+      "weekday": "Funday",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 3,
+          "reps": 10
+        }
+      ]
+    }
+  ]
+}

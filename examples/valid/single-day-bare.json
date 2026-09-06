@@ -1,0 +1,23 @@
+{
+  "name": "Hotel Workout",
+  "exercises": [
+    {
+      "name": "Push-Up",
+      "sets": 4,
+      "reps": 20,
+      "restSeconds": 45
+    },
+    {
+      "name": "Bodyweight Squat",
+      "sets": 4,
+      "reps": 25,
+      "restSeconds": 45
+    },
+    {
+      "name": "Plank",
+      "sets": 2,
+      "durationSeconds": 60,
+      "restSeconds": 60
+    }
+  ]
+}

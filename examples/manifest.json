@@ -1,0 +1,1959 @@
+{
+  "_readme": "Expected import outcomes for every file in examples/. Run with settings units=kg, defaultRestSeconds=90, today=2026-09-04 (for default plan names). valid: 'warnings' is the exact multiset of warning codes; 'checks' keys: planName, units, schedule, dayNames, weekdays, stepsPerDay, exerciseNames{'d':[..]}, groups{'d':[..]}, notes{'d.e':..}, restPerSet{'d.e':[..]}, weightPerSet{'d.e':[..]}, workPerSet{'d.e':['fixed:10'|'range:8-12'|'amrap'|'amrap:10'|'duration:45']}, stepOrder{'d':['e.s',..]}, restAfterStep{'d:stepIndex':seconds} (rest started after logging that step, all later steps pending), repRange{'d.e':[min,max]|null}, cycle[...names or 'rest'], dropsPerSet{'d.e':[n per set]}, dropTargets{'d.e.s':[[work,weight],..]}. stepOrder entries are 'e.s' or 'e.s.d' for drops; restAfterStep values are seconds or 'transition'; workPerSet also 'open' | 'open:30'; warningPerSet{'d.e':[seconds|null]} (resolved warning-beep offset); bodyweight{'d.e':bool}. invalid: every listed error (code + path) must be reported; 'exact' (default true) also requires no other errors.",
+  "settings": {
+    "units": "kg",
+    "defaultRestSeconds": 90,
+    "today": "2026-09-04"
+  },
+  "fixtures": [
+    {
+      "file": "valid/weekly-rotation.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "planName": "Push Pull Legs",
+        "units": "kg",
+        "schedule": "rotation",
+        "dayNames": [
+          "Push",
+          "Pull",
+          "Legs"
+        ],
+        "stepsPerDay": [
+          22,
+          16,
+          16
+        ],
+        "cycle": [
+          "Push",
+          "Pull",
+          "Legs",
+          "Push",
+          "Pull",
+          "Legs",
+          "rest"
+        ],
+        "dropsPerSet": {
+          "0.3": [
+            2,
+            2,
+            2
+          ],
+          "0.2": [
+            0,
+            0,
+            0
+          ]
+        },
+        "dropTargets": {
+          "0.3.0": [
+            [
+              "amrap",
+              20
+            ],
+            [
+              "amrap",
+              15
+            ]
+          ]
+        },
+        "restPerSet": {
+          "0.0": [
+            150,
+            150,
+            150,
+            150
+          ],
+          "0.1": [
+            90,
+            90,
+            90
+          ],
+          "0.4": [
+            45,
+            45,
+            45
+          ],
+          "1.3": [
+            90,
+            90,
+            90
+          ]
+        },
+        "workPerSet": {
+          "0.0": [
+            "range:6-8",
+            "range:6-8",
+            "range:6-8",
+            "range:6-8"
+          ],
+          "1.1": [
+            "amrap",
+            "amrap",
+            "amrap",
+            "amrap"
+          ],
+          "0.4": [
+            "duration:45",
+            "duration:45",
+            "duration:45"
+          ],
+          "2.0": [
+            "fixed:5",
+            "fixed:5",
+            "fixed:5",
+            "fixed:5"
+          ]
+        },
+        "stepOrder": {
+          "0": [
+            "0.0",
+            "0.1",
+            "0.2",
+            "0.3",
+            "1.0",
+            "1.1",
+            "1.2",
+            "2.0",
+            "3.0",
+            "3.0.1",
+            "3.0.2",
+            "2.1",
+            "3.1",
+            "3.1.1",
+            "3.1.2",
+            "2.2",
+            "3.2",
+            "3.2.1",
+            "3.2.2",
+            "4.0",
+            "4.1",
+            "4.2"
+          ]
+        },
+        "restAfterStep": {
+          "0:0": 150,
+          "0:3": "transition",
+          "0:6": "transition",
+          "0:7": 0,
+          "0:8": 0,
+          "0:9": 0,
+          "0:10": 60,
+          "0:14": 60,
+          "0:18": "transition",
+          "0:19": 45,
+          "0:21": 0,
+          "1:9": "transition",
+          "1:10": 0,
+          "1:11": 60,
+          "1:15": 0
+        },
+        "repRange": {
+          "0.0": [
+            6,
+            8
+          ],
+          "0.1": [
+            8,
+            12
+          ],
+          "0.2": [
+            12,
+            15
+          ],
+          "0.3": [
+            10,
+            12
+          ],
+          "0.4": null,
+          "1.0": null,
+          "1.1": null,
+          "1.2": [
+            8,
+            10
+          ],
+          "2.0": [
+            4,
+            6
+          ]
+        }
+      }
+    },
+    {
+      "file": "valid/drop-sets.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_DROPS_IGNORED"
+      ],
+      "checks": {
+        "stepsPerDay": [
+          19
+        ],
+        "dropsPerSet": {
+          "0.0": [
+            2,
+            2,
+            2
+          ],
+          "0.1": [
+            0,
+            0,
+            1
+          ],
+          "0.2": [
+            1,
+            1
+          ],
+          "0.3": [
+            0,
+            0
+          ]
+        },
+        "dropTargets": {
+          "0.0.0": [
+            [
+              "amrap",
+              15
+            ],
+            [
+              "range:8-10",
+              10
+            ]
+          ],
+          "0.1.2": [
+            [
+              "amrap",
+              40
+            ]
+          ]
+        },
+        "stepOrder": {
+          "0": [
+            "0.0",
+            "0.0.1",
+            "0.0.2",
+            "0.1",
+            "0.1.1",
+            "0.1.2",
+            "0.2",
+            "0.2.1",
+            "0.2.2",
+            "1.0",
+            "1.1",
+            "1.2",
+            "1.2.1",
+            "2.0",
+            "2.0.1",
+            "2.1",
+            "2.1.1",
+            "3.0",
+            "3.1"
+          ]
+        },
+        "restAfterStep": {
+          "0:0": 0,
+          "0:1": 0,
+          "0:2": 60,
+          "0:8": "transition",
+          "0:9": 60,
+          "0:11": 0,
+          "0:12": "transition",
+          "0:13": 0,
+          "0:14": 90,
+          "0:16": "transition"
+        }
+      }
+    },
+    {
+      "file": "valid/cycle-cases.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_CYCLE_MISSING_DAY"
+      ],
+      "checks": {
+        "cycle": [
+          "Upper",
+          "rest",
+          "Lower",
+          "rest"
+        ]
+      }
+    },
+    {
+      "file": "valid/cycle-weekday-ignored.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_CYCLE_IGNORED"
+      ],
+      "checks": {
+        "schedule": "weekday",
+        "cycle": [
+          "rest",
+          "A",
+          "rest",
+          "rest",
+          "rest",
+          "B",
+          "rest"
+        ]
+      }
+    },
+    {
+      "file": "valid/reprange-cases.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_RANGE_SWAPPED",
+        "W_REPRANGE_IGNORED",
+        "W_REPRANGE_OUTSIDE"
+      ],
+      "checks": {
+        "repRange": {
+          "0.0": [
+            8,
+            12
+          ],
+          "0.1": [
+            8,
+            12
+          ],
+          "0.2": null,
+          "0.3": [
+            8,
+            12
+          ],
+          "0.4": null,
+          "0.5": [
+            10,
+            10
+          ],
+          "0.6": [
+            8,
+            12
+          ],
+          "0.7": [
+            8,
+            12
+          ],
+          "0.8": null
+        }
+      }
+    },
+    {
+      "file": "valid/weekly-weekday.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "schedule": "weekday",
+        "weekdays": [
+          "monday",
+          "wednesday",
+          "friday"
+        ],
+        "stepsPerDay": [
+          9,
+          7,
+          9
+        ],
+        "cycle": [
+          "Full Body A",
+          "rest",
+          "Full Body B",
+          "rest",
+          "Full Body C",
+          "rest",
+          "rest"
+        ]
+      }
+    },
+    {
+      "file": "valid/no-schedule-weekdays.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "schedule": "weekday",
+        "weekdays": [
+          "tuesday",
+          "thursday"
+        ]
+      }
+    },
+    {
+      "file": "valid/single-day.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "dayNames": [
+          "Quick Upper"
+        ],
+        "cycle": [
+          "Quick Upper"
+        ],
+        "workPerSet": {
+          "0.0": [
+            "amrap:15",
+            "amrap:15",
+            "amrap:15"
+          ]
+        },
+        "weightPerSet": {
+          "0.0": [
+            null,
+            null,
+            null
+          ],
+          "0.1": [
+            20,
+            20,
+            20
+          ]
+        }
+      }
+    },
+    {
+      "file": "valid/single-day-bare.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_WRAPPED_SINGLE_DAY"
+      ],
+      "checks": {
+        "planName": "Hotel Workout",
+        "dayNames": [
+          "Hotel Workout"
+        ],
+        "stepsPerDay": [
+          10
+        ]
+      }
+    },
+    {
+      "file": "valid/array-of-days.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_WRAPPED_SINGLE_DAY",
+        "W_DEFAULT_NAME"
+      ],
+      "checks": {
+        "planName": "Imported plan 2026-09-04",
+        "dayNames": [
+          "Day 1",
+          "Day 2"
+        ]
+      }
+    },
+    {
+      "file": "valid/array-of-exercises.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_WRAPPED_SINGLE_DAY",
+        "W_DEFAULT_NAME",
+        "W_DEFAULT_NAME"
+      ],
+      "checks": {
+        "dayNames": [
+          "Day 1"
+        ],
+        "stepsPerDay": [
+          8
+        ]
+      }
+    },
+    {
+      "file": "valid/minimal.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_DEFAULT_NAME",
+        "W_DEFAULT_NAME"
+      ],
+      "checks": {
+        "planName": "Imported plan 2026-09-04",
+        "dayNames": [
+          "Day 1"
+        ],
+        "stepsPerDay": [
+          1
+        ],
+        "restPerSet": {
+          "0.0": [
+            90
+          ]
+        },
+        "workPerSet": {
+          "0.0": [
+            "fixed:10"
+          ]
+        }
+      }
+    },
+    {
+      "file": "valid/explicit-sets-pyramid.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "restPerSet": {
+          "0.0": [
+            120,
+            120,
+            120,
+            120,
+            180
+          ],
+          "0.1": [
+            90,
+            90,
+            90
+          ]
+        },
+        "weightPerSet": {
+          "0.0": [
+            50,
+            60,
+            70,
+            80,
+            60
+          ],
+          "0.1": [
+            15,
+            15,
+            15
+          ]
+        },
+        "workPerSet": {
+          "0.0": [
+            "fixed:12",
+            "fixed:10",
+            "fixed:8",
+            "fixed:6",
+            "amrap"
+          ],
+          "0.1": [
+            "fixed:15",
+            "fixed:15",
+            "range:12-15"
+          ]
+        }
+      }
+    },
+    {
+      "file": "valid/superset-circuit.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_GROUP_SET_MISMATCH"
+      ],
+      "checks": {
+        "groups": {
+          "0": [
+            "A",
+            "A",
+            "A",
+            null
+          ]
+        },
+        "stepsPerDay": [
+          10
+        ],
+        "stepOrder": {
+          "0": [
+            "0.0",
+            "1.0",
+            "2.0",
+            "0.1",
+            "1.1",
+            "2.1",
+            "0.2",
+            "1.2",
+            "3.0",
+            "3.1"
+          ]
+        },
+        "restPerSet": {
+          "0.0": [
+            60,
+            60,
+            60
+          ],
+          "0.2": [
+            90,
+            90
+          ],
+          "0.3": [
+            45,
+            45
+          ]
+        },
+        "restAfterStep": {
+          "0:0": 0,
+          "0:1": 0,
+          "0:2": 90,
+          "0:5": 90,
+          "0:6": 0,
+          "0:7": "transition",
+          "0:8": 45,
+          "0:9": 0
+        }
+      }
+    },
+    {
+      "file": "valid/timed-sets.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_WARNING_BEEP_IGNORED",
+        "W_WARNING_BEEP_IGNORED"
+      ],
+      "checks": {
+        "workPerSet": {
+          "0.0": [
+            "duration:45",
+            "duration:45",
+            "duration:45"
+          ],
+          "0.2": [
+            "duration:600"
+          ],
+          "0.3": [
+            "duration:40",
+            "duration:40",
+            "duration:40"
+          ],
+          "0.4": [
+            "open",
+            "open"
+          ],
+          "0.5": [
+            "open:30"
+          ],
+          "0.6": [
+            "duration:60",
+            "open"
+          ]
+        },
+        "weightPerSet": {
+          "0.3": [
+            32,
+            32,
+            32
+          ],
+          "0.4": [
+            null,
+            null
+          ]
+        },
+        "restPerSet": {
+          "0.2": [
+            0
+          ]
+        },
+        "restAfterStep": {
+          "0:5": "transition",
+          "0:4": "transition",
+          "0:0": 30,
+          "0:2": "transition",
+          "0:8": "transition",
+          "0:9": 60,
+          "0:10": "transition"
+        },
+        "warningPerSet": {
+          "0.0": [
+            5,
+            5,
+            5
+          ],
+          "0.1": [
+            3,
+            3
+          ],
+          "0.2": [
+            60
+          ],
+          "0.3": [
+            4,
+            4,
+            4
+          ],
+          "0.4": [
+            null,
+            null
+          ],
+          "0.5": [
+            null
+          ],
+          "0.6": [
+            15,
+            null
+          ],
+          "0.7": [
+            null,
+            null
+          ],
+          "0.8": [
+            null
+          ],
+          "0.9": [
+            null
+          ],
+          "0.10": [
+            3
+          ]
+        },
+        "bodyweight": {
+          "0.3": false,
+          "0.4": true,
+          "0.5": false
+        },
+        "stepsPerDay": [
+          19
+        ]
+      }
+    },
+    {
+      "file": "valid/bodyweight.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_WARNING_BEEP_IGNORED",
+        "W_BODYWEIGHT_WEIGHT_IGNORED",
+        "W_BODYWEIGHT_WEIGHT_IGNORED"
+      ],
+      "checks": {
+        "bodyweight": {
+          "0.0": true,
+          "0.1": true,
+          "0.2": false,
+          "0.3": true,
+          "0.4": false,
+          "0.5": true
+        },
+        "weightPerSet": {
+          "0.2": [
+            10,
+            10,
+            10
+          ],
+          "0.3": [
+            null,
+            null
+          ],
+          "0.1": [
+            null,
+            null,
+            null
+          ]
+        },
+        "warningPerSet": {
+          "0.4": [
+            null,
+            null
+          ]
+        },
+        "dropTargets": {
+          "0.5.0": [
+            [
+              "amrap",
+              null
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "file": "valid/rest-precedence.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "restPerSet": {
+          "0.0": [
+            80,
+            80
+          ],
+          "0.1": [
+            70,
+            70
+          ],
+          "0.2": [
+            70,
+            60
+          ],
+          "0.3": [
+            0
+          ],
+          "1.0": [
+            100
+          ]
+        }
+      }
+    },
+    {
+      "file": "valid/lenient-values.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_RANGE_SWAPPED",
+        "W_WEIGHT_UNIT_IGNORED",
+        "W_WEIGHT_ROUNDED"
+      ],
+      "checks": {
+        "units": "kg",
+        "bodyweight": {
+          "0.2": true,
+          "0.3": false
+        },
+        "repRange": {
+          "0.0": [
+            8,
+            12
+          ],
+          "0.1": [
+            8,
+            12
+          ],
+          "0.2": null,
+          "0.3": null,
+          "0.4": null
+        },
+        "exerciseNames": {
+          "0": [
+            "Barbell Bench Press",
+            "Incline Press",
+            "Pull-Up",
+            "Dip",
+            "Curl",
+            "Hammer Curl"
+          ]
+        },
+        "stepsPerDay": [
+          17
+        ],
+        "workPerSet": {
+          "0.0": [
+            "range:8-12",
+            "range:8-12",
+            "range:8-12",
+            "range:8-12"
+          ],
+          "0.1": [
+            "range:8-12",
+            "range:8-12",
+            "range:8-12"
+          ],
+          "0.2": [
+            "amrap",
+            "amrap",
+            "amrap"
+          ],
+          "0.3": [
+            "amrap:10",
+            "amrap:10",
+            "amrap:10"
+          ],
+          "0.4": [
+            "fixed:12",
+            "fixed:12"
+          ],
+          "0.5": [
+            "fixed:10",
+            "fixed:10"
+          ]
+        },
+        "weightPerSet": {
+          "0.0": [
+            60,
+            60,
+            60,
+            60
+          ],
+          "0.1": [
+            22.5,
+            22.5,
+            22.5
+          ],
+          "0.2": [
+            null,
+            null,
+            null
+          ],
+          "0.3": [
+            10,
+            10,
+            10
+          ],
+          "0.4": [
+            135,
+            135
+          ],
+          "0.5": [
+            12.6,
+            12.6
+          ]
+        },
+        "restPerSet": {
+          "0.0": [
+            90,
+            90,
+            90,
+            90
+          ]
+        }
+      }
+    },
+    {
+      "file": "valid/unknown-fields.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_UNKNOWN_FIELD",
+        "W_UNKNOWN_FIELD",
+        "W_UNKNOWN_FIELD",
+        "W_UNKNOWN_FIELD"
+      ]
+    },
+    {
+      "file": "valid/lb-plan.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "units": "lb"
+      }
+    },
+    {
+      "file": "valid/duplicate-day-names.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_DAY_RENAMED",
+        "W_DAY_RENAMED"
+      ],
+      "checks": {
+        "dayNames": [
+          "Push",
+          "push (2)",
+          "Push (3)"
+        ]
+      }
+    },
+    {
+      "file": "valid/group-edge-cases.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_GROUP_SINGLE",
+        "W_GROUP_SINGLE",
+        "W_GROUP_SPLIT"
+      ],
+      "checks": {
+        "groups": {
+          "0": [
+            "A",
+            "A",
+            null,
+            null,
+            null
+          ]
+        },
+        "stepOrder": {
+          "0": [
+            "0.0",
+            "1.0",
+            "0.1",
+            "1.1",
+            "0.2",
+            "1.2",
+            "2.0",
+            "2.1",
+            "2.2",
+            "3.0",
+            "3.1",
+            "3.2",
+            "4.0",
+            "4.1"
+          ]
+        }
+      }
+    },
+    {
+      "file": "valid/nulls-and-defaults.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_DEFAULT_NAME",
+        "W_DEFAULT_NAME"
+      ],
+      "checks": {
+        "weightPerSet": {
+          "0.0": [
+            null,
+            null
+          ]
+        },
+        "groups": {
+          "0": [
+            null
+          ]
+        },
+        "notes": {
+          "0.0": null
+        }
+      }
+    },
+    {
+      "file": "valid/long-names.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_NAME_TRUNCATED",
+        "W_NAME_TRUNCATED",
+        "W_NAME_TRUNCATED",
+        "W_NOTES_TRUNCATED"
+      ],
+      "checks": {
+        "planName": "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+        "dayNames": [
+          "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+        ],
+        "exerciseNames": {
+          "0": [
+            "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+          ]
+        }
+      }
+    },
+    {
+      "file": "valid/unicode-names.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "planName": "🏋️ Программа",
+        "dayNames": [
+          "胸 Chest"
+        ],
+        "exerciseNames": {
+          "0": [
+            "Développé couché"
+          ]
+        }
+      }
+    },
+    {
+      "file": "valid/rotation-with-weekdays.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_WEEKDAY_IGNORED",
+        "W_WEEKDAY_IGNORED"
+      ],
+      "checks": {
+        "schedule": "rotation",
+        "weekdays": [
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "file": "valid/schedule-unknown-value.json",
+      "outcome": "valid",
+      "warnings": [
+        "W_SCHEDULE_INFERRED"
+      ],
+      "checks": {
+        "schedule": "rotation"
+      }
+    },
+    {
+      "file": "valid/boundaries.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "stepsPerDay": [
+          52
+        ],
+        "workPerSet": {
+          "0.1": [
+            "duration:86400"
+          ],
+          "0.2": [
+            "fixed:1"
+          ]
+        },
+        "weightPerSet": {
+          "0.2": [
+            0
+          ]
+        },
+        "restPerSet": {
+          "0.1": [
+            0
+          ]
+        }
+      }
+    },
+    {
+      "file": "valid/braces-in-strings.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "planName": "Braces {in} strings",
+        "notes": {
+          "0.0": "hold {tight} and [breathe]"
+        }
+      }
+    },
+    {
+      "file": "valid/fenced-plain.txt",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "planName": "From chat"
+      }
+    },
+    {
+      "file": "valid/fenced-with-prose.txt",
+      "outcome": "valid",
+      "warnings": [
+        "W_SURROUNDING_TEXT"
+      ],
+      "checks": {
+        "planName": "From chat"
+      }
+    },
+    {
+      "file": "valid/fenced-other-language.txt",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "planName": "From chat"
+      }
+    },
+    {
+      "file": "valid/prose-no-fence.txt",
+      "outcome": "valid",
+      "warnings": [
+        "W_SURROUNDING_TEXT"
+      ],
+      "checks": {
+        "planName": "From chat"
+      }
+    },
+    {
+      "file": "valid/marker-and-json.txt",
+      "outcome": "valid",
+      "warnings": [
+        "W_SURROUNDING_TEXT"
+      ],
+      "checks": {
+        "planName": "From chat"
+      }
+    },
+    {
+      "file": "valid/curly-quotes.txt",
+      "outcome": "valid",
+      "warnings": [
+        "W_CURLY_QUOTES_FIXED"
+      ],
+      "checks": {
+        "planName": "From chat"
+      }
+    },
+    {
+      "file": "valid/curly-in-string-value.txt",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "notes": {
+          "0.0": "“slow” eccentric"
+        }
+      }
+    },
+    {
+      "file": "valid/bom-and-zero-width.txt",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "planName": "From chat"
+      }
+    },
+    {
+      "file": "valid/top-level-array-fenced.txt",
+      "outcome": "valid",
+      "warnings": [
+        "W_WRAPPED_SINGLE_DAY",
+        "W_DEFAULT_NAME"
+      ],
+      "checks": {
+        "dayNames": [
+          "Only day"
+        ]
+      }
+    },
+    {
+      "file": "valid/prompt-example.txt",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "planName": "Push Pull Legs",
+        "stepsPerDay": [
+          24
+        ],
+        "cycle": [
+          "Push",
+          "rest"
+        ],
+        "workPerSet": {
+          "0.5": [
+            "open",
+            "open"
+          ]
+        },
+        "warningPerSet": {
+          "0.4": [
+            5,
+            5,
+            5
+          ],
+          "0.5": [
+            null,
+            null
+          ]
+        },
+        "bodyweight": {
+          "0.4": true,
+          "0.5": true
+        }
+      }
+    },
+    {
+      "file": "invalid/empty.txt",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_EMPTY",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/whitespace.txt",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_EMPTY",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/prompt-pasted.txt",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_PROMPT_PASTED",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/prompt-pasted-full.txt",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_PROMPT_PASTED",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/multiple-objects-fenced.txt",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_MULTIPLE_OBJECTS",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/multiple-objects-bare.txt",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_MULTIPLE_OBJECTS",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/trailing-comma.txt",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_NOT_JSON",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/truncated.txt",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_NOT_JSON",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/comments.txt",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_NOT_JSON",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/single-quotes.txt",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_NOT_JSON",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/not-json-at-all.txt",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_NOT_JSON",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/too-large.txt",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_TOO_LARGE",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/not-a-plan.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_NOT_A_PLAN",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/null-top-level.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_NOT_JSON",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "file": "invalid/days-not-array.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_NO_DAYS",
+          "path": "days"
+        }
+      ]
+    },
+    {
+      "file": "invalid/no-days.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_NO_DAYS",
+          "path": "days"
+        }
+      ]
+    },
+    {
+      "file": "invalid/days-null.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_NO_DAYS",
+          "path": "days"
+        }
+      ]
+    },
+    {
+      "file": "invalid/no-exercises.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_NO_EXERCISES",
+          "path": "days[0].exercises"
+        }
+      ]
+    },
+    {
+      "file": "invalid/missing-exercise-name.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_MISSING_NAME",
+          "path": "days[0].exercises[0].name"
+        }
+      ]
+    },
+    {
+      "file": "invalid/blank-exercise-name.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_MISSING_NAME",
+          "path": "days[0].exercises[0].name"
+        }
+      ]
+    },
+    {
+      "file": "invalid/sets-zero.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_SETS_INVALID",
+          "path": "days[0].exercises[0].sets"
+        }
+      ]
+    },
+    {
+      "file": "invalid/sets-fraction.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_SETS_INVALID",
+          "path": "days[0].exercises[0].sets"
+        }
+      ]
+    },
+    {
+      "file": "invalid/sets-word.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_SETS_INVALID",
+          "path": "days[0].exercises[0].sets"
+        }
+      ]
+    },
+    {
+      "file": "invalid/sets-empty-array.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_SETS_INVALID",
+          "path": "days[0].exercises[0].sets"
+        }
+      ]
+    },
+    {
+      "file": "invalid/sets-too-many.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_LIMIT_EXCEEDED",
+          "path": "days[0].exercises[0].sets"
+        }
+      ]
+    },
+    {
+      "file": "invalid/reps-word.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REPS_INVALID",
+          "path": "days[0].exercises[0].reps"
+        }
+      ]
+    },
+    {
+      "file": "invalid/reps-zero.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REPS_INVALID",
+          "path": "days[0].exercises[0].reps"
+        }
+      ]
+    },
+    {
+      "file": "invalid/reps-fraction.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REPS_INVALID",
+          "path": "days[0].exercises[0].reps"
+        }
+      ]
+    },
+    {
+      "file": "invalid/reps-triple-range.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REPS_INVALID",
+          "path": "days[0].exercises[0].reps"
+        }
+      ]
+    },
+    {
+      "file": "invalid/reps-open-range.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REPS_INVALID",
+          "path": "days[0].exercises[0].reps"
+        }
+      ]
+    },
+    {
+      "file": "invalid/reps-too-big.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REPS_INVALID",
+          "path": "days[0].exercises[0].reps"
+        }
+      ]
+    },
+    {
+      "file": "invalid/reps-bool.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REPS_INVALID",
+          "path": "days[0].exercises[0].reps"
+        }
+      ]
+    },
+    {
+      "file": "invalid/reprange-word.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REPRANGE_INVALID",
+          "path": "days[0].exercises[0].repRange"
+        }
+      ]
+    },
+    {
+      "file": "invalid/reprange-amrap.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REPRANGE_INVALID",
+          "path": "days[0].exercises[0].repRange"
+        }
+      ]
+    },
+    {
+      "file": "invalid/reprange-zero.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REPRANGE_INVALID",
+          "path": "days[0].exercises[0].repRange"
+        }
+      ]
+    },
+    {
+      "file": "invalid/drops-empty.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_DROPS_INVALID",
+          "path": "days[0].exercises[0].drops"
+        }
+      ]
+    },
+    {
+      "file": "invalid/drops-too-many.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_DROPS_INVALID",
+          "path": "days[0].exercises[0].drops"
+        }
+      ]
+    },
+    {
+      "file": "invalid/drops-not-list.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_DROPS_INVALID",
+          "path": "days[0].exercises[0].drops"
+        }
+      ]
+    },
+    {
+      "file": "invalid/drops-bad-weight.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_WEIGHT_INVALID",
+          "path": "days[0].exercises[0].drops[0].weight"
+        }
+      ]
+    },
+    {
+      "file": "invalid/cycle-unknown-day.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_CYCLE_UNKNOWN_DAY",
+          "path": "cycle[1]"
+        }
+      ]
+    },
+    {
+      "file": "invalid/cycle-empty.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_CYCLE_INVALID",
+          "path": "cycle"
+        }
+      ]
+    },
+    {
+      "file": "invalid/cycle-not-list.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_CYCLE_INVALID",
+          "path": "cycle"
+        }
+      ]
+    },
+    {
+      "file": "invalid/warning-beep-zero.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_WARNING_BEEP_INVALID",
+          "path": "days[0].exercises[0].warningBeep"
+        }
+      ]
+    },
+    {
+      "file": "invalid/warning-beep-too-long.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_WARNING_BEEP_INVALID",
+          "path": "days[0].exercises[0].warningBeep"
+        }
+      ]
+    },
+    {
+      "file": "invalid/warning-beep-word.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_WARNING_BEEP_INVALID",
+          "path": "days[0].exercises[0].warningBeep"
+        }
+      ]
+    },
+    {
+      "file": "invalid/warning-beep-fraction.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_WARNING_BEEP_INVALID",
+          "path": "days[0].exercises[0].sets[0].warningBeep"
+        }
+      ]
+    },
+    {
+      "file": "invalid/duration-word.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_DURATION_INVALID",
+          "path": "days[0].exercises[0].durationSeconds"
+        }
+      ]
+    },
+    {
+      "file": "invalid/bodyweight-string.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_BODYWEIGHT_INVALID",
+          "path": "days[0].exercises[0].bodyweight"
+        }
+      ]
+    },
+    {
+      "file": "invalid/target-conflict-exercise.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_TARGET_CONFLICT",
+          "path": "days[0].exercises[0]"
+        }
+      ]
+    },
+    {
+      "file": "invalid/target-conflict-set.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_TARGET_CONFLICT",
+          "path": "days[0].exercises[0].sets[0]"
+        }
+      ]
+    },
+    {
+      "file": "invalid/target-missing-exercise.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_TARGET_MISSING",
+          "path": "days[0].exercises[0]"
+        }
+      ]
+    },
+    {
+      "file": "invalid/target-missing-set.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_TARGET_MISSING",
+          "path": "days[0].exercises[0].sets[0]"
+        }
+      ]
+    },
+    {
+      "file": "invalid/duration-zero.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_DURATION_INVALID",
+          "path": "days[0].exercises[0].durationSeconds"
+        }
+      ]
+    },
+    {
+      "file": "invalid/duration-string-unit.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_DURATION_INVALID",
+          "path": "days[0].exercises[0].durationSeconds"
+        }
+      ]
+    },
+    {
+      "file": "invalid/duration-too-long.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_DURATION_INVALID",
+          "path": "days[0].exercises[0].durationSeconds"
+        }
+      ]
+    },
+    {
+      "file": "invalid/weight-negative.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_WEIGHT_INVALID",
+          "path": "days[0].exercises[0].weight"
+        }
+      ]
+    },
+    {
+      "file": "invalid/weight-word.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_WEIGHT_INVALID",
+          "path": "days[0].exercises[0].weight"
+        }
+      ]
+    },
+    {
+      "file": "invalid/weight-too-big.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_WEIGHT_INVALID",
+          "path": "days[0].exercises[0].weight"
+        }
+      ]
+    },
+    {
+      "file": "invalid/rest-negative.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REST_INVALID",
+          "path": "days[0].exercises[0].restSeconds"
+        }
+      ]
+    },
+    {
+      "file": "invalid/rest-too-long.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REST_INVALID",
+          "path": "days[0].exercises[0].restSeconds"
+        }
+      ]
+    },
+    {
+      "file": "invalid/rest-fraction.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REST_INVALID",
+          "path": "days[0].exercises[0].restSeconds"
+        }
+      ]
+    },
+    {
+      "file": "invalid/rest-string-unit.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REST_INVALID",
+          "path": "days[0].exercises[0].restSeconds"
+        }
+      ]
+    },
+    {
+      "file": "invalid/rest-day-level-invalid.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REST_INVALID",
+          "path": "days[0].defaultRestSeconds"
+        }
+      ]
+    },
+    {
+      "file": "invalid/weekday-invalid.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_WEEKDAY_INVALID",
+          "path": "days[0].weekday"
+        }
+      ]
+    },
+    {
+      "file": "invalid/weekday-duplicate.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_WEEKDAY_DUPLICATE",
+          "path": "days[1].weekday"
+        }
+      ]
+    },
+    {
+      "file": "invalid/weekday-missing.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_WEEKDAY_MISSING",
+          "path": "days[1].weekday"
+        }
+      ]
+    },
+    {
+      "file": "invalid/schedule-mixed.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_SCHEDULE_MIXED",
+          "path": "schedule"
+        }
+      ]
+    },
+    {
+      "file": "invalid/schema-version-2.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_SCHEMA_VERSION",
+          "path": "schemaVersion"
+        }
+      ]
+    },
+    {
+      "file": "invalid/units-invalid.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_UNITS_INVALID",
+          "path": "units"
+        }
+      ]
+    },
+    {
+      "file": "invalid/too-many-days.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_LIMIT_EXCEEDED",
+          "path": "days"
+        }
+      ]
+    },
+    {
+      "file": "invalid/too-many-exercises.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_LIMIT_EXCEEDED",
+          "path": "days[0].exercises"
+        }
+      ]
+    },
+    {
+      "file": "invalid/multi-error.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_UNITS_INVALID",
+          "path": "units"
+        },
+        {
+          "code": "E_MISSING_NAME",
+          "path": "days[0].exercises[0].name"
+        },
+        {
+          "code": "E_SETS_INVALID",
+          "path": "days[0].exercises[0].sets"
+        },
+        {
+          "code": "E_REPS_INVALID",
+          "path": "days[0].exercises[0].reps"
+        },
+        {
+          "code": "E_WEIGHT_INVALID",
+          "path": "days[0].exercises[1].weight"
+        },
+        {
+          "code": "E_REST_INVALID",
+          "path": "days[0].exercises[1].restSeconds"
+        },
+        {
+          "code": "E_NO_EXERCISES",
+          "path": "days[1].exercises"
+        }
+      ]
+    }
+  ]
+}

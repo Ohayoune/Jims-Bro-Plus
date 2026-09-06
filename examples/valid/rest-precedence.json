@@ -1,0 +1,50 @@
+{
+  "name": "Rest chain",
+  "defaultRestSeconds": 100,
+  "days": [
+    {
+      "name": "Day A",
+      "defaultRestSeconds": 80,
+      "exercises": [
+        {
+          "name": "Ex 1",
+          "sets": 2,
+          "reps": 10
+        },
+        {
+          "name": "Ex 2",
+          "sets": 2,
+          "reps": 10,
+          "restSeconds": 70
+        },
+        {
+          "name": "Ex 3",
+          "reps": 10,
+          "restSeconds": 70,
+          "sets": [
+            {},
+            {
+              "restSeconds": 60
+            }
+          ]
+        },
+        {
+          "name": "Ex 4",
+          "sets": 1,
+          "reps": 10,
+          "restSeconds": 0
+        }
+      ]
+    },
+    {
+      "name": "Day B",
+      "exercises": [
+        {
+          "name": "Ex 5",
+          "sets": 1,
+          "reps": 10
+        }
+      ]
+    }
+  ]
+}

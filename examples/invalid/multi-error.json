@@ -1,0 +1,27 @@
+{
+  "name": "X",
+  "units": "stone",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "",
+          "sets": 0,
+          "reps": "ten"
+        },
+        {
+          "name": "Row",
+          "sets": 3,
+          "reps": 10,
+          "weight": -1,
+          "restSeconds": 5000
+        }
+      ]
+    },
+    {
+      "name": "B",
+      "exercises": []
+    }
+  ]
+}

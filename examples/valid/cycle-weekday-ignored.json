@@ -1,0 +1,31 @@
+{
+  "name": "Cycle ignored",
+  "cycle": [
+    "A",
+    "rest"
+  ],
+  "days": [
+    {
+      "name": "A",
+      "weekday": "tuesday",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 1,
+          "reps": 10
+        }
+      ]
+    },
+    {
+      "name": "B",
+      "weekday": "saturday",
+      "exercises": [
+        {
+          "name": "Row",
+          "sets": 1,
+          "reps": 10
+        }
+      ]
+    }
+  ]
+}

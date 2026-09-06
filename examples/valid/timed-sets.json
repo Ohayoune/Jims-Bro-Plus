@@ -1,0 +1,83 @@
+{
+  "name": "Core and Cardio",
+  "days": [
+    {
+      "name": "Core",
+      "exercises": [
+        {
+          "name": "Plank",
+          "sets": 3,
+          "durationSeconds": 45,
+          "restSeconds": 30
+        },
+        {
+          "name": "Side Plank",
+          "sets": 2,
+          "durationSeconds": 30,
+          "restSeconds": 30,
+          "notes": "each side"
+        },
+        {
+          "name": "Stationary Bike",
+          "sets": 1,
+          "durationSeconds": 600,
+          "restSeconds": 0
+        },
+        {
+          "name": "Farmer Carry",
+          "sets": 3,
+          "durationSeconds": 40,
+          "weight": 32,
+          "restSeconds": 60
+        },
+        {
+          "name": "Dead Hang",
+          "sets": 2,
+          "durationSeconds": "max",
+          "bodyweight": true,
+          "restSeconds": 60
+        },
+        {
+          "name": "Max Plank",
+          "sets": 1,
+          "durationSeconds": "30+",
+          "restSeconds": 0
+        },
+        {
+          "name": "Wall Sit",
+          "durationSeconds": 60,
+          "warningBeep": 15,
+          "sets": [
+            {},
+            {
+              "durationSeconds": "AMSAP",
+              "warningBeep": 5
+            }
+          ]
+        },
+        {
+          "name": "Hollow Hold",
+          "sets": 2,
+          "durationSeconds": 20,
+          "warningBeep": false
+        },
+        {
+          "name": "Short Hold",
+          "sets": 1,
+          "durationSeconds": 8
+        },
+        {
+          "name": "Late Warning",
+          "sets": 1,
+          "durationSeconds": 30,
+          "warningBeep": 45
+        },
+        {
+          "name": "Rounding",
+          "sets": 1,
+          "durationSeconds": 25
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "Extras",
+  "author": "coach",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Barbell Back Squat",
+          "sets": 3,
+          "reps": 5,
+          "weight": 100,
+          "restSeconds": 180,
+          "tempo": "3010",
+          "rpe": 8,
+          "equipment": "barbell"
+        }
+      ]
+    }
+  ]
+}

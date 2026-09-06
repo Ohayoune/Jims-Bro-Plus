@@ -1,0 +1,39 @@
+{
+  "name": "Circuit Day",
+  "units": "kg",
+  "defaultRestSeconds": 60,
+  "days": [
+    {
+      "name": "Circuit",
+      "exercises": [
+        {
+          "name": "Goblet Squat",
+          "group": "a",
+          "sets": 3,
+          "reps": 12,
+          "weight": 20
+        },
+        {
+          "name": "Push-Up",
+          "group": "A",
+          "sets": 3,
+          "reps": 15
+        },
+        {
+          "name": "Kettlebell Swing",
+          "group": "A",
+          "sets": 2,
+          "reps": 20,
+          "weight": 24,
+          "restSeconds": 90
+        },
+        {
+          "name": "Dead Hang",
+          "sets": 2,
+          "durationSeconds": 30,
+          "restSeconds": 45
+        }
+      ]
+    }
+  ]
+}

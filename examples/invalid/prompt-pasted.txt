@@ -1,0 +1,5 @@
+JIMMSBRO-PLAN-PROMPT-V1
+You are converting a workout plan into JSON for a workout-tracking app.
+Reply with ONLY one JSON object.
+My plan:
+Mon: bench 3x8
