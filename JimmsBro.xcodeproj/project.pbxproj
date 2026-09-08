@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5D4BD5877ADF40B59A8911E7 /* StepProgressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B7999AD7451470B9EF55A69 /* StepProgressionTests.swift */; };
 		DB098ECF90B343CFB99C0C47 /* DraftPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 439CE55246D549E1A020FA0E /* DraftPlanTests.swift */; };
 		D1EA62BA895143DEB49130B8 /* DraftPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C680AFEE3D8467CBE5D18A7 /* DraftPlanView.swift */; };
 		712A4760F26A4AB3B14B5C50 /* DraftModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A15660A070849DD9F150CE6 /* DraftModel.swift */; };
@@ -152,6 +153,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		3B7999AD7451470B9EF55A69 /* StepProgressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepProgressionTests.swift; sourceTree = "<group>"; };
 		439CE55246D549E1A020FA0E /* DraftPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftPlanTests.swift; sourceTree = "<group>"; };
 		3C680AFEE3D8467CBE5D18A7 /* DraftPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftPlanView.swift; sourceTree = "<group>"; };
 		8A15660A070849DD9F150CE6 /* DraftModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftModel.swift; sourceTree = "<group>"; };
@@ -405,6 +407,7 @@
 		8B7A6DECC0651D269EA794C7 /* JimmsBroTests */ = {
 			isa = PBXGroup;
 			children = (
+				3B7999AD7451470B9EF55A69 /* StepProgressionTests.swift */,
 				439CE55246D549E1A020FA0E /* DraftPlanTests.swift */,
 				7CF89143A6A24A11AD257E08 /* InReserveTests.swift */,
 				1E635E7EA3F746999CDF7B7A /* ClarityTests.swift */,
@@ -766,6 +769,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5D4BD5877ADF40B59A8911E7 /* StepProgressionTests.swift in Sources */,
 				DB098ECF90B343CFB99C0C47 /* DraftPlanTests.swift in Sources */,
 				71D355C1D4494A1AAAF29773 /* InReserveTests.swift in Sources */,
 				6AF74EC479B54190A353B001 /* ClarityTests.swift in Sources */,

@@ -62,6 +62,14 @@ if arguments.contains("--progression") {
         }
     }
     plan.progression = Progression(startDate: Calendar.current.startOfDay(for: now), weeks: 4, entries: entries)
+    // v1.5 (D53): `--steps` makes it a progression of steps you earn, with the first exercise
+    // already on its second step and the second one that has missed its first once, so the
+    // ladder, the ▸ and "1 try" all have something to show.
+    if arguments.contains("--steps") {
+        plan.progression?.mode = .performance
+        if plan.progression?.entries.indices.contains(0) == true { plan.progression?.entries[0].step = 1 }
+        if plan.progression?.entries.indices.contains(1) == true { plan.progression?.entries[1].tries = 1 }
+    }
 }
 
 try await store.save(settings: Settings())

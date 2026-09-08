@@ -225,8 +225,10 @@ struct HomeStart: Equatable {
         // D44 (v1.3): where the progression is, in the subtitle that already says what today
         // is; and when it has run out, one line offering the next — nothing else moves.
         if let progression = plan.progression {
-            if let index = progression.weekIndex(on: now, calendar: calendar) {
-                fragments.append("week \(index + 1) of \(progression.weeks)")
+            // D53 (v1.5): "step 3 of 8" in performance mode — the lowest step among the day's
+            // exercises still climbing — and "week 3 of 8" in calendar mode.
+            if let index = progression.currentStep(dayName: day.name, on: now, calendar: calendar) {
+                fragments.append("\(ProgressionText.word(progression.mode).lowercased()) \(index + 1) of \(progression.weeks)")
             } else if progression.isFinished(on: now, calendar: calendar) {
                 start.progressionFinished = true
             }

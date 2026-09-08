@@ -807,6 +807,21 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | Z16 | unit | (D52, v1.5) The prompts | Both carry the marker and no placeholder; the outline prompt says NO exercises; the day prompt names the day, lists the outline, uses the outline's units and drops the days/schedule/cycle rules; every rule line of the day prompt is a line of the plan prompt; both refused if pasted back; a seven-day outline's day prompt is under 4,000 characters; §4 and §5 of PROMPT.md match the code |
 | Z17 | manual | (D52, v1.5) Add plan → Create with a chatbot → **Build it day by day**, with a free ChatGPT tab | The outline pastes into slots; each day prompt fits one reply; a slot refused says which day and why; leave the app and come back to "Continue · 2 of 3 days pasted"; Review plan, Save plan; the plan is on Home and the draft is gone |
 
+### Z4 — progression by performance (D53)
+
+`JimmsBroTests/StepProgressionTests.swift`; W31–W39 keep passing for the calendar mode.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Z18 | unit | (D53, v1.5) `stepIndex`, `currentStep`, `isFinished`, `status` in performance mode | The same on any date; a day's step is the lowest among its exercises still climbing; an entry past its last step is nil; finished only when every entry is; "Step 1 of 4" / "Finished"; the calendar mode answers as in v1.3 |
+| Z19 | unit | (D53, v1.5) `apply(to:on:)` and `Session.start` | Each entry's own step applied; a `{}` step keeps the plan's targets and still counts; each exercise stamped with its step, the session with the lowest and the mode; in calendar mode a `{}` week touches nothing; past the last step nothing is stamped |
+| Z20 | unit | (D53, v1.5) `ProgressionSteps.achieved` | All sets at the top: yes; one rep short across the exercise: yes; two: no; a lighter weight: no; a heavier one: yes; a skipped set: no; a hold short of its seconds: no; an AMRAP's minimum met: yes; nothing done: no |
+| Z21 | unit | (D53, v1.5) A workout completed through the model | The exercise that hit its step moves on with tries reset; the one that missed stays with a try counted; an untrained day's entry is untouched; the plan is on disk with the new steps; a session stamped at a step already left, or of a substitute, changes nothing; the calendar mode never moves by performance |
+| Z22 | unit | (D53, v1.5) The reply and the words | `steps` read with the mode from the screen; `weeks` read as the alias with a cleanup warning; paths say `steps[…]` and locations "step 1"; "Step 2 of 4 of your progression"; "Step 1 of 4 · 2 tries" and "Done"; the ladder with ▸ on the current step; the chip's reason; Home's "step 1 of 4" and the offer when every exercise is done |
+| Z23 | unit | (D53, v1.5) On disk | A v1.3 progression (no mode, step or tries) reads as calendar at step 0; the performance fields round-trip; a session's mode round-trips and a frozen v1 session has none |
+| Z24 | unit | (D53, v1.5) The prompt | "as 8 steps", `"steps": 8`, the performance cadence sentence, the calendar one in calendar mode, no placeholder left, under the bound; §3 of PROMPT.md matches the code (W37) |
+| Z25 | manual | (D53, v1.5) Plan a progression with **When I hit the target**, run a day hitting one exercise and missing another | The chip reads "Step 1 of 4 of your progression"; after Finish, the Progression screen shows the first exercise at step 2 and the other at "Step 1 of 4 · 1 try" with ▸ on its ladder; Home reads "step 1 of 4" until every exercise of the day moves |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

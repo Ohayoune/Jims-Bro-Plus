@@ -11,6 +11,8 @@ struct ProgressionView: View {
 
     @State private var planning = false
     @State private var weeks = 8
+    /// D53 (v1.5): steps you earn, unless the owner's "legacy" calendar is wanted.
+    @State private var mode: ProgressionMode = .performance
     @State private var useHistory = true
     @State private var text = ""
     @State private var issues: [Issue] = []
@@ -87,8 +89,13 @@ struct ProgressionView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(ProgressionText.status(current, on: Date()))
                         .font(.title3.weight(.semibold))
-                    Text("Started \(current.startDate.formatted(date: .abbreviated, time: .omitted)) · "
-                         + "ends \(current.endDate().formatted(date: .abbreviated, time: .omitted))")
+                    // D53: a calendar progression ends on a date; one you earn ends when every
+                    // exercise is past its last step.
+                    Text(current.mode == .performance
+                         ? "Started \(current.startDate.formatted(date: .abbreviated, time: .omitted)) · "
+                           + "\(current.entries.filter { $0.step >= $0.weeks.count }.count) of \(current.entries.count) exercises done"
+                         : "Started \(current.startDate.formatted(date: .abbreviated, time: .omitted)) · "
+                           + "ends \(current.endDate().formatted(date: .abbreviated, time: .omitted))")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -114,14 +121,26 @@ struct ProgressionView: View {
 
     private func entryRow(_ exercise: Exercise, _ entry: ProgressionEntry, current: Progression,
                           units: WeightUnit) -> some View {
-        let week = current.weekIndex(on: Date())
+        let step = current.stepIndex(for: entry, on: Date())
         return VStack(alignment: .leading, spacing: 3) {
-            Text(exercise.name)
-            if let week, let change = entry.weeks[safe: week] {
-                Text("This week: " + ProgressionText.change(change, units: units, bodyweight: exercise.bodyweight))
+            HStack(alignment: .firstTextBaseline) {
+                Text(exercise.name)
+                Spacer()
+                // D53: where this exercise is on its ladder, and how many tries the step took.
+                if current.mode == .performance {
+                    Text(ProgressionText.entryStatus(entry, of: current.weeks))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if let step, let change = entry.weeks[safe: step] {
+                Text((current.mode == .performance ? "This step: " : "This week: ")
+                     + ProgressionText.change(change, units: units, bodyweight: exercise.bodyweight))
                     .font(.footnote)
             }
-            Text(ProgressionText.weeksLine(entry, units: units, bodyweight: exercise.bodyweight))
+            Text(current.mode == .performance
+                 ? ProgressionText.ladder(entry, units: units, bodyweight: exercise.bodyweight, current: step)
+                 : ProgressionText.weeksLine(entry, units: units, bodyweight: exercise.bodyweight))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -134,14 +153,30 @@ struct ProgressionView: View {
         List {
             if !errors.isEmpty { errorSection }
             Section {
-                Picker("Weeks", selection: $weeks) {
+                Picker("Steps", selection: $weeks) {
                     ForEach(Progression.periods, id: \.self) { Text("\($0)").tag($0) }
                 }
                 .pickerStyle(.segmented)
             } header: {
-                Text("How many weeks")
+                Text("How many steps")
             } footer: {
-                Text("Week 1 starts the day you save it.")
+                Text(mode == .performance ? "One step is one workout's targets."
+                                          : "One step is one week; week 1 starts the day you save it.")
+            }
+            // D53 (v1.5): steps you earn, or the calendar. The owner's "legacy calendar
+            // increase" is the second choice, not the default.
+            Section {
+                Picker("Advance", selection: $mode) {
+                    Text("When I hit the target").tag(ProgressionMode.performance)
+                    Text("Every week").tag(ProgressionMode.calendar)
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("Advance")
+            } footer: {
+                Text(mode == .performance
+                     ? "An exercise moves to its next step when a workout hits the current one — every set at or above its reps, within a rep. Miss it and the step repeats."
+                     : "The next step every calendar week, whatever happened.")
             }
             if model.hasHistory(for: planId) {
                 Section {
@@ -155,7 +190,7 @@ struct ProgressionView: View {
             Section {
                 step(1, PromptText.copyStep) {
                     Button(copied ? "Copied" : "Copy prompt") {
-                        if let prompt = model.progressionPrompt(for: planId, weeks: weeks, includeHistory: useHistory) {
+                        if let prompt = model.progressionPrompt(for: planId, weeks: weeks, includeHistory: useHistory, mode: mode) {
                             Clipboard.write(prompt)
                         }
                         copied = true
@@ -196,7 +231,7 @@ struct ProgressionView: View {
                 }
                 .font(.footnote)
             } footer: {
-                Text(hasDraft ? "Review progression checks it against the plan and shows you every week."
+                Text(hasDraft ? "Review progression checks it against the plan and shows you every step."
                               : "The reply goes here.")
             }
         }
@@ -250,7 +285,7 @@ struct ProgressionView: View {
 
     private func runImport() {
         showDetails = false
-        let result = model.runProgressionImport(text, planId: planId)
+        let result = model.runProgressionImport(text, planId: planId, mode: mode)
         issues = result.issues
         if let progression = result.progression {
             review = ReviewItem(progression: progression, warnings: result.issues.filter { $0.severity == .warning })
@@ -282,7 +317,9 @@ struct ProgressionReviewSheet: View {
         NavigationStack {
             List {
                 Section {
-                    Text("\(progression.weeks) week\(progression.weeks == 1 ? "" : "s") from today · "
+                    Text((progression.mode == .performance
+                          ? "\(progression.weeks) step\(progression.weeks == 1 ? "" : "s"), each earned · "
+                          : "\(progression.weeks) week\(progression.weeks == 1 ? "" : "s") from today · ")
                          + "\(progression.entries.count) exercise\(progression.entries.count == 1 ? "" : "s")")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -309,7 +346,9 @@ struct ProgressionReviewSheet: View {
                             ForEach(Array(entries.enumerated()), id: \.offset) { _, pair in
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(pair.0.name).font(.footnote)
-                                    Text(ProgressionText.weeksLine(pair.1, units: plan.units, bodyweight: pair.0.bodyweight))
+                                    Text(progression.mode == .performance
+                                         ? ProgressionText.ladder(pair.1, units: plan.units, bodyweight: pair.0.bodyweight, current: 0)
+                                         : ProgressionText.weeksLine(pair.1, units: plan.units, bodyweight: pair.0.bodyweight))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                         .fixedSize(horizontal: false, vertical: true)

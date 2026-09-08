@@ -14,19 +14,22 @@ extension AppModel {
     }
 
     /// The prompt for this plan over `weeks`, with history when asked and there is any.
-    func progressionPrompt(for planId: UUID, weeks: Int, includeHistory: Bool, now: Date = Date()) -> String? {
+    func progressionPrompt(for planId: UUID, weeks: Int, includeHistory: Bool, now: Date = Date(),
+                           mode: ProgressionMode = .performance) -> String? {
         guard let plan = plans.first(where: { $0.id == planId }) else { return nil }
         return Prompts.progression(plan: plan, history: sessions, weeks: weeks, includeHistory: includeHistory,
-                                   settings: settings, now: now)
+                                   settings: settings, now: now, mode: mode)
     }
 
-    /// The reply, read against this plan. Nothing is saved until `setProgression`.
-    func runProgressionImport(_ text: String, planId: UUID, now: Date = Date()) -> ProgressionImport.Result {
+    /// The reply, read against this plan, in the mode chosen on the screen (D53). Nothing is
+    /// saved until `setProgression`.
+    func runProgressionImport(_ text: String, planId: UUID, now: Date = Date(),
+                              mode: ProgressionMode = .performance) -> ProgressionImport.Result {
         guard let plan = plans.first(where: { $0.id == planId }) else {
             return ProgressionImport.Result(progression: nil, issues: [Issue(
                 severity: .error, code: "E_EDIT_INVALID", path: "", message: "That plan no longer exists.")])
         }
-        return ProgressionImport.run(text, plan: plan, settings: settings, now: now)
+        return ProgressionImport.run(text, plan: plan, settings: settings, now: now, mode: mode)
     }
 
     /// Attaches (or, with nil, removes) the plan's progression and writes the plans file.

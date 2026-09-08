@@ -128,7 +128,31 @@ extension Session {
                   exercises: try container.decode([SessionExercise].self, forKey: .exercises),
                   steps: try container.decode([SessionStep].self, forKey: .steps),
                   progressionWeek: container.optional(.progressionWeek),
-                  progressionWeeks: container.optional(.progressionWeeks))
+                  progressionWeeks: container.optional(.progressionWeeks),
+                  progressionMode: container.optional(.progressionMode))
+    }
+}
+
+extension Progression {
+    /// D53 (v1.5): `mode` is new; a progression written by v1.3 is a calendar one.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(startDate: try container.decode(Date.self, forKey: .startDate),
+                  weeks: try container.decode(Int.self, forKey: .weeks),
+                  entries: container.value(.entries, or: []),
+                  mode: container.value(.mode, or: .calendar))
+    }
+}
+
+extension ProgressionEntry {
+    /// D53 (v1.5): `step` and `tries` are new; an entry written by v1.3 starts at the first.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(dayName: try container.decode(String.self, forKey: .dayName),
+                  exerciseName: try container.decode(String.self, forKey: .exerciseName),
+                  weeks: container.value(.weeks, or: []),
+                  step: container.value(.step, or: 0),
+                  tries: container.value(.tries, or: 0))
     }
 }
 

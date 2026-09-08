@@ -25,8 +25,56 @@ extension Progression {
         calendar.date(byAdding: .day, value: weeks * 7, to: calendar.startOfDay(for: startDate)) ?? startDate
     }
 
+    /// Calendar mode: the day after the last week. Performance mode (D53, v1.5): every entry
+    /// past its last step — the calendar has nothing to say.
     func isFinished(on date: Date, calendar: Calendar = .current) -> Bool {
-        calendar.startOfDay(for: date) >= endDate(calendar: calendar)
+        switch mode {
+        case .calendar: return calendar.startOfDay(for: date) >= endDate(calendar: calendar)
+        case .performance: return entries.allSatisfy { $0.step >= $0.weeks.count }
+        }
+    }
+
+    /// D53 (v1.5): the 0-based step an entry is on — the calendar week in calendar mode, its
+    /// own earned step in performance mode; nil once it is past its last.
+    func stepIndex(for entry: ProgressionEntry, on date: Date, calendar: Calendar = .current) -> Int? {
+        switch mode {
+        case .calendar: return weekIndex(on: date, calendar: calendar)
+        case .performance: return entry.step < entry.weeks.count ? entry.step : nil
+        }
+    }
+
+    /// The step to say for a day, or for the whole plan: the calendar week, or the lowest
+    /// earned step among the entries still climbing. Nil when nothing is in progress.
+    func currentStep(dayName: String? = nil, on date: Date, calendar: Calendar = .current) -> Int? {
+        switch mode {
+        case .calendar:
+            return weekIndex(on: date, calendar: calendar)
+        case .performance:
+            let relevant = entries.filter { entry in dayName.map { normalized(entry.dayName) == normalized($0) } ?? true }
+            return relevant.compactMap { $0.step < $0.weeks.count ? $0.step : nil }.min()
+        }
+    }
+
+    /// D53 (v1.5): the day with each entry's *own* step applied, and the 1-based step per
+    /// exercise index. In calendar mode every entry is on the same week and a step that
+    /// changes nothing touches nothing, as in v1.3; in performance mode an entry on a step is
+    /// counted even when the step is `{}`, because the workout still has to earn it against
+    /// the plan's own targets.
+    func apply(to day: Day, on date: Date, calendar: Calendar = .current) -> (day: Day, steps: [Int: Int]) {
+        var result = day
+        var steps: [Int: Int] = [:]
+        for index in day.exercises.indices {
+            guard let entry = entry(day: day.name, exercise: day.exercises[index].name),
+                  let stepIndex = stepIndex(for: entry, on: date, calendar: calendar),
+                  let change = entry.weeks[safe: stepIndex] else { continue }
+            if change.isChange {
+                result.exercises[index] = applied(change, to: day.exercises[index])
+            } else if mode == .calendar {
+                continue
+            }
+            steps[index] = stepIndex + 1
+        }
+        return (result, steps)
     }
 
     func entry(day: String, exercise: String) -> ProgressionEntry? {
@@ -42,23 +90,90 @@ extension Progression {
         for index in day.exercises.indices {
             guard let entry = entry(day: day.name, exercise: day.exercises[index].name),
                   let change = entry.weeks[safe: week], change.isChange else { continue }
-            var exercise = day.exercises[index]
-            if let sets = change.sets, !sets.isEmpty {
-                for (position, override) in sets.enumerated() where exercise.sets.indices.contains(position) {
-                    if let weight = override.weight, !exercise.bodyweight { exercise.sets[position].weight = weight }
-                    if let work = override.work { exercise.sets[position].work = work }
-                }
-            } else {
-                for position in exercise.sets.indices {
-                    if let weight = change.weight, !exercise.bodyweight { exercise.sets[position].weight = weight }
-                    if let work = change.work { exercise.sets[position].work = work }
-                }
-            }
-            if case let .reps(.range(low, high))? = change.work { exercise.repRange = RepRange(min: low, max: high) }
-            result.exercises[index] = exercise
+            result.exercises[index] = applied(change, to: day.exercises[index])
             touched.insert(index)
         }
         return (result, touched)
+    }
+
+    /// One step's change written into an exercise's sets.
+    private func applied(_ change: ProgressionWeek, to original: Exercise) -> Exercise {
+        var exercise = original
+        if let sets = change.sets, !sets.isEmpty {
+            for (position, override) in sets.enumerated() where exercise.sets.indices.contains(position) {
+                if let weight = override.weight, !exercise.bodyweight { exercise.sets[position].weight = weight }
+                if let work = override.work { exercise.sets[position].work = work }
+            }
+        } else {
+            for position in exercise.sets.indices {
+                if let weight = change.weight, !exercise.bodyweight { exercise.sets[position].weight = weight }
+                if let work = change.work { exercise.sets[position].work = work }
+            }
+        }
+        if case let .reps(.range(low, high))? = change.work { exercise.repRange = RepRange(min: low, max: high) }
+        return exercise
+    }
+}
+
+/// D53 (v1.5): steps you earn. An exercise moves to its next step when a workout achieves the
+/// current one; miss it and the step repeats.
+enum ProgressionSteps {
+    /// The one-rep slack the advice already allows (§6.11).
+    static let tolerance = 1
+
+    /// Whether the exercise's sets, as logged, met their targets: every main set logged, the
+    /// reps summed across the exercise at or above the targets summed (the top of a range, the
+    /// minimum of an AMRAP) less the one-rep tolerance — the advice's own arithmetic (§6.11) —
+    /// every weight at or above the set's, every hold held for its seconds. The targets are
+    /// the session's own snapshot, which in a progression step *is* the step.
+    static func achieved(exercise: SessionExercise, steps: [SessionStep]) -> Bool {
+        let main = steps.filter { $0.dropIndex == 0 }
+        guard !main.isEmpty, main.allSatisfy({ $0.status == .logged }) else { return false }
+        var done = 0, ceiling = 0
+        for step in main {
+            guard let target = exercise.targets[safe: step.setIndex], let result = step.result else { return false }
+            switch target.work {
+            case let .reps(reps):
+                switch reps {
+                case let .fixed(n): ceiling += n
+                case let .range(_, high): ceiling += high
+                case let .amrap(minimum): ceiling += minimum ?? 0
+                }
+                done += result.reps ?? 0
+                if !exercise.bodyweight, let planned = target.weight, (result.weight ?? 0) + 0.001 < planned { return false }
+            case let .duration(seconds):
+                if (result.seconds ?? 0) < seconds { return false }
+            case let .openDuration(minimum):
+                if (result.seconds ?? 0) < (minimum ?? 0) { return false }
+            }
+        }
+        return done >= ceiling - tolerance
+    }
+
+    /// After a workout, every exercise that was at its step moves on or tries again. Only an
+    /// exercise the session stamped with the entry's current step counts — a session started
+    /// before the step moved, or one of a substitute (D42), changes nothing. Returns the names
+    /// that moved.
+    @discardableResult
+    static func advance(_ progression: inout Progression, after session: Session) -> [String] {
+        guard progression.mode == .performance else { return [] }
+        var moved: [String] = []
+        for (index, exercise) in session.exercises.enumerated() {
+            guard let step = exercise.progressionWeek,
+                  let position = progression.entries.firstIndex(where: {
+                      normalized($0.dayName) == normalized(session.dayName)
+                          && normalized($0.exerciseName) == normalized(exercise.name) }),
+                  progression.entries[position].step == step - 1 else { continue }
+            let steps = session.steps.filter { $0.exerciseIndex == index }
+            if achieved(exercise: exercise, steps: steps) {
+                progression.entries[position].step += 1
+                progression.entries[position].tries = 0
+                moved.append(exercise.name)
+            } else {
+                progression.entries[position].tries += 1
+            }
+        }
+        return moved
     }
 }
 
@@ -67,21 +182,40 @@ enum ProgressionText {
     /// "Week 3 of 8", "Finished", or nil before it starts (which cannot happen: it starts the
     /// day it is saved).
     static func status(_ progression: Progression, on date: Date, calendar: Calendar = .current) -> String {
-        if let index = progression.weekIndex(on: date, calendar: calendar) {
-            return "Week \(index + 1) of \(progression.weeks)"
+        if let index = progression.currentStep(on: date, calendar: calendar) {
+            return "\(word(progression.mode)) \(index + 1) of \(progression.weeks)"
         }
         return progression.isFinished(on: date, calendar: calendar) ? "Finished" : "Starts soon"
     }
 
-    /// The chip's reason: "Week 3 of 8 of your progression".
-    static func reason(week: Int, of weeks: Int?) -> String {
-        weeks.map { "Week \(week) of \($0) of your progression" } ?? "Week \(week) of your progression"
+    /// "Week" in calendar mode, "Step" in performance mode (D53).
+    static func word(_ mode: ProgressionMode) -> String { mode == .performance ? "Step" : "Week" }
+
+    /// The chip's reason: "Week 3 of 8 of your progression", or "Step 3 of 8 …" (D53).
+    static func reason(week: Int, of weeks: Int?, mode: ProgressionMode = .calendar) -> String {
+        weeks.map { "\(word(mode)) \(week) of \($0) of your progression" } ?? "\(word(mode)) \(week) of your progression"
     }
 
-    /// "week 3 of 8" for a session that carried one, else nil.
+    /// "week 3 of 8" — or "step 3 of 8" — for a session that carried one, else nil.
     static func weekLine(_ session: Session) -> String? {
         guard let week = session.progressionWeek else { return nil }
-        return session.progressionWeeks.map { "week \(week) of \($0)" } ?? "week \(week)"
+        let noun = word(session.progressionMode ?? .calendar).lowercased()
+        return session.progressionWeeks.map { "\(noun) \(week) of \($0)" } ?? "\(noun) \(week)"
+    }
+
+    /// D53: an entry's ladder with the current step marked: "1) 8 × 80 kg · ▸ 2) 8 × 82.5 kg · 3) same".
+    static func ladder(_ entry: ProgressionEntry, units: WeightUnit, bodyweight: Bool, current: Int?) -> String {
+        entry.weeks.enumerated().map { offset, week in
+            (offset == current ? "▸ " : "") + "\(offset + 1)) \(change(week, units: units, bodyweight: bodyweight))"
+        }.joined(separator: " · ")
+    }
+
+    /// D53: "Step 3 of 8", "Step 3 of 8 · 2 tries", or "Done" once an entry is past its last.
+    static func entryStatus(_ entry: ProgressionEntry, of weeks: Int) -> String {
+        guard entry.step < entry.weeks.count else { return "Done" }
+        var text = "Step \(entry.step + 1) of \(weeks)"
+        if entry.tries > 0 { text += " · \(entry.tries) \(entry.tries == 1 ? "try" : "tries")" }
+        return text
     }
 
     /// One week's change, as a target: "8 × 82.5 kg", "82.5 kg", "8–12", "45 s", "60 / 65 / 70 kg",
@@ -130,8 +264,9 @@ enum ProgressionImport {
         var errors: [Issue] { issues.filter { $0.severity == .error } }
     }
 
+    /// `mode` is the user's choice on the planning screen (D53), not the reply's.
     static func run(_ text: String, plan: Plan, settings: Settings, now: Date = Date(),
-                    calendar: Calendar = .current) -> Result {
+                    calendar: Calendar = .current, mode: ProgressionMode = .calendar) -> Result {
         func failure(_ code: String, _ path: String, _ message: String) -> Result {
             Result(progression: nil, issues: [Issue(severity: .error, code: code, path: path, message: message)])
         }
@@ -154,13 +289,20 @@ enum ProgressionImport {
         guard let object = root.object else {
             return failure("E_PROGRESSION_INVALID", "", "That's valid JSON, but it isn't a progression.")
         }
-        for key in object.keys where !["schemaVersion", "weeks", "exercises", "progression"].contains(key) {
+        for key in object.keys where !["schemaVersion", "weeks", "steps", "exercises", "progression"].contains(key) {
             issue("W_UNKNOWN_FIELD", key, "Unknown field \"\(key)\" was ignored.")
         }
+        // D53 (v1.5): the reply says "steps"; v1.3's "weeks" is read as the same thing.
+        var aliasUsed = false
+        func stepsKey(_ fields: RawJSON) -> String? {
+            if fields["steps"] != nil { return "steps" }
+            if fields["weeks"] != nil { aliasUsed = true; return "weeks" }
+            return nil
+        }
         var declaredWeeks: Int?
-        if let weeks = root["weeks"] {
+        if let key = stepsKey(root), let weeks = root[key] {
             if let value = weeks.integer, (1...Progression.maxWeeks).contains(value) { declaredWeeks = value }
-            else { issue("E_PROGRESSION_WEEKS_INVALID", "weeks", "weeks must be a whole number from 1 to \(Progression.maxWeeks), got \(weeks.display).") }
+            else { issue("E_PROGRESSION_WEEKS_INVALID", key, "steps must be a whole number from 1 to \(Progression.maxWeeks), got \(weeks.display).") }
         }
         guard let list = root["exercises"]?.array, !list.isEmpty else {
             issue("E_PROGRESSION_INVALID", "exercises", "The reply has no exercises.")
@@ -174,14 +316,15 @@ enum ProgressionImport {
             guard let fields = item.object else {
                 issue("E_PROGRESSION_EXERCISE_INVALID", path, "Each exercise must be an object with a name and weeks."); continue
             }
-            for key in fields.keys where !["day", "name", "weeks", "notes"].contains(key) {
+            for key in fields.keys where !["day", "name", "weeks", "steps", "notes"].contains(key) {
                 issue("W_UNKNOWN_FIELD", "\(path).\(key)", "Unknown field \"\(key)\" was ignored.")
             }
             guard let name = item["name"]?.string?.trimmed, !name.isEmpty else {
                 issue("E_PROGRESSION_EXERCISE_INVALID", "\(path).name", "This entry needs the exercise's name."); continue
             }
-            guard let weeksList = item["weeks"]?.array else {
-                issue("E_PROGRESSION_WEEKS_INVALID", "\(path).weeks", "Give \"\(name)\" a list of weeks."); continue
+            let listKey = stepsKey(item) ?? "steps"
+            guard let weeksList = item[listKey]?.array else {
+                issue("E_PROGRESSION_WEEKS_INVALID", "\(path).\(listKey)", "Give \"\(name)\" a list of steps."); continue
             }
             let dayName = item["day"]?.string?.trimmed
             // Where in the plan this lands: the named day, or every day that has the exercise.
@@ -201,17 +344,17 @@ enum ProgressionImport {
             var weeks: [ProgressionWeek] = []
             var valid = true
             for (offset, rawWeek) in weeksList.enumerated() {
-                let weekPath = "\(path).weeks[\(offset)]"
+                let weekPath = "\(path).\(listKey)[\(offset)]"
                 guard let parsed = week(rawWeek, weekPath, issue: issue) else { valid = false; break }
                 weeks.append(parsed)
             }
             guard valid else { continue }
             if let declaredWeeks {
                 if weeks.count > declaredWeeks {
-                    issue("W_PROGRESSION_LONG", "\(path).weeks", "\"\(name)\" has \(weeks.count) weeks; only the first \(declaredWeeks) are used.")
+                    issue("W_PROGRESSION_LONG", "\(path).\(listKey)", "\"\(name)\" has \(weeks.count) steps; only the first \(declaredWeeks) are used.")
                     weeks = Array(weeks.prefix(declaredWeeks))
                 } else if weeks.count < declaredWeeks {
-                    issue("W_PROGRESSION_SHORT", "\(path).weeks", "\"\(name)\" stops after week \(weeks.count); the plan's own targets apply after that.")
+                    issue("W_PROGRESSION_SHORT", "\(path).\(listKey)", "\"\(name)\" stops after step \(weeks.count); the plan's own targets apply after that.")
                 }
             }
             for target in targets {
@@ -220,7 +363,7 @@ enum ProgressionImport {
                 for w in entry.weeks.indices {
                     if target.exercise.bodyweight {
                         if entry.weeks[w].weight != nil || entry.weeks[w].sets?.contains(where: { $0.weight != nil }) == true {
-                            issue("W_PROGRESSION_WEIGHT_IGNORED", "\(path).weeks[\(w)]", "\"\(name)\" is bodyweight; its weights were ignored.")
+                            issue("W_PROGRESSION_WEIGHT_IGNORED", "\(path).\(listKey)[\(w)]", "\"\(name)\" is bodyweight; its weights were ignored.")
                         }
                         entry.weeks[w].weight = nil
                         entry.weeks[w].sets = entry.weeks[w].sets?.map { ProgressionSet(weight: nil, work: $0.work) }
@@ -229,7 +372,7 @@ enum ProgressionImport {
                     if let weight = entry.weeks[w].weight {
                         let snapped = WeightRounding.snap(weight, increment: increment)
                         if snapped != weight {
-                            issue("W_PROGRESSION_ROUNDED", "\(path).weeks[\(w)].weight", "Rounded \(TargetText.number(weight)) to \(TargetText.number(snapped)) \(plan.units.rawValue), the smallest change your equipment makes.")
+                            issue("W_PROGRESSION_ROUNDED", "\(path).\(listKey)[\(w)].weight", "Rounded \(TargetText.number(weight)) to \(TargetText.number(snapped)) \(plan.units.rawValue), the smallest change your equipment makes.")
                             entry.weeks[w].weight = snapped
                         }
                     }
@@ -238,7 +381,7 @@ enum ProgressionImport {
                             guard let weight = set.weight else { return set }
                             let snapped = WeightRounding.snap(weight, increment: increment)
                             if snapped != weight {
-                                issue("W_PROGRESSION_ROUNDED", "\(path).weeks[\(w)].sets[\(s)].weight", "Rounded \(TargetText.number(weight)) to \(TargetText.number(snapped)) \(plan.units.rawValue), the smallest change your equipment makes.")
+                                issue("W_PROGRESSION_ROUNDED", "\(path).\(listKey)[\(w)].sets[\(s)].weight", "Rounded \(TargetText.number(weight)) to \(TargetText.number(snapped)) \(plan.units.rawValue), the smallest change your equipment makes.")
                             }
                             return ProgressionSet(weight: snapped, work: set.work)
                         }
@@ -247,6 +390,7 @@ enum ProgressionImport {
                 entries.append(entry)
             }
         }
+        if aliasUsed { issue("W_PROGRESSION_WEEKS_ALIAS", "", "\"weeks\" was read as steps.") }
         issues = issues.enumerated().sorted { a, b in
             a.element.path == b.element.path ? a.offset < b.offset : a.element.path < b.element.path
         }.map(\.element)
@@ -256,7 +400,7 @@ enum ProgressionImport {
             return Result(progression: nil, issues: issues)
         }
         let weeks = declaredWeeks ?? (entries.map { $0.weeks.count }.max() ?? 1)
-        return Result(progression: Progression(startDate: calendar.startOfDay(for: now), weeks: weeks, entries: entries),
+        return Result(progression: Progression(startDate: calendar.startOfDay(for: now), weeks: weeks, entries: entries, mode: mode),
                       issues: issues)
     }
 
@@ -266,7 +410,7 @@ enum ProgressionImport {
                              issue: (String, String, String) -> Void) -> ProgressionWeek? {
         if raw == .null { return ProgressionWeek() }
         guard let fields = raw.object else {
-            issue("E_PROGRESSION_WEEK_INVALID", path, "Each week must be an object like {\"weight\": 62.5, \"reps\": \"8-12\"}, or {} for no change.")
+            issue("E_PROGRESSION_WEEK_INVALID", path, "Each step must be an object like {\"weight\": 62.5, \"reps\": \"8-12\"}, or {} for no change.")
             return nil
         }
         for key in fields.keys where !["weight", "reps", "durationSeconds", "sets", "notes"].contains(key) {

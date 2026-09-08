@@ -218,9 +218,10 @@ final class ProgressionTests: XCTestCase {
 
         let text = Prompts.progression(plan: plan, history: [done], weeks: 8, includeHistory: true, settings: settings, now: now)
         XCTAssertTrue(text.hasPrefix(Prompts.progressionMarker))
-        XCTAssertTrue(text.contains("next 8 weeks"))
-        XCTAssertTrue(text.contains("\"weeks\": 8"))
+        XCTAssertTrue(text.contains("as 8 steps"))
+        XCTAssertTrue(text.contains("\"steps\": 8"))
         XCTAssertTrue(text.contains("exactly 8 objects"))
+        XCTAssertTrue(text.contains(Prompts.cadence(.calendar)), "the default is the calendar for this old signature")
         XCTAssertTrue(text.contains("multiple of 2.5 kg"))
         XCTAssertTrue(text.contains("MY PLAN\nPush:\n- Bench Press: 3 × "), text)
         XCTAssertTrue(text.contains("60 kg · rest 90 s"), text)
@@ -234,7 +235,7 @@ final class ProgressionTests: XCTestCase {
 
         let without = Prompts.progression(plan: plan, history: [done], weeks: 4, includeHistory: false, settings: settings, now: now)
         XCTAssertFalse(without.contains("MY HISTORY"))
-        XCTAssertTrue(without.contains("next 4 weeks"))
+        XCTAssertTrue(without.contains("as 4 steps"))
         XCTAssertFalse(without.hasSuffix("\n\n"), "no dangling history block")
     }
 

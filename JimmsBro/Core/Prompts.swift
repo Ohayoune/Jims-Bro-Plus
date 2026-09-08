@@ -188,40 +188,51 @@ RULES
     /// Pinned to docs/PROMPT.md §3 by `PromptPinningTests`.
     static let progressionTemplate = #"""
 JIMMSBRO-PROGRESSION-PROMPT-V1
-Plan my progression for the next {{weeks}} weeks for the workout plan below. Reply with ONE complete JSON object in a single code block tagged json, with no other text.
+Plan my progression as {{steps}} steps for the workout plan below. {{cadence}} Reply with ONE complete JSON object in a single code block tagged json, with no other text.
 
 FORMAT:
 {
-  "weeks": {{weeks}},
+  "steps": {{steps}},
   "exercises": [
-    { "day": "Push", "name": "Barbell Bench Press", "weeks": [ { "weight": 80, "reps": "6-8" }, { "weight": 82.5, "reps": "6-8" }, {} ] }
+    { "day": "Push", "name": "Barbell Bench Press", "steps": [ { "weight": 80, "reps": "6-8" }, { "weight": 82.5, "reps": "6-8" }, {} ] }
   ]
 }
 
 RULES
 - One entry per exercise in the plan, with its day and its exact name as written below. Leave an exercise out only if nothing about it should change.
-- weeks: exactly {{weeks}} objects per exercise, week 1 first. An object gives the weight (in {{units}}, no unit text) and/or the reps for every set that week; {} means no change from the plan that week.
+- steps: exactly {{steps}} objects per exercise, step 1 first. An object gives the weight (in {{units}}, no unit text) and/or the reps for every set at that step; {} means no change from the plan at that step.
 - reps: a whole number, a range like "8-12", "AMRAP", or "10+". For timed exercises give durationSeconds instead of reps. For bodyweight exercises give reps only.
-- To vary the sets within a week, give "sets": [ { "weight": 60, "reps": 10 }, { "weight": 65, "reps": 8 } ] instead of weight and reps.
+- To vary the sets within a step, give "sets": [ { "weight": 60, "reps": 10 }, { "weight": 65, "reps": 8 } ] instead of weight and reps.
 - Every weight must be loadable: a multiple of {{increment}} {{units}}.
-- Progress conservatively from the plan and from my history below. If the period is 6 weeks or more, make one week a deload.
+- Progress conservatively from the plan and from my history below. If there are 6 steps or more, make one of them easier.
 - Return ALL JSON, never abbreviate with "...".
 
 MY PLAN
 {{plan}}{{history}}
 """#
 
+    /// D53 (v1.5): the sentence that says what a step is, by mode.
+    static func cadence(_ mode: ProgressionMode) -> String {
+        switch mode {
+        case .performance:
+            return "One step is one workout's targets; I move to the next step only when I hit the current one, so make each step a small, achievable increase."
+        case .calendar:
+            return "One step is one calendar week, starting the day I save it."
+        }
+    }
+
     /// The prompt for `plan`, over `weeks`, with the plan as a compact listing and — when asked
     /// and there is any — the last sessions of every exercise in it. Kept under the paste bound
     /// by shortening the history first, never the plan.
     static func progression(plan: Plan, history: [Session], weeks: Int, includeHistory: Bool,
-                            settings: Settings, now: Date = Date()) -> String {
+                            settings: Settings, now: Date = Date(), mode: ProgressionMode = .calendar) -> String {
         let increment = TargetText.number(settings.weightIncrement(for: plan.units))
         func render(sessionsPerExercise: Int) -> String {
             let listing = includeHistory && sessionsPerExercise > 0
                 ? historyListing(plan: plan, history: history, now: now, sessionsPerExercise: sessionsPerExercise) : ""
             return progressionTemplate
-                .replacingOccurrences(of: "{{weeks}}", with: String(weeks))
+                .replacingOccurrences(of: "{{steps}}", with: String(weeks))
+                .replacingOccurrences(of: "{{cadence}}", with: cadence(mode))
                 .replacingOccurrences(of: "{{units}}", with: plan.units.rawValue)
                 .replacingOccurrences(of: "{{increment}}", with: increment)
                 .replacingOccurrences(of: "{{plan}}", with: planListing(plan))

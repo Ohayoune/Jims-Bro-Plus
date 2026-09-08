@@ -120,7 +120,8 @@ enum Prefill {
                                           advice: e.bodyweight ? nil : suggestion,
                                           adviceReason: adviceReason, units: session.units,
                                           progression: step.dropIndex == 0
-                                              ? e.progressionWeek.map { (week: $0, weeks: session.progressionWeeks) } : nil)
+                                              ? e.progressionWeek.map { (week: $0, weeks: session.progressionWeeks,
+                                                                         mode: session.progressionMode ?? .calendar) } : nil)
         return values
     }
     /// D36 (v1.2): the suggestion for one set, in order of how much it knows.
@@ -135,7 +136,7 @@ enum Prefill {
                               target: (work: WorkTarget, weight: Double?, warning: Int?, reserve: Int?),
                               last: SetResult?, lastWeight: Double?, advice: Double?,
                               adviceReason: String?, units: WeightUnit,
-                              progression: (week: Int, weeks: Int?)? = nil) -> SetSuggestion? {
+                              progression: (week: Int, weeks: Int?, mode: ProgressionMode)? = nil) -> SetSuggestion? {
         let unit = units.rawValue
         func line(_ reps: Int?, _ weight: Double?) -> String {
             switch (reps, weight) {
@@ -149,7 +150,7 @@ enum Prefill {
         // reason says which week — it outranks advice from last time, which the chatbot has
         // already read.
         if let progression {
-            let reason = ProgressionText.reason(week: progression.week, of: progression.weeks)
+            let reason = ProgressionText.reason(week: progression.week, of: progression.weeks, mode: progression.mode)
             if case let .duration(planned) = target.work {
                 return SetSuggestion(reps: nil, weight: nil, text: "\(planned) s", reason: reason, isProgression: true)
             }

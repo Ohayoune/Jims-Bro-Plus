@@ -44,17 +44,30 @@ struct Plan: Codable, Identifiable, Equatable {
 /// the progression says nothing about.
 struct Progression: Codable, Equatable {
     var startDate: Date
+    /// The number of steps (D53, v1.5) — "weeks" on disk and in v1.3's reply, and one step is
+    /// one calendar week in calendar mode.
     var weeks: Int
     var entries: [ProgressionEntry] = []
-    enum CodingKeys: String, CodingKey { case startDate, weeks, entries }
+    /// D53 (v1.5): what moves an exercise to its next step. Absent from a file written by v1.3,
+    /// which reads as calendar — exactly what every progression was.
+    var mode: ProgressionMode = .calendar
+    enum CodingKeys: String, CodingKey { case startDate, weeks, entries, mode }
 }
+/// D53 (v1.5): the calendar turns the page (v1.3), or the workout earns the next step.
+enum ProgressionMode: String, Codable, Equatable { case calendar, performance }
 struct ProgressionEntry: Codable, Equatable {
     /// Matched to the plan by normalized name (§6.9).
     var dayName: String
     var exerciseName: String
-    /// One per week, week 1 first. Shorter than the progression means "then the plan's own".
+    /// One per step, step 1 first ("weeks" on disk). Shorter than the progression means "then
+    /// the plan's own".
     var weeks: [ProgressionWeek]
-    enum CodingKeys: String, CodingKey { case dayName, exerciseName, weeks }
+    /// D53 (v1.5), performance mode: the 0-based step this exercise is on now, advanced when a
+    /// workout achieves it. Unused in calendar mode.
+    var step = 0
+    /// D53: how many workouts have been at the current step without achieving it.
+    var tries = 0
+    enum CodingKeys: String, CodingKey { case dayName, exerciseName, weeks, step, tries }
 }
 struct ProgressionWeek: Codable, Equatable {
     /// For every set of the exercise that week; nil leaves the plan's.
@@ -132,9 +145,12 @@ struct Session: Codable, Identifiable, Equatable {
     /// many it had — so the Summary and history can say "week 3 of 8". Nil when none applied.
     var progressionWeek: Int?
     var progressionWeeks: Int?
+    /// D53 (v1.5): which kind of progression it was, so history says "step 3 of 8" or "week 3
+    /// of 8". Nil for a session with none, and for one written before v1.5 (read as calendar).
+    var progressionMode: ProgressionMode?
     enum CodingKeys: String, CodingKey {
         case id, planId, planName, dayName, units, startedAt, endedAt, exercises, steps,
-             progressionWeek, progressionWeeks
+             progressionWeek, progressionWeeks, progressionMode
     }
 }
 struct SessionExercise: Codable, Identifiable, Equatable {

@@ -17,8 +17,9 @@ enum IssueText {
             case "sets": parts.append("set \(index + 1)")
             case "drops": parts.append("drop \(index + 1)")
             case "cycle": parts.append("repeat block entry \(index + 1)")
-            // D44 (v1.3): a progression reply's paths — exercises[2].weeks[1].
+            // D44 (v1.3): a progression reply's paths — exercises[2].weeks[1]; D53 (v1.5): steps.
             case "weeks": parts.append("week \(index + 1)")
+            case "steps": parts.append("step \(index + 1)")
             default: continue
             }
         }
@@ -56,11 +57,11 @@ enum IssueText {
         case "E_PROGRESSION_INVALID":
             return "That's valid JSON, but it isn't a progression. Paste the reply to the progression prompt."
         case "E_PROGRESSION_WEEKS_INVALID":
-            return prefixed("the number of weeks must be a whole number from 1 to \(Progression.maxWeeks).")
+            return prefixed("the number of steps must be a whole number from 1 to \(Progression.maxWeeks).")
         case "E_PROGRESSION_EXERCISE_INVALID":
             return prefixed("this entry needs the exercise's name, exactly as the plan writes it.")
         case "E_PROGRESSION_WEEK_INVALID":
-            return prefixed("each week must be an object with a weight and/or reps, or {} for no change.")
+            return prefixed("each step must be an object with a weight and/or reps, or {} for no change.")
         case "E_PROGRESSION_EMPTY":
             return "None of the exercises in the reply match this plan. Ask the chatbot to use the plan's exact names."
         case "E_SCHEMA_VERSION":
@@ -132,6 +133,7 @@ enum IssueText {
     /// warnings are shown; cleanup warnings go behind "Details (n)", so the ones worth reading
     /// aren't buried under the ones that aren't.
     static let cleanupWarningCodes: Set<String> = [
+        "W_PROGRESSION_WEEKS_ALIAS",
         "W_CURLY_QUOTES_FIXED", "W_SURROUNDING_TEXT", "W_UNKNOWN_FIELD", "W_NAME_TRUNCATED",
         "W_NOTES_TRUNCATED", "W_WEIGHT_ROUNDED", "W_DEFAULT_NAME", "W_DAY_RENAMED",
         "W_WRAPPED_SINGLE_DAY",

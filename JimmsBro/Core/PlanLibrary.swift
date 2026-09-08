@@ -82,6 +82,12 @@ struct PlanLibrary {
             if let index = plans.firstIndex(where: { $0.id == completed.planId }) {
                 PlanSchedule.advance(&plans[index], completedDayName: completed.dayName,
                                      on: completed.startedAt)
+                // D53 (v1.5): steps you earn — each exercise that was at its step moves on or
+                // tries again. Only here, when the workout completes; editing history later
+                // never moves a step.
+                if plans[index].progression != nil {
+                    ProgressionSteps.advance(&plans[index].progression!, after: completed)
+                }
             }
         }
         engine = nil

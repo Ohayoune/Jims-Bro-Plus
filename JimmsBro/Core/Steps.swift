@@ -54,21 +54,22 @@ extension Session {
     /// carry the week, so the chip can say so.
     static func start(plan: Plan, dayIndex: Int, now: Date, calendar: Calendar = .current) -> Session? {
         guard var day = plan.days[safe: dayIndex] else { return nil }
-        var touched = Set<Int>()
-        var week: Int?
-        if let progression = plan.progression, let index = progression.weekIndex(on: now, calendar: calendar) {
-            let applied = progression.apply(to: day, week: index)
+        // D53 (v1.5): each entry's own step, which in calendar mode is the same week for all.
+        var steps: [Int: Int] = [:]
+        if let progression = plan.progression {
+            let applied = progression.apply(to: day, on: now, calendar: calendar)
             day = applied.day
-            touched = applied.touched
-            week = index + 1
+            steps = applied.steps
         }
         var session = Session(planId: plan.id, planName: plan.name, dayName: day.name, units: plan.units, startedAt: now,
                        exercises: day.exercises.map { SessionExercise(name: $0.name, group: $0.group, notes: $0.notes, repRange: $0.repRange, bodyweight: $0.bodyweight, targets: $0.sets) },
                        steps: flatten(day: day).map { SessionStep(exerciseIndex: $0.exerciseIndex, setIndex: $0.setIndex, dropIndex: $0.dropIndex, blockIndex: $0.blockIndex, isLastInRound: $0.isLastInRound, isLastInBlock: $0.isLastInBlock) })
-        guard !touched.isEmpty, let week else { return session }
-        for index in touched { session.exercises[index].progressionWeek = week }
-        session.progressionWeek = week
+        guard !steps.isEmpty, let lowest = steps.values.min() else { return session }
+        for (index, step) in steps { session.exercises[index].progressionWeek = step }
+        // The session's own number is the lowest of its exercises', which is what Home says.
+        session.progressionWeek = lowest
         session.progressionWeeks = plan.progression?.weeks
+        session.progressionMode = plan.progression?.mode
         return session
     }
     /// `reserve` is D51's effort target (v1.5); a drop has none.
