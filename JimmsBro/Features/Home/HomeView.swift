@@ -162,11 +162,10 @@ private struct StartCardView: View {
         start(planId: planId, dayIndex: dayIndex)
     }
 
+    /// D48 (v1.4): the cover opens on `startedWorkouts`, the moment the engine exists; this
+    /// task carries on telling the system behind it.
     private func start(planId: UUID, dayIndex: Int) {
-        Task {
-            try? await model.startDay(planId: planId, dayIndex: dayIndex)
-            showWorkout = true
-        }
+        Task { try? await model.startDay(planId: planId, dayIndex: dayIndex) }
     }
 }
 

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A6425EB9BC3B41C9998C1B11 /* ResponsivenessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2103E9EAD9FA4C7C9E983661 /* ResponsivenessTests.swift */; };
 		22596811096049DE8D43B0DA /* ProgressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E6A382E1EE403A84C759E7 /* ProgressionTests.swift */; };
 		C924AFF47036440097C8E751 /* ProgressionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4121368C37C7456EAB61E006 /* ProgressionView.swift */; };
 		9B75BE6D69C2415C9D64E544 /* ProgressionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FBD27D2E11B430C937A1579 /* ProgressionModel.swift */; };
@@ -135,6 +136,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2103E9EAD9FA4C7C9E983661 /* ResponsivenessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponsivenessTests.swift; sourceTree = "<group>"; };
 		E9E6A382E1EE403A84C759E7 /* ProgressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionTests.swift; sourceTree = "<group>"; };
 		4121368C37C7456EAB61E006 /* ProgressionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionView.swift; sourceTree = "<group>"; };
 		4FBD27D2E11B430C937A1579 /* ProgressionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionModel.swift; sourceTree = "<group>"; };
@@ -364,6 +366,7 @@
 		8B7A6DECC0651D269EA794C7 /* JimmsBroTests */ = {
 			isa = PBXGroup;
 			children = (
+				2103E9EAD9FA4C7C9E983661 /* ResponsivenessTests.swift */,
 				E9E6A382E1EE403A84C759E7 /* ProgressionTests.swift */,
 				E5AC840139EE42C7BD4BAC83 /* HistoryCSVTests.swift */,
 				F3B42BB5F37D4577BB31378A /* JSONEditTests.swift */,
@@ -704,6 +707,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A6425EB9BC3B41C9998C1B11 /* ResponsivenessTests.swift in Sources */,
 				22596811096049DE8D43B0DA /* ProgressionTests.swift in Sources */,
 				A739B83332FE43A580221FEE /* HistoryCSVTests.swift in Sources */,
 				BFF32C02BE544CED9F319F4E /* JSONEditTests.swift in Sources */,

@@ -52,6 +52,13 @@ enum SaveFailure: Equatable {
     /// The session that just finished. The engine is cleared the moment a workout completes,
     /// so the Summary (SPEC §4.9) needs its own hold on it until the user taps Done.
     var justCompleted: Session?
+    /// D48 (v1.4): how many workouts this run of the app has started. Incremented the moment
+    /// the engine exists — before the notification, the Live Activity and the disk write —
+    /// and `RootView` opens the workout cover on every change of it. The cover used to wait
+    /// for `startDay` to return, which is after the system has been told everything, and on a
+    /// phone that was about a second of nothing after the tap. `load` never touches it, so a
+    /// session restored at launch is offered as Resume (SPEC §5.4) rather than opened.
+    var startedWorkouts = 0
     /// D23 (v1.1): what the undone set held, handed back so the inputs come back filled with
     /// the values that were just taken away rather than with a fresh prefill (O52).
     var restoredInputs: SetResult?

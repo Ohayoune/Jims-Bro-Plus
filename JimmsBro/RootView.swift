@@ -40,6 +40,10 @@ struct RootView: View {
         .onChange(of: showWorkout) { _, showing in
             UIApplication.shared.isIdleTimerDisabled = showing && model.settings.keepAwake
         }
+        // D48 (v1.4): a workout that has just been started opens at once. The views that start
+        // one no longer wait for `startDay` — the notification, the Live Activity and the disk
+        // write — before presenting; the count changes the moment the engine exists.
+        .onChange(of: model.startedWorkouts) { _, _ in showWorkout = true }
         .onChange(of: model.hasActiveSession) { _, running in
             // Keep the cover up while the Summary is still on screen.
             if !running && model.justCompleted == nil { showWorkout = false }

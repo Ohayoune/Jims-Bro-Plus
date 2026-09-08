@@ -67,6 +67,8 @@ extension AppModel {
         let effects = try library.startDay(planId: planId, dayIndex: dayIndex, now: now, switching: switching)
         // Finishing as part of a switch goes straight into the new workout, with no Summary.
         justCompleted = nil
+        // D48 (v1.4): the workout exists now; the cover opens on this, not on the awaits below.
+        startedWorkouts += 1
         // Asking does not block the first set from appearing; the prompt sits over the card
         // and the banner appears afterwards if permission was refused (SPEC §5.3).
         if !askedForNotifications {

@@ -231,11 +231,12 @@ struct PlanDetailView: View {
     }
 
     /// D17: starting a day mid-session raises the popup rather than switching silently.
+    /// D48 (v1.4): the cover opens on `startedWorkouts`, not after the await — the refusal is
+    /// thrown before anything changes, so the popup still comes from here.
     private func start(_ plan: Plan, _ dayIndex: Int) {
         Task {
             do {
                 try await model.startDay(planId: planId, dayIndex: dayIndex)
-                showWorkout = true
             } catch LibraryError.sessionInProgress {
                 switching = dayIndex
             } catch {
@@ -248,10 +249,7 @@ struct PlanDetailView: View {
         guard let dayIndex = switching else { return }
         switching = nil
         guard let choice else { return }
-        Task {
-            try? await model.startDay(planId: planId, dayIndex: dayIndex, switching: choice)
-            showWorkout = true
-        }
+        Task { try? await model.startDay(planId: planId, dayIndex: dayIndex, switching: choice) }
     }
 }
 

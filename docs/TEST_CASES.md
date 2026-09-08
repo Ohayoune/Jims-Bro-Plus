@@ -714,6 +714,20 @@ is testable without a phone; Q71–Q73 need the device and live in `DEVICE_CHECK
 | W39 | unit | (D44, v1.3) Home in week 2, after the last week, and with no progression | "· week 2 of 4" in the subtitle; `progressionFinished` and no week afterwards; neither without one |
 | W40 | manual | (D44, v1.3) Plans → a plan → **Progression**, pick 4 weeks, Copy prompt, paste it into a chatbot, paste its reply, Save; then start today's workout | The review shows every exercise's four weeks; Plan detail reads "Week 1 of 4"; Home's subtitle ends "week 1 of 4"; the first set's card shows the week's weight with the chip's reason naming the week |
 
+## Y. v1.4 — a tap before its side effects, built-in plans, the introduction, the store
+
+`docs/ITERATION_5_PLAN.md` is the plan; one subsection per milestone, added as it lands.
+
+### Y1 — a tap's result before its side effects (D48)
+
+`JimmsBroTests/ResponsivenessTests.swift`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Y1 | unit | (D48, v1.4) `startDay` against a scheduler that never returns | While the first notification is still being held, the engine exists, `hasActiveSession` is true and `startedWorkouts` is already 1; releasing the scheduler finishes the start with the count unchanged |
+| Y2 | unit | (D48, v1.4) A start refused mid-session; a switch; a session restored at launch | The refusal leaves the count alone; the switch counts; `load` with an active session on disk resumes it with the count at 0 |
+| Y3 | manual | (D48, v1.4) Tap **Start** on the phone | The workout screen is up before the notification prompt or the Island appears; nothing waits on them |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|
