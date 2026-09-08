@@ -14,6 +14,10 @@ struct SettingsView: View {
     @State private var pending: AppModel.PendingRestore?
     @State private var restoreError: String?
     @State private var restoring = false
+    /// D45 (v1.3): history as CSV, out and in.
+    @State private var historyFile: URL?
+    @State private var exportingHistory = false
+    @State private var choosingHistory = false
 
     var body: some View {
         NavigationStack {
@@ -149,7 +153,7 @@ struct SettingsView: View {
                 }
             } label: {
                 HStack {
-                    Text("Export")
+                    Text("Export backup")
                     Spacer()
                     if exporting { ProgressView() }
                 }
@@ -159,16 +163,41 @@ struct SettingsView: View {
             Button("Import backup") { choosingBackup = true }
                 .disabled(restoring)
 
+            // D45 (v1.3): the file another app can read, and the one from another app.
+            Button {
+                exportingHistory = true
+                Task {
+                    historyFile = await model.exportHistoryCSV()
+                    exportingHistory = false
+                }
+            } label: {
+                HStack {
+                    Text("Export history (CSV)")
+                    Spacer()
+                    if exportingHistory { ProgressView() }
+                }
+            }
+            .disabled(exportingHistory || model.sessions.isEmpty)
+
+            Button("Import history (CSV)") { choosingHistory = true }
+
             Button("Delete all data", role: .destructive) { confirmDelete = true }
         } header: {
             Text("Data")
         } footer: {
-            Text("Re-running from Xcode over the existing install keeps your data. Deleting the app deletes everything.")
+            Text("A backup is everything, for this app. History as CSV is every set, for a spreadsheet "
+                 + "or another app; a CSV from Strong or Hevy imports here the same way. "
+                 + "Re-running from Xcode over the existing install keeps your data. Deleting the app deletes everything.")
         }
         .sheet(item: Binding(get: { backup.map(BackupFile.init(url:)) },
                              set: { backup = $0?.url })) { file in
             ShareSheet(url: file.url)
         }
+        .sheet(item: Binding(get: { historyFile.map(BackupFile.init(url:)) },
+                             set: { historyFile = $0?.url })) { file in
+            ShareSheet(url: file.url)
+        }
+        .historyImportFlow(choosing: $choosingHistory)
         .confirmationDialog("Delete every plan, workout and setting?",
                             isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Delete everything", role: .destructive) { Task { await model.deleteAllData() } }

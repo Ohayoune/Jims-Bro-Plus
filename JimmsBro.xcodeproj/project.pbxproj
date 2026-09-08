@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A739B83332FE43A580221FEE /* HistoryCSVTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5AC840139EE42C7BD4BAC83 /* HistoryCSVTests.swift */; };
+		23795D6C27C3402C98C39D75 /* HistoryImportFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8E8D44053024272B13E21A9 /* HistoryImportFlow.swift */; };
+		B7C60316184D462A9466602B /* HistoryTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9927C3B8D84753A38D46D3 /* HistoryTransfer.swift */; };
+		40D7674A880D4945A56B2B10 /* HistoryCSV.swift in Sources */ = {isa = PBXBuildFile; fileRef = D785BE8793B4406986BDBEE7 /* HistoryCSV.swift */; };
 		BFF32C02BE544CED9F319F4E /* JSONEditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B42BB5F37D4577BB31378A /* JSONEditTests.swift */; };
 		485BB3B824174DB98FA62F4A /* JSONFragmentSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E6EBAEA094407981604FCE /* JSONFragmentSheet.swift */; };
 		DF1A119FAD2849449B70E433 /* ChangeExerciseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1374E419EAD343B697A28F06 /* ChangeExerciseTests.swift */; };
@@ -127,6 +131,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		E5AC840139EE42C7BD4BAC83 /* HistoryCSVTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryCSVTests.swift; sourceTree = "<group>"; };
+		E8E8D44053024272B13E21A9 /* HistoryImportFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryImportFlow.swift; sourceTree = "<group>"; };
+		CD9927C3B8D84753A38D46D3 /* HistoryTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryTransfer.swift; sourceTree = "<group>"; };
+		D785BE8793B4406986BDBEE7 /* HistoryCSV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryCSV.swift; sourceTree = "<group>"; };
 		F3B42BB5F37D4577BB31378A /* JSONEditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONEditTests.swift; sourceTree = "<group>"; };
 		B2E6EBAEA094407981604FCE /* JSONFragmentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONFragmentSheet.swift; sourceTree = "<group>"; };
 		1374E419EAD343B697A28F06 /* ChangeExerciseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeExerciseTests.swift; sourceTree = "<group>"; };
@@ -277,6 +285,7 @@
 		3A21295D813C26EB287FC6B5 /* Store */ = {
 			isa = PBXGroup;
 			children = (
+				CD9927C3B8D84753A38D46D3 /* HistoryTransfer.swift */,
 				559100F244E7447A9C1DEA28 /* SessionRunner.swift */,
 				2FE314A02BFE4034970A22BA /* AppModel.swift */,
 				E370B67918754FB7815F644C /* StoreFiles.swift */,
@@ -345,6 +354,7 @@
 		8B7A6DECC0651D269EA794C7 /* JimmsBroTests */ = {
 			isa = PBXGroup;
 			children = (
+				E5AC840139EE42C7BD4BAC83 /* HistoryCSVTests.swift */,
 				F3B42BB5F37D4577BB31378A /* JSONEditTests.swift */,
 				1374E419EAD343B697A28F06 /* ChangeExerciseTests.swift */,
 				5418E891D2194939B62AE34D /* ActivityTests.swift */,
@@ -398,6 +408,7 @@
 		94A0426E8D3203DA5468CCF0 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				D785BE8793B4406986BDBEE7 /* HistoryCSV.swift */,
 				D433685A1BA648309AEB614B /* WorkoutActivityState.swift */,
 				BA72B469648A469895316435 /* WorkoutActivity.swift */,
 				61562CA5243749B5B90ED467 /* Metrics.swift */,
@@ -463,6 +474,7 @@
 		E22737E641EE6F926BADAEBF /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				E8E8D44053024272B13E21A9 /* HistoryImportFlow.swift */,
 				14C085B903744B44BD315E08 /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -621,6 +633,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				23795D6C27C3402C98C39D75 /* HistoryImportFlow.swift in Sources */,
+				B7C60316184D462A9466602B /* HistoryTransfer.swift in Sources */,
+				40D7674A880D4945A56B2B10 /* HistoryCSV.swift in Sources */,
 				485BB3B824174DB98FA62F4A /* JSONFragmentSheet.swift in Sources */,
 				8C433778AA4F41A9B54DD924 /* ChangeExerciseSheet.swift in Sources */,
 				91F813883A2E4C74A3DB1074 /* WorkoutActivityAttributes.swift in Sources */,
@@ -674,6 +689,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A739B83332FE43A580221FEE /* HistoryCSVTests.swift in Sources */,
 				BFF32C02BE544CED9F319F4E /* JSONEditTests.swift in Sources */,
 				DF1A119FAD2849449B70E433 /* ChangeExerciseTests.swift in Sources */,
 				5CF563E7589A4C9DB7E6FABC /* ActivityTests.swift in Sources */,

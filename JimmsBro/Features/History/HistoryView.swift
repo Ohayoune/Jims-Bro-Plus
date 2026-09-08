@@ -9,6 +9,8 @@ struct HistoryView: View {
     @State private var confirmDeleteId: UUID?
     /// D30 (v1.1): find one exercise without remembering which day you did it on.
     @State private var query = ""
+    /// D45 (v1.3): the picker behind "Import from another app".
+    @State private var choosingHistory = false
 
     private var matches: [String] { ExerciseText.search(query, sessions: model.sessions) }
 
@@ -16,8 +18,14 @@ struct HistoryView: View {
         NavigationStack(path: $path) {
             Group {
                 if model.sessions.isEmpty {
-                    ContentUnavailableView("No workouts yet", systemImage: "clock.arrow.circlepath",
-                                           description: Text("Finished workouts appear here."))
+                    // D45 (v1.3): the one place an empty History can offer what fills it.
+                    ContentUnavailableView {
+                        Label("No workouts yet", systemImage: "clock.arrow.circlepath")
+                    } description: {
+                        Text("Finished workouts appear here.")
+                    } actions: {
+                        Button("Import from another app") { choosingHistory = true }
+                    }
                 } else if !query.trimmed.isEmpty {
                     List {
                         if matches.isEmpty {
@@ -70,6 +78,7 @@ struct HistoryView: View {
             }
             .navigationTitle("History")
             .searchable(text: $query, prompt: "Find an exercise")
+            .historyImportFlow(choosing: $choosingHistory)
             .confirmationDialog("Delete this workout?", isPresented: Binding(
                 get: { confirmDeleteId != nil }, set: { if !$0 { confirmDeleteId = nil } }),
                                 titleVisibility: .visible) {

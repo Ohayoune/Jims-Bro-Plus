@@ -172,3 +172,8 @@
 - v1.3 X3: A replaced day keeps its name when the fragment has none, and a renamed one takes the old name's place in the repeat block. Renaming a day is not a request to stop training it.
 - v1.3 X3: Plan detail's Replace is now called **Edit JSON** — the same sheet, the same semantics, titled for what you came to do. Both it and every `PlanEdit` now keep `cycleAnchor` (D37); v1.2 dropped it in both, which re-anchored the calendar on the next launch.
 - v1.3 X3: The exercise template opens with a **blank name**, so Save says "Every exercise needs a name" rather than quietly saving a placeholder.
+- v1.3 X4 (D45): History leaves the app as **CSV in Strong's column order** with the unit as a thirteenth column, because that is the shape the most apps read and a file that does not say its unit is a guess. The JSON backup stays the app-to-app format.
+- v1.3 X4: The CSV reader finds columns **by header name**, never by position, and takes a row's unit from a unit column, then the weight header, then the setting — saying so when the setting had to be used. A weight of 0 is no weight, which is what Strong writes for a bodyweight set.
+- v1.3 X4: Imported sets are spread evenly over the workout's duration rather than given invented set times. The file says when the workout started and how long it took; the metrics that need set times (D19) stay absent for it, which is truthful.
+- v1.3 X4: A workout is a duplicate of one already here when it has the same name at the same minute, so a file imported twice adds nothing. Imported sessions have no plan and never move a rotation.
+- v1.3 X4: An empty History offers **Import from another app** — the one place an empty screen can say what would fill it — through the same flow Settings uses.
