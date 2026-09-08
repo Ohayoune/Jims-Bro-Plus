@@ -111,6 +111,12 @@ Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Note
 | **Q73** | iOS Settings → Jimm's Bro+ → turn **Live Activities** off, then run a workout | The app behaves exactly as before and shows nothing on the Lock Screen. Nothing about the workout is affected |  |  |
 | K29 | Install v1.2 **over** a v1.1 install that already has plans and history | Everything is still there — no "a data file couldn't be read" alert — and Home's next day says what it said before the update |  |  |
 
+## v1.3 rows (new or changed in X1–X5)
+
+| Case | What to do | Expected | Result | Notes |
+|---|---|---|---|---|
+| **W3** | Start a workout, begin a rest, and look at the Dynamic Island; then start a timed set and look again | The compact Island is one symbol and the timer, no wider than the phone's own Timer app makes it; the count-up never grows to hours; long-press still opens the expanded view with the set line and bar |  |  |
+
 ## When you are done
 
 Anything that fails is a bug to bring back here with the row and what actually happened. A `fail` on

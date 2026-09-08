@@ -7,11 +7,16 @@ import WidgetKit
 /// Every countdown is drawn with `Text(timerInterval:)`, which the **system** ticks — the app
 /// does not have to be awake, and does not have to push an update every second. That is the
 /// same rule as §6.4's Date-based rest timer, one layer out.
+///
+/// D41 (v1.3): the compact Island is the timer and one symbol, nothing else, at a fixed width.
+/// `Text(timerInterval:)` reserves room for the widest string it might ever draw, so it is
+/// given a range that never reaches an hour (`WorkoutActivityState.timerRange`), told not to
+/// show hours, and boxed to the width of "59:59" in its font.
 struct WorkoutLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutActivityAttributes.self) { context in
             lockScreen(context.state)
-                .padding(16)
+                .padding(12)
                 .activityBackgroundTint(Color(.systemBackground).opacity(0.7))
                 .activitySystemActionForegroundColor(.primary)
         } dynamicIsland: { context in
@@ -38,31 +43,33 @@ struct WorkoutLiveActivity: Widget {
                 }
             } compactLeading: {
                 Image(systemName: context.state.isBreak ? "hourglass" : "figure.strengthtraining.traditional")
+                    .font(.caption)
                     .foregroundStyle(context.state.isBreak ? Color.accentColor : .primary)
             } compactTrailing: {
-                timer(context.state).font(.caption.monospacedDigit())
+                compactTimer(context.state, width: 42, font: .caption)
             } minimal: {
-                timer(context.state).font(.caption2.monospacedDigit())
+                compactTimer(context.state, width: 36, font: .caption2)
             }
             .keylineTint(context.state.isBreak ? .accentColor : .green)
         }
     }
 
     @ViewBuilder private func lockScreen(_ state: WorkoutActivityState) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text(state.title)
                     .font(.headline)
                     .foregroundStyle(state.isBreak ? Color.accentColor : .primary)
+                    .lineLimit(1)
                 Spacer(minLength: 12)
                 timer(state)
-                    .font(.system(size: 34, weight: .semibold, design: .rounded))
+                    .font(.system(size: 32, weight: .semibold, design: .rounded))
                     .monospacedDigit()
             }
             Text(state.detail)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-                .lineLimit(2)
+                .lineLimit(1)
             progress(state)
         }
     }
@@ -70,15 +77,33 @@ struct WorkoutLiveActivity: Widget {
     /// A countdown to `endsAt`, a count-up from `startedAt`, or the plain progress when
     /// nothing is running — the three states `WorkoutActivityState` can be in.
     @ViewBuilder private func timer(_ state: WorkoutActivityState) -> some View {
-        if let endsAt = state.endsAt {
-            Text(timerInterval: Date()...max(endsAt, Date().addingTimeInterval(1)),
-                 countsDown: true)
-                .multilineTextAlignment(.trailing)
-        } else if let startedAt = state.startedAt {
-            Text(timerInterval: startedAt...Date.distantFuture, countsDown: false)
+        if let range = state.timerRange() {
+            Text(timerInterval: range, countsDown: state.timerCountsDown, showsHours: false)
                 .multilineTextAlignment(.trailing)
         } else {
             Text("\(state.done)/\(state.total)")
+        }
+    }
+
+    /// The compact and minimal Island: the same timer, boxed. The box is what keeps the
+    /// Island narrow — without it the text claims the width of the longest string it could
+    /// ever show, whatever it is showing now.
+    @ViewBuilder private func compactTimer(_ state: WorkoutActivityState, width: CGFloat,
+                                          font: Font) -> some View {
+        if let range = state.timerRange() {
+            Text(timerInterval: range, countsDown: state.timerCountsDown, showsHours: false)
+                .font(font.monospacedDigit())
+                .multilineTextAlignment(.trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: width)
+                .foregroundStyle(state.isBreak ? Color.accentColor : .primary)
+        } else {
+            Text("\(state.done)/\(state.total)")
+                .font(font.monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: width)
         }
     }
 

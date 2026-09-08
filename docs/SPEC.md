@@ -360,6 +360,12 @@ A **Live Activity** runs for as long as a workout does. It shows the stage (Warm
 
 The extension target is `JimmsBroActivity` (`com.ohayoune.jimmsbro.activity`), embedded in the app. It renders and nothing else.
 
+**D41 (v1.3): the compact Island is the timer, boxed.** "The Dynamic Island is too big — it shouldn't be so wide." It was wide for two reasons, neither of them content: `Text(timerInterval:)` reserves the width of the widest string it might ever draw, and a count-up whose range ran to `.distantFuture` was allowed to grow to `h:mm:ss`. So:
+
+- `WorkoutActivityState.timerRange(now:)` is the one range the system timer is given, resolved in Core: a countdown is `now…max(endsAt, now + 1 s)` (never inverted, which would crash the text), and a count-up is cut at 59:59 (`longestTimer`). Nothing here runs an hour — a rest is at most 3600 s, a warm-up 30 min, and an open hold that long is not a set.
+- The timer is told not to show hours, and in the compact and minimal Island it sits in a fixed box the width of "59:59" in its font, with monospaced digits. Compact leading is one symbol. Nothing else is in the compact Island; the set line and the progress bar belong to the expanded view.
+- The Lock Screen banner keeps its title, timer, one line of detail and the bar, with 4 pt less padding.
+
 ### 6.12 Calendar projection
 `Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.
 - Past and today: `.completed` for days with ≥ 1 completed session (any plan). Past days without a session are `.none`, never `.rest` — a day you didn't train is not a scheduled rest day.

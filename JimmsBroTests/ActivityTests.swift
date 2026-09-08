@@ -132,4 +132,38 @@ final class ActivityTests: XCTestCase {
         await model.discardSession()
         XCTAssertEqual(activities.ends, 1)
     }
+
+    // MARK: - D41 (v1.3): the Island is never wider than "59:59"
+
+    // W1: a rest counts down from now to its end; one that has already run out is still a
+    // one-second range, never an inverted one (which `Text(timerInterval:)` would crash on).
+    func testACountdownIsBoundedBelowByOneSecond() throws {
+        var engine = engine(settings: CoreTestSupport.classic)
+        engine.apply(.logSet(step: 0, result: .reps(count: 10, weight: 60)), now: now)
+        let state = try XCTUnwrap(WorkoutActivityState.of(engine.active, now: now))
+        XCTAssertTrue(state.timerCountsDown)
+        XCTAssertEqual(state.timerRange(now: now), now...now.addingTimeInterval(90))
+
+        // Two minutes later the rest is over but the activity has not been told yet.
+        let late = now.addingTimeInterval(120)
+        let range = try XCTUnwrap(state.timerRange(now: late))
+        XCTAssertEqual(range.lowerBound, late)
+        XCTAssertEqual(range.upperBound, late.addingTimeInterval(1))
+    }
+
+    // W2: a count-up is cut at 59:59 rather than running to the end of time, which is what
+    // let the compact Island reserve room for "999:59:59"; a working state has no timer.
+    func testACountUpNeverReachesAnHour() throws {
+        let plan = CoreTestSupport.plan(work: .openDuration(minSeconds: 30), weight: nil)
+        var engine = engine(plan, settings: CoreTestSupport.classic)
+        XCTAssertNil(try XCTUnwrap(WorkoutActivityState.of(engine.active, now: now)).timerRange(now: now))
+
+        engine.apply(.startTimer(step: 0), now: now)
+        let state = try XCTUnwrap(WorkoutActivityState.of(engine.active, now: now))
+        XCTAssertFalse(state.timerCountsDown)
+        let range = try XCTUnwrap(state.timerRange(now: now.addingTimeInterval(5)))
+        XCTAssertEqual(range.lowerBound, now)
+        XCTAssertEqual(range.upperBound, now.addingTimeInterval(3599))
+        XCTAssertLessThan(range.upperBound.timeIntervalSince(range.lowerBound), 3600)
+    }
 }

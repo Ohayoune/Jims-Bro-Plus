@@ -635,6 +635,20 @@ is testable without a phone; Q71–Q73 need the device and live in `DEVICE_CHECK
 
 
 
+## W. v1.3 — the Island, changing an exercise, JSON edits, history as CSV, Progression
+
+`docs/ITERATION_4_PLAN.md` is the plan; one subsection per milestone, added as it lands.
+
+### X1 — a narrower Dynamic Island (D41)
+
+`JimmsBroTests/ActivityTests.swift`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| W1 | unit | (D41, v1.3) `timerRange` for a rest, now and two minutes after it ended | Counts down from now to the end; once the end has passed it is a one-second range, never an inverted one |
+| W2 | unit | (D41, v1.3) `timerRange` for a running open hold, and for a working state | Counts up from `startedAt` and is cut at 59:59 rather than running to the end of time; a working state has no range at all |
+| W3 | manual | (D41, v1.3) The compact Dynamic Island during a rest and during a timed set | One symbol on the left, the timer on the right, no wider than a phone's own Timer; the expanded view is unchanged |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

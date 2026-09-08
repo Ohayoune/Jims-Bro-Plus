@@ -23,4 +23,22 @@ struct WorkoutActivityState: Equatable, Hashable, Codable, Sendable {
     var total: Int
     /// True for a break of any kind, so the Island can colour it.
     var isBreak: Bool
+
+    /// D41 (v1.3): no timer the Island draws is ever allowed to grow to `h:mm:ss`. A count-up
+    /// that ran to `.distantFuture` reserved the width of "999:59:59" in the compact Island,
+    /// which is most of why it was "too wide". Nothing here runs an hour: a rest is at most
+    /// 3600 s, a warm-up 30 min, and an open hold that long is not a set.
+    static let longestTimer: TimeInterval = 3599
+
+    /// Whether the timer counts down to `endsAt` or up from `startedAt`.
+    var timerCountsDown: Bool { endsAt != nil }
+
+    /// The closed range the system timer draws — `Text(timerInterval:)` needs one and crashes
+    /// on an inverted one — or nil when nothing is running. A countdown whose end has already
+    /// passed is still a one-second range, never `now...past`; a count-up is cut at 59:59.
+    func timerRange(now: Date = Date()) -> ClosedRange<Date>? {
+        if let endsAt { return now...max(endsAt, now.addingTimeInterval(1)) }
+        if let startedAt { return startedAt...startedAt.addingTimeInterval(Self.longestTimer) }
+        return nil
+    }
 }
