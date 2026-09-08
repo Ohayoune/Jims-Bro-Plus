@@ -125,9 +125,11 @@ struct InputDefaults: Equatable {
     var weight: String = ""
     var showsWeight = false
     var unit: String = ""
-    /// "82.5 kg suggested" and the number behind it, when §6.11 produced one.
+    /// D36 (v1.2): "Try 8 × 82.5 kg", the reason under it, and the numbers behind both.
     var suggestion: String?
+    var suggestionReason: String?
     var suggestedWeight: Double?
+    var suggestedReps: Int?
 }
 
 /// The whole workout screen as data. Views render it; they compute nothing.
@@ -153,7 +155,8 @@ struct WorkoutScreenModel: Equatable {
 
 enum WorkoutScreen {
     /// Nil only when the session is over — the Summary owns the screen then.
-    static func model(active: ActiveSession, history: [Session], now: Date) -> WorkoutScreenModel? {
+    static func model(active: ActiveSession, history: [Session], now: Date,
+                      settings: Settings = Settings()) -> WorkoutScreenModel? {
         let session = active.session
         let index: Int
         switch active.phase {
@@ -165,7 +168,8 @@ enum WorkoutScreen {
               let exercise = session.exercises[safe: step.exerciseIndex],
               let target = session.target(at: index) else { return nil }
 
-        let values = Prefill.values(session: session, step: index, history: history)
+        let values = Prefill.values(session: session, step: index, history: history,
+                                    settings: settings)
         let timed = target.work.isTimed
         return WorkoutScreenModel(
             // Every state returns the same five, in the same order (D22, O50).
@@ -209,7 +213,9 @@ enum WorkoutScreen {
             showsWeight: values.showsWeight,
             unit: units.rawValue)
         defaults.suggestion = StepCard.suggestionChip(values, units: units)
-        defaults.suggestedWeight = values.suggestedWeight
+        defaults.suggestionReason = values.suggestion?.reason
+        defaults.suggestedWeight = values.suggestion?.weight ?? values.suggestedWeight
+        defaults.suggestedReps = values.suggestion?.reps
         if case let .duration(seconds) = target.work, defaults.reps.isEmpty {
             defaults.reps = String(values.seconds ?? seconds)
         }

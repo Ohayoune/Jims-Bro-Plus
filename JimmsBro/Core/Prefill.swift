@@ -7,6 +7,27 @@ struct PrefillValues: Equatable {
     var lastWeight: Double?
     var suggestedWeight: Double?
     var showsWeight: Bool
+    /// D36 (v1.2): what to aim for on *this* set, and why. v1.1 had only a bare
+    /// "82.5 kg suggested" chip, and only when the whole exercise had earned advice.
+    var suggestion: SetSuggestion?
+}
+
+/// SPEC §6.11 (D36, v1.2): the suggestion for one set — the numbers, said as a target, with the
+/// reason underneath. "The steps need a bit of work and suggestions for the sets" was the
+/// owner's note; a chip reading "82.5 kg suggested", with nothing to say where it came from and
+/// nothing about the reps, is not a suggestion so much as a number.
+struct SetSuggestion: Equatable {
+    var reps: Int?
+    var weight: Double?
+    /// "8 × 82.5 kg", "12 reps", "45 s" — what to aim for, in the shape the set is measured in.
+    var text: String
+    /// "All sets hit the top of 8–12 last time", "Last time 8 × 80 kg", "The plan's target".
+    var reason: String
+    /// True when it came from progression advice rather than from repeating last time.
+    var isProgression: Bool
+
+    /// The chip's label. Short, because it sits under the weight field.
+    var chip: String { "Try \(text)" }
 }
 struct LastTimeEntry: Equatable { var text: String; var isCurrent: Bool; var setIndex: Int; var dropIndex: Int }
 struct LastTimeLine: Equatable {
@@ -41,7 +62,8 @@ enum Prefill {
         guard step.dropIndex == 0 else { return nil }
         return last.steps.last { $0.status == .logged && $0.dropIndex == 0 && $0.result?.weight != nil }?.result?.weight
     }
-    static func values(session: Session, step index: Int, history: [Session]) -> PrefillValues {
+    static func values(session: Session, step index: Int, history: [Session],
+                       settings: Settings = Settings()) -> PrefillValues {
         guard let step = session.steps[safe:index], let e = session.exercises[safe:step.exerciseIndex], let target = session.target(at:index) else { return PrefillValues(showsWeight:false) }
         let last = historicalResult(session:session,step:index,history:history)
         let lastWeight = historicalWeight(session:session,step:index,history:history)
@@ -63,12 +85,86 @@ enum Prefill {
         let seconds: Int?
         if case let .duration(n) = target.work { seconds = last?.seconds ?? n } else { seconds = nil }
         var suggestion: Double?
+        var adviceReason: String?
         if let lastSession = lastSteps(session:session,step:index,history:history)?.session,
            let advice = lastSession.exercises.first(where: { normalized($0.name) == normalized(e.name) })?.advice {
-            switch advice { case let .increase(w), let .decrease(w): suggestion = w; default: break }
+            switch advice {
+            case let .increase(w):
+                suggestion = w
+                adviceReason = e.repRange.map { "You hit the top of \($0.min)–\($0.max) last time" }
+                    ?? "You finished the range last time"
+            case let .decrease(w):
+                suggestion = w
+                adviceReason = e.repRange.map { "You were below \($0.min)–\($0.max) last time" }
+                    ?? "You were below the range last time"
+            default: break
+            }
         }
-        return PrefillValues(weight:weight,reps:reps,seconds:seconds,lastWeight:e.bodyweight ? nil : lastWeight,suggestedWeight:e.bodyweight ? nil : suggestion,showsWeight:!e.bodyweight)
+        // D35: whatever it suggests must be loadable.
+        let increment = settings.weightIncrement(for: session.units)
+        suggestion = suggestion.map { WeightRounding.snap($0, increment: increment) }
+        var values = PrefillValues(weight:weight,reps:reps,seconds:seconds,
+                                   lastWeight:e.bodyweight ? nil : lastWeight,
+                                   suggestedWeight:e.bodyweight ? nil : suggestion,
+                                   showsWeight:!e.bodyweight)
+        values.suggestion = setSuggestion(session: session, step: index, exercise: e, target: target,
+                                          last: last, lastWeight: lastWeight,
+                                          advice: e.bodyweight ? nil : suggestion,
+                                          adviceReason: adviceReason, units: session.units)
+        return values
     }
+    /// D36 (v1.2): the suggestion for one set, in order of how much it knows.
+    ///
+    /// 1. Progression advice from the last time this exercise was done — it read every set.
+    /// 2. What was done for *this set index* last time — the honest "do that again".
+    /// 3. The plan's own target, which is what the plan asked for in the first place.
+    ///
+    /// Nil for a set with nothing to say beyond its target — an unloaded bodyweight set whose
+    /// target the card is already showing.
+    static func setSuggestion(session: Session, step index: Int, exercise: SessionExercise,
+                              target: (work: WorkTarget, weight: Double?, warning: Int?),
+                              last: SetResult?, lastWeight: Double?, advice: Double?,
+                              adviceReason: String?, units: WeightUnit) -> SetSuggestion? {
+        let unit = units.rawValue
+        func line(_ reps: Int?, _ weight: Double?) -> String {
+            switch (reps, weight) {
+            case let (reps?, weight?): return "\(reps) × \(TargetText.number(weight)) \(unit)"
+            case let (reps?, nil): return "\(reps) rep\(reps == 1 ? "" : "s")"
+            case let (nil, weight?): return "\(TargetText.number(weight)) \(unit)"
+            case (nil, nil): return ""
+            }
+        }
+        // Timed work is measured in seconds; suggesting reps for it would be nonsense.
+        if target.work.isTimed {
+            guard let seconds = last?.seconds, case let .duration(planned) = target.work,
+                  seconds != planned else { return nil }
+            return SetSuggestion(reps: nil, weight: nil, text: "\(seconds) s",
+                                 reason: "Last time you held \(TargetText.time(seconds))",
+                                 isProgression: false)
+        }
+        let reps = targetReps(target.work)
+        if let advice, let adviceReason {
+            return SetSuggestion(reps: reps, weight: advice, text: line(reps, advice),
+                                 reason: adviceReason, isProgression: true)
+        }
+        if let lastWeight, !exercise.bodyweight {
+            let lastReps = last?.reps
+            return SetSuggestion(reps: reps ?? lastReps, weight: lastWeight,
+                                 text: line(reps ?? lastReps, lastWeight),
+                                 reason: "Last time \(line(lastReps, lastWeight))",
+                                 isProgression: false)
+        }
+        if let lastReps = last?.reps, exercise.bodyweight {
+            return SetSuggestion(reps: reps ?? lastReps, weight: nil, text: line(reps ?? lastReps, nil),
+                                 reason: "Last time \(lastReps) rep\(lastReps == 1 ? "" : "s")",
+                                 isProgression: false)
+        }
+        guard let reps else { return nil }
+        return SetSuggestion(reps: reps, weight: exercise.bodyweight ? nil : target.weight,
+                             text: line(reps, exercise.bodyweight ? nil : target.weight),
+                             reason: "The plan's target", isProgression: false)
+    }
+
     static func lastTime(session: Session, step index: Int, history: [Session]) -> LastTimeLine? {
         guard let step = session.steps[safe:index], let last = lastSteps(session:session,step:index,history:history) else { return nil }
         let steps = last.steps.sorted { ($0.setIndex,$0.dropIndex) < ($1.setIndex,$1.dropIndex) }

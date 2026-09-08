@@ -75,7 +75,8 @@ struct SessionEngine {
         active.phase = .working(step: index)
         active.timerRunning = false; active.deliveredBeeps = []
         guard active.session.steps.indices.contains(index) else { return }
-        active.workWeight = Prefill.values(session: session, step: index, history: history).weight
+        active.workWeight = Prefill.values(session: session, step: index, history: history,
+                                           settings: settings).weight
         active.session.steps[index].startedAt = session.target(at: index)?.work.isTimed == true ? nil : now
     }
     private mutating func cancelWork() -> [Effect] {
@@ -86,7 +87,10 @@ struct SessionEngine {
         guard session.exercises.indices.contains(e) else { return }
         let steps = session.steps.filter { $0.exerciseIndex == e }
         guard !steps.contains(where: { $0.status == .pending }) else { return }
-        active.session.exercises[e].advice = ProgressionAdvice.evaluate(exercise: session.exercises[e], steps: steps, weightStep: settings.weightStep(for: session.units))
+        active.session.exercises[e].advice = ProgressionAdvice.evaluate(
+            exercise: session.exercises[e], steps: steps,
+            weightStep: settings.weightStep(for: session.units),
+            increment: settings.weightIncrement(for: session.units))
     }
     private mutating func complete(now: Date) -> [Effect] {
         active.session.endedAt = now; active.phase = .completed; active.blockDone = nil

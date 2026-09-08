@@ -64,7 +64,8 @@ struct WorkoutView: View {
 
     @ViewBuilder private func content(now: Date) -> some View {
         if let active = model.engine?.active, model.phase != .completed,
-           let screen = WorkoutScreen.model(active: active, history: model.sessions, now: now) {
+           let screen = WorkoutScreen.model(active: active, history: model.sessions, now: now,
+                                            settings: model.settings) {
             WorkoutScreenView(screen: screen, now: now, showOverview: $showOverview,
                               editing: $editing, minimize: { dismiss() }, finish: requestFinish)
                 .toolbar(.hidden, for: .navigationBar)
@@ -298,25 +299,40 @@ private struct WorkoutScreenView: View {
             StepperRow(text: $weightText, keyboard: .decimalPad, suffix: nil,
                        label: "Weight in \(StepCard.spokenUnit(session?.units ?? .kg))",
                        focus: $focused, field: .weight,
-                       minus: { set(weight: InputRules.stepped(weight: current, by: stepSize, up: false)) },
-                       plus: { set(weight: InputRules.stepped(weight: current, by: stepSize, up: true)) },
+                       minus: { set(weight: InputRules.stepped(weight: current, by: stepSize,
+                                                               up: false, increment: increment)) },
+                       plus: { set(weight: InputRules.stepped(weight: current, by: stepSize,
+                                                              up: true, increment: increment)) },
                        filter: { InputRules.weight($0, previous: $1) },
                        // Not on every keystroke: typing "62.5" was four engine events and,
                        // before v1.2, four writes of active-session.json. The steppers, the
                        // suggestion chip, losing focus and the primary button all push it.
                        committed: {})
-            if let chip = screen.inputs.suggestion, let suggested = screen.inputs.suggestedWeight {
-                Button(chip) { set(weight: suggested) }
-                    .font(.caption)
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-                    .controlSize(.mini)
+            // D36: the chip says what to aim for and why, and one tap fills in both numbers.
+            if let chip = screen.inputs.suggestion {
+                VStack(alignment: .leading, spacing: 3) {
+                    Button(chip) { applySuggestion() }
+                        .font(.caption)
+                        .buttonStyle(.bordered)
+                        .buttonBorderShape(.capsule)
+                        .controlSize(.mini)
+                        .disabled(screen.inputs.suggestedWeight == nil
+                                  && screen.inputs.suggestedReps == nil)
+                    if let reason = screen.inputs.suggestionReason {
+                        Text(reason)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
         }
     }
 
     private var current: Double? { InputRules.weightValue(weightText) }
     private var stepSize: Double { model.settings.weightStep(for: session?.units ?? .kg) }
+    /// D35: the smallest change the equipment can make, so − and + land on a loadable weight.
+    private var increment: Double { model.settings.weightIncrement(for: session?.units ?? .kg) }
 
     // MARK: - Zone 5
 
@@ -361,6 +377,13 @@ private struct WorkoutScreenView: View {
             weightText = screen.inputs.weight
         }
         pushWeight()
+    }
+
+    /// One tap takes the whole suggestion — reps and weight — not just the number under the
+    /// finger. The suggestion is a set to aim for, so half of it is not much use.
+    private func applySuggestion() {
+        if let reps = screen.inputs.suggestedReps { set(reps: reps) }
+        if let weight = screen.inputs.suggestedWeight { set(weight: weight) }
     }
 
     private func set(reps: Int) { repsText = String(reps) }

@@ -42,10 +42,24 @@ enum InputRules {
     static func weightText(_ value: Double?) -> String { value.map(TargetText.number) ?? "" }
 
     /// − / + never go below zero (N7).
-    static func stepped(weight: Double?, by step: Double, up: Bool) -> Double {
+    /// D35 (v1.2): a tap of − or + lands on a weight the equipment can make.
+    ///
+    /// From a weight that is **already loadable** it moves by one step and rounds that onto the
+    /// grid: 60 kg, step 2.5, increment 2.5 → 62.5. From one that is **not** — a number typed by
+    /// hand, or history from another gym — the first tap simply brings it onto the grid in the
+    /// direction asked for: 61 kg → 62.5 up, 60 down; 134 lb → 135 up. Jumping from 134 to 140
+    /// because the arithmetic said 139 is the behavior the owner complained about.
+    static func stepped(weight: Double?, by step: Double, up: Bool, increment: Double? = nil) -> Double {
         let base = weight ?? 0
-        let moved = up ? base + step : base - step
-        return min(maxWeight, max(0, (moved * 10).rounded() / 10))
+        guard let increment, increment > 0 else {
+            let moved = up ? base + step : base - step
+            return min(maxWeight, max(0, (moved * 10).rounded() / 10))
+        }
+        let direction: WeightRounding.Direction = up ? .up : .down
+        let target = WeightRounding.isLoadable(base, increment: increment)
+            ? (up ? base + step : base - step)
+            : base
+        return min(maxWeight, WeightRounding.snap(target, increment: increment, direction: direction))
     }
 
     static func stepped(reps: Int?, up: Bool) -> Int {
@@ -132,8 +146,12 @@ enum StepCard {
         values.lastWeight.map { "Last \(TargetText.number($0)) \(units.rawValue)" }
     }
 
+    /// D36 (v1.2): "Try 8 × 82.5 kg". v1.1's chip read "82.5 kg suggested" and appeared only
+    /// when the whole exercise had earned progression advice; this one covers every set that
+    /// has anything to say, and the reason travels with it.
     static func suggestionChip(_ values: PrefillValues, units: WeightUnit) -> String? {
-        values.suggestedWeight.map { "\(TargetText.number($0)) \(units.rawValue) suggested" }
+        if let suggestion = values.suggestion, !suggestion.text.isEmpty { return suggestion.chip }
+        return values.suggestedWeight.map { "Try \(TargetText.number($0)) \(units.rawValue)" }
     }
 
     /// SPEC §9: VoiceOver reads the card as one element — "Bench press, set 2 of 4, target 8 to

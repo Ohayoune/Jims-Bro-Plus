@@ -1,7 +1,11 @@
 import Foundation
 
 enum ProgressionAdvice {
-    static func evaluate(exercise: SessionExercise, steps: [SessionStep], weightStep: Double) -> Advice? {
+    /// `increment` is D35's smallest loadable change (v1.2). It defaults to `weightStep` so the
+    /// old two-argument shape keeps its old meaning, and passing it is what stops the app from
+    /// suggesting 134 lb on a bar that can only make 135.
+    static func evaluate(exercise: SessionExercise, steps: [SessionStep], weightStep: Double,
+                         increment: Double? = nil) -> Advice? {
         guard let range = exercise.repRange, range.min > 0, range.max >= range.min, weightStep.isFinite, weightStep > 0 else { return nil }
         let logged = steps.filter { $0.status == .logged && $0.dropIndex == 0 }
         guard !logged.isEmpty else { return nil }
@@ -10,8 +14,17 @@ enum ProgressionAdvice {
         let weights = results.map { exercise.bodyweight ? nil : $0.weight }
         guard let first = weights.first, weights.allSatisfy({ $0 == first }) else { return nil }
         let achieved = results.reduce(0.0) { $0 + Double($1.reps ?? 0) }
-        if achieved >= Double(results.count) * Double(range.max) - 1 { return first.map { .increase(to: $0 + weightStep) } ?? .increaseLoad }
-        if achieved < Double(results.count) * Double(range.min) { return first.map { .decrease(to: max(0, $0 - weightStep)) } ?? .decreaseLoad }
+        let grid = increment ?? weightStep
+        if achieved >= Double(results.count) * Double(range.max) - 1 {
+            return first.map {
+                .increase(to: WeightRounding.heavier(than: $0, target: $0 + weightStep, increment: grid))
+            } ?? .increaseLoad
+        }
+        if achieved < Double(results.count) * Double(range.min) {
+            return first.map {
+                .decrease(to: WeightRounding.lighter(than: $0, target: $0 - weightStep, increment: grid))
+            } ?? .decreaseLoad
+        }
         return nil
     }
     static func message(_ advice: Advice, range: RepRange, loggedSets: Int, currentWeight: Double?, units: WeightUnit) -> String {
