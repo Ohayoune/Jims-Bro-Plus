@@ -98,3 +98,21 @@ final class RecordingAlerts: NotificationScheduling, AlertPlaying, @unchecked Se
     }
     func reset() { lock.withLock { _scheduled = []; _cancelled = []; _played = []; _feedback = [] } }
 }
+
+/// D40 (v1.2): records what the app asked the Lock Screen and the Dynamic Island to show, so
+/// the behavior is testable without ActivityKit or a device.
+final class RecordingActivities: ActivityPresenting, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _shown: [WorkoutActivityState] = []
+    private var _ends = 0
+
+    /// Every state pushed, in order.
+    var shown: [WorkoutActivityState] { lock.withLock { _shown } }
+    /// The state currently on screen, if the activity has not been ended.
+    var current: WorkoutActivityState? { lock.withLock { _shown.last } }
+    var ends: Int { lock.withLock { _ends } }
+
+    func show(_ state: WorkoutActivityState) async { lock.withLock { _shown.append(state) } }
+    func end() async { lock.withLock { _ends += 1 } }
+    func reset() { lock.withLock { _shown = []; _ends = 0 } }
+}

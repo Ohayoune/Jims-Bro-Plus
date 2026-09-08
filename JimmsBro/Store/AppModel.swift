@@ -34,6 +34,11 @@ enum SaveFailure: Equatable {
     let store: Store
     let scheduler: NotificationScheduling
     let alerts: AlertPlaying
+    /// D40 (v1.2): the Lock Screen and Dynamic Island activity. Injected like the scheduler, so
+    /// Core never imports ActivityKit and the behavior is testable without a device.
+    let activities: ActivityPresenting
+    /// The last state pushed, so an unchanged tick does not wake the system for nothing.
+    var shownActivity: WorkoutActivityState?
     private let sampleJSON: () -> String?
     private let practiceJSON: () -> String?
     /// Sessions already written to disk, so completing twice doesn't rewrite them.
@@ -68,11 +73,13 @@ enum SaveFailure: Equatable {
     init(store: Store,
          scheduler: NotificationScheduling = SilentAlerts(),
          alerts: AlertPlaying = SilentAlerts(),
+         activities: ActivityPresenting = NoActivities(),
          sampleJSON: @escaping () -> String? = AppModel.bundledSampleJSON,
          practiceJSON: @escaping () -> String? = AppModel.bundledPracticeJSON) {
         self.store = store
         self.scheduler = scheduler
         self.alerts = alerts
+        self.activities = activities
         self.sampleJSON = sampleJSON
         self.practiceJSON = practiceJSON
     }

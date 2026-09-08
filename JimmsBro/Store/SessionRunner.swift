@@ -72,6 +72,7 @@ extension AppModel {
         // for the new session, in that order, so running them is all the persistence needed.
         await run(effects)
         await persistPlans()
+        await refreshActivity(now: now)
     }
 
     /// The Home card's Start button target.
@@ -92,6 +93,7 @@ extension AppModel {
             justCompleted = finished
         }
         await run(effects)
+        await refreshActivity(now: now)
         return effects
     }
 
@@ -123,6 +125,7 @@ extension AppModel {
         if changed {
             do { try await persistActiveSession() } catch { saveFailure = .activeSessionWrite }
         }
+        await refreshActivity(now: now)
     }
 
     // MARK: - Finishing
@@ -144,6 +147,7 @@ extension AppModel {
         let effects = library.discardSession()
         await run(effects)
         await tryClearActiveSession()
+        await refreshActivity()
     }
 
     /// D24 (v1.1): a session is marked persisted only once its write actually succeeds, and
@@ -189,6 +193,23 @@ extension AppModel {
             case .sessionCompleted:
                 await persistCompletedSessions()
             }
+        }
+    }
+
+    // MARK: - Live Activity (D40, v1.2)
+
+    /// Pushes the current state to the Lock Screen and the Dynamic Island, or ends the activity
+    /// when there is no workout to show. Called after every event and on every tick; a state
+    /// that has not changed is not pushed, so a per-second tick does not wake the system
+    /// sixty times a minute.
+    func refreshActivity(now: Date = Date()) async {
+        let state = library.engine.map(\.active).flatMap { WorkoutActivityState.of($0, now: now) }
+        guard state != shownActivity else { return }
+        shownActivity = state
+        if let state {
+            await activities.show(state)
+        } else {
+            await activities.end()
         }
     }
 
