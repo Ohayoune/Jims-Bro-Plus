@@ -480,21 +480,27 @@ weightStep = 2.5 unless stated. Range 8–12, 3 sets, all @ 60 unless stated.
 | P24 | unit | Range 10–10 (single number), 10, 10, 10 | `.increase` |
 | P25 | unit | Main sets 12, 12, 12 with drops 8, 6 each | `.increase` (drops ignored) |
 
-## S. Home sparkline (SPEC §6.13)
+## S. Home sparkline — **removed in v1.1's R3**
+
+The sparkline, `HomeMetric` and SPEC §6.13 went together: a chart whose metric changed on an
+undocumented tap was undiscoverable rather than quiet, and `HomeActivity.line` (O66) replaced it.
+These rows are kept as the record of what was tested and then deleted; **none of them is a `unit`
+case any more**, and nothing implements them.
+
 | ID | Type | Case | Expected |
 |---|---|---|---|
-| S1 | unit | duration, sessions on 3 of the last 7 days | 7 values; 4 nil; minutes for the rest |
-| S2 | unit | Two sessions on one day, duration | summed |
-| S3 | unit | volume with a lb session in a kg window | lb session excluded |
-| S4 | unit | avgWeight | mean over weighted rep-based steps of that day's sessions |
-| S5 | unit | avgReps over rep-based steps including drops | mean |
-| S6 | unit | exercises = blocks with ≥ 1 logged step | count |
-| S7 | unit | Caption for duration, avg 52 | "Workout length · last 7 days · avg 52 min" |
-| S8 | unit | Caption for volume | "Volume · last 7 days · total 12,400 kg" |
-| S9 | unit | No sessions in the window | all nil; caption "No workouts in the last 7 days" |
-| S10 | unit | Window is the last 7 calendar days ending today (injected), local time zone | Sessions 8 days ago excluded; today included |
-| S11 | unit | Tap cycles metrics in enum order and wraps; persisted in Settings | True |
-| S12 | unit | A session crossing midnight counts on its start day | True |
+| S1 | removed | duration, sessions on 3 of the last 7 days | 7 values; 4 nil; minutes for the rest |
+| S2 | removed | Two sessions on one day, duration | summed |
+| S3 | removed | volume with a lb session in a kg window | lb session excluded |
+| S4 | removed | avgWeight | mean over weighted rep-based steps of that day's sessions |
+| S5 | removed | avgReps over rep-based steps including drops | mean |
+| S6 | removed | exercises = blocks with ≥ 1 logged step | count |
+| S7 | removed | Caption for duration, avg 52 | "Workout length · last 7 days · avg 52 min" |
+| S8 | removed | Caption for volume | "Volume · last 7 days · total 12,400 kg" |
+| S9 | removed | No sessions in the window | all nil; caption "No workouts in the last 7 days" |
+| S10 | removed | Window is the last 7 calendar days ending today (injected), local time zone | Sessions 8 days ago excluded; today included |
+| S11 | removed | Tap cycles metrics in enum order and wraps; persisted in Settings | True |
+| S12 | removed | A session crossing midnight counts on its start day | True |
 
 ## Q. v1.2 — the code-health defects (V1)
 

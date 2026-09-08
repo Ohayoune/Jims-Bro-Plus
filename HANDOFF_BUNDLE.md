@@ -2,12 +2,12 @@
 
 This single file contains the entire design package for a native iOS workout app, so it can be uploaded or pasted into a chat with a coding assistant. The folder version of this package (with 111 fixture files under `examples/`) is the same content; the fixtures are not inlined here because `tools/generate_fixtures.py` (included below) recreates all of them.
 
-The app itself is built: v1 (M0–M7) and v1.1's R0–R5 are implemented and green. `docs/BUILD_STATUS.md` says what was actually run, and `docs/DECISIONS_LOG.md` records every decision taken where the docs were silent. The Swift sources are not in this bundle — they are in the folder, under `JimmsBro/` and `JimmsBroTests/`.
+The app itself is built: v1 (M0–M7), v1.1 (R0–R6) and v1.2 (V0–V7) are implemented and green. `docs/BUILD_STATUS.md` says what was actually run, and `docs/DECISIONS_LOG.md` records every decision taken where the docs were silent. The Swift sources are not in this bundle — they are in the folder, under `JimmsBro/`, `JimmsBroActivity/` and `JimmsBroTests/`.
 
 How to use this bundle:
 1. Read `AGENTS.md` first (immediately below). It says what to read next and the hard rules.
 2. Recreate the folder: save each `### FILE:` section below to its path, then run `python3 tools/generate_fixtures.py` and `python3 tools/reference_import.py` (expect "111/111 fixtures match the manifest").
-3. Read `docs/BUILD_STATUS.md` to see where the build has got to, then `docs/ITERATION_2_PLAN.md` for what v1.1 was.
+3. Read `docs/BUILD_STATUS.md` to see where the build has got to, then `docs/ITERATION_2_PLAN.md` and `docs/ITERATION_3_PLAN.md` for what v1.1 and v1.2 were.
 
 Each file below starts with a line `### FILE: <path>` followed by its full content inside a five-backtick fence, so the three- and four-backtick fences inside the documents nest correctly.
 
@@ -35,19 +35,32 @@ what the docs describe, with tests, in the milestone order given.
 7. `tools/reference_import.py` — a Python reference implementation of the import pipeline, step flattening, and rest resolution. It passes the whole manifest (`python3 tools/reference_import.py`). Port its behavior to Swift; when a Swift test disagrees with the manifest, run the Python on the same file to see the intended result
 8. `tools/generate_fixtures.py` — regenerates every file in `examples/` from scratch. If `examples/` is missing (for example you received only the bundle file), run it first
 
-## v1.1 — the refinement release
+## v1.1 and v1.2 — the refinement releases
 
-`docs/ITERATION_2_PLAN.md` is the v1.1 plan: milestones **R0–R6, in order**, with the SPEC
-amendments of its §3 landing before the code that depends on them. R0–R5 are built and green;
-R6 is the device checklist, which needs the owner's iPhone (`docs/DEVICE_CHECKLIST.md`).
-`docs/BUILD_STATUS.md` says what is done and what was actually run.
+`docs/ITERATION_2_PLAN.md` is the v1.1 plan (milestones **R0–R6**) and
+`docs/ITERATION_3_PLAN.md` is the v1.2 plan (milestones **V0–V8**), in order, with the SPEC
+amendments landing before the code that depends on them. Everything through V7 is built and
+green; what remains is the device checklist, which needs the owner's iPhone
+(`docs/DEVICE_CHECKLIST.md`). `docs/BUILD_STATUS.md` says what is done and what was actually run,
+and `docs/CODE_HEALTH_REVIEW.md` records the review that prompted half of v1.2.
 
-Read `docs/SPEC.md` as the contract, not the plan: where they disagree, SPEC wins, and the plan's
+Read `docs/SPEC.md` as the contract, not the plan: where they disagree, SPEC wins, and the plans'
 proposed test-case ids were renumbered on landing (TEST_CASES notes the mapping).
+
+Three v1.2 rules are worth knowing before touching anything:
+
+- **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
+  default is optional. Adding a field to `Settings`, `Plan` or `Session` means adding it to that
+  file's decoder too, or every file already on the phone becomes "corrupt" and is moved aside.
+  `examples/store/v1/` freezes a real file of each type; never regenerate one to make a test pass.
+- **The app has one rest with three kinds** (`RestKind`): the warm-up, the rest between sets, and
+  the walk between exercises. They share the countdown, the controls and the notification.
+- **Every weight the app *offers* is snapped to a loadable increment** (`WeightRounding`);
+  weights the user types are never touched.
 
 ## Hard rules
 
-- Platform: SwiftUI, iOS 17.0+, Swift 5.9+, iPhone only, portrait only. No third-party dependencies. No backend. No accounts.
+- Platform: SwiftUI, iOS 17.0+, Swift 5.9+, iPhone only, portrait only. No third-party dependencies. No backend. No accounts. Two targets since v1.2: the app, and `JimmsBroActivity`, the widget extension that draws the Lock Screen / Dynamic Island activity (`tools/add_activity_target.py` is how it got into the project).
 - Xcode product name: `JimmsBro` (bundle id like `com.<owner>.jimmsbro`). Create the project inside this folder.
 - Persistence: Codable JSON files in Application Support (SPEC §8). Not SwiftData. Not Core Data. Not UserDefaults for anything except trivial flags.
 - All logic (import pipeline, step flattening, rest resolution, session state machine, prefill, stats, export) lives in plain Swift types under a `Core/` group with no `import SwiftUI`/`UIKit`, and is covered by unit tests.
@@ -58,7 +71,8 @@ proposed test-case ids were renumbered on landing (TEST_CASES notes the mapping)
 
 ## Working style
 
-- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them.
+- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the two doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all).
+- Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.
 - Use the fixtures in `examples/` verbatim in tests. Do not edit fixtures to make tests pass; if a fixture looks wrong, say so.
 - Use the iOS Simulator for visual checks. The owner installs on the physical iPhone (BUILD_PLAN §Device).
@@ -74,7 +88,7 @@ proposed test-case ids were renumbered on landing (TEST_CASES notes the mapping)
 
 A personal iPhone app that runs your workout for you: import a plan a chatbot wrote from your own description, then log each set while the app times your rest and remembers what you lifted last time.
 
-This folder contains the design package, the M0 Xcode project, the M1/M2 Core implementation, the M3 JSON store, the M4 screens (Home, Plans, Plan detail, Import, Settings) and the M5 workout (step card, rest timer, timed sets, done screen, overview, summary, resume) and the M6 History (list by month, editable session detail, per-exercise history with the best set) and the M7 polish (full Settings with export and delete-all, dark mode, Dynamic Type, VoiceOver, app icon). Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the M8 device checklist. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
+This folder contains the design package and the app, built through **v1 (M0–M7)**, **v1.1 (R0–R6)** and **v1.2 (V0–V7)**: the Core import pipeline and session engine, the JSON store, every screen, the workout's five fixed zones, plan editing, backup and restore, and v1.2's warm-up, timed walk between exercises, loadable weight suggestions, anchored calendar, metrics and Lock Screen / Dynamic Island activity. Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the device checklist, which needs the owner's iPhone. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
 
 Run the iOS tests from this folder:
 
@@ -82,7 +96,7 @@ Run the iOS tests from this folder:
 xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'
 ```
 
-The suite includes the M0 resource smoke test and Core tests for imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, sparklines, prompts, the persistence store, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, the history grouping and editing, and the settings, export and accessibility text. Imports use the original 111 fixtures and manifest verbatim. There are no third-party dependencies. Select your signing Team only when installing on a physical iPhone.
+That is **210 tests** (2 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, and v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity. Imports use the original 111 fixtures and manifest verbatim. There are no third-party dependencies, and the signing team is already set for both targets.
 
 Core can also be checked with the independently installed Command Line Tools:
 
@@ -91,9 +105,21 @@ python3 tools/check_core.py --filter ImportTests
 python3 tools/check_core.py
 ```
 
-This portable runner compiles the actual Core sources in Swift 5 language mode and executes the same test bodies using assertion adapters. It reports a nonzero exit code on any failure; it does not run XCTest or certify app bundle/simulator behavior. With a fully configured Xcode toolchain, `swift test` also runs Core as an ordinary Swift Package using XCTest. See `docs/BUILD_STATUS.md` for results and remaining verification.
+This portable runner compiles the actual Core sources in Swift 5 language mode and executes the same test bodies using assertion adapters. It reports a nonzero exit code on any failure; it does not run XCTest or certify app bundle/simulator behavior.
 
-If Xcode reports an unaccepted license, either run the command above through an Xcode whose license is already accepted (see `docs/BUILD_STATUS.md`), or review and accept it in Terminal with `sudo xcodebuild -license` and complete Xcode's first-launch component installation. The iPhone 16 simulator and an iOS simulator runtime must be installed in Xcode.
+```sh
+swift test
+```
+
+runs Core as an ordinary Swift Package. This route had not compiled since `AppModel` became `@Observable` — `Package.swift` declared macOS 13 and Observation needs 14 — and v1.2's V1 fixed it. It is also where the two cases the simulator skips actually run: they pin `Prompts.swift` to `docs/PROMPT.md`, which is outside the simulator's sandbox. See `docs/BUILD_STATUS.md` for results and remaining verification.
+
+An iOS simulator runtime must be installed in Xcode; the commands above name the iPhone 16 simulator, and any installed iPhone works.
+
+```sh
+python3 tools/check_bundle.py
+```
+
+fails when `HANDOFF_BUNDLE.md` or the zip has drifted from the files it is built from. Both are derived but committed, because the owner hands them to a chatbot that cannot read a folder — which is only safe with a check that says when they have gone stale.
 
 | File | What it is | Who reads it |
 |---|---|---|
@@ -103,6 +129,9 @@ If Xcode reports an unaccepted license, either run the command above through an 
 | `docs/PROMPT.md` | The exact prompt the app copies for ChatGPT/Claude, and the fix-it prompt | you, the agent |
 | `docs/TEST_CASES.md` | About 475 test cases, unit / ui / manual | the agent; you for the manual checklist |
 | `docs/BUILD_PLAN.md` | Milestones M0–M8 and how to install on your iPhone | both |
+| `docs/ITERATION_2_PLAN.md` | The v1.1 plan: milestones R0–R6 | both |
+| `docs/ITERATION_3_PLAN.md` | The v1.2 plan: milestones V0–V8 | both |
+| `docs/CODE_HEALTH_REVIEW.md` | The 2026-09-07 review that prompted half of v1.2, and what became of each finding | you |
 | `docs/DEVICE_CHECKLIST.md` | The 32 manual cases to run on your iPhone, with a place to record results | you |
 | `docs/BUILD_STATUS.md` | What is built, what was verified and how to reproduce it | you |
 | `schema/plan.schema.json` | JSON Schema of the strict plan shape | the agent |
@@ -246,7 +275,7 @@ One screen, five fixed zones, top to bottom, identical across every state below.
 
 > **Build status**: built in R2. `WorkoutScreen.model(active:history:now:)` resolves the whole screen — zones, set rows, prefilled inputs, strip and primary action — as a `WorkoutScreenModel`, and the view only renders it, which is what makes "the zones never move" a unit test (O50) rather than a convention.
 
-1. **Header**: elapsed time · progress ("Exercise 2 of 5 · Set 2 of 3", or "· drop 1 of 2", or "A · round 2 of 3" for a superset member) · **Exercises** (opens the Overview sheet, §4.8, reachable in every state including rest) · minimize (returns to the tabs; the session and its timers keep running; Home shows "<Day> in progress · <elapsed>" with **Resume**) · "···" (Skip set, Skip exercise, Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one).
+1. **Header** (v1.2, D34): the **stage** the workout is in, said in words, above a progress bar of the whole day — **Warm-up**, **Exercise 2 of 5 · Set 2 of 3**, **Resting**, **Between exercises**. Then elapsed time · progress ("Exercise 2 of 5 · Set 2 of 3", or "· drop 1 of 2", or "A · round 2 of 3" for a superset member) · **Exercises** (opens the Overview sheet, §4.8, reachable in every state including rest) · minimize (returns to the tabs; the session and its timers keep running; Home shows "<Day> in progress · <elapsed>" with **Resume**) · "···" (Skip set, Skip exercise, Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one).
 2. **Exercise block**: the exercise's name (opens its history) and target line (with notes, truncated to one line), then the current exercise's set rows: finished rows show what was logged ("✓ 10 @ 80") and never how long it took (D19), the current row is highlighted with its target and last-time value, upcoming rows show their targets. A row carries the set's own target only — the exercise's notes appear once, on the target line above, rather than repeating on every row. In a block holding more than one exercise (a superset round) each row names its exercise instead of repeating the shared group tag, which would otherwise make two rows read identically. A superset shows the current round's members. Tapping a finished row opens the edit sheet; tapping an upcoming row jumps to it (§6.6 `jumpTo`).
 3. **Inputs**: small-caps labels **REPS** and the unit (**KG**/**LB**) above the − value + rows; the weight row is omitted for bodyweight exercises (D21); a "72.5 suggested" chip appears under the weight when §6.11 produced one. Timed sets replace the reps row with the timer block described below; the weight row stays unless bodyweight.
 4. **Status strip** (always present; its content depends on phase, per §4.6/§4.7 below).
@@ -254,11 +283,23 @@ One screen, five fixed zones, top to bottom, identical across every state below.
 
 After logging, a step's seconds (D19) remain editable in the Overview like any other value.
 
-### 4.6 Rest, within the status strip (between sets of the same exercise, or after a superset round)
-The strip shows: countdown m:ss, −30 s / +30 s, **Skip rest**, and "Set logged · **Undo**" (D23) for as long as the rest runs. Alert at zero (§6.4); at zero the strip reads "Rest over · +0:12" until the next log. "set 0:34" (how long the set just logged took, D19) appears in the strip in small text, never as the largest element on the screen.
+### 4.6 Rest, within the status strip (v1.2: one rest, three kinds)
+There is one rest in the app, and it says which of three kinds it is, because "a break" that does not say what it is for is the thing the owner said was unclear:
 
-### 4.7 Between exercises: the status strip's block-done state (D14, revised in v1.1)
-There is no separate screen and no Continue gate. The moment a block's last step is logged or skipped, the next step's card appears immediately (phase → `working`, §6.6) and the exercise block (zone 2) already shows the next exercise. The status strip instead reads the finished block's line — "Barbell Row done · 9:40 · try 72.5 kg next time" — with a small count-up "moving on · 0:42" beneath, until the next set is logged. No alert, no notification, no countdown; the strip clears automatically on the next log or skip, or can be dismissed directly (`dismissBlockDone`, §6.6). Timed-set and rest logic behave as normal from the moment the strip appears — there is no screen on which they are suspended.
+| Kind | When | Length |
+|---|---|---|
+| **Warm-up** (D32) | Before the first set of the session | `Settings.warmUpSeconds`, 0 = off |
+| **Rest** | Between sets of an exercise, and after a superset round | The set's resolved `restSeconds` (§6.3) |
+| **Between exercises** (D33) | After a block's last step, before the next exercise | `Settings.transitionRestSeconds`, 0 = straight through, as v1.1 |
+
+The strip shows: the kind, named; the countdown m:ss; −30 s / +30 s; **Skip** (whose label names the kind — "Skip rest", "Skip warm-up"); and "Set logged · **Undo**" (D23) for as long as the rest runs. Alert at zero (§6.4); at zero the strip reads "Rest over · +0:12" (or "Warm-up over") until the next log. "set 0:34" (how long the set just logged took, D19) appears in the strip in small text, never as the largest element on the screen.
+
+None of the three gates anything. The next set's card is already on screen and the primary button works throughout — logging (or starting a timed set) during any of them ends it early, exactly as v1.1's rest did.
+
+### 4.7 Between exercises: the status strip's block-done state (D14, revised in v1.1; timed in v1.2's D33)
+There is no separate screen and no Continue gate. The moment a block's last step is logged or skipped, the next step's card appears immediately and the exercise block (zone 2) already shows the next exercise. The status strip reads the finished block's line — "Barbell Row done · 9:40 · try 72.5 kg next time".
+
+**v1.2 (D33)**: walking to the next machine takes as long as a rest does, and v1.1 gave it no time at all — so it now runs a real countdown of `Settings.transitionRestSeconds` (default 120 s), with the same −30 / +30 / Skip controls as any other rest, and the same alert at zero. Set that setting to 0 and v1.1's behavior comes back exactly: no countdown, and the count-up "moving on · 0:42" beneath the block's line instead. The strip clears on the next log or skip, or can be dismissed directly (`dismissBlockDone`, §6.6). Timed-set logic behaves as normal throughout — there is no state in which it is suspended.
 
 ### 4.8 Overview (from "···", or the header's Exercises button)
 Every step grouped by exercise with status and set time ("10 @ 60 · 0:34"); finished blocks show duration and advice. Tap logged → edit; tap pending → jump (cancels rest, and clears any block-done strip). A **skipped** step (v1.1, D27) can also be edited: the sheet's Save now sets its result, marks it logged, and updates `loggedAt` — recovering it rather than silently doing nothing. Reachable in every workout state, including rest and a block-done strip (v1.1) — previously it was attached only to the step card and unreachable during rest.
@@ -272,7 +313,13 @@ Leads with "**Workout saved**", then one line of what happened — "Push · 48 m
 Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly. Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1).
 
 ### 4.11 Settings
-Units, default rest, sound, vibration, notifications state, keep awake, weight step, Export, **Import backup** (D31, v1.1), Delete all data, About. (The home-chart metric row went with the sparkline in v1.1's R3.)
+Units, default rest, **warm-up length** (D32, v1.2), **between exercises** (D33, v1.2), sound, vibration, notifications state, keep awake, weight step, **smallest weight change** (D35, v1.2), Export, **Import backup** (D31, v1.1), Delete all data, About. (The home-chart metric row went with the sparkline in v1.1's R3.)
+
+The three v1.2 rows, in the owner's words:
+
+- **Warm-up length** — "there should be a warm-up phase before you actually start the first exercise." A duration, 0 to 30 min, 0 meaning off.
+- **Between exercises** — "type how long it takes between switching different exercises." A duration, 0 to 10 min; 0 restores v1.1's behavior of moving straight on.
+- **Smallest weight change** — the smallest increment the equipment actually allows, per unit. It is what every suggestion is rounded to (§6.11), so the app never says "try 134 lb" when the plates only make 135.
 
 ## 5. Flows
 
@@ -321,11 +368,13 @@ Resolved at import into every Set Target as `restSeconds: Int`. Fallback chain, 
 
 At execution, after logging step i, with n = nextStep(after: i):
 - n == nil → the session completes.
-- `steps[i].isLastInBlock` and n is in a different block → **transition** (D14): the done screen with a count-up stopwatch; no countdown. The Set Target's `restSeconds` is unused here.
+- `steps[i].isLastInBlock` and n is in a different block → **between exercises** (D14, timed in v1.2's D33): a rest of `Settings.transitionRestSeconds`, with the block's line in the strip. The Set Target's own `restSeconds` is not used here — the gap between two exercises is about the room, not about the set. `transitionRestSeconds = 0` means no countdown, which is v1.1's behavior.
 - `!steps[i].isLastInRound` (the next step is a drop of this set, or the next superset member) → 0: the next step card appears immediately.
 - otherwise → countdown of `restSeconds` of step i's Set Target, except for grouped exercises where the rest after a round is the first explicit `restSeconds` found among the group's members in listed order, else the fallback chain. A value of 0 means no timer.
 
-If n is in the same block but earlier (the user jumped ahead and comes back), the rule for "otherwise" applies. If n is in an earlier block, transition.
+If n is in the same block but earlier (the user jumped ahead and comes back), the rule for "otherwise" applies. If n is in an earlier block, between exercises.
+
+**Before the first step (v1.2, D32)**: a session starts in a warm-up rest of `Settings.warmUpSeconds` whose `nextStep` is the first step, unless that setting is 0, in which case the session starts on the first step exactly as v1.1 did.
 
 ### 6.4 Rest timer
 - State is `RestState(endsAt: Date, nextStep: Int, startedAt: Date)`. Remaining = `endsAt − now`, recomputed on every tick (TimelineView, 1 s) and on every foreground event. Never store a countdown integer.
@@ -367,7 +416,11 @@ Under the weight field: "Last: <last session's weight at index k, or last logged
 Pure struct `SessionEngine` with `apply(_ event: Event, now: Date) -> [Effect]`. Effects: `scheduleNotification(at:body:)`, `cancelNotification`, `playAlert`, `persist`, `sessionCompleted`.
 
 ```
-enum Phase { case working(step: Int), resting(RestState), transition(TransitionState), completed }
+// v1.1 removed `.transition`; v1.2 folds the warm-up and the between-exercises gap into
+// `resting`, which is where the countdown, the controls and the notification already lived.
+enum Phase { case working(step: Int), resting(RestState), completed }
+enum RestKind { case warmUp, betweenSets, betweenExercises }
+struct RestState { var startedAt: Date; var endsAt: Date; var nextStep: Int; var kind: RestKind }
 
 enum Event {
   case logSet(step: Int, result: SetResult)
@@ -382,7 +435,7 @@ enum Event {
   case stopTimer(step: Int)                       // open duration: logs elapsed seconds
   case timerDone(step: Int)                       // fixed duration, early: logs elapsed seconds
   case timerElapsed(step: Int)                    // fixed duration reached zero: logs the target
-  case continueTransition                         // done screen → working(nextStep)
+  case dismissBlockDone                           // v1.1: clears the strip's block-done line
   case renameExercise(exerciseIndex: Int, name: String)
   case finish                                     // remaining pending → skipped, → completed
 }
@@ -392,11 +445,11 @@ Rules:
 - Whenever the phase becomes `working(step)` (from any event), set `steps[step].startedAt = now` unless the step is a timed set, whose `startedAt` is set by `.startTimer` instead. Re-entering a step (jump back) resets it.
 - `startTimer(step)`: timed sets only; sets `startedAt = now`, phase stays working. Effects: fixed duration → `scheduleNotification("set-end", endsAt)` and, if `warningBeepSeconds` is set, `scheduleNotification("set-warning", endsAt − w)`; open duration with a minimum → `scheduleNotification("set-minimum", startedAt + min)`. `stopTimer`/`timerDone`/`timerElapsed`/skip/jump emit `cancelNotification` for all three ids. `stopTimer` (open) / `timerDone` (fixed, early) log `floor(now − startedAt)` seconds via the normal logSet path; `timerElapsed` (fixed, at zero) logs the full duration.
 - `nextStep(after i)`: first pending step with index > i; else first pending step with any index; else nil.
-- `logSet(i)`: set result, status = logged, `loggedAt = now`. Let n = nextStep(after: i). If n == nil → completed. Else per §6.3: transition → `transition(startedAt: now, nextStep: n)` (no notification, `adviceForBlockJustFinished` computed); rest 0 → working(n); else resting(endsAt: now + rest, nextStep: n) + scheduleNotification.
-- `skipSet(i)`: status = skipped, `loggedAt = now`, then the same advance logic but **never starts a countdown**: transition if the block ended, else working(n), or completed.
-- `skipExercise`: mark that exercise's pending steps skipped (loggedAt = now), then transition if a block ended and another remains, else working(nextStep(after: current)) or completed.
-- `continueTransition`: only valid in `transition` → working(nextStep). Any other phase: no-op.
-- `jumpTo` from `transition` → working(step) (stopwatch discarded).
+- `logSet(i)`: set result, status = logged, `loggedAt = now`. Let n = nextStep(after: i). If n == nil → completed. Else per §6.3: a block ended → `blockDone` is recorded for the strip and, when `transitionRestSeconds > 0`, phase → `resting(kind: .betweenExercises)`; rest 0 → working(n); else `resting(kind: .betweenSets, endsAt: now + rest, nextStep: n)` + scheduleNotification.
+- `skipSet(i)`: status = skipped, `loggedAt = now`, then the same advance logic but **never starts a between-sets countdown** — you skipped the set, you do not need the rest after it. A skipped set that ends a block still gets the between-exercises rest (v1.2): the walk to the next machine happens either way.
+- `skipExercise`: mark that exercise's pending steps skipped (loggedAt = now), then the block-done strip if a block ended and another remains, else working(nextStep(after: current)) or completed.
+- `dismissBlockDone`: clears the strip's block-done line; it does not end a between-exercises rest, which has its own Skip.
+- A session starts in `resting(kind: .warmUp, nextStep: firstStep)` when `Settings.warmUpSeconds > 0` (D32, §6.14), and on the first step otherwise.
 - Any event that changes phase away from resting emits `cancelNotification`.
 - `finish` with pending steps: the UI must confirm ("3 sets not done. Finish anyway?"); the engine just does it.
 - `finish` or completing with **zero logged steps**: UI asks "Nothing was logged. Discard this workout?" → discard (no session saved, no rotation advance). "Save anyway" is not offered.
@@ -417,14 +470,68 @@ Let `achieved = Σ r_i`, `ceiling = n × max`, `floor = n × min`, `tolerance = 
 
 The advice is stored on the completed session's exercise (`advice`) so the next session can show the "Suggested" chip without recomputing across history. Advice is never applied to the weight field automatically.
 
+**v1.2 (D35): every suggested weight is snapped to a weight you can actually load.** `w ± weightStep` is arithmetic, and arithmetic will happily produce 134 lb on a rack whose smallest plate pair makes 135. So the result is rounded to the nearest multiple of `Settings.weightIncrement(for: units)` — 2.5 kg or 5 lb by default — and never rounded down to a number that is not an increase when the advice was to increase (or up, when it was to decrease). A weight already on an increment is unchanged. The same rounding applies to the − / + steppers and the suggestion chip, so every number the app offers is loadable.
+
+### 6.14 Warm-up (D32, v1.2)
+"There should be a warm-up phase before you actually start the first exercise."
+
+A session with `Settings.warmUpSeconds > 0` starts in `resting(kind: .warmUp, nextStep: <first step>)`. It is a rest in every mechanical sense — the same countdown, the same −30 / +30, the same notification, the same alert at zero, the same right to log straight out of it — and it differs only in what the strip says and in the fact that it comes before anything has been logged. At zero it becomes `working(firstStep)`; its Skip reads **Skip warm-up**.
+
+It is not a set, it is not logged, and it does not appear in history. A session whose warm-up is the only thing that happened is still a session with nothing logged, and is discarded on finish exactly as before (§6.6).
+
+`warmUpSeconds = 0` starts the session on its first step, which is what v1.1 did.
+
+### 6.15 The stage (D34, v1.2)
+"It should be a bit more clear what stage of the workout you're on."
+
+`WorkoutStage` resolves, in Core, to one of: **Warm-up**, **Exercise k of n · Set j of m**, **Resting**, **Between exercises**, **Done** — plus a `progress` fraction of the whole day, which is logged-or-skipped steps over total steps. The header renders both; nothing about the stage is computed in a view, so the wording per state is a unit test.
+
+### 6.16 Metrics (D39, v1.2)
+"Should be able to select a past workout and see … metrics for the past — I don't know exactly what metrics would be, but they should be included."
+
+Everything is a `Metric`: a label, an already-formatted value, and a one-line note where the number needs one. Views render the list; they compute nothing.
+
+**One workout** (`SessionMetrics.of(_:history:)`, shown in Session detail): duration; **working** and **resting** time with the share of the session each took; sets done of sets planned, with the skipped count; volume; reps; time under tension for timed work; the heaviest set; personal records with the exercises that set them; the average set. A metric with nothing to say is absent rather than zero — a bodyweight day has no volume, and "Volume 0 kg" reads like a failure.
+
+**A run of workouts** (`TrendMetrics.summary(_:days:)`, on the **Metrics** screen under History, over 7 / 30 / 90 days): how many workouts and how many a week; time trained and the average length; volume; sets; consecutive weeks with at least one workout; the most-trained exercise; and the all-time count with the month it started. Volume only adds up within one unit, because the app never converts (D10). Under the numbers, the workouts of that window, so any figure can be traced back to the days that made it.
+
+**Getting to a past workout** is one tap from three places: the History list, the **Metrics** screen, and Home's calendar — where the line under the grid is now the way in ("Sat 6 · Legs · 28 min ›"). v1.1 wanted a second tap on the cell, which nothing on the screen said you could do.
+
+### 6.17 Lock Screen and Dynamic Island (D40, v1.2)
+"Could also have the time appear at the lock screen at the top — that would also be useful — and in the Dynamic Island."
+
+A **Live Activity** runs for as long as a workout does. It shows the stage (Warm-up, Rest, Between exercises, or the exercise's name), the line under it ("Bench Press · set 2 of 4 · 8–12 · 60 kg"), the timer, and a bar of the day's progress. In the Dynamic Island it is the same three states compact, expanded and minimal.
+
+- **The countdown is drawn by the system**, from a `Date`, exactly as §6.4's rest timer is. The app does not push an update per second and does not have to be awake for the number to be right.
+- **`WorkoutActivityState` is resolved in Core** from the same `ActiveSession` the workout screen reads, so the Island and the app cannot disagree. `WorkoutActivityState.swift` is the one file compiled into both the app and the widget extension — it is the contract between them, and depends on nothing but Foundation.
+- **ActivityKit lives behind `ActivityPresenting`**, injected exactly as `NotificationScheduling` is, so what the Lock Screen would show is a unit test rather than something only a phone can answer.
+- A state that has not changed is not pushed. A per-second tick that woke the system sixty times a minute would cost battery for no new information.
+- The activity ends when the workout does — finished **or discarded**. A countdown for a workout that no longer exists is worse than none.
+- Failure is silent: a Lock Screen widget that will not start is a missing convenience, not a lost set, and the workout screen is unaffected. The user can turn Live Activities off for the app in iOS Settings, and the app simply shows nothing.
+
+The extension target is `JimmsBroActivity` (`com.ohayoune.jimmsbro.activity`), embedded in the app. It renders and nothing else.
+
 ### 6.12 Calendar projection
 `Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.
 - Past and today: `.completed` for days with ≥ 1 completed session (any plan). Past days without a session are `.none`, never `.rest` — a day you didn't train is not a scheduled rest day.
 - Future days (and today if no session yet):
   - weekday plan → `.projected` for days whose weekday has a Day, `.rest` for every other weekday (a weekday plan names all its training days, so the remainder are rest).
-  - rotation plan whose cycle contains at least one `.rest` entry → starting tomorrow, walk the cycle one entry per calendar day from `cyclePosition + 1`; `.day` → projected, `.rest` → rest. A `.day` entry whose index no longer exists is `.none`, not `.rest`.
-  - rotation plan with no rest entries → project only tomorrow as Next up, nothing further, and no rest days (a rest-free cycle would paint every day, which would be misleading).
+  - rotation plan (v1.2, D37) → the cycle entry for a date is `cycle[(cyclePosition + daysFrom(cycleAnchor)) mod count]`. Every rotation is painted this way, rest entries or not: `.day` → projected, `.rest` → rest, and a `.day` entry whose index no longer exists is `.none`, not `.rest`.
 - Projection never shows more than 62 days ahead (two months); past that every day is `.none`.
+
+**D37 (v1.2): the anchor, and why.** v1.1 walked the cycle forward from *today* — `cyclePosition + daysFromToday` — and `cyclePosition` moved only when a session completed. Miss a workout and every later day slid by one, and by one more for each further day missed. The owner: *"if one day of the week is messed up then it compounds."*
+
+`Plan.cycleAnchor` is the day `cyclePosition` describes, so the pattern is nailed to the calendar:
+
+- Missing a workout changes **nothing** about what any other day says.
+- The pattern moves only when a workout **finishes**, which re-anchors it, once, to the day it was actually done.
+- A rest-free cycle is painted for the whole horizon, because it is now a real repeating pattern rather than a guess about tomorrow. v1.1 projected only tomorrow and left the month blank.
+- A plan that predates the anchor is anchored to today at launch, once, and written down. Nothing it says today changes; from tomorrow it stops sliding.
+- The day the schedule expected and did not get is **said**, on Home — "Push was due Monday", with **Do it now** and **Dismiss** — rather than resolved behind your back. Only the most recent one, and only within a week: a plan you came back to after a fortnight is a fresh start, not a missed Tuesday.
+
+Home's **Next up** and the ring on the grid read the same function (`PlanSchedule.next(_:today:)`), so they cannot disagree. In v1.1 they were computed two different ways, which is the other half of why the calendar felt clunky.
+
+**D38 (v1.2): what a cell says.** v1.1 drew every day as the same 5 pt dot — filled for done, outlined for planned, grey for rest — so a month of training looked like a month of anything else, and the shape of a week could not be read off the grid ("the spacing … is not perfectly clear"). A cell now carries the day's short name under its number, a finished day is filled in the reserved green, a planned day is outlined in the accent, and a rest day is a dash: a visible gap rather than another kind of dot. Each cell reads as one VoiceOver sentence ("Monday 7 September. Planned: Push").
 
 ### 6.7 Stats
 - Session duration = `endedAt − startedAt` wall clock. No pause feature. Elapsed time is shown in the workout header and on the rest overlay.
@@ -497,12 +604,18 @@ struct SessionStep: Codable { var exerciseIndex: Int; var setIndex: Int; var dro
 enum StepStatus: String, Codable { case pending, logged, skipped }
 enum SetResult: Codable { case reps(count: Int, weight: Double?); case duration(seconds: Int, weight: Double?) }
 
-struct ActiveSession: Codable { var session: Session; var phase: Phase; var lastRestEndedAt: Date? }
-struct RestState: Codable { var startedAt: Date; var endsAt: Date; var nextStep: Int; var isWork: Bool }  // isWork = timed-set countdown
-struct TransitionState: Codable { var startedAt: Date; var nextStep: Int; var finishedBlock: Int }
+// v1.1 added the last five fields; `blockDone` replaced the removed `.transition` phase, and
+// `lastCompletedStep` is what D23's Undo acts on.
+struct ActiveSession: Codable { var session: Session; var phase: Phase; var lastRestEndedAt: Date?; var workWeight: Double?; var timerRunning: Bool; var deliveredBeeps: Set<TimerBeep>; var blockDone: BlockDone?; var lastCompletedStep: Int? }
+struct BlockDone: Codable { var finishedBlock: Int; var startedAt: Date }
+struct RestState: Codable { var startedAt: Date; var endsAt: Date; var nextStep: Int; var kind: RestKind }
+enum RestKind: String, Codable { case warmUp, betweenSets, betweenExercises }   // v1.2, §4.6
 
-struct Settings: Codable { var units: WeightUnit; var defaultRestSeconds: Int; var sound: Bool; var vibration: Bool; var keepAwake: Bool; var weightStepKg: Double; var weightStepLb: Double; var homeMetric: HomeMetric }
-enum HomeMetric: String, Codable, CaseIterable { case duration, volume, setsLogged, avgWeight, avgReps, exercises }
+// `homeMetric` went with the sparkline in v1.1's R3. The last three are v1.2's (D32, D33, D35).
+struct Settings: Codable { var units: WeightUnit; var defaultRestSeconds: Int; var sound: Bool; var vibration: Bool; var keepAwake: Bool; var weightStepKg: Double; var weightStepLb: Double; var warmUpSeconds: Int; var transitionRestSeconds: Int; var weightIncrementKg: Double; var weightIncrementLb: Double }
+
+// Every one of these may be absent from a file written by an older version; `Core/Persistence.swift`
+// says which keys are required (identity) and which take a default (everything else).
 
 struct Issue: Codable, Equatable { var severity: Severity; var code: String; var path: String; var message: String }   // e.g. ("error","E_REPS_INVALID","days[0].exercises[2].reps","…")
 ```
@@ -1387,21 +1500,160 @@ weightStep = 2.5 unless stated. Range 8–12, 3 sets, all @ 60 unless stated.
 | P24 | unit | Range 10–10 (single number), 10, 10, 10 | `.increase` |
 | P25 | unit | Main sets 12, 12, 12 with drops 8, 6 each | `.increase` (drops ignored) |
 
-## S. Home sparkline (SPEC §6.13)
+## S. Home sparkline — **removed in v1.1's R3**
+
+The sparkline, `HomeMetric` and SPEC §6.13 went together: a chart whose metric changed on an
+undocumented tap was undiscoverable rather than quiet, and `HomeActivity.line` (O66) replaced it.
+These rows are kept as the record of what was tested and then deleted; **none of them is a `unit`
+case any more**, and nothing implements them.
+
 | ID | Type | Case | Expected |
 |---|---|---|---|
-| S1 | unit | duration, sessions on 3 of the last 7 days | 7 values; 4 nil; minutes for the rest |
-| S2 | unit | Two sessions on one day, duration | summed |
-| S3 | unit | volume with a lb session in a kg window | lb session excluded |
-| S4 | unit | avgWeight | mean over weighted rep-based steps of that day's sessions |
-| S5 | unit | avgReps over rep-based steps including drops | mean |
-| S6 | unit | exercises = blocks with ≥ 1 logged step | count |
-| S7 | unit | Caption for duration, avg 52 | "Workout length · last 7 days · avg 52 min" |
-| S8 | unit | Caption for volume | "Volume · last 7 days · total 12,400 kg" |
-| S9 | unit | No sessions in the window | all nil; caption "No workouts in the last 7 days" |
-| S10 | unit | Window is the last 7 calendar days ending today (injected), local time zone | Sessions 8 days ago excluded; today included |
-| S11 | unit | Tap cycles metrics in enum order and wraps; persisted in Settings | True |
-| S12 | unit | A session crossing midnight counts on its start day | True |
+| S1 | removed | duration, sessions on 3 of the last 7 days | 7 values; 4 nil; minutes for the rest |
+| S2 | removed | Two sessions on one day, duration | summed |
+| S3 | removed | volume with a lb session in a kg window | lb session excluded |
+| S4 | removed | avgWeight | mean over weighted rep-based steps of that day's sessions |
+| S5 | removed | avgReps over rep-based steps including drops | mean |
+| S6 | removed | exercises = blocks with ≥ 1 logged step | count |
+| S7 | removed | Caption for duration, avg 52 | "Workout length · last 7 days · avg 52 min" |
+| S8 | removed | Caption for volume | "Volume · last 7 days · total 12,400 kg" |
+| S9 | removed | No sessions in the window | all nil; caption "No workouts in the last 7 days" |
+| S10 | removed | Window is the last 7 calendar days ending today (injected), local time zone | Sessions 8 days ago excluded; today included |
+| S11 | removed | Tap cycles metrics in enum order and wraps; persisted in Settings | True |
+| S12 | removed | A session crossing midnight counts on its start day | True |
+
+## Q. v1.2 — the code-health defects (V1)
+
+Each row is a defect the 2026-09-07 review found, with the test that would have caught it.
+`JimmsBroTests/DefectFixesTests.swift`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Q1 | unit | (v1.2) A no-op rename of a superset member, applied through `PlanEdit` | The between-round rest is unchanged; `groupRestSeconds` survives the render/re-import that every edit is |
+| Q2 | unit | (v1.2) Every `PlanEdit.Operation` applied to a plan with a superset | None of them changes the round rest |
+| Q3 | unit | (v1.2) `setRest` on a superset member | Changes the round rest the whole group shares — the value rest resolution actually reads — not only the per-set value nothing in a group reads |
+| Q4 | unit | (v1.2) `PlanJSON.render` for an ungrouped exercise | No exercise-level `restSeconds`; only a group member carries the round rest there |
+| Q5 | unit | (v1.2) `setWorkWeight` | Takes effect but emits no `.persist`; the next log carries it to disk. Typing "62.5" is no longer four writes of `active-session.json` |
+| Q6 | unit | (v1.2) Decoding a `Phase` payload this version does not know | Throws, so the file is set aside as corrupt rather than silently read as a completed workout; `working` and v1's `transition` still decode |
+| Q7 | unit | (v1.2) `exportData` / `readBackup` / `restore` over a store holding an undecodable file | The file is reported but **not** renamed aside; a real `load` still sets it aside and names it |
+| Q8 | unit | (D24, v1.2) Retry after the alert's dismissal has cleared `saveFailure` | The captured failure is retried and the value actually reaches disk |
+| Q9 | unit | (D31, v1.2) The restore failure message | **Replace all** says what it had already cleared; only **Merge** may say nothing you had was changed |
+| Q10 | ui | (v1.2) Hold − or + on the reps or weight stepper | The value keeps changing while the finger is down, and stops when it lifts |
+| Q11 | manual | (v1.2) `swift test` from a clean checkout | Compiles and runs the Core suite |
+
+### V2 — schema durability and one definition per rule
+
+`JimmsBroTests/StoreMigrationTests.swift`. The frozen files live in `examples/store/v1/` and are
+what v1.1 actually wrote; they are never regenerated to make a test pass.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Q12 | unit | (v1.2) Decode `examples/store/v1/settings.json` | Every setting v1.1 held comes back |
+| Q13 | unit | (v1.2) Decode `examples/store/v1/plans.json` | The plan, its active id, its superset's `groupRestSeconds`, and it still flattens into a runnable session |
+| Q14 | unit | (v1.2) Decode `examples/store/v1/session.json` | Logged and skipped sets, results and set durations |
+| Q15 | unit | (G59, v1.2) Decode `examples/store/v1/active-session.json` | Resumes mid-rest with its next step, work weight and undoable step |
+| Q16 | unit | (v1.2) A file missing every defaulted key, and one missing an identity key | The first decodes to defaults (a plan with no cycle repeats its days in order); the second throws, so §8.3 still sets it aside |
+| Q17 | unit | (v1.2) `fileVersion` 0, 1 and 2 | A reader reads its own version and older; only a newer file is refused |
+| Q18 | unit | (v1.2) A whole store of v1.1 files through `Store.load` | Loads with `corruptFiles` empty |
+| Q19 | unit | (v1.2) `AlertIdentifier` | Each id carries its own title and sound; only the warning uses the bundled sound; the engine can no longer spell one wrong |
+| Q20 | unit | (v1.2) `SessionBlocks` | One grouping rule for the Overview and Session detail: blocks ordered by where their steps sit, names de-duplicated by §6.9's matching, rows named only in a superset |
+| M9 | unit | (v1.2) `Prompts.planTemplate` and `fixTemplate` | Equal, character for character, to the fenced blocks of `docs/PROMPT.md`; the example JSON appears once in the source and still imports cleanly |
+
+### V3 — warm-up, the walk between exercises, and the stage
+
+`JimmsBroTests/WarmUpAndTransitionTests.swift`. Every row came from the owner using v1.1 on the
+phone: the workout did not say where in it you were, there was no warm-up, and the gap between
+two exercises was given no time at all.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Q21 | unit | (D32, v1.2) Start a session with `warmUpSeconds = 300` | Phase is `resting(kind: .warmUp, nextStep: 0)`, ending 5 min out, with its own scheduled alert |
+| Q22 | unit | (D32, v1.2) −30 / Skip / log during a warm-up | Adjusting keeps the kind; Skip goes to the first set; logging out of it logs the set, exactly as any other rest |
+| Q23 | unit | (D32, v1.2) A warm-up that runs out | Becomes the first set, alerts at zero, and logs nothing — a warm-up is not a set |
+| Q24 | unit | (D32, v1.2) `warmUpSeconds = 0` | Starts on the first set with nothing to schedule: v1.1 exactly |
+| Q25 | unit | (D33, v1.2) Log a block's last set | A `betweenExercises` rest of `transitionRestSeconds`, with the next exercise already on screen, −30 / +30 / Skip, and the finished block's line on the strip |
+| Q26 | unit | (D33, v1.2) **Skip** a block's last set | Still gets the walk; a skipped set mid-block still gets no rest |
+| Q27 | unit | (D33, v1.2) `transitionRestSeconds = 0` | The v1.1 block-done strip with its count-up, and no countdown |
+| Q28 | unit | (D33, v1.2) A rest between sets | Still resolved from the set (§6.3), not from the new setting |
+| Q29 | unit | (D34, v1.2) `WorkoutStage` through a whole session | Warm-up → Exercise 1 of 2 · Set 1 of 3 → Resting → Between exercises, each named, and each break flagged as one |
+| Q30 | unit | (D34, v1.2) `WorkoutStage.progress` | Counts logged **and** skipped sets over the day's sets, so the bar moves within a long exercise |
+| Q31 | unit | (v1.2) A v1.1 `RestState` with no `kind` | Decodes as `betweenSets`, which is the only thing it could have been |
+| Q32 | ui | (v1.2) The workout header | Names the stage above a progress bar; the stage is accented while you are in a break and reads in the reserved green while you are working |
+| Q33 | ui | (v1.2) Settings | **Warm-up** and **Between exercises** rows read in minutes and say "Off" at 0; **Smallest change** says what suggestions are rounded to |
+
+### V4 — a weight you can actually load, and a suggestion per set
+
+`JimmsBroTests/SuggestionTests.swift`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Q34 | unit | (D35, v1.2) `WeightRounding.snap` | 134 → 135 on a 5 lb grid, 61 → 60 on 2.5 kg, never below zero, and unchanged when the increment is 0 ("the equipment can make anything") |
+| Q35 | unit | (D35, v1.2) `heavier`/`lighter` | Always move: 132 + 2.5 rounds *down* to 130 on a 5 lb grid, so it goes to 135 instead. Never past zero |
+| Q36 | unit | (D35, v1.2) Three sets of 8 at 132 lb, top of 6–8, 5 lb grid | `.increase(to: 135)` — never 134. And 61 kg below the range gives `.decrease(to: 57.5)` |
+| Q37 | unit | (D35, v1.2) − and + | From a loadable weight, one step, rounded onto the grid; from an off-grid weight (134 lb), the first tap lands on the grid — 135, not 140 |
+| Q38 | unit | (D36, v1.2) A set with no history | "Try 8 × 60 kg", reason "The plan's target" |
+| Q39 | unit | (D36, v1.2) A set done before, no advice | Repeats last time's weight and says "Last time 10 × 70 kg" |
+| Q40 | unit | (D36, v1.2) A set whose exercise earned advice | Advice wins, and the reason names the rule: "You hit the top of 8–12 last time" |
+| Q41 | unit | (D35/D36, v1.2) Stored advice of 61 kg on a 2.5 kg grid | Snapped to 60 on the way out — a suggestion stored by another version or another setting is still made loadable |
+| Q42 | unit | (D36, v1.2) A timed set | Suggested in seconds, with no reps and no weight |
+| Q43 | ui | (D36, v1.2) The suggestion chip | Reads "Try 8 × 62.5 kg" with its reason beneath; one tap fills in **both** numbers |
+
+### V5 — an anchored rotation, and a calendar you can read
+
+`JimmsBroTests/ScheduleAnchorTests.swift`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Q44 | unit | (D37, v1.2) `PlanSchedule.entry` around its anchor | The anchor day is the one that was done; the cycle runs forward and backward from it |
+| Q45 | unit | (D37, v1.2) **Miss three days in a row** | Every other day says exactly what it said before — the compounding is gone |
+| Q46 | unit | (D37, v1.2) Finish a workout | Re-anchors, once, to the day it was actually done; the following days follow from there |
+| Q47 | unit | (D37, v1.2) `PlanSchedule.next` | The next training day at or after today, never the one just done, and it says which date |
+| Q48 | unit | (D37, v1.2) Home's card and the month grid | Both read `PlanSchedule.next`, so the day named on the card is the day ringed on the grid |
+| Q49 | unit | (D37, v1.2) A training day with no session on it | Reported as "Pull was due Monday"; nothing is reported when you trained that day |
+| Q50 | unit | (D37, v1.2) A plan that predates anchors | Anchored to the day of its most recent completed session — or today when it has none — once, and never again |
+| Q51 | unit | (D38, v1.2) `CalendarText.label` | Names the day, cut to fit a cell; a rest day has no label, which is what makes the gap visible |
+| Q52 | unit | (D38, v1.2) `CalendarText.spoken` | One sentence per cell: "Monday 7 September. Planned: Pull" |
+| Q53 | ui | (D38, v1.2) The week strip | Finished days filled in the reserved green with what was done, planned days outlined with what is coming, rest days a dash |
+| Q54 | ui | (D37, v1.2) A rotation whose next day is not today | The card reads "Rest day", "Push is next, Tue" and **Start Push early**, matching the grid |
+
+### V6 — what a workout was, and what a run of them adds up to
+
+`JimmsBroTests/MetricsTests.swift`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Q55 | unit | (D39, v1.2) `SessionMetrics.of` a 30-minute session | Duration, working and resting time with their share, sets, volume, reps, heaviest set, average set |
+| Q56 | unit | (D39, v1.2) A session with a skipped set | "2 of 3" with "1 skipped", and the volume counts only what was logged |
+| Q57 | unit | (D39, v1.2) A bodyweight, timed session | No volume and no reps at all — not "0 kg" — and time under tension instead |
+| Q58 | unit | (D39, v1.2) A session that beat its history | A personal-record count, naming the exercises that set them |
+| Q59 | unit | (D39, v1.2) `TrendMetrics.summary` over 30 days | Workouts and workouts-a-week, time trained and average length, volume, sets, most trained, all-time count; nothing at all reports nothing |
+| Q60 | unit | (D39, v1.2) `TrendMetrics.streakWeeks` | Consecutive calendar weeks with at least one workout; a gap ends it; a week with none is zero |
+| Q61 | ui | (D39, v1.2) Session detail | Leads with the Metrics section; every value has a label and, where it needs one, a note |
+| Q62 | ui | (D39, v1.2) History → **Metrics** | 7 / 30 / 90 day windows, the numbers, and the workouts that produced them |
+| Q63 | ui | (D39, v1.2) Home's calendar | Tapping a finished day shows its line; the line itself opens the workout |
+
+### V7 — the Lock Screen and the Dynamic Island
+
+`JimmsBroTests/ActivityTests.swift`. ActivityKit is behind `ActivityPresenting`, so all of this
+is testable without a phone; Q71–Q73 need the device and live in `DEVICE_CHECKLIST.md`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Q64 | unit | (D40, v1.2) A warm-up | The activity is a countdown titled "Warm-up", with the first exercise named under it |
+| Q65 | unit | (D40, v1.2) Working, then resting | Working shows the exercise and no timer; logging turns it into a countdown and moves the progress |
+| Q66 | unit | (D40, v1.2) A running timed set | Counts up from `startedAt`; a fixed duration also carries its end, an open hold does not |
+| Q67 | unit | (D40, v1.2) A finished session | No activity at all |
+| Q68 | unit | (D40, v1.2) Start a workout, then finish it | One activity started; ended exactly once when the workout ends |
+| Q69 | unit | (D40, v1.2) Five seconds of ticks with nothing changing | Nothing pushed — the system draws the countdown itself |
+| Q70 | unit | (D40, v1.2) Discard a workout | The activity ends; a countdown for a workout that no longer exists is worse than none |
+| Q71 | manual | (D40, v1.2) Lock the phone mid-rest | The countdown is on the Lock Screen and stays right without opening the app |
+| Q72 | manual | (D40, v1.2) The Dynamic Island | Compact, expanded and minimal all show the timer; the expanded view shows the set line and progress |
+| Q73 | manual | (D40, v1.2) Live Activities turned off in iOS Settings | The app is unaffected and shows nothing on the Lock Screen |
+
+
+
+
+
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -2044,13 +2296,275 @@ Answer these in SPEC §1 and the agent builds what the docs say.
 
 ---
 
+### FILE: docs/ITERATION_3_PLAN.md
+
+`````markdown
+# Jimm's Bro+ — v1.2 plan (iteration 3)
+
+Two inputs drove this release.
+
+1. **The code-health review** (2026-09-07): four confirmed defects, one broken build route,
+   repository hygiene, and three structural concerns. Recorded in `docs/CODE_HEALTH_REVIEW.md`.
+2. **The owner's notes after using v1.1 on the phone**: the workout does not say clearly
+   enough where you are in it, there is no warm-up, the gap between exercises is neither
+   timed nor settable, the set suggestions are weak and can suggest a weight you cannot
+   load, the timer should reach the Lock Screen and the Dynamic Island, the calendar and
+   the next-day choice feel clunky and compound after a missed day, and a past workout
+   should be openable with real metrics attached.
+
+Milestones **V0–V8, in order**. Each ends with the full suite green
+(`xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'`)
+and one commit. SPEC amendments land **before** the code that depends on them, as in v1.1.
+
+---
+
+## V0 — Repository hygiene (no app code)
+
+- Delete the leftover history-rewrite refs (`refs/original/*`, `refs/backup/pre-rewrite`,
+  `refs/codex/turn-diffs/*`), expire the reflog, `git gc --prune=now`. **Done.**
+- Work on the `v1.2-refinement` branch; commit per milestone; never Claude as co-author.
+- Move the two real sources out of the git-ignored `build/` folder into `tools/`
+  (`tools/icon/main.swift`, `tools/seed/main.swift`) so a clean clone keeps them.
+- Delete the ten stale `.gitkeep` files in Feature folders that now hold real files.
+- Keep `HANDOFF_BUNDLE.md` and the zip, but add `tools/check_bundle.py`, which fails when
+  either has drifted from the sources it is built from, and regenerate both at V8.
+
+## V1 — The four confirmed defects, and the broken build route
+
+| # | Defect | Fix |
+|---|---|---|
+| 1 | Editing a plan silently changes a superset's between-round rest | `PlanJSON.render` emits the group's round rest as an exercise-level `restSeconds`, so re-import reconstructs `groupRestSeconds`. Round-trip test over every grouped fixture. |
+| 2 | Retry on the save-failure alert is a no-op | Capture the failure synchronously in the button action; `retrySaveFailure(_:)` takes it as a parameter. |
+| 3 | Hold-to-repeat on − / + cancels itself | `minimumDuration: .infinity`, so `pressing(false)` only ever means "finger lifted". |
+| 4 | Every weight keystroke writes `active-session.json` | `setWorkWeight` no longer emits `.persist`; the view pushes the weight when editing ends, not per keystroke. |
+| 5 | `swift test` does not compile | `Package.swift` → `.macOS(.v14)` (`@Observable`), and the one bundle-resource test reads the source tree under SwiftPM. |
+
+Smaller, same milestone: bound the DEBUG polling loop in `HistoryView`; make
+`Store.restore` truthful about `.replaceAll` (it deletes before writing); give
+`exportData`/`readBackup`/`restore` a read path that does not silently set corrupt files
+aside; `Phase.init(from:)` throws on an unrecognised payload instead of decoding it as
+`.completed`; replace the two `\.first!` key paths.
+
+## V2 — Schema durability (prerequisite for V3's new fields)
+
+Adding one field to `Settings` today makes every existing `settings.json` "corrupt" and
+moves it aside, because synthesized `Codable` treats a defaulted property as a required key.
+V3 adds three. So this comes first.
+
+- Hand-written, lenient `init(from:)` for `Settings`, `SetTarget` and `Plan`: every field
+  optional, missing keys take the default.
+- Freeze a v1 file of each type under `examples/store/` and decode each in a test, so a
+  future field cannot break an old file without a red test (this is G59's missing test).
+- `IssueCode` and `AlertIdentifier` as enums, used everywhere (ten raw literals today).
+- One definition each for: block grouping (Overview + Session detail), `ExerciseText.result`,
+  and the date/stat maths Summary, ExerciseHistory and Home each re-derive.
+- Pin `Prompts.planTemplate` to `docs/PROMPT.md` with a test, and stop carrying the example
+  JSON twice.
+- Test hygiene: `makeRoot()`/`discard()` once in `CoreTestSupport`; `RecordingAlerts` moves
+  out of the app target; the three wall-clock assertions get tolerances.
+
+## V3 — Warm-up, the gap between exercises, and where you are (owner notes 1–3)
+
+SPEC §4.5, §4.7, §6.3 and §6.6 amended first.
+
+- **Warm-up (D32).** A session starts in a warm-up stage rather than on set 1: a settable
+  duration (`Settings.warmUpSeconds`, default 5 min, 0 = off), the first exercise already
+  named, **Start warm-up** / **Skip warm-up**, and the same status strip everything else uses.
+- **Between-exercise rest (D33).** A finished block no longer advances with no rest at all.
+  `Advance.blockDone` carries a rest, from the plan's optional `transitionRestSeconds` or
+  `Settings.transitionRestSeconds` (default 120 s). It does not gate the next set — the next
+  exercise's card is already up, exactly as in v1.1 — it runs a visible countdown in the strip.
+- **Stage (D34).** The screen says which stage it is in, in words and as one progress bar:
+  `Warm-up → Exercise 2 of 6 · Set 2 of 4 → Between exercises → Done`. `WorkoutStage` is
+  resolved in Core, so the wording is a unit test.
+
+## V4 — Sets and suggestions (owner notes 4–5)
+
+- **`WeightRounding` (D35).** No suggestion is ever a weight you cannot load. A new
+  `Settings.weightIncrementKg` / `weightIncrementLb` (the smallest change the equipment
+  actually allows; default 2.5 kg / 5 lb) snaps every suggested and stepped weight.
+  "134 lb next time" becomes "135 lb".
+- **`SetSuggestion` (D36).** Per set, not per exercise: the target, what you did last time
+  for *that* set, and the suggestion with its reason in one line — "last time 8 × 60, try
+  8 × 62.5". Shown on the current set row and behind the suggestion chip.
+
+## V5 — The calendar and the next day (owner note 7)
+
+- **Anchored rotation (D37).** A rotation projects from an anchor date, so one missed day no
+  longer slides the whole calendar forward for ever. A day you missed is surfaced on Home as
+  a choice — **Do it next** or **Skip it** — rather than resolved silently.
+- **Legible spacing.** Cells name the day, rest days are drawn as gaps rather than as dots
+  the same size as everything else, and the month grid paints the whole horizon for a
+  rest-free cycle instead of only tomorrow.
+
+## V6 — Past workouts and metrics (owner note 8)
+
+- Open any past workout from Home, the calendar, or History, and read what it actually was:
+  duration, working time, rest time, volume, sets, PRs, per-exercise comparison.
+- A **Metrics** section over time: sessions a week, volume a week, and per-exercise best.
+  All computed in Core (`SessionMetrics`, `TrendMetrics`), all unit-tested.
+
+## V7 — Live Activity: Lock Screen and Dynamic Island (owner note 6)
+
+- A widget extension target (`JimmsBroActivity`) with an ActivityKit rest/warm-up/timed-set
+  activity: time remaining, exercise, set, and the same −30 / +30 / Skip controls.
+- Core stays free of ActivityKit: the engine emits `Effect.activity(...)`, and an
+  `ActivityPresenting` protocol is injected exactly as `NotificationScheduling` is, so the
+  behavior is unit-tested and the extension is a thin renderer.
+
+## V8 — Docs, bundle, checklist
+
+- Reconcile README, `BUILD_STATUS.md`, `DECISIONS_LOG.md`, SPEC §8, `TEST_CASES.md` and the
+  simulator name with what the machine actually does.
+- New test cases added to `TEST_CASES.md` as they land, per milestone, not in a batch at the end.
+- `DEVICE_CHECKLIST.md` gains a v1.2 section (warm-up, transition rest, Live Activity,
+  calendar, metrics), still marked not-run until the owner runs it.
+- Regenerate `HANDOFF_BUNDLE.md` and the zip; `tools/check_bundle.py` must pass.
+`````
+
+---
+
+### FILE: docs/CODE_HEALTH_REVIEW.md
+
+`````markdown
+# Code-health review — 2026-09-07
+
+A full read of the repository at `783c18f` (v1.1, R0–R5 landed, R6 written but not run):
+every `Core/` and `Store/` file, the 13 view files, the 19 test files, the project
+configuration, the docs and the tools. What was actually run at review time:
+
+| Route | Result |
+|---|---|
+| `xcodebuild test`, iPhone 17 / iPhone 16 simulator | 148 tests, 0 failures, 0 compiler warnings |
+| `python3 tools/check_core.py` | 147 bodies, 2,939 assertions, 0 failures |
+| `python3 tools/reference_import.py` | 111/111 fixtures match |
+| `swift test` via `Package.swift` | **does not compile** |
+
+The verdict: the Core / Store / Views split is real, there are no force unwraps or `try!` in
+Core, no `print`, no `UserDefaults`, and every on-disk write is atomic. Against that, four
+confirmed defects, one broken build route, and a set of hygiene and structural issues.
+
+**Every finding below is closed.** v1.2 (V0–V8) landed them all; `docs/ITERATION_3_PLAN.md` is
+the plan, `docs/BUILD_STATUS.md` the result. The one thing left open is not a finding but a
+limitation: the Live Activity of V7 has never been watched on a real Lock Screen (Q71–Q73 in
+`DEVICE_CHECKLIST.md`).
+
+## Confirmed defects
+
+| # | Defect | Where | Status |
+|---|---|---|---|
+| 1 | Editing a plan silently changes a superset's between-round rest. The importer stores the round rest in `groupRestSeconds` from the first member's exercise-level `restSeconds`; `PlanEdit` only ever writes per-set `restSeconds`, so the re-import in `PlanEdit.apply` sees no exercise-level rest and sets `groupRestSeconds` to nil. A no-op rename turned a 120 s round rest into 90 s. | `Core/PlanEdit.swift` | Fixed in V1 |
+| 2 | Retry on the save-failure alert is a no-op: the binding's setter clears `saveFailure` on dismissal, and by the time the button's `Task` runs, `retrySaveFailure`'s guard sees nil. | `RootView.swift` | Fixed in V1 |
+| 3 | Hold-to-repeat on the − / + steppers cancels itself: `onLongPressGesture(minimumDuration: 0.4, pressing:)` calls `pressing(false)` when the gesture recognises, killing the repeater as its own 400 ms sleep ends. | `Features/Workout/WorkoutView.swift` | Fixed in V1 |
+| 4 | Every weight keystroke writes `active-session.json`: the field's setter commits, which applies `setWorkWeight`, and the engine appends `.persist` to every accepted event. Typing "62.5" is four disk writes. | `Core/SessionEngine.swift`, `WorkoutView.swift` | Fixed in V1 |
+| 5 | The SwiftPM route is broken: `Package.swift` declares macOS 13, but `AppModel` uses `@Observable`, which needs macOS 14. README claims `swift test` works. | `Package.swift` | Fixed in V1 |
+
+Smaller, all fixed in V1: a DEBUG polling loop in `HistoryView` that busy-spins on the main
+actor if cancelled before load finishes; `Store.restore(.replaceAll)` deletes before writing,
+so the "nothing was changed" failure message is untrue for that mode; `exportData`,
+`readBackup` and `restore` call `load()`, which renames corrupt files aside as a side effect
+without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payload as
+`.completed` instead of throwing; two `\.first!` key paths in Overview and Session detail.
+
+## Repository and GitHub hygiene
+
+- **Nothing sensitive is published.** The repo is private and holds no keys or tokens. Two
+  things to know before it ever goes public: `DEVELOPMENT_TEAM` is committed in the pbxproj,
+  and every commit carries the owner's personal address as author.
+- Leftover history-rewrite refs (`refs/original/*`, `refs/backup/pre-rewrite`, a stray
+  `refs/codex/turn-diffs/…`) kept the pre-rewrite chain reachable. **Deleted in V0**, reflog
+  expired, `git gc --prune=now` run.
+- `HANDOFF_BUNDLE.md` and the zip are derived, committed, and were stale.
+  **`tools/check_bundle.py` (V0)** now fails when either drifts.
+- `build/icon/main.swift` and `build/seed/main.swift` were real sources inside the ignored
+  `build/` folder. **Moved to `tools/` in V0**; the binaries are still built into `build/`.
+- Docs disagreed with each other and with the machine. **Reconciled in V8**: README's "what
+  remains is M8" and its `swift test` claim, `BUILD_STATUS.md`'s duplicated heading and its
+  obsolete beta-Xcode note, `DECISIONS_LOG.md`'s claim that the signing team was unset (it is
+  set, and v1.2's second target now carries it too), SPEC §7's three-field `ActiveSession` and
+  `Settings.homeMetric`, and `TEST_CASES.md`'s twelve `unit` rows for the sparkline that v1.1
+  deleted — now marked `removed`, with a note saying so rather than being quietly dropped.
+- Ten stale `.gitkeep` files. **Deleted in V0.**
+
+## Structural
+
+- **The on-disk schema had no migration path.** `VersionedFile` refuses any `fileVersion`
+  other than 1, and synthesized `Codable` makes a defaulted property a required key, so
+  adding one field to `Settings` would move every existing file aside as corrupt.
+  **V2** makes `Settings`, `SetTarget` and `Plan` decode leniently and freezes a v1 file of
+  each type as a fixture that a test decodes.
+- **Persisted shapes are the compiler's**: enums with associated values encode as
+  `{"reps":{"_0":…}}`, and the legacy decoder already reaches for `_0` by name. Renaming a
+  case silently breaks old files. V2's frozen fixtures are what makes that a red test.
+- **String-typed codes and identifiers**: issue codes are bare strings with severity inferred
+  from an `E_`/`W_` prefix, and `AlertIdentifier` exists but ten call sites still use raw
+  literals. **Both become enums in V2.**
+- Block grouping was implemented twice with different name matching, Overview re-implemented
+  `ExerciseText.result`, and Summary, ExerciseHistory and Home each recomputed date or stat
+  maths Core already knows. `Prompts.swift` carried the example JSON twice with nothing
+  pinning it to `docs/PROMPT.md`. **All deduplicated in V2.**
+- The test suite is broad and manifest-driven and caught real bugs during v1.1. Its
+  weaknesses are hygiene: `makeRoot()`/`discard()` pasted into eight files, three assertions
+  that depend on wall-clock timing under `-Onone`, and `RecordingAlerts` — a test double —
+  shipping inside the app target. **V2.**
+`````
+
+---
+
 ### FILE: docs/BUILD_STATUS.md
 
 `````markdown
 # Build status
 
-Updated 2026-09-05. **v1.1 (R0–R5) is built and green; R6 needs the phone.** v1 (M0–M7) status
-is below, unchanged.
+Updated 2026-09-07. **v1.2 (V0–V7) is built and green; the device checklist needs the phone.**
+v1.1 and v1 are below, unchanged except where a v1.2 milestone corrected them.
+
+## v1.2 (V0–V7): built and green
+
+`docs/ITERATION_3_PLAN.md` is the v1.2 plan, and `docs/CODE_HEALTH_REVIEW.md` is the review that
+prompted half of it; the other half is the owner's notes after running v1.1 on the phone. Every
+milestone ended with the whole suite green and one commit, on the `v1.2-refinement` branch.
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'` | **210 tests, 2 skipped, 0 failures** |
+| `swift test` | **209 tests, 0 failures** — this route had not compiled since `AppModel` became `@Observable`; V1 fixed it |
+| `python3 tools/check_core.py` | **209 bodies, 3,289 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **111/111 fixtures match** |
+| `python3 tools/check_bundle.py` | **current** |
+
+The two skipped cases are the prompt pins (M9), which read `docs/PROMPT.md` from the checkout —
+outside the simulator's sandbox. They run on the other two routes, both of which are on the host.
+
+| Milestone | What it did | State |
+|---|---|---|
+| V0 | Repository hygiene: leftover rewrite refs deleted, `tools/icon` and `tools/seed` rescued from the ignored `build/`, `tools/check_bundle.py` | Done |
+| V1 | The five confirmed defects of the code-health review, and `swift test` unbroken | Done |
+| V2 | Schema durability (`Core/Persistence.swift`, `examples/store/v1/`), `AlertIdentifier` and `SessionBlocks` as one definition each, the prompt pinned to its doc | Done |
+| V3 | Warm-up (D32), the timed walk between exercises (D33), the stage in the header (D34) | Done |
+| V4 | Loadable weights (D35) and a per-set suggestion with its reason (D36) | Done |
+| V5 | The anchored rotation (D37) and a calendar you can read (D38) | Done |
+| V6 | Session and trend metrics (D39) | Done |
+| V7 | Lock Screen and Dynamic Island (D40), and the `JimmsBroActivity` extension target | Done |
+| — | The v1.2 device checklist | **Written, not run** — needs the owner's iPhone |
+
+### Checked on the simulator (v1.2)
+
+Every screenshot is from a real build on a booted simulator, seeded through the app's own `Store`.
+
+| File | Shows |
+|---|---|
+| `build/v3-warmup.png` | A session opening in a warm-up: the stage named, the countdown, the first exercise already up, **Log set** live |
+| `build/v3-resting.png` | The same screen resting between sets |
+| `build/v3-between.png` | The walk between exercises: its own countdown, the next exercise already showing, the finished block's sentence on the strip |
+| `build/v5-home.png` | Home and the week strip agreeing: "Rest day · Push is next, Tue" over a grid that names each day and draws the rest day as a gap |
+| `build/v6-metrics.png` | A past workout's metrics: duration, working and resting share, sets, volume, reps, heaviest set, PRs |
+
+### Not run in v1.2
+
+The Live Activity itself (Q71–Q73) needs a phone: the extension builds, embeds and installs, and
+what it would draw is unit-tested through `ActivityPresenting`, but nothing here has watched it
+appear on a Lock Screen.
 
 ## v1.1 (refinement release): R0–R5 done, R6 open
 
@@ -2132,8 +2646,9 @@ Every screenshot is from a real build on a booted simulator, seeded through the 
 
 ### Not done
 
-- **R6's rows have not been run.** They need the owner's iPhone, and a device build still needs a
-  `DEVELOPMENT_TEAM` on both targets — see `docs/DEVICE_CHECKLIST.md`.
+- **R6's rows have not been run.** They need the owner's iPhone. Signing is already configured
+  (`DEVELOPMENT_TEAM = 3CDZYD6W6G` on both targets), so nothing blocks a device build but the
+  phone being plugged in — see `docs/DEVICE_CHECKLIST.md`.
 - ITERATION_2_PLAN §7 step 4 asks for the owner's phone walkthrough of T2–T6 after R2, before R3.
   That checkpoint was **not** taken: R3–R5 were built straight through on the instruction to
   complete the remaining refinements. If the walkthrough turns up something about the workout
@@ -2144,14 +2659,10 @@ Every screenshot is from a real build on a booted simulator, seeded through the 
 
 ## v1 (M0–M7)
 
-## v1 (M0–M7)
-
 M0 through M7 are implemented and **certified on iOS XCTest and the Simulator**: `xcodebuild test`
-runs the whole suite green on the iPhone 16 simulator. The earlier license blocker is resolved by
-using the Xcode beta at `~/Downloads/Xcode-beta.app` (Xcode 26.6, build 17F113); the copy at
-`/Applications/Xcode.app` still has an unaccepted license, and since `xcode-select` points there, a
-bare `xcodebuild` or `xcrun simctl` still fails. Accepting that license is the only remaining setup
-step, and it is optional while the beta is used.
+runs the whole suite green on the iPhone 16 simulator. (The M7-era licence blocker and the beta
+Xcode in `~/Downloads` are gone: there is one Xcode, at `/Applications/Xcode.app`, and a plain
+`xcodebuild` works.)
 
 M4's and M5's screens are built and were checked on the simulator (see **Screens checked** below).
 Start and Resume now run a real workout end to end: step card, rest, the between-exercises done screen,
@@ -2160,7 +2671,7 @@ with an editable, deletable session detail and a per-exercise history showing th
 complete, including export and delete-all, and the polish pass is done: dark mode, Dynamic Type to
 accessibility XL, VoiceOver labels, and an app icon.
 
-What remains is M8: the `manual` cases in `TEST_CASES.md`, which need the owner's iPhone.
+What remained after M7 was M8: the `manual` cases in `TEST_CASES.md`, which need the owner's iPhone. They are still outstanding, now as part of v1.2's device checklist.
 
 ## Results actually run
 
@@ -2184,7 +2695,7 @@ Logs and result bundles: `build/M7-beta.xcresult`, `build/m7-beta-tests.log` (ge
 ## Screens checked on the simulator
 
 Each was captured from a real build on a booted simulator, with the store seeded through the app's own
-`Store` code (`build/seed/`). Screenshots are in `build/`.
+`Store` code (`tools/seed/`). Screenshots are in `build/`.
 
 | Case | Screen | Result |
 |---|---|---|
@@ -2266,9 +2777,6 @@ Authoritative iOS run:
 ```sh
 xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'
 ```
-
-(The M7-era note about a beta Xcode in `~/Downloads` is obsolete: there is one Xcode now, at
-`/Applications/Xcode.app`, and a plain `xcodebuild` works.)
 
 Portable Core checks, which need only the Command Line Tools:
 
@@ -2355,7 +2863,7 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - M7: `StepCard.spoken` writes the card out as a sentence for VoiceOver rather than reusing the visual text, which is full of "·" and "–" that do not read aloud. The descriptive block is one accessibility element (O19); the reps and weight rows stay separately focusable because they are controls.
 - M7: The rest overlay posts a "Rest over" announcement once when the countdown crosses zero. The haptic and sound alone are no use to a VoiceOver user.
 - M7: Large numbers (the countdown, the timer, the reps and weight fields) get `minimumScaleFactor` and a smaller base size at accessibility sizes, so O18's "Log set still on screen" holds at accessibility XL.
-- M7: The app icon is an original barbell on a blue gradient, drawn by `build/icon/main.swift` with Core Graphics at 1024×1024 — no text, so it reads at home-screen size. The launch screen stays Xcode's generated one, which already adapts to light and dark.
+- M7: The app icon is an original barbell on a blue gradient, drawn by `tools/icon/main.swift` with Core Graphics at 1024×1024 — no text, so it reads at home-screen size. The launch screen stays Xcode's generated one, which already adapts to light and dark.
 - M7: `AccentColor` is defined in the asset catalog with a lighter blue in dark mode, so the accent stays legible on black (O17).
 - v1.1 R0/R1: `SessionEngine.editSet` now accepts a **skipped** step (D27): it sets the result, marks it logged, and — only when the previous status was `.skipped` — overwrites `loggedAt` to the edit's `now`, since the old value was a skip timestamp, not a log time. An edit to an already-logged step still leaves `loggedAt` untouched, preserving its original set-duration measurement.
 - v1.1 R1: The `.transition` phase is removed (D14). A block-ending log or skip now advances straight to `working(next)` in the same event; `ActiveSession.blockDone: BlockDone?` (`finishedBlock`, `startedAt`) records what the status strip shows and is cleared by the next log, skip, jump, `undoLog`, or an explicit `dismissBlockDone` (replaces `continueTransition`). `Phase` keeps a hand-written `Codable` conformance (SE-0295's synthesis was empirically verified via a standalone probe script before this landed) so a v1 file whose phase was `.transition` decodes as `.working(step: nextStep)`, and `ActiveSession`'s own hand-written decoder reconstructs `blockDone` from that same legacy payload when the modern key is absent, rather than throwing or silently losing the strip's context (G59).
@@ -2408,7 +2916,51 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.1 R6: A real bug, found while building the device checklist rather than by inspection. D24's save-failure alert lived only on `RootView`, which the workout is presented **over** as a `fullScreenCover` — so a failed write during a workout, which is when writes mostly happen, showed nothing at all. `View.saveFailureAlert(model:enabled:)` is now attached to both `RootView` (only while the cover is down) and `WorkoutView` (always), so whichever view is on top presents it. The disabled copy's binding also had to guard its setter: without that, switching the alert off would clear `saveFailure` instead of leaving it for the other copy.
 - v1.1 R6: `-uiReadOnlyStore` makes `Store` refuse every write (DEBUG only), rather than making the store directory unwritable. Refusing cannot damage or lose real data, which matters because this argument is meant to be run on the owner's phone against real history; relaunching without it makes Retry succeed. POSIX permissions were tried first and did not reliably block the write on the simulator.
 - v1.1 R6: The `-uiAdvance` screenshot loop drives engine events with no UI settling between them, so combining it with `-uiReadOnlyStore` loses the cover presentation to the repeated alert. That is a limitation of the screenshot harness, not of the app: without `-uiAdvance`, the same run shows the workout with the alert over it correctly (`build/r6-savefail.png`).
-- v1.1 R6: The checklist rows were written but **not run** — they need the phone, and a device build still needs a signing team on both targets. Nothing in `DEVICE_CHECKLIST.md` is marked pass.
+- v1.1 R6: The checklist rows were written but **not run** — they need the phone. Nothing in `DEVICE_CHECKLIST.md` is marked pass. *(Corrected in v1.2: the signing team **is** set in the pbxproj, and has been since 2026-09-05; v1.2's `JimmsBroActivity` target inherits it, since it uses automatic signing with no team of its own.)*
+- v1.2 V0: The leftover history-rewrite refs are deleted rather than kept "just in case": they kept the pre-rewrite commits, with the trailers the rewrite existed to remove, reachable for ever. `tools/icon` and `tools/seed` hold the sources; the binaries are still built into the ignored `build/`, by `tools/shot.sh` when they are missing or stale. `HANDOFF_BUNDLE.md` and the zip stay committed — the owner hands them to a chatbot that cannot read a folder — but `tools/check_bundle.py` now fails when either drifts, which is the only thing that makes committing a derived file safe.
+- v1.2 V1: `PlanJSON.render` writes a group's round rest back as an exercise-level `restSeconds`, which is the only field the importer resolves `groupRestSeconds` from. The explicit array-of-sets form does not otherwise need it; without it every edit (all of which re-import) silently replaced a superset's between-round rest with the last member's own. Found by the code-health review, reproduced with a probe, and now Q1/Q2.
+- v1.2 V1: Rest resolution reads `groupRestSeconds` and never the per-set value for a grouped exercise, so `PlanEdit.setRest` on a superset member now sets the round rest for the whole group. Writing only the per-set value was an edit that looked like it worked and changed nothing.
+- v1.2 V1: `setWorkWeight` no longer emits `.persist`. It is the weight the card is displaying while it is still being typed, and one keystroke is not a fact about the workout; the next log, skip or tick carries it to disk. The view now pushes it on focus loss, from the steppers and the suggestion chip, and once before a timed set is finished — not on every character.
+- v1.2 V1: The save-failure alert captures the failure synchronously and passes it to `retrySaveFailure(_:)`. Presenting the alert clears `saveFailure` on dismissal, so the button's `Task` always found nil: Retry had never worked.
+- v1.2 V1: The steppers' hold-to-repeat uses `minimumDuration: .infinity`. At 0.4 s the gesture recognised and SwiftUI called `pressing(false)`, cancelling the repeater exactly as its own 400 ms delay ended, so holding a stepper did nothing.
+- v1.2 V1: `Store.load` gained `settingAsideCorruptFiles:`, false for export, backup inspection and restore. Renaming a file aside is a change the user is told about through the launch alert; doing it as a side effect of exporting moved a file with nothing on screen to say so.
+- v1.2 V1: `Phase.init(from:)` throws on a payload it does not recognise instead of decoding it as `.completed`. A file that says something this version does not understand is corrupt, and SPEC §8.3 already knows what to do with corrupt files; guessing "completed" would silently end a workout.
+- v1.2 V2: **Every file may leave out anything with a default; nothing may leave out its identity.** Synthesized `Codable` treats a defaulted property as a required key, so adding one field to `Settings` would have made every settings.json on the phone "corrupt" and moved it aside — and v1.2 adds three. `JimmsBro/Core/Persistence.swift` writes the rule out once, `examples/store/v1/` freezes a real file of each type from v1.1, and `StoreMigrationTests` decodes them. The fixtures are never regenerated to make a test pass: they are what is on the owner's phone.
+- v1.2 V2: `VersionedFile` accepts `fileVersion <= storeFileVersion` rather than only `==`. A reader must read its own version and older, or the number can never be bumped.
+- v1.2 V2: `AlertIdentifier` is an enum and `Effect` carries it, so a notification id cannot be spelled one way when it is scheduled and another when it is cancelled. Each id owns its title and sound, which is what `AlertRouting` used to switch on.
+- v1.2 V2: `SessionBlocks` is the one grouping rule for the Overview and Session detail, which had each written their own — with different name matching, which is exactly where a superset made them disagree. The Overview also stopped re-implementing `ExerciseText.result`.
+- v1.2 V2: The example JSON inside the plan prompt is written once, and `PromptPinningTests` asserts `Prompts.planTemplate` and `fixTemplate` are byte-identical to the fenced blocks of `docs/PROMPT.md`. The pin skips under XCTest on a simulator — the checkout is outside that sandbox — and runs under `swift test` and `tools/check_core.py`, both of which execute on the host.
+- v1.2 V2: `RecordingAlerts` is a test double and moved into the test target; the app ships `SilentAlerts`, which does nothing, as `AppModel`'s default. `makeRoot`/`discard` live once in `CoreTestSupport`. The three timing assertions became generous ceilings with messages saying so: they exist to catch an accidental O(n²), not to measure a machine that may be busy or running at `-Onone`.
+- v1.2 V3: The app has **one** rest with three kinds (`RestKind`: `warmUp`, `betweenSets`, `betweenExercises`). The warm-up before the first set and the walk to the next machine are mechanically rests — the same countdown, the same −30 / +30, the same notification, the same right to log straight out of them — so modelling them as anything else would have meant three copies of the timer. What changes is what the strip calls them, which is the thing the owner said was unclear.
+- v1.2 V3: The warm-up and the between-exercises rest are **settings, not plan-format fields**. Adding an optional key to PLAN_FORMAT would have touched the importer, the schema, the 111 frozen fixtures and the manifest, for something the owner described in the language of a setting ("type how long it takes between switching different exercises"). If a plan ever needs its own, it can be added later without moving these.
+- v1.2 V3: Both default to **on** (5 min warm-up, 2 min between exercises), because they are what the owner asked for. Every test written before v1.2 asserts the flow they change, so `CoreTestSupport.classic` turns both off and those tests say so explicitly — they still assert the app's real behavior, which is what it does when the settings are Off.
+- v1.2 V3: A **skipped** set that ends a block still gets the walk between exercises, though a skipped set mid-block still gets no rest. Skipping a set does not move the next machine any closer.
+- v1.2 V3: `WorkoutStage` counts exercises in the order the day is now running them (through `SessionBlocks`), not by `exerciseIndex`, so "Do later" (D28) moves an exercise's number with it instead of leaving a gap. Progress counts sets rather than exercises, so the bar moves inside a long exercise.
+- v1.2 V3: Found on the simulator. The `-uiAdvance` screenshot loop could no longer log anything, because a session now opens in a break; `-uiSkipWaits` skips the waits *inside* an exercise (the warm-up and the rests between sets) and deliberately never the walk between them, so a run of N sets ends on that countdown, which is the state worth screenshotting. The finished block's sentence also wrapped and truncated its own advice beside the countdown, so it has the strip's second row to itself.
+- v1.2 V4: `WeightRounding` snaps every weight the app *offers* to a multiple of `Settings.weightIncrement(for:)`; weights the user **types** are never touched. If they lifted 61 kg on a machine the app knows nothing about, that is what happened. `heavier(than:target:increment:)` and its mirror exist because rounding to nearest can land back on the weight you just lifted — 132 + 2.5 rounds down to 130 on a 5 lb grid — and a suggestion that is not a change is not advice.
+- v1.2 V4: `weightIncrement` is separate from `weightStep`. A rack may be worth stepping through in 5 lb while the smallest plate pair makes 2.5; one is the size of a tap, the other is what the equipment can do.
+- v1.2 V4: From a weight that is already loadable, − / + move by one step rounded onto the grid; from one that is not, the first tap simply brings it onto the grid in the direction asked for. 134 lb goes to 135, not to 140 — jumping a whole increment past the number you wanted is the behavior the owner complained about.
+- v1.2 V4: `SetSuggestion` (D36) is per set and carries its reason: advice from last time if the exercise earned any, else what was done for that set index last time, else the plan's target. The chip reads "Try 8 × 62.5 kg" with the reason beneath it, and one tap fills in **both** numbers — half a suggested set is not much use.
+- v1.2 V5: `Plan.cycleAnchor` (D37) is the day `cyclePosition` describes, so a rotation is projected from a **date**. v1.1 walked the cycle forward from *today* and moved the position only when a session completed, so a missed workout slid every later day by one — and by one more for each further day missed. The pattern now moves only when a workout finishes, which re-anchors it once, to the day it was actually done.
+- v1.2 V5: The anchor day is the day that was *done*, so the calendar never paints it as planned and `next` never returns it. A plan that has completed nothing has no such day: its pattern starts today, and today is painted.
+- v1.2 V5: A plan that predates anchors is anchored at launch to the day of its **most recent completed session** — the app has that date — and only to today when it has none. Anchoring blindly to today made the grid and the card disagree on the first launch, which was visible in the very first screenshot taken of it.
+- v1.2 V5: A rest-free cycle is painted for the whole horizon. v1.1 projected only tomorrow and left the month blank, because without an anchor it was guessing; with one it is a real repeating pattern, and a blank month was part of what made the calendar feel like it did not know what it was doing.
+- v1.2 V5: A missed training day is **said** on Home — "Pull was due Monday", with **Do it now** and **Dismiss** — rather than resolved behind your back. Only the most recent, only within a week, and the dismissal is not persisted: it costs one tap, and re-earning it means missing another day.
+- v1.2 V5: Home's card now says *when*, not only *what*. For a rotation v1.1 read "Next up · Push" whether Push was today or three rest days away; it now reads "Rest day / Push is next, Tue / Start Push early" — the same wording the weekday branch already used — so the card and the grid say the same thing.
+- v1.2 V5 (D38): A calendar cell carries its day's short name. v1.1 drew every day as the same 5 pt dot, so a month of training looked like a month of anything else and the shape of a week could not be read off the grid ("the spacing … is not perfectly clear"). A rest day is a dash rather than another dot, which is what makes the gaps visible, and each cell reads as one VoiceOver sentence.
+- v1.2 V5: `tools/seed/main.swift` advances the plan on each session's own date. It was passing `Date()`, so every seeded plan ended up anchored to today and the screenshots showed a calendar no real phone would ever show.
+- v1.2 V6 (D39): Every metric is a `Metric` — a label, an already-formatted value, and a note where the number needs one — so a view renders a list and computes nothing, and every figure the app shows is a unit test. The owner asked for "metrics for the past" without naming any, so the set is the questions a person actually asks after a workout: how long, how much of that was resting, how many sets, how much lifted, anything a record.
+- v1.2 V6: A metric with nothing to say is **absent**, not zero. A bodyweight day has no volume, and "Volume 0 kg" reads like a failure rather than like a category that does not apply. Timed work reports time under tension instead.
+- v1.2 V6: Trend volume only adds up within one unit, because the app never converts (D10); the window's own unit is used and sessions in another are left out of that figure alone.
+- v1.2 V6: The streak counts **weeks**, not days. A day streak punishes a rest day, which is part of the plan; a week streak measures the thing the owner cares about, which is still training.
+- v1.2 V6: The Metrics screen lists the workouts of its window under the numbers, so any figure can be traced back to the days that made it rather than being taken on faith.
+- v1.2 V6: Home's calendar line under the grid is now the way into a finished workout. v1.1 wanted a second tap on the cell itself, which nothing on the screen said you could do — the affordance existed and was invisible.
+- v1.2 V7 (D40): `WorkoutActivityState` is resolved in Core from the same `ActiveSession` the workout screen reads, so the Dynamic Island and the app cannot disagree about what is happening. It is the one file compiled into both the app and the widget extension — the contract between them — and depends on nothing but Foundation, which is why it is a separate file from the `of(_:)` factory that knows about sessions.
+- v1.2 V7: ActivityKit lives behind `ActivityPresenting`, injected exactly as `NotificationScheduling` is. That is what makes "what the Lock Screen would show" a unit test rather than something only a phone can answer, and it keeps ActivityKit out of Core entirely.
+- v1.2 V7: The countdown is drawn by the **system**, from a `Date`, using `Text(timerInterval:)` — the same rule as SPEC §6.4's Date-based rest timer, one layer out. The app pushes a state only when the state changes, so a per-second tick does not wake the system sixty times a minute for a number it is already drawing.
+- v1.2 V7: The activity ends when the workout does, finished **or discarded**. A countdown on the Lock Screen for a workout that no longer exists is worse than no countdown.
+- v1.2 V7: Every ActivityKit failure is silent. A Lock Screen widget that will not start is a missing convenience, not a lost set; the workout screen is unaffected, and the user may have turned Live Activities off, which only the system can change.
+- v1.2 V7: The extension target was written into `project.pbxproj` by `tools/add_activity_target.py` rather than by hand, so it is reproducible and reviewable. Two things it had to get right, both found by the simulator refusing to install the app: the app target must **list** the Embed Foundation Extensions phase (creating the phase is not enough), and the extension needs a real `Info.plist` with an `NSExtension` dictionary — `INFOPLIST_KEY_NSExtensionPointIdentifier` did not produce one, and without it the bundle is not an extension at all.
 `````
 
 ---
@@ -2427,14 +2979,15 @@ Everything else — 148 automated tests plus the simulator screen checks — is 
 
 **v1.1 (R6)**: the workout screen was rebuilt (SPEC §4.5, D22), so every row below that touches it
 is being run against a different layout than the one M8 described, and the **v1.1 rows** section at
-the end is new. Nothing here has been run yet on this build: it needs the phone, and a device build
-needs a signing team on both targets (see "Before starting"). H33's read-only-store case needs the
+the end is new. Nothing here has been run yet on this build — it needs the phone. Signing is already
+configured (`DEVELOPMENT_TEAM = 3CDZYD6W6G` on both targets, all four configurations), so steps 1–2
+of "Before starting" are done; start at step 3. H33's read-only-store case needs the
 `-uiReadOnlyStore` launch argument, which is DEBUG-only.
 
 ## Before starting
 
-1. Xcode → Settings → Accounts → add your Apple ID.
-2. Project → Signing & Capabilities → Team = your personal team, "Automatically manage signing" on.
+1. ~~Xcode → Settings → Accounts → add your Apple ID.~~ Done.
+2. ~~Project → Signing & Capabilities → Team.~~ Done — `DEVELOPMENT_TEAM = 3CDZYD6W6G`, automatic signing, on both `JimmsBro` and `JimmsBroTests`.
 3. iPhone → Settings → Privacy & Security → Developer Mode → on (the phone restarts).
 4. Plug in the phone, tap "Trust this computer", pick it as the run destination, press Run.
 5. On the phone: Settings → General → VPN & Device Management → trust your developer certificate.
@@ -2507,12 +3060,39 @@ Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Note
 | O79 | Mid-workout, "···" → **Do later** on the exercise you are on | The next exercise appears immediately; the deferred one is at the end of the Overview and comes round again later |  |  |
 | O80 | Plan detail: tap an exercise, change its weight, Save; then Edit → drag one exercise; then a day's "···" → Duplicate day | Each change sticks and survives leaving the screen; Copy JSON reflects it; a change the importer would refuse says why instead of appearing to work |  |  |
 
+## v1.2 rows (new or changed in V1–V7)
+
+| Case | What to do | Expected | Result | Notes |
+|---|---|---|---|---|
+| Q10 | Hold − and then + on the reps stepper, then on the weight stepper | The value keeps changing while your finger is down and stops when it lifts. Before v1.2 holding did nothing at all |  |  |
+| Q32 | Start a workout and watch the top of the screen through a warm-up, a set, a rest and the walk to the next exercise | The stage is named in words above a progress bar, and the name changes at each of the four |  |  |
+| Q33 | Settings → **Warm-up**, **Between exercises**, **Smallest change** | Read in minutes and say "Off" at 0; the smallest change is per unit and says what it is for |  |  |
+| Q34 | Set **Smallest change** to 5 lb, log three sets at 132 lb at the top of the rep range, and read the advice | "Try 135 lb next time" — never 134 |  |  |
+| Q35 | Type 134 into the weight field, then tap + once, then − twice | 135, then 130, then 125: every tap lands on a weight you can load |  |  |
+| Q43 | Look at the suggestion chip under the weight, and tap it | It reads "Try 8 × 62.5 kg" with its reason underneath, and one tap fills in **both** the reps and the weight |  |  |
+| Q53 | Home's week strip, then **Month** | Each day carries its workout's short name; finished days are green, planned days outlined, rest days a dash — the shape of the week is readable at arm's length |  |  |
+| Q54 | On a rest day, read Home's card against the grid | The card names the same day the grid rings, and says when: "Rest day · Push is next, Tue" |  |  |
+| Q45 | Skip a scheduled workout, open the app the next day, and compare the month grid with yesterday's | Nothing has moved. The missed day is reported on Home ("Push was due Monday") with **Do it now** and **Dismiss** |  |  |
+| Q61 | History → a past workout | It opens with its metrics: duration, working and resting share, sets, volume, reps, heaviest set, records |  |  |
+| Q62 | History → **Metrics**, and switch between 7 / 30 / 90 days | The numbers change with the window, and the workouts that produced them are listed underneath |  |  |
+| Q63 | Home → tap a finished day in the calendar, then tap the line underneath it | The line opens that workout. (v1.1 needed a second tap on the cell, which nothing said you could do) |  |  |
+| **Q71** | Start a workout, begin a rest, and **lock the phone** | The countdown is on the Lock Screen, counts down correctly without opening the app, and disappears when the workout ends |  |  |
+| **Q72** | With a rest running, look at the Dynamic Island: glance at it, tap it, and long-press it | Compact, minimal and expanded all show the timer; expanded also shows the set line and the day's progress |  |  |
+| **Q73** | iOS Settings → Jimm's Bro+ → turn **Live Activities** off, then run a workout | The app behaves exactly as before and shows nothing on the Lock Screen. Nothing about the workout is affected |  |  |
+| K29 | Install v1.2 **over** a v1.1 install that already has plans and history | Everything is still there — no "a data file couldn't be read" alert — and Home's next day says what it said before the update |  |  |
+
 ## When you are done
 
 Anything that fails is a bug to bring back here with the row and what actually happened. A `fail` on
 H8, H9 or H10 points at the audio session; on H3, H16 or H21 at notification scheduling; on H5, H6 or
 K16 at the Date-based timers or the resume path. A `fail` on O53, O55 or O60 points at the
 fixed-zone layout of SPEC §4.5; on K27/K28 at `Store.restore`; on H33 at D24's save-failure path.
+
+For the v1.2 rows: a `fail` on Q71–Q73 points at `SystemActivityPresenter` or the
+`JimmsBroActivity` target's embedding; on Q45 or Q54 at `PlanSchedule`'s anchor (D37); on Q34 or
+Q35 at `WeightRounding` (D35); and on **K29** at `Core/Persistence.swift` — which would mean a
+field added in v1.2 is being required of a file written by v1.1, the exact failure the frozen
+fixtures in `examples/store/v1/` exist to prevent.
 `````
 
 ---
@@ -4196,19 +4776,32 @@ what the docs describe, with tests, in the milestone order given.
 7. `tools/reference_import.py` — a Python reference implementation of the import pipeline, step flattening, and rest resolution. It passes the whole manifest (`python3 tools/reference_import.py`). Port its behavior to Swift; when a Swift test disagrees with the manifest, run the Python on the same file to see the intended result
 8. `tools/generate_fixtures.py` — regenerates every file in `examples/` from scratch. If `examples/` is missing (for example you received only the bundle file), run it first
 
-## v1.1 — the refinement release
+## v1.1 and v1.2 — the refinement releases
 
-`docs/ITERATION_2_PLAN.md` is the v1.1 plan: milestones **R0–R6, in order**, with the SPEC
-amendments of its §3 landing before the code that depends on them. R0–R5 are built and green;
-R6 is the device checklist, which needs the owner's iPhone (`docs/DEVICE_CHECKLIST.md`).
-`docs/BUILD_STATUS.md` says what is done and what was actually run.
+`docs/ITERATION_2_PLAN.md` is the v1.1 plan (milestones **R0–R6**) and
+`docs/ITERATION_3_PLAN.md` is the v1.2 plan (milestones **V0–V8**), in order, with the SPEC
+amendments landing before the code that depends on them. Everything through V7 is built and
+green; what remains is the device checklist, which needs the owner's iPhone
+(`docs/DEVICE_CHECKLIST.md`). `docs/BUILD_STATUS.md` says what is done and what was actually run,
+and `docs/CODE_HEALTH_REVIEW.md` records the review that prompted half of v1.2.
 
-Read `docs/SPEC.md` as the contract, not the plan: where they disagree, SPEC wins, and the plan's
+Read `docs/SPEC.md` as the contract, not the plan: where they disagree, SPEC wins, and the plans'
 proposed test-case ids were renumbered on landing (TEST_CASES notes the mapping).
+
+Three v1.2 rules are worth knowing before touching anything:
+
+- **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
+  default is optional. Adding a field to `Settings`, `Plan` or `Session` means adding it to that
+  file's decoder too, or every file already on the phone becomes "corrupt" and is moved aside.
+  `examples/store/v1/` freezes a real file of each type; never regenerate one to make a test pass.
+- **The app has one rest with three kinds** (`RestKind`): the warm-up, the rest between sets, and
+  the walk between exercises. They share the countdown, the controls and the notification.
+- **Every weight the app *offers* is snapped to a loadable increment** (`WeightRounding`);
+  weights the user types are never touched.
 
 ## Hard rules
 
-- Platform: SwiftUI, iOS 17.0+, Swift 5.9+, iPhone only, portrait only. No third-party dependencies. No backend. No accounts.
+- Platform: SwiftUI, iOS 17.0+, Swift 5.9+, iPhone only, portrait only. No third-party dependencies. No backend. No accounts. Two targets since v1.2: the app, and `JimmsBroActivity`, the widget extension that draws the Lock Screen / Dynamic Island activity (`tools/add_activity_target.py` is how it got into the project).
 - Xcode product name: `JimmsBro` (bundle id like `com.<owner>.jimmsbro`). Create the project inside this folder.
 - Persistence: Codable JSON files in Application Support (SPEC §8). Not SwiftData. Not Core Data. Not UserDefaults for anything except trivial flags.
 - All logic (import pipeline, step flattening, rest resolution, session state machine, prefill, stats, export) lives in plain Swift types under a `Core/` group with no `import SwiftUI`/`UIKit`, and is covered by unit tests.
@@ -4219,7 +4812,8 @@ proposed test-case ids were renumbered on landing (TEST_CASES notes the mapping)
 
 ## Working style
 
-- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them.
+- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the two doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all).
+- Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.
 - Use the fixtures in `examples/` verbatim in tests. Do not edit fixtures to make tests pass; if a fixture looks wrong, say so.
 - Use the iOS Simulator for visual checks. The owner installs on the physical iPhone (BUILD_PLAN §Device).

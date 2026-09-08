@@ -27,6 +27,8 @@ BUNDLED = [
     "docs/TEST_CASES.md",
     "docs/BUILD_PLAN.md",
     "docs/ITERATION_2_PLAN.md",
+    "docs/ITERATION_3_PLAN.md",
+    "docs/CODE_HEALTH_REVIEW.md",
     "docs/BUILD_STATUS.md",
     "docs/DECISIONS_LOG.md",
     "docs/DEVICE_CHECKLIST.md",
@@ -44,12 +46,12 @@ HEADER = """# Jimm's Bro+ — complete handoff bundle
 
 This single file contains the entire design package for a native iOS workout app, so it can be uploaded or pasted into a chat with a coding assistant. The folder version of this package (with 111 fixture files under `examples/`) is the same content; the fixtures are not inlined here because `tools/generate_fixtures.py` (included below) recreates all of them.
 
-The app itself is built: v1 (M0–M7) and v1.1's R0–R5 are implemented and green. `docs/BUILD_STATUS.md` says what was actually run, and `docs/DECISIONS_LOG.md` records every decision taken where the docs were silent. The Swift sources are not in this bundle — they are in the folder, under `JimmsBro/` and `JimmsBroTests/`.
+The app itself is built: v1 (M0–M7), v1.1 (R0–R6) and v1.2 (V0–V7) are implemented and green. `docs/BUILD_STATUS.md` says what was actually run, and `docs/DECISIONS_LOG.md` records every decision taken where the docs were silent. The Swift sources are not in this bundle — they are in the folder, under `JimmsBro/`, `JimmsBroActivity/` and `JimmsBroTests/`.
 
 How to use this bundle:
 1. Read `AGENTS.md` first (immediately below). It says what to read next and the hard rules.
 2. Recreate the folder: save each `### FILE:` section below to its path, then run `python3 tools/generate_fixtures.py` and `python3 tools/reference_import.py` (expect "111/111 fixtures match the manifest").
-3. Read `docs/BUILD_STATUS.md` to see where the build has got to, then `docs/ITERATION_2_PLAN.md` for what v1.1 was.
+3. Read `docs/BUILD_STATUS.md` to see where the build has got to, then `docs/ITERATION_2_PLAN.md` and `docs/ITERATION_3_PLAN.md` for what v1.1 and v1.2 were.
 
 Each file below starts with a line `### FILE: <path>` followed by its full content inside a five-backtick fence, so the three- and four-backtick fences inside the documents nest correctly.
 

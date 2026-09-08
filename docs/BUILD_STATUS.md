@@ -1,7 +1,54 @@
 # Build status
 
-Updated 2026-09-05. **v1.1 (R0–R5) is built and green; R6 needs the phone.** v1 (M0–M7) status
-is below, unchanged.
+Updated 2026-09-07. **v1.2 (V0–V7) is built and green; the device checklist needs the phone.**
+v1.1 and v1 are below, unchanged except where a v1.2 milestone corrected them.
+
+## v1.2 (V0–V7): built and green
+
+`docs/ITERATION_3_PLAN.md` is the v1.2 plan, and `docs/CODE_HEALTH_REVIEW.md` is the review that
+prompted half of it; the other half is the owner's notes after running v1.1 on the phone. Every
+milestone ended with the whole suite green and one commit, on the `v1.2-refinement` branch.
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'` | **210 tests, 2 skipped, 0 failures** |
+| `swift test` | **209 tests, 0 failures** — this route had not compiled since `AppModel` became `@Observable`; V1 fixed it |
+| `python3 tools/check_core.py` | **209 bodies, 3,289 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **111/111 fixtures match** |
+| `python3 tools/check_bundle.py` | **current** |
+
+The two skipped cases are the prompt pins (M9), which read `docs/PROMPT.md` from the checkout —
+outside the simulator's sandbox. They run on the other two routes, both of which are on the host.
+
+| Milestone | What it did | State |
+|---|---|---|
+| V0 | Repository hygiene: leftover rewrite refs deleted, `tools/icon` and `tools/seed` rescued from the ignored `build/`, `tools/check_bundle.py` | Done |
+| V1 | The five confirmed defects of the code-health review, and `swift test` unbroken | Done |
+| V2 | Schema durability (`Core/Persistence.swift`, `examples/store/v1/`), `AlertIdentifier` and `SessionBlocks` as one definition each, the prompt pinned to its doc | Done |
+| V3 | Warm-up (D32), the timed walk between exercises (D33), the stage in the header (D34) | Done |
+| V4 | Loadable weights (D35) and a per-set suggestion with its reason (D36) | Done |
+| V5 | The anchored rotation (D37) and a calendar you can read (D38) | Done |
+| V6 | Session and trend metrics (D39) | Done |
+| V7 | Lock Screen and Dynamic Island (D40), and the `JimmsBroActivity` extension target | Done |
+| — | The v1.2 device checklist | **Written, not run** — needs the owner's iPhone |
+
+### Checked on the simulator (v1.2)
+
+Every screenshot is from a real build on a booted simulator, seeded through the app's own `Store`.
+
+| File | Shows |
+|---|---|
+| `build/v3-warmup.png` | A session opening in a warm-up: the stage named, the countdown, the first exercise already up, **Log set** live |
+| `build/v3-resting.png` | The same screen resting between sets |
+| `build/v3-between.png` | The walk between exercises: its own countdown, the next exercise already showing, the finished block's sentence on the strip |
+| `build/v5-home.png` | Home and the week strip agreeing: "Rest day · Push is next, Tue" over a grid that names each day and draws the rest day as a gap |
+| `build/v6-metrics.png` | A past workout's metrics: duration, working and resting share, sets, volume, reps, heaviest set, PRs |
+
+### Not run in v1.2
+
+The Live Activity itself (Q71–Q73) needs a phone: the extension builds, embeds and installs, and
+what it would draw is unit-tested through `ActivityPresenting`, but nothing here has watched it
+appear on a Lock Screen.
 
 ## v1.1 (refinement release): R0–R5 done, R6 open
 
@@ -96,14 +143,10 @@ Every screenshot is from a real build on a booted simulator, seeded through the 
 
 ## v1 (M0–M7)
 
-## v1 (M0–M7)
-
 M0 through M7 are implemented and **certified on iOS XCTest and the Simulator**: `xcodebuild test`
-runs the whole suite green on the iPhone 16 simulator. The earlier license blocker is resolved by
-using the Xcode beta at `~/Downloads/Xcode-beta.app` (Xcode 26.6, build 17F113); the copy at
-`/Applications/Xcode.app` still has an unaccepted license, and since `xcode-select` points there, a
-bare `xcodebuild` or `xcrun simctl` still fails. Accepting that license is the only remaining setup
-step, and it is optional while the beta is used.
+runs the whole suite green on the iPhone 16 simulator. (The M7-era licence blocker and the beta
+Xcode in `~/Downloads` are gone: there is one Xcode, at `/Applications/Xcode.app`, and a plain
+`xcodebuild` works.)
 
 M4's and M5's screens are built and were checked on the simulator (see **Screens checked** below).
 Start and Resume now run a real workout end to end: step card, rest, the between-exercises done screen,
@@ -112,7 +155,7 @@ with an editable, deletable session detail and a per-exercise history showing th
 complete, including export and delete-all, and the polish pass is done: dark mode, Dynamic Type to
 accessibility XL, VoiceOver labels, and an app icon.
 
-What remains is M8: the `manual` cases in `TEST_CASES.md`, which need the owner's iPhone.
+What remained after M7 was M8: the `manual` cases in `TEST_CASES.md`, which need the owner's iPhone. They are still outstanding, now as part of v1.2's device checklist.
 
 ## Results actually run
 
@@ -218,9 +261,6 @@ Authoritative iOS run:
 ```sh
 xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'
 ```
-
-(The M7-era note about a beta Xcode in `~/Downloads` is obsolete: there is one Xcode now, at
-`/Applications/Xcode.app`, and a plain `xcodebuild` works.)
 
 Portable Core checks, which need only the Command Line Tools:
 

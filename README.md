@@ -2,7 +2,7 @@
 
 A personal iPhone app that runs your workout for you: import a plan a chatbot wrote from your own description, then log each set while the app times your rest and remembers what you lifted last time.
 
-This folder contains the design package, the M0 Xcode project, the M1/M2 Core implementation, the M3 JSON store, the M4 screens (Home, Plans, Plan detail, Import, Settings) and the M5 workout (step card, rest timer, timed sets, done screen, overview, summary, resume) and the M6 History (list by month, editable session detail, per-exercise history with the best set) and the M7 polish (full Settings with export and delete-all, dark mode, Dynamic Type, VoiceOver, app icon). Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the M8 device checklist. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
+This folder contains the design package and the app, built through **v1 (M0–M7)**, **v1.1 (R0–R6)** and **v1.2 (V0–V7)**: the Core import pipeline and session engine, the JSON store, every screen, the workout's five fixed zones, plan editing, backup and restore, and v1.2's warm-up, timed walk between exercises, loadable weight suggestions, anchored calendar, metrics and Lock Screen / Dynamic Island activity. Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the device checklist, which needs the owner's iPhone. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
 
 Run the iOS tests from this folder:
 
@@ -10,7 +10,7 @@ Run the iOS tests from this folder:
 xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'
 ```
 
-The suite includes the M0 resource smoke test and Core tests for imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, sparklines, prompts, the persistence store, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, the history grouping and editing, and the settings, export and accessibility text. Imports use the original 111 fixtures and manifest verbatim. There are no third-party dependencies. Select your signing Team only when installing on a physical iPhone.
+That is **210 tests** (2 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, and v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity. Imports use the original 111 fixtures and manifest verbatim. There are no third-party dependencies, and the signing team is already set for both targets.
 
 Core can also be checked with the independently installed Command Line Tools:
 
@@ -19,9 +19,21 @@ python3 tools/check_core.py --filter ImportTests
 python3 tools/check_core.py
 ```
 
-This portable runner compiles the actual Core sources in Swift 5 language mode and executes the same test bodies using assertion adapters. It reports a nonzero exit code on any failure; it does not run XCTest or certify app bundle/simulator behavior. With a fully configured Xcode toolchain, `swift test` also runs Core as an ordinary Swift Package using XCTest. See `docs/BUILD_STATUS.md` for results and remaining verification.
+This portable runner compiles the actual Core sources in Swift 5 language mode and executes the same test bodies using assertion adapters. It reports a nonzero exit code on any failure; it does not run XCTest or certify app bundle/simulator behavior.
 
-If Xcode reports an unaccepted license, either run the command above through an Xcode whose license is already accepted (see `docs/BUILD_STATUS.md`), or review and accept it in Terminal with `sudo xcodebuild -license` and complete Xcode's first-launch component installation. The iPhone 16 simulator and an iOS simulator runtime must be installed in Xcode.
+```sh
+swift test
+```
+
+runs Core as an ordinary Swift Package. This route had not compiled since `AppModel` became `@Observable` — `Package.swift` declared macOS 13 and Observation needs 14 — and v1.2's V1 fixed it. It is also where the two cases the simulator skips actually run: they pin `Prompts.swift` to `docs/PROMPT.md`, which is outside the simulator's sandbox. See `docs/BUILD_STATUS.md` for results and remaining verification.
+
+An iOS simulator runtime must be installed in Xcode; the commands above name the iPhone 16 simulator, and any installed iPhone works.
+
+```sh
+python3 tools/check_bundle.py
+```
+
+fails when `HANDOFF_BUNDLE.md` or the zip has drifted from the files it is built from. Both are derived but committed, because the owner hands them to a chatbot that cannot read a folder — which is only safe with a check that says when they have gone stale.
 
 | File | What it is | Who reads it |
 |---|---|---|
@@ -31,6 +43,9 @@ If Xcode reports an unaccepted license, either run the command above through an 
 | `docs/PROMPT.md` | The exact prompt the app copies for ChatGPT/Claude, and the fix-it prompt | you, the agent |
 | `docs/TEST_CASES.md` | About 475 test cases, unit / ui / manual | the agent; you for the manual checklist |
 | `docs/BUILD_PLAN.md` | Milestones M0–M8 and how to install on your iPhone | both |
+| `docs/ITERATION_2_PLAN.md` | The v1.1 plan: milestones R0–R6 | both |
+| `docs/ITERATION_3_PLAN.md` | The v1.2 plan: milestones V0–V8 | both |
+| `docs/CODE_HEALTH_REVIEW.md` | The 2026-09-07 review that prompted half of v1.2, and what became of each finding | you |
 | `docs/DEVICE_CHECKLIST.md` | The 32 manual cases to run on your iPhone, with a place to record results | you |
 | `docs/BUILD_STATUS.md` | What is built, what was verified and how to reproduce it | you |
 | `schema/plan.schema.json` | JSON Schema of the strict plan shape | the agent |

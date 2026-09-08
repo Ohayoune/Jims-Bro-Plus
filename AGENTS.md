@@ -17,19 +17,32 @@ what the docs describe, with tests, in the milestone order given.
 7. `tools/reference_import.py` — a Python reference implementation of the import pipeline, step flattening, and rest resolution. It passes the whole manifest (`python3 tools/reference_import.py`). Port its behavior to Swift; when a Swift test disagrees with the manifest, run the Python on the same file to see the intended result
 8. `tools/generate_fixtures.py` — regenerates every file in `examples/` from scratch. If `examples/` is missing (for example you received only the bundle file), run it first
 
-## v1.1 — the refinement release
+## v1.1 and v1.2 — the refinement releases
 
-`docs/ITERATION_2_PLAN.md` is the v1.1 plan: milestones **R0–R6, in order**, with the SPEC
-amendments of its §3 landing before the code that depends on them. R0–R5 are built and green;
-R6 is the device checklist, which needs the owner's iPhone (`docs/DEVICE_CHECKLIST.md`).
-`docs/BUILD_STATUS.md` says what is done and what was actually run.
+`docs/ITERATION_2_PLAN.md` is the v1.1 plan (milestones **R0–R6**) and
+`docs/ITERATION_3_PLAN.md` is the v1.2 plan (milestones **V0–V8**), in order, with the SPEC
+amendments landing before the code that depends on them. Everything through V7 is built and
+green; what remains is the device checklist, which needs the owner's iPhone
+(`docs/DEVICE_CHECKLIST.md`). `docs/BUILD_STATUS.md` says what is done and what was actually run,
+and `docs/CODE_HEALTH_REVIEW.md` records the review that prompted half of v1.2.
 
-Read `docs/SPEC.md` as the contract, not the plan: where they disagree, SPEC wins, and the plan's
+Read `docs/SPEC.md` as the contract, not the plan: where they disagree, SPEC wins, and the plans'
 proposed test-case ids were renumbered on landing (TEST_CASES notes the mapping).
+
+Three v1.2 rules are worth knowing before touching anything:
+
+- **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
+  default is optional. Adding a field to `Settings`, `Plan` or `Session` means adding it to that
+  file's decoder too, or every file already on the phone becomes "corrupt" and is moved aside.
+  `examples/store/v1/` freezes a real file of each type; never regenerate one to make a test pass.
+- **The app has one rest with three kinds** (`RestKind`): the warm-up, the rest between sets, and
+  the walk between exercises. They share the countdown, the controls and the notification.
+- **Every weight the app *offers* is snapped to a loadable increment** (`WeightRounding`);
+  weights the user types are never touched.
 
 ## Hard rules
 
-- Platform: SwiftUI, iOS 17.0+, Swift 5.9+, iPhone only, portrait only. No third-party dependencies. No backend. No accounts.
+- Platform: SwiftUI, iOS 17.0+, Swift 5.9+, iPhone only, portrait only. No third-party dependencies. No backend. No accounts. Two targets since v1.2: the app, and `JimmsBroActivity`, the widget extension that draws the Lock Screen / Dynamic Island activity (`tools/add_activity_target.py` is how it got into the project).
 - Xcode product name: `JimmsBro` (bundle id like `com.<owner>.jimmsbro`). Create the project inside this folder.
 - Persistence: Codable JSON files in Application Support (SPEC §8). Not SwiftData. Not Core Data. Not UserDefaults for anything except trivial flags.
 - All logic (import pipeline, step flattening, rest resolution, session state machine, prefill, stats, export) lives in plain Swift types under a `Core/` group with no `import SwiftUI`/`UIKit`, and is covered by unit tests.
@@ -40,7 +53,8 @@ proposed test-case ids were renumbered on landing (TEST_CASES notes the mapping)
 
 ## Working style
 
-- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them.
+- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the two doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all).
+- Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.
 - Use the fixtures in `examples/` verbatim in tests. Do not edit fixtures to make tests pass; if a fixture looks wrong, say so.
 - Use the iOS Simulator for visual checks. The owner installs on the physical iPhone (BUILD_PLAN §Device).

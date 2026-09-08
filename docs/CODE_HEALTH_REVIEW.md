@@ -15,7 +15,10 @@ The verdict: the Core / Store / Views split is real, there are no force unwraps 
 Core, no `print`, no `UserDefaults`, and every on-disk write is atomic. Against that, four
 confirmed defects, one broken build route, and a set of hygiene and structural issues.
 
-The `Status` column is kept current as v1.2 lands (`docs/ITERATION_3_PLAN.md`).
+**Every finding below is closed.** v1.2 (V0–V8) landed them all; `docs/ITERATION_3_PLAN.md` is
+the plan, `docs/BUILD_STATUS.md` the result. The one thing left open is not a finding but a
+limitation: the Live Activity of V7 has never been watched on a real Lock Screen (Q71–Q73 in
+`DEVICE_CHECKLIST.md`).
 
 ## Confirmed defects
 
@@ -46,7 +49,12 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
   **`tools/check_bundle.py` (V0)** now fails when either drifts.
 - `build/icon/main.swift` and `build/seed/main.swift` were real sources inside the ignored
   `build/` folder. **Moved to `tools/` in V0**; the binaries are still built into `build/`.
-- Docs disagreed with each other and with the machine. **Reconciled in V8.**
+- Docs disagreed with each other and with the machine. **Reconciled in V8**: README's "what
+  remains is M8" and its `swift test` claim, `BUILD_STATUS.md`'s duplicated heading and its
+  obsolete beta-Xcode note, `DECISIONS_LOG.md`'s claim that the signing team was unset (it is
+  set, and v1.2's second target now carries it too), SPEC §7's three-field `ActiveSession` and
+  `Settings.homeMetric`, and `TEST_CASES.md`'s twelve `unit` rows for the sparkline that v1.1
+  deleted — now marked `removed`, with a note saying so rather than being quietly dropped.
 - Ten stale `.gitkeep` files. **Deleted in V0.**
 
 ## Structural
