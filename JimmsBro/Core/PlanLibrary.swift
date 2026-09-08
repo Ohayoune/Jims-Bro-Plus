@@ -40,6 +40,9 @@ struct PlanLibrary {
         incoming.name = incoming.name.trimmed
         incoming.id = id
         incoming.cyclePosition = PlanSchedule.positionAfterReplacement(old: plans[index], new: incoming)
+        // v1.3: the anchor (D37) belongs to the position, so it stays with it — replacing the
+        // plan's text is not a reason for the calendar to move.
+        incoming.cycleAnchor = incoming.cyclePosition == nil ? nil : plans[index].cycleAnchor
         plans[index] = incoming
         return id
     }

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BFF32C02BE544CED9F319F4E /* JSONEditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B42BB5F37D4577BB31378A /* JSONEditTests.swift */; };
+		485BB3B824174DB98FA62F4A /* JSONFragmentSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E6EBAEA094407981604FCE /* JSONFragmentSheet.swift */; };
 		DF1A119FAD2849449B70E433 /* ChangeExerciseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1374E419EAD343B697A28F06 /* ChangeExerciseTests.swift */; };
 		8C433778AA4F41A9B54DD924 /* ChangeExerciseSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B213B7B0ED784B51A6EF7592 /* ChangeExerciseSheet.swift */; };
 		25B184F7E2E8488C921B44D3 /* StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 070F5AD1D87E47ACBE99D42E /* StoreTests.swift */; };
@@ -125,6 +127,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F3B42BB5F37D4577BB31378A /* JSONEditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONEditTests.swift; sourceTree = "<group>"; };
+		B2E6EBAEA094407981604FCE /* JSONFragmentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONFragmentSheet.swift; sourceTree = "<group>"; };
 		1374E419EAD343B697A28F06 /* ChangeExerciseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeExerciseTests.swift; sourceTree = "<group>"; };
 		B213B7B0ED784B51A6EF7592 /* ChangeExerciseSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeExerciseSheet.swift; sourceTree = "<group>"; };
 		03C57A441932DB44EDA5A940 /* PlanLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanLibrary.swift; sourceTree = "<group>"; };
@@ -316,6 +320,7 @@
 		5096789945D69DA3AC9A0D4A /* PlanDetail */ = {
 			isa = PBXGroup;
 			children = (
+				B2E6EBAEA094407981604FCE /* JSONFragmentSheet.swift */,
 				CCD6005D8B4C4BEBB795803C /* PlanDetailView.swift */,
 			);
 			path = PlanDetail;
@@ -340,6 +345,7 @@
 		8B7A6DECC0651D269EA794C7 /* JimmsBroTests */ = {
 			isa = PBXGroup;
 			children = (
+				F3B42BB5F37D4577BB31378A /* JSONEditTests.swift */,
 				1374E419EAD343B697A28F06 /* ChangeExerciseTests.swift */,
 				5418E891D2194939B62AE34D /* ActivityTests.swift */,
 				E48DE3944FA443E88F409422 /* MetricsTests.swift */,
@@ -615,6 +621,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				485BB3B824174DB98FA62F4A /* JSONFragmentSheet.swift in Sources */,
 				8C433778AA4F41A9B54DD924 /* ChangeExerciseSheet.swift in Sources */,
 				91F813883A2E4C74A3DB1074 /* WorkoutActivityAttributes.swift in Sources */,
 				9FBBABF59F6C423185988FA6 /* SystemActivities.swift in Sources */,
@@ -667,6 +674,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BFF32C02BE544CED9F319F4E /* JSONEditTests.swift in Sources */,
 				DF1A119FAD2849449B70E433 /* ChangeExerciseTests.swift in Sources */,
 				5CF563E7589A4C9DB7E6FABC /* ActivityTests.swift in Sources */,
 				3F695B4C1054440FA19BD4A5 /* MetricsTests.swift in Sources */,

@@ -37,7 +37,9 @@ struct ImportView: View {
                 chatbotSection
                 editorSection
             }
-            .navigationTitle(replacingPlanId == nil ? "Add plan" : "Replace plan")
+            // D43 (v1.3): Plan detail's Replace is now called Edit JSON — the same sheet, with
+            // the plan's text already open, titled for what you came to do.
+            .navigationTitle(replacingPlanId == nil ? "Add plan" : "Edit JSON")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }

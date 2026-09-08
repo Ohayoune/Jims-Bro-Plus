@@ -20,6 +20,10 @@ struct PlanDetailView: View {
     @State private var renamingDay: Int?
     @State private var draftDayName = ""
     @State private var editError: String?
+    /// D43 (v1.3): the JSON sheet that is open, and the one to open once the exercise sheet
+    /// has finished dismissing (presenting the next in the same turn leaves it half-built).
+    @State private var fragment: FragmentTarget?
+    @State private var pendingFragment: FragmentTarget?
 
     private var plan: Plan? { model.plans.first { $0.id == planId } }
 
@@ -59,6 +63,9 @@ struct PlanDetailView: View {
                                         renamingDay = index
                                     }
                                     Button("Duplicate day") { edit(.duplicateDay(day: index)) }
+                                    // D43 (v1.3): the day as text, and a new exercise typed in.
+                                    Button("Add exercise") { fragment = .addExercise(day: index) }
+                                    Button("Edit day as JSON") { fragment = .day(index) }
                                 } label: {
                                     Image(systemName: "ellipsis")
                                 }
@@ -73,11 +80,24 @@ struct PlanDetailView: View {
                     menu(plan)
                     ToolbarItem(placement: .topBarTrailing) { EditButton() }
                 }
-                .sheet(item: $editing) { address in
+                .sheet(item: $editing, onDismiss: {
+                    if let next = pendingFragment { pendingFragment = nil; fragment = next }
+                }) { address in
                     if let exercise = plan.days[safe: address.day]?.exercises[safe: address.exercise] {
-                        ExerciseEditSheet(exercise: exercise, units: plan.units) { operation in
+                        ExerciseEditSheet(exercise: exercise, units: plan.units, editAsJSON: {
+                            pendingFragment = .exercise(day: address.day, exercise: address.exercise)
+                            editing = nil
+                        }) { operation in
                             edit(operation(address))
                         }
+                    }
+                }
+                // D43 (v1.3): one sheet for every JSON edit; Save is a `PlanEdit.Operation`
+                // through the import pipeline, and a refusal stays in the sheet with the text.
+                .sheet(item: $fragment) { target in
+                    JSONFragmentSheet(title: target.title, initialText: target.initialText(plan),
+                                      footer: target.footer) { text in
+                        await model.editPlan(planId, target.operation(text))
                     }
                 }
                 .alert("Rename day", isPresented: Binding(get: { renamingDay != nil },
@@ -170,7 +190,10 @@ struct PlanDetailView: View {
                 }
                 Button("Rename") { draftName = plan.name; renaming = true }
                 Button(copied ? "Copied" : "Copy JSON") { Clipboard.write(plan.sourceText); copied = true }
-                Button("Replace") { replacing = true }
+                // D43 (v1.3): the plan's text, editable; and a day pasted in whole — the way
+                // to finish a week the chatbot cut short.
+                Button("Edit JSON") { replacing = true }
+                Button("Add day from JSON") { fragment = .addDay }
                 Button("Delete", role: .destructive) { confirmDelete = true }
             } label: {
                 Image(systemName: "ellipsis")
@@ -253,6 +276,9 @@ struct ExerciseEditSheet: View {
     @Environment(\.dismiss) private var dismiss
     let exercise: Exercise
     let units: WeightUnit
+    /// D43 (v1.3): hands over to the JSON sheet for what the fields cannot say — one set
+    /// unlike the others, drops, a warning beep.
+    var editAsJSON: (() -> Void)? = nil
     /// Called with a builder, so the sheet doesn't need to know its own address.
     let commit: (@escaping (ExerciseAddress) -> PlanEdit.Operation) -> Void
 
@@ -305,6 +331,13 @@ struct ExerciseEditSheet: View {
                     }
                 } footer: {
                     Text("Reps takes a number, a range like 8-12, AMRAP or 5+, or a time: 45s, 30s+ for a minimum hold, or open.")
+                }
+                if let editAsJSON {
+                    Section {
+                        Button("Edit as JSON") { editAsJSON() }
+                    } footer: {
+                        Text("For what these fields can't say: one set unlike the others, drop sets, a warning beep.")
+                    }
                 }
             }
             .navigationTitle("Edit exercise")
