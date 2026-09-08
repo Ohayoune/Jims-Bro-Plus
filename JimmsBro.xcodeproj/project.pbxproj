@@ -75,6 +75,7 @@
 		8B85B26EE72743A49B7DC371 /* WarmUpAndTransitionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB8616271F4349C09DCE11D0 /* WarmUpAndTransitionTests.swift */; };
 		04995D30F96D4D12B836BBA3 /* WeightRounding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E97615AB1534A32883DE9D2 /* WeightRounding.swift */; };
 		99FB4E145F5144CC8098858E /* SuggestionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0254FA87619547C199AF9402 /* SuggestionTests.swift */; };
+		A2FEB4D9854045CF98BE6AF2 /* ScheduleAnchorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246711AEC6EA417E8E18B535 /* ScheduleAnchorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -160,6 +161,7 @@
 		BB8616271F4349C09DCE11D0 /* WarmUpAndTransitionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarmUpAndTransitionTests.swift; sourceTree = "<group>"; };
 		7E97615AB1534A32883DE9D2 /* WeightRounding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightRounding.swift; sourceTree = "<group>"; };
 		0254FA87619547C199AF9402 /* SuggestionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionTests.swift; sourceTree = "<group>"; };
+		246711AEC6EA417E8E18B535 /* ScheduleAnchorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleAnchorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -280,6 +282,7 @@
 		8B7A6DECC0651D269EA794C7 /* JimmsBroTests */ = {
 			isa = PBXGroup;
 			children = (
+				246711AEC6EA417E8E18B535 /* ScheduleAnchorTests.swift */,
 				0254FA87619547C199AF9402 /* SuggestionTests.swift */,
 				BB8616271F4349C09DCE11D0 /* WarmUpAndTransitionTests.swift */,
 				ED983CB703654E2CA74D6614 /* PromptPinningTests.swift */,
@@ -550,6 +553,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A2FEB4D9854045CF98BE6AF2 /* ScheduleAnchorTests.swift in Sources */,
 				99FB4E145F5144CC8098858E /* SuggestionTests.swift in Sources */,
 				8B85B26EE72743A49B7DC371 /* WarmUpAndTransitionTests.swift in Sources */,
 				F88C0EE10EB846BAAE7E061F /* PromptPinningTests.swift in Sources */,

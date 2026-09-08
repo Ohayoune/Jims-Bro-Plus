@@ -151,12 +151,20 @@ final class LibraryCalendarPromptTests: XCTestCase {
                                              activePlan:p,sessions:[],today:today,calendar:calendar)
         XCTAssertTrue(far.allSatisfy { $0.entry == .none },"no rest dots past the projection horizon")
 
+        // D37 (v1.2): a rest-free cycle is painted for the whole horizon. v1.1 projected only
+        // tomorrow and left the rest of the month blank, because without an anchor it was
+        // guessing; with one it is a real repeating pattern, and a blank month was the thing
+        // that made the calendar feel like it did not know what it was doing.
         p.cycle=[.day(0),.day(1),.day(2)]
         let noRest = CalendarProjection.entries(month:today,activePlan:p,sessions:[],today:today,calendar:calendar)
-        XCTAssertEqual(noRest.filter { if case .projected = $0.entry { return true }; return false }.count,1)
         XCTAssertEqual(noRest[8].entry,.projected(planId:p.id,dayIndex:0))
-        // A rest-free cycle paints no rest days either: everything after tomorrow stays blank.
+        XCTAssertEqual(noRest[9].entry,.projected(planId:p.id,dayIndex:1))
+        XCTAssertEqual(noRest[10].entry,.projected(planId:p.id,dayIndex:2))
+        XCTAssertEqual(noRest[11].entry,.projected(planId:p.id,dayIndex:0),"and round again")
+        // Still no rest days: this cycle has none.
         XCTAssertTrue(noRest.allSatisfy { $0.entry != .rest })
+        // And still nothing in the past or on today.
+        XCTAssertEqual(noRest[7].entry,.none)
 
         // A cycle entry pointing at a deleted day is broken, not a rest day.
         var dangling = p; dangling.cycle=[.day(0),.day(9),.rest]; dangling.cyclePosition=0

@@ -30,6 +30,9 @@ private struct StartCardView: View {
     @State private var showDiscardConfirm = false
     @State private var previewing: PlanRoute?
     @State private var choosingDay = false
+    /// D37 (v1.2): the missed-workout notice is dismissible for this run of the app. It is not
+    /// persisted: it costs one tap to clear and re-earning it means missing another day.
+    @State private var dismissedMissed = false
 
     var body: some View {
         let card = HomeStart.current(library: model.library)
@@ -67,6 +70,31 @@ private struct StartCardView: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("Exercises: " + card.exercises.joined(separator: ", ")
                                     + (card.more > 0 ? ", and \(card.more) more" : ""))
+            }
+
+            // D37 (v1.2): a workout the schedule expected and did not get is said out loud,
+            // with the two things you might do about it. v1.1 silently slid the whole calendar
+            // forward instead, and slid it again for every further day missed.
+            if let missed = card.missed, !dismissedMissed {
+                HStack(spacing: 12) {
+                    Text(missed.text)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Button("Do it now") {
+                        if let plan = model.activePlan {
+                            start(planId: plan.id, dayIndex: missed.dayIndex)
+                        }
+                    }
+                    .font(.footnote.weight(.medium))
+                    Button("Dismiss") { dismissedMissed = true }
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentColor)
+                .accessibilityElement(children: .contain)
             }
 
             if let title = card.buttonTitle {
@@ -185,7 +213,9 @@ private struct CalendarView: View {
                 }
                 ForEach(days, id: \.date) { day in
                     DayCell(day: day, isToday: calendar.isDateInToday(day.date),
-                            isSelected: selected.map { calendar.isDate($0, inSameDayAs: day.date) } ?? false)
+                            isSelected: selected.map { calendar.isDate($0, inSameDayAs: day.date) } ?? false,
+                            label: CalendarText.label(day.entry, plans: model.plans),
+                            spoken: CalendarText.spoken(day, plans: model.plans, calendar: calendar))
                         .contentShape(Rectangle())
                         .onTapGesture { tapped(day) }
                 }
@@ -267,36 +297,78 @@ private struct CalendarView: View {
     }
 }
 
+/// D38 (v1.2): a cell says which workout it is. v1.1 drew every day as the same 5 pt dot, so
+/// the shape of a week — two on, one off — could not be read off the grid at all.
 private struct DayCell: View {
     let day: CalendarDay
     let isToday: Bool
     let isSelected: Bool
+    let label: String?
+    let spoken: String
 
     var body: some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 1) {
             Text("\(Calendar.current.component(.day, from: day.date))")
                 .font(.callout)
                 .monospacedDigit()
-            marker
-                .frame(width: 5, height: 5)
+                .foregroundStyle(numberColour)
+            // The label is the point; a rest day gets a short dash instead, which reads as a
+            // gap rather than as another kind of workout.
+            Group {
+                if let label {
+                    Text(label)
+                        .font(.system(size: 9, weight: .medium))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                } else if case .rest = day.entry {
+                    Text("–").font(.system(size: 9))
+                } else {
+                    Text(" ").font(.system(size: 9))
+                }
+            }
+            .foregroundStyle(labelColour)
         }
         // P6/O73: a 44 pt target, in the week strip and in the month grid alike.
         .frame(minWidth: 44, minHeight: 44)
         .frame(maxWidth: .infinity)
+        .background {
+            // A finished day is filled in the colour reserved for "this happened" (§4.0);
+            // a planned one is outlined. Both read at a glance; a dot did not.
+            if case .completed = day.entry {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(Color.done.opacity(0.18))
+                    .frame(width: 38, height: 40)
+            } else if case .projected = day.entry {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(Color.accentColor.opacity(0.45), lineWidth: 1)
+                    .frame(width: 38, height: 40)
+            }
+        }
         .overlay {
             if isToday || isSelected {
-                Circle().stroke(isSelected ? Color.accentColor : .secondary, lineWidth: 1)
-                    .frame(width: 38, height: 38)
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(isSelected ? Color.accentColor : .secondary, lineWidth: isSelected ? 2 : 1)
+                    .frame(width: 38, height: 40)
             }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spoken)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+
+    private var numberColour: Color {
+        switch day.entry {
+        case .completed: return Color.done
+        case .projected: return .primary
+        case .rest, .none: return .secondary
         }
     }
 
-    @ViewBuilder private var marker: some View {
+    private var labelColour: Color {
         switch day.entry {
-        case .completed: Circle().fill(Color.accentColor)
-        case .projected: Circle().stroke(Color.accentColor, lineWidth: 1)
-        case .rest: Circle().fill(Color.secondary.opacity(0.45))
-        case .none: Color.clear
+        case .completed: return Color.done
+        case .projected: return Color.accentColor
+        case .rest, .none: return .secondary
         }
     }
 }

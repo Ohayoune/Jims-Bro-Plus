@@ -4,6 +4,48 @@ import Foundation
 /// the active plan says nothing about — beyond the projection horizon, in the past, or with no plan.
 enum DayEntry: Equatable { case completed([Session]), projected(planId: UUID, dayIndex: Int), rest, none }
 struct CalendarDay: Equatable { var date: Date; var entry: DayEntry }
+
+/// SPEC §4.1 (D38, v1.2): what a calendar cell says. v1.1 drew every day as a dot of the same
+/// size — filled, outlined or grey — so a month of training looked like a month of anything
+/// else, and "the spacing between exercises is not perfectly clear" was the owner's way of
+/// saying the pattern could not be read off the grid. A cell now names its day and a rest day
+/// is drawn as a visible gap rather than as another dot.
+enum CalendarText {
+    /// The short label under the number: the day's name, cut to what fits a 44 pt cell.
+    static func label(_ entry: DayEntry, plans: [Plan], sessions: [Session] = []) -> String? {
+        switch entry {
+        case let .completed(sessions):
+            return sessions.first.map { short($0.dayName) }
+        case let .projected(planId, dayIndex):
+            guard let plan = plans.first(where: { $0.id == planId }),
+                  let day = plan.days[safe: dayIndex] else { return nil }
+            return short(day.name)
+        case .rest, .none:
+            return nil
+        }
+    }
+
+    /// "Push" from "Push", "Upper" from "Upper Body", "Leg…" from "Legs and Core".
+    static func short(_ name: String) -> String {
+        let first = name.split(separator: " ").first.map(String.init) ?? name
+        return first.count <= 5 ? first : String(first.prefix(4)) + "…"
+    }
+
+    /// What VoiceOver reads for a cell, since the visual language is dots and four-letter labels.
+    static func spoken(_ day: CalendarDay, plans: [Plan], calendar: Calendar = .current) -> String {
+        let date = day.date.formatted(.dateTime.weekday(.wide).day().month(.wide))
+        switch day.entry {
+        case let .completed(sessions):
+            let names = sessions.map(\.dayName).joined(separator: ", ")
+            return "\(date). Done: \(names)"
+        case .projected:
+            let name = label(day.entry, plans: plans) ?? "a workout"
+            return "\(date). Planned: \(name)"
+        case .rest: return "\(date). Rest day"
+        case .none: return date
+        }
+    }
+}
 enum CalendarProjection {
     static func entries(month: Date, activePlan: Plan?, sessions: [Session], today: Date, calendar: Calendar = .current) -> [CalendarDay] {
         guard let monthInterval = calendar.dateInterval(of:.month,for:month), let days = calendar.range(of:.day,in:.month,for:month) else { return [] }
@@ -20,20 +62,24 @@ enum CalendarProjection {
                 if let d = plan.days.firstIndex(where: { $0.weekday?.calendarValue == calendar.component(.weekday,from:date) }) {
                     entry = .projected(planId:plan.id,dayIndex:d)
                 } else { entry = .rest }
-            } else if offset > 0 && !plan.cycle.isEmpty {
-                if plan.cycle.contains(.rest) {
-                    let position = plan.cyclePosition.flatMap { plan.cycle.indices.contains($0) ? $0 : nil } ?? -1
-                    let index = (position + offset) % plan.cycle.count
-                    switch plan.cycle[index] {
-                    case let .day(d) where plan.days.indices.contains(d): entry = .projected(planId:plan.id,dayIndex:d)
-                    case .rest: entry = .rest
-                    // A cycle entry pointing at a day that no longer exists is broken, not a rest day.
-                    default: entry = .none
-                    }
-                } else if offset == 1, let next = PlanSchedule.next(plan)?.dayIndex {
-                    // A rest-free cycle would paint every day, so only tomorrow is projected
-                    // and the rest of the month stays blank rather than becoming rest days.
-                    entry = .projected(planId:plan.id,dayIndex:next)
+            } else if !plan.cycle.isEmpty,
+                      PlanSchedule.position(plan) == nil
+                        || date > PlanSchedule.anchorDay(plan, today: today, calendar: calendar) {
+                // Today is painted too — Home says "Next up · Pull" for today, and the grid has
+                // to agree. The exception is the anchor day itself when something *was*
+                // completed on it: that day is done, not planned. A plan that has completed
+                // nothing has no such day, so its pattern starts today.
+                // D37 (v1.2): projected from the plan's anchor date, so the pattern is nailed to
+                // the calendar. v1.1 counted forward from *today*, which meant a missed workout
+                // slid every later day by one — and by one more for each further day missed.
+                // A rest-free cycle is painted for the whole horizon now: with an anchor it is
+                // a real repeating pattern rather than a guess about tomorrow.
+                switch PlanSchedule.entry(plan, on: date, today: today, calendar: calendar)?.entry {
+                case let .day(d) where plan.days.indices.contains(d):
+                    entry = .projected(planId:plan.id,dayIndex:d)
+                case .rest: entry = .rest
+                // A cycle entry pointing at a day that no longer exists is broken, not a rest day.
+                default: entry = .none
                 }
             }
             return CalendarDay(date:date,entry:entry)

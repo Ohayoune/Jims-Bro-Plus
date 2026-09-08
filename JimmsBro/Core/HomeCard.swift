@@ -27,10 +27,23 @@ enum StartCard: Equatable {
                 : .restDay(planId: plan.id, dayIndex: dayIndex, dayName: day.name,
                            weekday: day.weekday, daysAway: daysAway)
         }
-        guard let next = PlanSchedule.next(plan), let day = plan.days[safe: next.dayIndex] else {
+        // D37 (v1.2): the same anchored projection the calendar draws, so "Next up" and the
+        // ring on the grid can never disagree — which is half of why v1.1 felt clunky.
+        guard let next = PlanSchedule.next(plan, today: now, calendar: calendar),
+              let day = plan.days[safe: next.dayIndex] else {
             return .nothingScheduled
         }
-        return .nextUp(planId: plan.id, dayIndex: next.dayIndex, dayName: day.name)
+        // And it says *when*, which v1.1 never did for a rotation: the card read "Next up ·
+        // Push" whether Push was today or three rest days away, while the grid drew it on a
+        // day you had to count to.
+        let daysAway = calendar.dateComponents([.day], from: calendar.startOfDay(for: now),
+                                               to: next.date).day ?? 0
+        guard daysAway > 0 else {
+            return .nextUp(planId: plan.id, dayIndex: next.dayIndex, dayName: day.name)
+        }
+        let weekday = Weekday.allCases.first { $0.calendarValue == calendar.component(.weekday, from: next.date) }
+        return .restDay(planId: plan.id, dayIndex: next.dayIndex, dayName: day.name,
+                        weekday: weekday, daysAway: daysAway)
     }
 
     /// The day this card's primary button would start, if any.
@@ -122,8 +135,20 @@ struct HomeStart: Equatable {
     var isInProgress: Bool
     /// No plan at all: Home offers the two onboarding imports instead of a preview.
     var isEmpty: Bool
+    /// D37 (v1.2): the training day the schedule put before today that never happened, said
+    /// plainly rather than resolved behind your back. "Push was due Tuesday."
+    var missed: MissedWorkout?
 
     static let previewLimit = 5
+
+    /// A workout the schedule expected on a day that has no session on it.
+    struct MissedWorkout: Equatable {
+        var dayIndex: Int
+        var dayName: String
+        var date: Date
+        /// "Push was due Monday" — said, not silently rescheduled.
+        var text: String
+    }
 
     static func current(library: PlanLibrary, now: Date = Date(), calendar: Calendar = .current) -> HomeStart {
         let card = StartCard.current(library: library, now: now, calendar: calendar)
@@ -164,6 +189,17 @@ struct HomeStart: Equatable {
             start.dayIndex = dayIndex
             let when = weekday.map { ", \(WeekdayText.short($0))" } ?? ""
             start.subtitle = "\(dayName) is next\(when)"
+        }
+
+        if let plan = library.activePlan, plan.schedule == .rotation, library.engine == nil,
+           let missed = PlanSchedule.missed(plan, sessions: library.sessions, today: now,
+                                            calendar: calendar),
+           let day = plan.days[safe: missed.dayIndex] {
+            let weekday = calendar.component(.weekday, from: missed.date)
+            let name = calendar.weekdaySymbols[safe: weekday - 1] ?? "then"
+            start.missed = MissedWorkout(dayIndex: missed.dayIndex, dayName: day.name,
+                                         date: missed.date,
+                                         text: "\(day.name) was due \(name)")
         }
 
         guard let plan = library.plans.first(where: { $0.id == start.planId }),

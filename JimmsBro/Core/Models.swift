@@ -24,8 +24,15 @@ struct Plan: Codable, Identifiable, Equatable {
     var warnings: [Issue] = []
     var cycle: [CycleEntry]
     var cyclePosition: Int?
+    /// D37 (v1.2): the day `cyclePosition` describes. With it, the calendar projects a rotation
+    /// from a **date** instead of from "today plus an offset", so missing a workout no longer
+    /// slides the whole month forward — and one forward for every further day missed, which is
+    /// the compounding the owner described. Set whenever a session completes, and once at
+    /// launch for a plan that predates it.
+    var cycleAnchor: Date?
     enum CodingKeys: String, CodingKey {
-        case id, name, units, schedule, days, importedAt, sourceText, warnings, cycle, cyclePosition
+        case id, name, units, schedule, days, importedAt, sourceText, warnings, cycle,
+             cyclePosition, cycleAnchor
     }
 }
 struct Day: Codable, Identifiable, Equatable {

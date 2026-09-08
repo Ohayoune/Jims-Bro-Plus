@@ -70,7 +70,8 @@ extension Plan {
             // A plan written before cycles existed repeats its days in order, which is what
             // the importer would have given it.
             cycle: container.value(.cycle, or: days.indices.map(CycleEntry.day)),
-            cyclePosition: container.optional(.cyclePosition))
+            cyclePosition: container.optional(.cyclePosition),
+            cycleAnchor: container.optional(.cycleAnchor))
     }
 }
 

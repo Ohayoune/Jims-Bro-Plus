@@ -39,7 +39,9 @@ for (offset, dayIndex) in [(12, 0), (10, 1), (8, 2), (5, 0), (3, 1), (1, 2)] {
     }
     session.endedAt = session.steps.last?.loggedAt
     sessions.append(session)
-    PlanSchedule.advance(&plan, completedDayName: session.dayName)
+    // v1.2: on the day it happened, so the seeded plan's cycle anchor (D37) is real and the
+    // calendar the screenshots show is the one a phone with this history would show.
+    PlanSchedule.advance(&plan, completedDayName: session.dayName, on: start)
 }
 
 try await store.save(settings: Settings())

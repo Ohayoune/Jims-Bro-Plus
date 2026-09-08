@@ -340,9 +340,22 @@ It is not a set, it is not logged, and it does not appear in history. A session 
 - Past and today: `.completed` for days with ≥ 1 completed session (any plan). Past days without a session are `.none`, never `.rest` — a day you didn't train is not a scheduled rest day.
 - Future days (and today if no session yet):
   - weekday plan → `.projected` for days whose weekday has a Day, `.rest` for every other weekday (a weekday plan names all its training days, so the remainder are rest).
-  - rotation plan whose cycle contains at least one `.rest` entry → starting tomorrow, walk the cycle one entry per calendar day from `cyclePosition + 1`; `.day` → projected, `.rest` → rest. A `.day` entry whose index no longer exists is `.none`, not `.rest`.
-  - rotation plan with no rest entries → project only tomorrow as Next up, nothing further, and no rest days (a rest-free cycle would paint every day, which would be misleading).
+  - rotation plan (v1.2, D37) → the cycle entry for a date is `cycle[(cyclePosition + daysFrom(cycleAnchor)) mod count]`. Every rotation is painted this way, rest entries or not: `.day` → projected, `.rest` → rest, and a `.day` entry whose index no longer exists is `.none`, not `.rest`.
 - Projection never shows more than 62 days ahead (two months); past that every day is `.none`.
+
+**D37 (v1.2): the anchor, and why.** v1.1 walked the cycle forward from *today* — `cyclePosition + daysFromToday` — and `cyclePosition` moved only when a session completed. Miss a workout and every later day slid by one, and by one more for each further day missed. The owner: *"if one day of the week is messed up then it compounds."*
+
+`Plan.cycleAnchor` is the day `cyclePosition` describes, so the pattern is nailed to the calendar:
+
+- Missing a workout changes **nothing** about what any other day says.
+- The pattern moves only when a workout **finishes**, which re-anchors it, once, to the day it was actually done.
+- A rest-free cycle is painted for the whole horizon, because it is now a real repeating pattern rather than a guess about tomorrow. v1.1 projected only tomorrow and left the month blank.
+- A plan that predates the anchor is anchored to today at launch, once, and written down. Nothing it says today changes; from tomorrow it stops sliding.
+- The day the schedule expected and did not get is **said**, on Home — "Push was due Monday", with **Do it now** and **Dismiss** — rather than resolved behind your back. Only the most recent one, and only within a week: a plan you came back to after a fortnight is a fresh start, not a missed Tuesday.
+
+Home's **Next up** and the ring on the grid read the same function (`PlanSchedule.next(_:today:)`), so they cannot disagree. In v1.1 they were computed two different ways, which is the other half of why the calendar felt clunky.
+
+**D38 (v1.2): what a cell says.** v1.1 drew every day as the same 5 pt dot — filled for done, outlined for planned, grey for rest — so a month of training looked like a month of anything else, and the shape of a week could not be read off the grid ("the spacing … is not perfectly clear"). A cell now carries the day's short name under its number, a finished day is filled in the reserved green, a planned day is outlined in the accent, and a rest day is a dash: a visible gap rather than another kind of dot. Each cell reads as one VoiceOver sentence ("Monday 7 September. Planned: Push").
 
 ### 6.7 Stats
 - Session duration = `endedAt − startedAt` wall clock. No pause feature. Elapsed time is shown in the workout header and on the rest overlay.

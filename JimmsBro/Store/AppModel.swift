@@ -115,6 +115,23 @@ enum SaveFailure: Equatable {
                 SessionEngine(active: $0, settings: snapshot.settings, history: snapshot.sessions)
             }
         }
+        // D37 (v1.2): a rotation imported before anchors existed has a cycle position but no
+        // date to hang it on. Anchoring it to today keeps "next up" saying exactly what v1.1
+        // said on the upgrade day, and makes the calendar stable from then on. Written once.
+        var anchored = false
+        for index in library.plans.indices {
+            // The day the position describes is the day of this plan's most recent completed
+            // session, which is exactly what the store has just handed us.
+            let plan = library.plans[index]
+            let last = library.sessions
+                .filter { $0.planId == plan.id && $0.endedAt != nil }
+                .map(\.startedAt).max()
+            if PlanSchedule.anchorIfNeeded(&library.plans[index], lastCompleted: last, today: now) {
+                anchored = true
+            }
+        }
+        if anchored { await persistPlans() }
+
         // First launch: the defaults we just chose become the file (N10).
         if !snapshot.hasSettingsFile {
             do { try await store.save(settings: library.settings) } catch { saveFailure = .settings(library.settings) }
