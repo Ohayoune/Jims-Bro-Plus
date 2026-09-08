@@ -132,6 +132,8 @@ enum StepCard {
         let target = SetTarget(work: resolved.work, weight: resolved.weight, restSeconds: 0)
         var text = TargetText.target(target, range: step.dropIndex == 0 ? exercise.repRange : nil,
                                      units: session.units)
+        // D42: said once, on the exercise's line, like the notes — never on every row.
+        if notes, let was = exercise.substitutedFor { text += " · was \(was)" }
         if notes, let note = exercise.notes?.trimmed, !note.isEmpty { text += " · \(note)" }
         return text
     }
@@ -189,7 +191,11 @@ enum StepCard {
                           ?? step.setIndex) + 1
             text = "\(group) · round \(step.setIndex + 1) of \(rounds) · \(exercise.name)"
         } else {
-            text = "Exercise \(step.exerciseIndex + 1) of \(session.exercises.count)"
+            // The same count the stage uses (D34), so the header cannot disagree with itself
+            // after "Do later" (D28) or a substitution (D42).
+            let order = SessionBlocks.exerciseOrder(session)
+            let position = (order.firstIndex(of: SessionBlocks.canonical(session, step.exerciseIndex)) ?? 0) + 1
+            text = "Exercise \(position) of \(max(order.count, position))"
                  + " · Set \(step.setIndex + 1) of \(exercise.targets.count)"
         }
         if step.dropIndex > 0, let target = exercise.targets[safe: step.setIndex] {
@@ -219,7 +225,10 @@ enum StepCard {
                 session.steps[$0].blockIndex == step.blockIndex && session.steps[$0].setIndex == step.setIndex
             }
         } else {
-            indices = session.steps.indices.filter { session.steps[$0].exerciseIndex == step.exerciseIndex }
+            // An ungrouped exercise is its own block, so this is the exercise's steps — and,
+            // after a substitution (D42), the logged sets of the exercise it stood in for,
+            // which stay on screen under their own name rather than vanishing.
+            indices = session.steps.indices.filter { session.steps[$0].blockIndex == step.blockIndex }
         }
         let naming = blockNamesRows(session: session, block: step.blockIndex)
         return indices.map { i in
@@ -245,7 +254,12 @@ enum StepCard {
     /// try 72.5 kg next time". `nil` only when the block has no identifiable exercise.
     static func blockDoneLine(session: Session, blockDone: BlockDone) -> String? {
         let steps = session.steps.filter { $0.blockIndex == blockDone.finishedBlock }
-        guard let first = steps.first, let exercise = session.exercises[safe: first.exerciseIndex] else { return nil }
+        // D42: a block that ended on a substitute is named for the substitute — that is the
+        // exercise that was just done.
+        guard let first = steps.first,
+              let exercise = steps.compactMap({ session.exercises[safe: $0.exerciseIndex] })
+                .first(where: { $0.replaces != nil })
+                ?? session.exercises[safe: first.exerciseIndex] else { return nil }
         var text = "\(exercise.name) done"
         if let seconds = SessionStats.blockDuration(blockDone.finishedBlock, session: session) {
             text += " · \(TargetText.time(seconds))"

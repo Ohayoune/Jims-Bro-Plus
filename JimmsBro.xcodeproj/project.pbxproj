@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DF1A119FAD2849449B70E433 /* ChangeExerciseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1374E419EAD343B697A28F06 /* ChangeExerciseTests.swift */; };
+		8C433778AA4F41A9B54DD924 /* ChangeExerciseSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B213B7B0ED784B51A6EF7592 /* ChangeExerciseSheet.swift */; };
 		25B184F7E2E8488C921B44D3 /* StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 070F5AD1D87E47ACBE99D42E /* StoreTests.swift */; };
 		26F2C1972C11BABA2E839F2E /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E83249BD3BA79932E16FB1FB /* HomeView.swift */; };
 		27057E6E82004BE891303904 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7FB3A73467463C82F6027F /* Store.swift */; };
@@ -123,6 +125,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1374E419EAD343B697A28F06 /* ChangeExerciseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeExerciseTests.swift; sourceTree = "<group>"; };
+		B213B7B0ED784B51A6EF7592 /* ChangeExerciseSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeExerciseSheet.swift; sourceTree = "<group>"; };
 		03C57A441932DB44EDA5A940 /* PlanLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanLibrary.swift; sourceTree = "<group>"; };
 		05EC05A0A4104F4E9E910F0D /* SummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryView.swift; sourceTree = "<group>"; };
 		06BB807B4C94476D9B4D025C /* warning.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = warning.caf; sourceTree = "<group>"; };
@@ -258,6 +262,7 @@
 		2AF984875FBF19B6DA7E5CAE /* Workout */ = {
 			isa = PBXGroup;
 			children = (
+				B213B7B0ED784B51A6EF7592 /* ChangeExerciseSheet.swift */,
 				9ECE5A2B825C4D899A98760D /* SystemActivities.swift */,
 				3333E8C09AC641FCA2470B96 /* WorkoutView.swift */,
 				72A3F28DDEE4461A904E029C /* SystemAlerts.swift */,
@@ -335,6 +340,7 @@
 		8B7A6DECC0651D269EA794C7 /* JimmsBroTests */ = {
 			isa = PBXGroup;
 			children = (
+				1374E419EAD343B697A28F06 /* ChangeExerciseTests.swift */,
 				5418E891D2194939B62AE34D /* ActivityTests.swift */,
 				E48DE3944FA443E88F409422 /* MetricsTests.swift */,
 				246711AEC6EA417E8E18B535 /* ScheduleAnchorTests.swift */,
@@ -609,6 +615,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8C433778AA4F41A9B54DD924 /* ChangeExerciseSheet.swift in Sources */,
 				91F813883A2E4C74A3DB1074 /* WorkoutActivityAttributes.swift in Sources */,
 				9FBBABF59F6C423185988FA6 /* SystemActivities.swift in Sources */,
 				6F40DAF28A6E400785B5D6E7 /* WorkoutActivityState.swift in Sources */,
@@ -660,6 +667,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DF1A119FAD2849449B70E433 /* ChangeExerciseTests.swift in Sources */,
 				5CF563E7589A4C9DB7E6FABC /* ActivityTests.swift in Sources */,
 				3F695B4C1054440FA19BD4A5 /* MetricsTests.swift in Sources */,
 				A2FEB4D9854045CF98BE6AF2 /* ScheduleAnchorTests.swift in Sources */,

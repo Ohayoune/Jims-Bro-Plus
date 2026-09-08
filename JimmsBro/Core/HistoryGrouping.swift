@@ -111,6 +111,27 @@ enum SessionBlocks {
             .sorted { ($0.first ?? 0) < ($1.first ?? 0) }
     }
 
+    /// D42 (v1.3): the exercise an index counts as. A substitute appended mid-workout
+    /// (`replaces`) is the same position in the day as the exercise it stood in for, so
+    /// "Exercise 2 of 5" stays 2 of 5 after a change. Follows a chain of substitutions.
+    static func canonical(_ session: Session, _ index: Int) -> Int {
+        var current = index
+        var hops = 0
+        while let next = session.exercises[safe: current]?.replaces, hops < session.exercises.count {
+            current = next; hops += 1
+        }
+        return current
+    }
+
+    /// The day's exercises in the order it now runs them — after "Do later" (D28) has moved a
+    /// block and a substitute (D42) has joined one — each position counted once.
+    static func exerciseOrder(_ session: Session) -> [Int] {
+        var seen = Set<Int>()
+        return indices(session)
+            .flatMap { block in block.map { canonical(session, session.steps[$0].exerciseIndex) } }
+            .filter { seen.insert($0).inserted }
+    }
+
     /// The exercises in a block, in order, de-duplicated the way exercise history matches
     /// names (§6.9) — so "Bench press" and "Bench Press" are one exercise here too.
     static func names(_ session: Session, _ indices: [Int]) -> [String] {

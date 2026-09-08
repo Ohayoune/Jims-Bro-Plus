@@ -137,7 +137,9 @@ extension SessionExercise {
                   repRange: container.optional(.repRange),
                   bodyweight: container.value(.bodyweight, or: false),
                   targets: try container.decode([SetTarget].self, forKey: .targets),
-                  advice: container.optional(.advice))
+                  advice: container.optional(.advice),
+                  substitutedFor: container.optional(.substitutedFor),
+                  replaces: container.optional(.replaces))
     }
 }
 

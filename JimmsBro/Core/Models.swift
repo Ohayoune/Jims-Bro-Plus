@@ -105,8 +105,16 @@ struct SessionExercise: Codable, Identifiable, Equatable {
     var bodyweight = false
     var targets: [SetTarget]
     var advice: Advice?
+    /// D42 (v1.3): the name of the exercise this one stood in for mid-workout, so the screens
+    /// can say "Dumbbell Press · was Bench Press". Nil for an exercise done as planned.
+    var substitutedFor: String?
+    /// D42 (v1.3): when some of the original's sets were already logged, the substitute is a
+    /// second `SessionExercise` and this is the original's index — the two are one position in
+    /// the day for "Exercise 2 of 5", and the original earns no advice for a job it did not
+    /// finish. Nil when the exercise was simply renamed in place.
+    var replaces: Int?
     enum CodingKeys: String, CodingKey {
-        case id, name, group, notes, repRange, bodyweight, targets, advice
+        case id, name, group, notes, repRange, bodyweight, targets, advice, substitutedFor, replaces
     }
 
     /// D11 (v1.1): true when the main-set target weights are not all equal (or all absent) — a

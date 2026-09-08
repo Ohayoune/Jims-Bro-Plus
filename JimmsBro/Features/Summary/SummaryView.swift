@@ -45,6 +45,12 @@ struct SummaryView: View {
                             PRBadge(text: record)
                         }
                     }
+                    // D42 (v1.3): what it stood in for, said once.
+                    if let was = exercise.substitutedFor {
+                        Text("Instead of \(was)")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                     // Only when no single sentence is true of the whole exercise.
                     ForEach(Array(comparison.rows.enumerated()), id: \.offset) { _, row in
                         Text(row)

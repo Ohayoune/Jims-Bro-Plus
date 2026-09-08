@@ -13,6 +13,8 @@ struct WorkoutView: View {
     @State private var showFinishConfirm = false
     @State private var showDiscardConfirm = false
     @State private var editing: Int?
+    /// D42 (v1.3): the exercise Change exercise was opened for.
+    @State private var changing: ChangeTarget?
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -33,6 +35,11 @@ struct WorkoutView: View {
             EditResultSheet(target: target) { result in
                 Task { await model.apply(.editSet(step: target.step, result: result)) }
             }
+        }
+        .sheet(item: $changing) { target in
+            ChangeExerciseSheet(exerciseIndex: target.exerciseIndex, currentName: target.name,
+                                units: model.session?.units ?? model.displayUnits)
+                .environment(model)
         }
         .task {
             #if DEBUG
@@ -67,7 +74,8 @@ struct WorkoutView: View {
            let screen = WorkoutScreen.model(active: active, history: model.sessions, now: now,
                                             settings: model.settings) {
             WorkoutScreenView(screen: screen, now: now, showOverview: $showOverview,
-                              editing: $editing, minimize: { dismiss() }, finish: requestFinish)
+                              editing: $editing, minimize: { dismiss() }, finish: requestFinish,
+                              changeExercise: { changing = ChangeTarget(exerciseIndex: $0, name: $1) })
                 .toolbar(.hidden, for: .navigationBar)
         } else if let session = model.session, model.phase == .completed {
             SummaryView(session: session) { dismiss() }
@@ -89,6 +97,14 @@ struct WorkoutView: View {
     }
 }
 
+/// D42: which exercise the Change exercise sheet is about, captured when the menu is tapped
+/// so the sheet is not chasing a step that moved while it was open.
+private struct ChangeTarget: Identifiable {
+    var exerciseIndex: Int
+    var name: String
+    var id: Int { exerciseIndex }
+}
+
 /// The five zones. Everything it draws comes from `WorkoutScreenModel`; it computes nothing.
 private struct WorkoutScreenView: View {
     @Environment(AppModel.self) private var model
@@ -98,6 +114,8 @@ private struct WorkoutScreenView: View {
     @Binding var editing: Int?
     let minimize: () -> Void
     let finish: () -> Void
+    /// D42 (v1.3): opens Change exercise for (exercise index, its current name).
+    let changeExercise: (Int, String) -> Void
 
     @State private var repsText = ""
     @State private var weightText = ""
@@ -197,6 +215,12 @@ private struct WorkoutScreenView: View {
                     if model.canDefer(exerciseIndex: screen.exerciseIndex) {
                         Button("Do later") {
                             Task { await model.apply(.deferExercise(exerciseIndex: screen.exerciseIndex)) }
+                        }
+                    }
+                    // D42 (v1.3): the machine is taken and you want to do something now.
+                    if model.canSubstitute(exerciseIndex: screen.exerciseIndex) {
+                        Button("Change exercise") {
+                            changeExercise(screen.exerciseIndex, screen.exerciseName)
                         }
                     }
                     Button("Finish workout", role: .destructive) { finish() }

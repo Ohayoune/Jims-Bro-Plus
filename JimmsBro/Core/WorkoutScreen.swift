@@ -56,14 +56,10 @@ enum WorkoutStage: Equatable {
             guard let step = session.steps[safe: index],
                   let exercise = session.exercises[safe: step.exerciseIndex] else { return .done }
             // Counted over the exercises as the day now runs them, so "Do later" (D28) moves an
-            // exercise's number with it rather than leaving a gap.
-            let order = SessionBlocks.indices(session)
-                .flatMap { indices in
-                    var seen = Set<Int>()
-                    return indices.map { session.steps[$0].exerciseIndex }
-                        .filter { seen.insert($0).inserted }
-                }
-            let position = (order.firstIndex(of: step.exerciseIndex) ?? 0) + 1
+            // exercise's number with it rather than leaving a gap, and a substitute (D42) keeps
+            // the number of the exercise it stood in for.
+            let order = SessionBlocks.exerciseOrder(session)
+            let position = (order.firstIndex(of: SessionBlocks.canonical(session, step.exerciseIndex)) ?? 0) + 1
             return .working(exercise: position, exercises: max(order.count, position),
                             set: step.setIndex + 1,
                             sets: max(exercise.targets.count, step.setIndex + 1))

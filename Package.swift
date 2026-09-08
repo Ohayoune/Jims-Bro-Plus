@@ -34,7 +34,8 @@ let package = Package(
                       "JimmsBroTests/SuggestionTests.swift",
                       "JimmsBroTests/ScheduleAnchorTests.swift",
                       "JimmsBroTests/MetricsTests.swift",
-                      "JimmsBroTests/ActivityTests.swift"],
+                      "JimmsBroTests/ActivityTests.swift",
+                      "JimmsBroTests/ChangeExerciseTests.swift"],
             resources: [.copy("examples")]
         )
     ]

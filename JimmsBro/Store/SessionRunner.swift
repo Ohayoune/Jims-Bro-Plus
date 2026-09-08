@@ -36,6 +36,13 @@ extension AppModel {
             && session.steps.contains { $0.blockIndex != block && $0.status == .pending }
     }
 
+    /// D42 (v1.3): Change exercise is offered whenever the exercise still has a set to do —
+    /// there is nothing to change about one that is finished.
+    func canSubstitute(exerciseIndex: Int) -> Bool {
+        guard let session, phase != .completed else { return false }
+        return session.steps.contains { $0.exerciseIndex == exerciseIndex && $0.status == .pending }
+    }
+
     /// D23 (v1.1): the status strip's Undo. Captures what the step held before undoing it, so
     /// the inputs come back carrying the values that were just removed (O52).
     func undoLast(now: Date = Date()) async {

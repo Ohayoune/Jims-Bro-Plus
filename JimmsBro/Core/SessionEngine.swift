@@ -13,6 +13,9 @@ enum Event {
     /// D28 v1.1 (R5): moves an exercise's remaining sets to the end of the day — the machine is
     /// taken, so do it later rather than skipping it.
     case deferExercise(exerciseIndex: Int)
+    /// D42 v1.3: the machine is taken and you want to do *something* now — the exercise's
+    /// remaining sets become sets of another exercise, which keeps its own history identity.
+    case substituteExercise(exerciseIndex: Int, name: String, weight: Double?)
     case renameExercise(exerciseIndex: Int, name: String), finish
     case setWorkWeight(step: Int, weight: Double?)
 }
@@ -85,6 +88,11 @@ struct SessionEngine {
     }
     private mutating func reevaluateAdvice(_ e: Int) {
         guard session.exercises.indices.contains(e) else { return }
+        // D42: an exercise whose remaining sets went to a substitute did not finish the job the
+        // advice would be judging, so it earns none — the substitute earns its own.
+        guard !session.exercises.contains(where: { $0.replaces == e }) else {
+            active.session.exercises[e].advice = nil; return
+        }
         let steps = session.steps.filter { $0.exerciseIndex == e }
         guard !steps.contains(where: { $0.status == .pending }) else { return }
         active.session.exercises[e].advice = ProgressionAdvice.evaluate(
@@ -268,6 +276,9 @@ struct SessionEngine {
         case let .deferExercise(e):
             guard let moved = self.defer(exercise: e, now: now) else { return [] }
             effects += moved
+        case let .substituteExercise(e, name, weight):
+            guard let moved = substitute(exercise: e, name: name, weight: weight, now: now) else { return [] }
+            effects += moved
         case let .renameExercise(e, name):
             guard session.exercises.indices.contains(e), !name.trimmed.isEmpty else { return [] }
             active.session.exercises[e].name = String(name.trimmed.prefix(100))
@@ -324,6 +335,65 @@ struct SessionEngine {
         let next = active.session.steps.indices.first { active.session.steps[$0].status == .pending }
             ?? current
         if let next { enterWorking(next, now: now) }
+        return effects
+    }
+
+    /// D42 (v1.3): the exercise's remaining sets become sets of `name`. Logged and skipped
+    /// sets stay what they were; step order and `blockIndex` do not change, so a rest that is
+    /// running keeps running and the position in the day is the same.
+    ///
+    /// With nothing done yet the exercise is renamed in place. With something done, a second
+    /// `SessionExercise` is appended (`replaces` pointing back) and the pending steps are
+    /// re-pointed to it, so history says "Bench Press 1 set, Dumbbell Press 2 sets" rather than
+    /// crediting one exercise with the other's work. The same name with a weight is just a
+    /// weight change for the remaining sets. Returns nil when there is nothing to do.
+    private mutating func substitute(exercise e: Int, name: String, weight: Double?, now: Date) -> [Effect]? {
+        guard phase != .completed, session.exercises.indices.contains(e),
+              weight.map({ $0.isFinite && (0...10000).contains($0) }) ?? true else { return nil }
+        let newName = String(name.trimmed.prefix(100))
+        guard !newName.isEmpty else { return nil }
+        let pending = session.steps.indices.filter {
+            session.steps[$0].exerciseIndex == e && session.steps[$0].status == .pending
+        }
+        guard !pending.isEmpty else { return nil }
+        let original = session.exercises[e]
+        let sameName = normalized(newName) == normalized(original.name)
+        guard !sameName || weight != nil else { return nil }
+
+        var replacement = original
+        replacement.name = newName
+        replacement.advice = nil
+        if !sameName { replacement.substitutedFor = original.substitutedFor ?? original.name }
+        if let weight {
+            for i in replacement.targets.indices { replacement.targets[i].weight = weight }
+            replacement.bodyweight = false
+        } else if !sameName,
+                  let last = ExerciseHistory.last(name: newName, units: session.units, sessions: history),
+                  let known = last.exercises.first(where: { normalized($0.name) == normalized(newName) }) {
+            // The substitute keeps its own identity (D8), which includes whether it is loaded.
+            replacement.bodyweight = known.bodyweight
+        }
+
+        let somethingDone = session.steps.contains { $0.exerciseIndex == e && $0.status != .pending }
+        if somethingDone && !sameName {
+            replacement.id = UUID()
+            replacement.replaces = e
+            active.session.exercises.append(replacement)
+            let index = active.session.exercises.count - 1
+            for i in pending { active.session.steps[i].exerciseIndex = index }
+            active.session.exercises[e].advice = nil
+        } else {
+            active.session.exercises[e] = replacement
+        }
+
+        // The card that is up re-reads its prefill from the substitute's own history. Its
+        // timing is untouched: the set began when the card appeared, whatever it is now called.
+        var effects: [Effect] = []
+        if case let .working(current) = phase, pending.contains(current) {
+            if active.timerRunning { effects += cancelWork() }
+            active.workWeight = Prefill.values(session: session, step: current, history: history,
+                                               settings: settings).weight
+        }
         return effects
     }
 
