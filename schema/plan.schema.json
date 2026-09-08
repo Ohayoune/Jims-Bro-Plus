@@ -173,12 +173,24 @@
         },
         "warningBeep": {
           "$ref": "#/$defs/warningBeep"
+        },
+        "inReserve": {
+          "$ref": "#/$defs/inReserve"
+        },
+        "rir": {
+          "$ref": "#/$defs/inReserve"
         }
       }
     },
     "set": {
       "type": "object",
       "properties": {
+        "inReserve": {
+          "$ref": "#/$defs/inReserve"
+        },
+        "rir": {
+          "$ref": "#/$defs/inReserve"
+        },
         "reps": {
           "$ref": "#/$defs/reps"
         },
@@ -249,6 +261,11 @@
           "pattern": "^\\s*(\\d{1,5}\\s*\\+?|(?i:max|open|amsap|as long as possible|to failure))\\s*$"
         }
       ]
+    },
+    "inReserve": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 20
     },
     "warningBeep": {
       "oneOf": [

@@ -110,7 +110,8 @@ extension SetTarget {
                   restSeconds: try container.decode(Int.self, forKey: .restSeconds),
                   warningBeepSeconds: container.optional(.warningBeepSeconds),
                   drops: container.value(.drops, or: []),
-                  groupRestSeconds: container.optional(.groupRestSeconds))
+                  groupRestSeconds: container.optional(.groupRestSeconds),
+                  inReserve: container.optional(.inReserve))
     }
 }
 

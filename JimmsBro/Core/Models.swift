@@ -96,8 +96,11 @@ struct SetTarget: Codable, Equatable {
     var drops: [DropTarget] = []
     // A group's round rest is resolved at import, before explicit/default provenance is lost.
     var groupRestSeconds: Int?
+    /// D51 (v1.5): the effort target — reps (or seconds, on a hold) to stop short of failure.
+    /// Nil when the plan did not say, and then nothing is shown.
+    var inReserve: Int?
     enum CodingKeys: String, CodingKey {
-        case work, weight, restSeconds, warningBeepSeconds, drops, groupRestSeconds
+        case work, weight, restSeconds, warningBeepSeconds, drops, groupRestSeconds, inReserve
     }
 }
 struct DropTarget: Codable, Equatable { var work: WorkTarget; var weight: Double? }

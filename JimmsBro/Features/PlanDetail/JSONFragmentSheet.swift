@@ -167,7 +167,8 @@ enum FragmentTarget: Identifiable, Equatable {
       "reps": "8-12",
       "repRange": "8-12",
       "weight": null,
-      "restSeconds": 90
+      "restSeconds": 90,
+      "inReserve": null
     }
 
     """

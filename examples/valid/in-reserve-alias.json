@@ -1,0 +1,24 @@
+{
+  "name": "Effort alias",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Lat Pulldown",
+          "reps": "10-12",
+          "weight": 50,
+          "restSeconds": 90,
+          "sets": [
+            {
+              "rir": "2"
+            },
+            {
+              "inReserve": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

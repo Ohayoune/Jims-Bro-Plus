@@ -780,6 +780,19 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | Z3 | unit | (D50, v1.5) The views that show the sentences | Add plan, Progression and Plan detail's source reference `PromptText.copyStep`, `.mechanism` and `.progressionRow`, Home's references `.planProgression` — read from the checkout on the host routes, skipped on the simulator |
 | Z4 | manual | (D50, v1.5) Add plan and Plan detail on the phone | Copy prompt is the filled accent button beside the sentence; the footer is under the steps; the Progression row has its line and an accent chevron; Home shows **Plan a progression** only on a day whose every exercise has history, and not once one is attached |
 
+### Z2 — the effort target (D51)
+
+`JimmsBroTests/InReserveTests.swift`; the four fixtures `valid/in-reserve.json`, `valid/in-reserve-alias.json`, `invalid/in-reserve-word.json` and `invalid/in-reserve-too-many.json` run through the manifest in `ImportTests`, with the `inReservePerSet` check.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Z5 | unit | (D51, v1.5) `inReserve` at exercise level, overridden on one set; `rir`; on a hold; a word; 25 | Sets carry 2, 2, 1; the alias reads; a hold takes seconds; the word and the number over 20 are `E_IN_RESERVE_INVALID` at the field's own path, with a sentence that says 0 to 20; a plan that says nothing has nil everywhere and shows nothing |
+| Z6 | unit | (D51, v1.5) The card, its spoken form, the next line and the summary | "6–8 · 80 kg · 2 in reserve"; the spoken card says "2 in reserve"; "Next: … · 2 in reserve"; the summary says it once when every set agrees and not at all when they differ; a drop's target has none |
+| Z7 | unit | (D51, v1.5) On disk | A set with `inReserve` round-trips through the store's coder; the frozen v1 plans and session decode with nil; a session started from the plan carries it in its snapshot |
+| Z8 | unit | (D51, v1.5) `PlanEdit.setInReserve` | Every set takes the value and the plan re-imports; nil clears it; 21 is refused with `E_EDIT_INVALID`; the rendered JSON carries `"inReserve"` per set and imports back identically |
+| Z9 | unit | (D51, v1.5) The prompts | The plan prompt carries the `inReserve` rule and no longer sends RPE to notes; the progression prompt's history line ends "· 2 in reserve" when every logged set of the exercise had it, and says nothing when the plan did not |
+| Z10 | manual | (D51, v1.5) A plan with `"inReserve": 2` on the phone | The card reads "… · 2 in reserve" under the exercise, the review and Plan detail say it once per exercise, and the edit sheet's In reserve field changes it |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

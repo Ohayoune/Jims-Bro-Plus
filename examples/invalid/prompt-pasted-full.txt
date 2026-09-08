@@ -1,6 +1,5 @@
 JIMMSBRO-PLAN-PROMPT-V1
-You are converting a workout plan into JSON for a workout-tracking app.
-Reply with ONLY one JSON object inside a single code block tagged json. No text before or after it.
+Convert my workout plan to JSON for a workout-tracking app. Reply with ONE complete JSON object in a single code block tagged json, with no other text.
 
 FORMAT (schemaVersion 1):
 {
@@ -26,24 +25,24 @@ FORMAT (schemaVersion 1):
 }
 
 RULES
-- "days": one entry per training day, in order. A single workout is a plan with one day. Do not list rest days.
-- "schedule": "rotation" means do the days in order and repeat. Use "weekday" only if the plan ties days to weekdays; then give every day a "weekday" ("monday" … "sunday") and omit "cycle".
-- "cycle": for rotation plans, the block that repeats: every day name in order, with "rest" for rest days, covering one full repeat (a 6-day push/pull/legs week is ["Push","Pull","Legs","Push","Pull","Legs","rest"]). Include the rest days; the app uses them for its calendar.
-- "sets": a number when every set is the same (then put "reps"/"durationSeconds"/"weight" on the exercise), or an array of set objects when sets differ. Prefer the number form.
-- Every set needs exactly one of "reps" or "durationSeconds" (timed holds and cardio, in seconds). Use "durationSeconds": "max" for holds done as long as possible (the app runs a stopwatch), or "30+" for at least 30 seconds.
-- Timed sets beep when they end. "warningBeep" adds a short warning beep before the end: true = at 10% of the time left (the default, so you can omit it), false = none, or a number of seconds before the end (e.g. 5). Only for sets with a fixed "durationSeconds".
-- "bodyweight": true for exercises with no weight at all (push-ups, planks, hangs). Then give no "weight". For weighted calisthenics give the added load as "weight" and no flag.
-- "reps": a whole number, a range like "8-12", "AMRAP" (as many as possible), or "10+" (at least 10). Nothing else.
-- "repRange": for every exercise that has reps, the range the working weight should stay in, like "8-12". The app tells me to add weight when I reach the top of it on every set. If "reps" is already a range you can omit "repRange". If the plan gives a fixed number, choose a sensible range that contains it (10 → "8-12", 5 → "4-6"). Timed exercises don't get one.
-- "weight": a number in kg. Omit it for bodyweight or when the plan gives no weight. Never write units inside the value.
-- "restSeconds": rest after each set of that exercise, as a whole number. Always include it. If the plan doesn't say: 120-180 for heavy compound lifts, 60-90 for isolation, 30-60 for circuits and core.
-- Drop sets: add "drops" to the exercise (or to one set), a list like [ { "weight": 20 }, { "weight": 15 } ], done right after each set with no rest. Reps default to as many as possible.
-- Superset or circuit: give each exercise in it the same "group" letter, list them consecutively, give them the same number of sets. Rest happens after each round.
-- Exercise names: specific and consistent ("Barbell Back Squat", not "Squats"). The app tracks history by exact name, so reuse the same spelling across days.
-- Keep exercises in the order they are performed.
-- If I list specific exercises, use exactly those; do not add, remove, or reorder. If I ask you to design a plan, design a sensible one.
-- Anything that doesn't fit (tempo, RPE, cues, "each side") goes in "notes".
-- Output the complete JSON even if it is long. Never abbreviate with "...".
+- days: training days in order; one workout = one day. Do not list rest days as days.
+- schedule: rotation = repeat days in order. Use weekday only for a fixed weekly schedule; give every day a weekday (monday…sunday) and omit cycle.
+- cycle: rotation's full repeating block, using day names and "rest", including rest days. Example: ["Push","Pull","Legs","Push","Pull","Legs","rest"]. This drives the calendar.
+- sets: a count for identical sets; otherwise an array of set objects. Exercise-level fields default each set. Prefer the count form.
+- Each set needs exactly one of reps or durationSeconds. Duration is seconds for holds/cardio; "max" = stopwatch until stopped, "30+" = at least 30 seconds.
+- Fixed durations beep at the end. warningBeep: true or omitted = warning at 10% remaining, false = off, or a number of seconds before the end (e.g. 5). Fixed durations only.
+- bodyweight: true when no weight applies (push-ups, planks, hangs); omit weight. For weighted calisthenics use added load as weight and omit the flag.
+- reps: whole number, "8-12", "AMRAP" (as many as possible), or "10+" (at least 10). Nothing else.
+- repRange: give every rep exercise a working range for weight progression, e.g. "8-12". Omit if reps already is a range. For fixed targets choose a range containing it (10 → "8-12", 5 → "4-6"). No repRange for timed exercises.
+- weight: number in kg, without unit text. Omit for bodyweight or unspecified weight.
+- restSeconds: always include whole seconds. If unspecified: 120-180 for heavy compounds, 60-90 for isolation, 30-60 for circuits/core.
+- drops: list on exercise or individual set, e.g. [{"weight":20},{"weight":15}], done immediately after the main set with no rest. Reps default to AMRAP.
+- Supersets/circuits: same group letter, consecutive exercises, equal set counts. Rest after each round.
+- Names: specific and consistent ("Barbell Back Squat", not "Squats"); reuse spelling across days for history matching.
+- Keep execution order. If I supply exercises, use exactly those: no additions, removals, or reordering. If I request a plan, design a sensible one.
+- inReserve: how many reps (or seconds, for holds) short of failure each set should stop, e.g. 2. Omit when I do not say.
+- Put tempo, cues and "each side" in notes.
+- Return ALL JSON, never abbreviate with "...".
 
 My plan:
 Mon: bench 3x8, rows 3x10

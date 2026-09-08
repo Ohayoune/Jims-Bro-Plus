@@ -63,6 +63,7 @@ This is the JSON the app imports. A chatbot writes it from the prompt in `docs/P
 | `weight` | number or string | no | Exercise-level default for sets. |
 | `restSeconds` | int ≥ 0 | no | Rest after each set of this exercise. |
 | `repRange` | string or int | no | The rep range the working weight should stay in, e.g. `"8-12"`; drives progression advice (SPEC §6.11). See §3.9 for defaults and leniency. |
+| `inReserve` | int 0–20 | no | **v1.5 (D51)**: the effort target — reps (or seconds, on a hold) to stop short of failure. `rir` is accepted as an alias. Exercise-level default for sets. Anything else → `E_IN_RESERVE_INVALID`. Missing → none, and nothing is shown. |
 | `drops` | array of Drop | no | Drop sets applied to every set of this exercise that doesn't define its own. See §3.11. |
 | `notes` | string | no | Max 500 chars (truncate + `W_NOTES_TRUNCATED`). Shown on the step card. |
 
@@ -74,6 +75,7 @@ This is the JSON the app imports. A chatbot writes it from the prompt in `docs/P
 | `warningBeep` | bool or int | no | Overrides the exercise. Only meaningful on fixed-duration sets (§3.12). |
 | `weight` | number ≥ 0 or string | no | See §3.3. Over 10000 → `E_WEIGHT_INVALID`. |
 | `restSeconds` | int 0–3600 | no | Overrides the exercise. Negative or over 3600 → `E_REST_INVALID`. Non-integer (90.5) → `E_REST_INVALID`; `90.0` accepted. |
+| `inReserve` | int 0–20 | no | Overrides the exercise (v1.5, D51). `rir` accepted. |
 | `drops` | array of Drop | no | Overrides the exercise-level drops for this set. See §3.11. |
 
 ### Drop
@@ -206,6 +208,7 @@ Errors block import. Warnings are shown in Preview and saved on the plan. `path`
 | `E_DURATION_INVALID` | error | `durationSeconds` ≤ 0, > 86400, non-integer, or an unrecognized string (§3.12) |
 | `E_WARNING_BEEP_INVALID` | error | `warningBeep` not a boolean or a whole number 1–86399 |
 | `E_BODYWEIGHT_INVALID` | error | `bodyweight` not a boolean |
+| `E_IN_RESERVE_INVALID` | error | `inReserve` / `rir` not a whole number from 0 to 20 (v1.5, D51) |
 | `E_TARGET_MISSING` | error | A set has neither reps nor duration |
 | `E_TARGET_CONFLICT` | error | A set has both reps and duration |
 | `E_WEIGHT_INVALID` | error | §3.3 rejected forms |
@@ -242,6 +245,6 @@ Every error message is a full sentence a non-programmer can act on, and names th
 
 ## 5. Things the format deliberately does not have
 - Rest days as Day entries (rest days live in `cycle` for rotation plans, and are the unlisted weekdays for weekday plans).
-- Tempo, RPE, RIR, equipment fields (put them in `notes`).
+- Tempo, RPE, equipment fields (put them in `notes`). *Reps in reserve joined the format in v1.5 as `inReserve` (D51), because it changes how a set is done rather than describing it.*
 - Warm-up flags (list warm-ups as their own exercises if wanted).
 - Per-set notes.

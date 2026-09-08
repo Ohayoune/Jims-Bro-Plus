@@ -201,7 +201,7 @@ enum WorkoutScreen {
         }
     }
 
-    static func inputs(values: PrefillValues, target: (work: WorkTarget, weight: Double?, warning: Int?),
+    static func inputs(values: PrefillValues, target: (work: WorkTarget, weight: Double?, warning: Int?, reserve: Int?),
                        units: WeightUnit) -> InputDefaults {
         var defaults = InputDefaults(
             reps: values.reps.map(String.init) ?? "",
@@ -308,7 +308,7 @@ enum WorkoutScreen {
         guard let step = session.steps[safe: index],
               let exercise = session.exercises[safe: step.exerciseIndex],
               let target = session.target(at: index) else { return nil }
-        let work = SetTarget(work: target.work, weight: target.weight, restSeconds: 0)
+        let work = SetTarget(work: target.work, weight: target.weight, restSeconds: 0, inReserve: target.reserve)
         return "Next: \(exercise.name) · set \(step.setIndex + 1) of \(exercise.targets.count) · "
             + TargetText.target(work, range: exercise.repRange, units: session.units)
     }

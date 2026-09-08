@@ -183,6 +183,7 @@ final class ImportTests: XCTestCase {
                 case "weightPerSet": result[path] = try json(e.sets.map(\.weight))
                 case "workPerSet": result[path] = try json(e.sets.map { work($0.work) })
                 case "warningPerSet": result[path] = try json(e.sets.map(\.warningBeepSeconds))
+                case "inReservePerSet": result[path] = try json(e.sets.map(\.inReserve))
                 case "dropsPerSet": result[path] = try json(e.sets.map { $0.drops.count })
                 case "dropTargets": result[path] = .array(e.sets[parts[2]].drops.map { .array([.string(work($0.work)), $0.weight.map(JSONValue.number) ?? .null]) })
                 default: XCTFail("Unrecognized manifest check: \(key)")

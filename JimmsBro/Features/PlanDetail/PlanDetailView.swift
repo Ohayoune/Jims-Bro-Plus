@@ -321,6 +321,8 @@ struct ExerciseEditSheet: View {
     @State private var range = ""
     @State private var weight = ""
     @State private var rest = ""
+    /// D51 (v1.5): the effort target, empty when the plan did not say.
+    @State private var reserve = ""
     @State private var sets = 1
     @State private var loaded = false
 
@@ -363,8 +365,16 @@ struct ExerciseEditSheet: View {
                             Text("s").foregroundStyle(.secondary)
                         }
                     }
+                    LabeledContent("In reserve") {
+                        TextField("none", text: Binding(
+                            get: { reserve },
+                            set: { reserve = String($0.filter(\.isNumber).prefix(2)) }))
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                    }
                 } footer: {
-                    Text("Reps takes a number, a range like 8-12, AMRAP or 5+, or a time: 45s, 30s+ for a minimum hold, or open.")
+                    Text("Reps takes a number, a range like 8-12, AMRAP or 5+, or a time: 45s, 30s+ for a minimum hold, or open. "
+                         + "In reserve is how many reps (or seconds, on a hold) short of failure to stop, 0 to 20.")
                 }
                 if let editAsJSON {
                     Section {
@@ -391,6 +401,7 @@ struct ExerciseEditSheet: View {
                 range = exercise.repRange.map { "\($0.min)-\($0.max)" } ?? ""
                 weight = InputRules.weightText(exercise.sets.first?.weight)
                 rest = exercise.sets.first.map { String($0.restSeconds) } ?? ""
+                reserve = exercise.sets.first?.inReserve.map(String.init) ?? ""
             }
         }
     }
@@ -400,6 +411,7 @@ struct ExerciseEditSheet: View {
             && PlanEdit.parseWork(reps) != nil
             && (range.trimmed.isEmpty || PlanEdit.parseRange(range) != nil)
             && (rest.isEmpty || InputRules.secondsValue(rest).map { (0...3600).contains($0) } == true)
+            && (reserve.isEmpty || Int(reserve).map { (0...20).contains($0) } == true)
     }
 
     /// Only the fields that actually changed are sent, so an untouched exercise is untouched.
@@ -424,6 +436,10 @@ struct ExerciseEditSheet: View {
         }
         if let seconds = InputRules.secondsValue(rest), seconds != exercise.sets.first?.restSeconds {
             commit { .setRest(day: $0.day, exercise: $0.exercise, seconds: seconds) }
+        }
+        let newReserve = reserve.isEmpty ? nil : Int(reserve)
+        if newReserve != exercise.sets.first?.inReserve {
+            commit { .setInReserve(day: $0.day, exercise: $0.exercise, value: newReserve) }
         }
         dismiss()
     }

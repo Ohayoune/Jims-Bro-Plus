@@ -47,7 +47,8 @@ RULES
 - Supersets/circuits: same group letter, consecutive exercises, equal set counts. Rest after each round.
 - Names: specific and consistent ("Barbell Back Squat", not "Squats"); reuse spelling across days for history matching.
 - Keep execution order. If I supply exercises, use exactly those: no additions, removals, or reordering. If I request a plan, design a sensible one.
-- Put tempo, RPE, cues and "each side" in notes.
+- inReserve: how many reps (or seconds, for holds) short of failure each set should stop, e.g. 2. Omit when I do not say.
+- Put tempo, cues and "each side" in notes.
 - Return ALL JSON, never abbreviate with "...".
 
 My plan:

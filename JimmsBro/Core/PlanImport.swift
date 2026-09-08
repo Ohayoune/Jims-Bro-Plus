@@ -121,6 +121,15 @@ private struct PlanNormalizer {
         guard let n = raw.integer, range.contains(n) else { issue(code, path, "Use a whole number between \(range.lowerBound) and \(range.upperBound), got \(raw.display)."); return nil }
         return n
     }
+    /// D51 (v1.5): the effort target — `inReserve`, with `rir` accepted as the alias people
+    /// write. 0–20, reps on a rep set and seconds on a hold; anything else is
+    /// E_IN_RESERVE_INVALID. `present` says whether the object said anything, so a set can
+    /// fall back to its exercise only when it did not.
+    mutating func reserve(_ raw: RawJSON, _ path: String) -> (value: Int?, present: Bool) {
+        let key = raw["inReserve"] != nil ? "inReserve" : (raw["rir"] != nil ? "rir" : nil)
+        guard let key else { return (nil, false) }
+        return (integer(raw[key], path + "." + key, "E_IN_RESERVE_INVALID", 0...20), true)
+    }
     mutating func name(_ raw: RawJSON?, _ path: String, _ fallback: String, warnDefault: Bool = true) -> String {
         guard let text = raw?.string?.trimmed, !text.isEmpty else { if warnDefault { issue("W_DEFAULT_NAME", path, "No name given; using \"\(fallback)\".") }; return fallback }
         if text.count > 100 { issue("W_NAME_TRUNCATED", path, "Name was cut to 100 characters.") }
@@ -196,7 +205,7 @@ private struct PlanNormalizer {
         }
     }
     mutating func exercise(_ raw: RawJSON, _ path: String, units: WeightUnit, fallbackRest: Int) -> (exercise: Exercise, explicitRest: Int?) {
-        unknown(raw, ["name","group","notes","sets","reps","durationSeconds","warningBeep","bodyweight","weight","restSeconds","repRange","drops"], path)
+        unknown(raw, ["name","group","notes","sets","reps","durationSeconds","warningBeep","bodyweight","weight","restSeconds","repRange","drops","inReserve","rir"], path)
         let ename: String
         if let s = raw["name"]?.string, !s.trimmed.isEmpty { ename = name(raw["name"], path + ".name", "?") }
         else { issue("E_MISSING_NAME", path + ".name", "Every exercise needs a name."); ename = "?" }
@@ -213,6 +222,7 @@ private struct PlanNormalizer {
             else { issue("E_BODYWEIGHT_INVALID", path + ".bodyweight", "bodyweight must be true or false.") }
         }
         let exWarning = warning(raw["warningBeep"], path + ".warningBeep")
+        let exReserve = reserve(raw, path).value
         if bodyweight && exWeight.weight != nil { issue("W_BODYWEIGHT_WEIGHT_IGNORED", path + ".weight", "Weight ignored on a bodyweight exercise."); exWeight.weight = nil }
         let exDrops = drops(raw["drops"], path + ".drops", units)
         let hasReps = raw["reps"] != nil, hasDuration = raw["durationSeconds"] != nil
@@ -236,7 +246,7 @@ private struct PlanNormalizer {
             else {
                 for (si, s) in list.enumerated() {
                     let sp = "\(path).sets[\(si)]"
-                    unknown(s, ["reps","durationSeconds","warningBeep","weight","restSeconds","drops"], sp)
+                    unknown(s, ["reps","durationSeconds","warningBeep","weight","restSeconds","drops","inReserve","rir"], sp)
                     if s["reps"] != nil && s["durationSeconds"] != nil { issue("E_TARGET_CONFLICT", sp, "A set can't have both reps and durationSeconds."); continue }
                     let work: WorkTarget?
                     if let r = s["reps"] { work = reps(r, sp + ".reps").map(WorkTarget.reps) }
@@ -255,10 +265,11 @@ private struct PlanNormalizer {
                     let warningPath = s["warningBeep"] == nil ? path + ".warningBeep" : sp + ".warningBeep"
                     let warningSpec = s["warningBeep"] == nil ? exWarning : warning(s["warningBeep"], warningPath)
                     let sr = integer(s["restSeconds"], sp + ".restSeconds", "E_REST_INVALID", 0...3600)
+                    let setReserve = reserve(s, sp)
                     var ds = s["drops"] == nil ? exDrops : drops(s["drops"], sp + ".drops", units)
                     guard let work else { continue }
                     if work.isTimed && !(ds ?? []).isEmpty { issue("W_DROPS_IGNORED", sp + ".drops", "Drops are ignored on a timed set."); ds = nil }
-                    targets.append(SetTarget(work: work, weight: w, restSeconds: sr ?? rest ?? fallbackRest, warningBeepSeconds: resolvedWarning(warningSpec, work, warningPath), drops: ds ?? []))
+                    targets.append(SetTarget(work: work, weight: w, restSeconds: sr ?? rest ?? fallbackRest, warningBeepSeconds: resolvedWarning(warningSpec, work, warningPath), drops: ds ?? [], inReserve: setReserve.present ? setReserve.value : exReserve))
                 }
             }
         } else if let count = setsRaw.integer, (1...50).contains(count) {
@@ -268,7 +279,7 @@ private struct PlanNormalizer {
                 var ds = exDrops ?? []
                 if work.isTimed && !ds.isEmpty { issue("W_DROPS_IGNORED", path + ".drops", "Drops are ignored on a timed exercise."); ds = [] }
                 let beep = resolvedWarning(exWarning, work, path + ".warningBeep")
-                targets = Array(repeating: SetTarget(work: work, weight: exWeight.weight, restSeconds: rest ?? fallbackRest, warningBeepSeconds: beep, drops: ds), count: count)
+                targets = Array(repeating: SetTarget(work: work, weight: exWeight.weight, restSeconds: rest ?? fallbackRest, warningBeepSeconds: beep, drops: ds, inReserve: exReserve), count: count)
             }
         } else {
             let over = (setsRaw.integer ?? 0) > 50

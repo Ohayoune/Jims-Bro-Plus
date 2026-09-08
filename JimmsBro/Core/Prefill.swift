@@ -132,7 +132,7 @@ enum Prefill {
     /// Nil for a set with nothing to say beyond its target — an unloaded bodyweight set whose
     /// target the card is already showing.
     static func setSuggestion(session: Session, step index: Int, exercise: SessionExercise,
-                              target: (work: WorkTarget, weight: Double?, warning: Int?),
+                              target: (work: WorkTarget, weight: Double?, warning: Int?, reserve: Int?),
                               last: SetResult?, lastWeight: Double?, advice: Double?,
                               adviceReason: String?, units: WeightUnit,
                               progression: (week: Int, weeks: Int?)? = nil) -> SetSuggestion? {

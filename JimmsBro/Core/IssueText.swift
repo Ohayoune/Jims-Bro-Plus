@@ -49,6 +49,9 @@ enum IssueText {
             return "The plan isn't complete — the chatbot's reply looks cut off. Ask it to send the whole plan again."
         case "E_NOT_A_PLAN":
             return "That's valid JSON, but it isn't a workout plan."
+        // D51 (v1.5): the effort target.
+        case "E_IN_RESERVE_INVALID":
+            return prefixed("reps in reserve must be a whole number from 0 to 20 — how many reps (or seconds) short of failure to stop.")
         // D44 (v1.3): a progression reply's own refusals.
         case "E_PROGRESSION_INVALID":
             return "That's valid JSON, but it isn't a progression. Paste the reply to the progression prompt."
@@ -118,7 +121,7 @@ enum IssueText {
         "E_NOT_A_PLAN", "E_SCHEMA_VERSION", "E_UNITS_INVALID", "E_SCHEDULE_MIXED", "E_NO_DAYS",
         "E_NO_EXERCISES", "E_MISSING_NAME", "E_SETS_INVALID", "E_REPS_INVALID",
         "E_REPRANGE_INVALID", "E_DROPS_INVALID", "E_CYCLE_INVALID", "E_CYCLE_UNKNOWN_DAY",
-        "E_DURATION_INVALID", "E_WARNING_BEEP_INVALID", "E_BODYWEIGHT_INVALID",
+        "E_DURATION_INVALID", "E_WARNING_BEEP_INVALID", "E_BODYWEIGHT_INVALID", "E_IN_RESERVE_INVALID",
         "E_TARGET_MISSING", "E_TARGET_CONFLICT", "E_WEIGHT_INVALID", "E_REST_INVALID",
         "E_WEEKDAY_INVALID", "E_WEEKDAY_DUPLICATE", "E_WEEKDAY_MISSING", "E_LIMIT_EXCEEDED",
     ]

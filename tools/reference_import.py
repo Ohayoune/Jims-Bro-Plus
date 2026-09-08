@@ -238,8 +238,15 @@ def normalize_name(s): return re.sub(r"\s+", " ", s.strip()).lower()
 
 KNOWN_PLAN = {"schemaVersion", "name", "units", "defaultRestSeconds", "schedule", "cycle", "days"}
 KNOWN_DAY = {"name", "weekday", "defaultRestSeconds", "exercises"}
-KNOWN_EX = {"name", "group", "notes", "sets", "reps", "repRange", "durationSeconds", "warningBeep", "bodyweight", "weight", "restSeconds", "drops"}
-KNOWN_SET = {"reps", "durationSeconds", "warningBeep", "weight", "restSeconds", "drops"}
+KNOWN_EX = {"name", "group", "notes", "sets", "reps", "repRange", "durationSeconds", "warningBeep", "bodyweight", "weight", "restSeconds", "drops", "inReserve", "rir"}
+KNOWN_SET = {"reps", "durationSeconds", "warningBeep", "weight", "restSeconds", "drops", "inReserve", "rir"}
+
+
+def _parse_reserve(obj, path, issues):
+    """D51 (v1.5): the effort target — inReserve, or its alias rir. Returns (value, present)."""
+    key = "inReserve" if obj.get("inReserve") is not None else ("rir" if obj.get("rir") is not None else None)
+    if key is None: return None, False
+    return _parse_int_field(obj[key], f"{path}.{key}", "E_IN_RESERVE_INVALID", 0, 20, issues, "inReserve"), True
 OPEN_WORDS = {"max", "open", "amsap", "as long as possible", "to failure"}
 KNOWN_DROP = {"reps", "weight"}
 
@@ -367,6 +374,7 @@ def normalize(obj, settings=DEFAULT_SETTINGS, today=None):
                 if isinstance(e["bodyweight"], bool): bodyweight = bodyweight or e["bodyweight"]
                 else: issues.append(err("E_BODYWEIGHT_INVALID", f"{ep}.bodyweight", "bodyweight must be true or false."))
             ex_warn = parse_warning(e["warningBeep"], f"{ep}.warningBeep", issues) if e.get("warningBeep") is not None else None
+            ex_res, _ = _parse_reserve(e, ep, issues)
             if bodyweight and ex_w is not None:
                 issues.append(warn("W_BODYWEIGHT_WEIGHT_IGNORED", f"{ep}.weight", "Weight ignored on a bodyweight exercise.")); ex_w = None
             has_ex_reps = "reps" in e and e["reps"] is not None
@@ -439,10 +447,11 @@ def normalize(obj, settings=DEFAULT_SETTINGS, today=None):
                         if wspec is None and s.get("warningBeep") is not None: beep = None
                         else: beep = resolve_warning(wspec, work, wpath, issues)
                         r = _parse_int_field(s.get("restSeconds"), f"{sp}.restSeconds", "E_REST_INVALID", 0, LIMITS["rest"], issues, "restSeconds")
+                        s_res, s_res_present = _parse_reserve(s, sp, issues)
                         drops = parse_drops(s["drops"], f"{sp}.drops", units, issues) if s.get("drops") is not None else ex_drops
                         if drops and work[0] != "reps":
                             issues.append(warn("W_DROPS_IGNORED", f"{sp}.drops", "Drops are ignored on a timed set.")); drops = None
-                        set_specs.append({"work": work, "weight": w, "rest": r, "beep": beep, "drops": drops or []})
+                        set_specs.append({"work": work, "weight": w, "rest": r, "beep": beep, "drops": drops or [], "reserve": s_res if s_res_present else ex_res})
             elif _is_int_like(sets_raw) and 1 <= _as_int(sets_raw) <= LIMITS["sets"]:
                 n = _as_int(sets_raw)
                 if has_ex_reps and has_ex_dur:
@@ -457,7 +466,7 @@ def normalize(obj, settings=DEFAULT_SETTINGS, today=None):
                         if drops and work[0] != "reps":
                             issues.append(warn("W_DROPS_IGNORED", f"{ep}.drops", "Drops are ignored on a timed exercise.")); drops = []
                         beep = resolve_warning(ex_warn, work, f"{ep}.warningBeep", issues)
-                        set_specs = [{"work": work, "weight": ex_w, "rest": None, "beep": beep, "drops": list(drops)} for _ in range(n)]
+                        set_specs = [{"work": work, "weight": ex_w, "rest": None, "beep": beep, "drops": list(drops), "reserve": ex_res} for _ in range(n)]
             elif _is_int_like(sets_raw) and _as_int(sets_raw) > LIMITS["sets"]:
                 issues.append(err("E_LIMIT_EXCEEDED", f"{ep}.sets", f"Too many sets ({_as_int(sets_raw)}); the limit is {LIMITS['sets']}."))
                 if has_ex_reps and has_ex_dur: issues.append(err("E_TARGET_CONFLICT", ep, "An exercise can't have both reps and durationSeconds."))
@@ -566,7 +575,7 @@ def normalize(obj, settings=DEFAULT_SETTINGS, today=None):
                         issues.append(warn("W_BODYWEIGHT_WEIGHT_IGNORED", "", f'Drop weights ignored on bodyweight exercise "{e["name"]}".'))
                         warned_drop_weights = True
                     drops = [{"work": dr["work"], "weight": None} for dr in drops]
-                sets.append({"work": s["work"], "weight": s["weight"], "restSeconds": rest, "warningBeepSeconds": s.get("beep"), "drops": drops})
+                sets.append({"work": s["work"], "weight": s["weight"], "restSeconds": rest, "warningBeepSeconds": s.get("beep"), "drops": drops, "inReserve": s.get("reserve")})
             e["sets"] = sets; e["explicitRest"] = e.pop("rest"); e.pop("set_specs")
         d.pop("rest", None)
 
@@ -664,6 +673,7 @@ def check_manifest(root):
                     elif key == "cycle": got = plan["cycle"]
                     elif key == "bodyweight": got = {k: plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["bodyweight"] for k in exp}
                     elif key == "warningPerSet": got = {k: [s["warningBeepSeconds"] for s in plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["sets"]] for k in exp}
+                    elif key == "inReservePerSet": got = {k: [s["inReserve"] for s in plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["sets"]] for k in exp}
                     elif key == "dropsPerSet": got = {k: [len(s["drops"]) for s in plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["sets"]] for k in exp}
                     elif key == "dropTargets":
                         got = {}

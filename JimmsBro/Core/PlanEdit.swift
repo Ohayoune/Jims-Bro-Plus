@@ -81,6 +81,9 @@ enum PlanJSON {
         var fields = ["              " + work(target.work)]
         if let weight = target.weight { fields.append("              \"weight\": \(number(weight))") }
         fields.append("              \"restSeconds\": \(target.restSeconds)")
+        // D51 (v1.5): the effort target, per set — the importer defaults it from the exercise,
+        // but the rendering is the explicit form, so every set says its own.
+        if let reserve = target.inReserve { fields.append("              \"inReserve\": \(reserve)") }
         // Only a fixed duration carries a beep offset; anywhere else the importer drops it.
         // `nil` must be written as an explicit `false`: leaving the field out means "default",
         // which the importer resolves to 10 % of the duration, not to "no warning".
@@ -152,6 +155,8 @@ enum PlanEdit {
         case setReps(day: Int, exercise: Int, text: String)
         case setRepRange(day: Int, exercise: Int, text: String?)
         case setRest(day: Int, exercise: Int, seconds: Int)
+        /// D51 (v1.5): the effort target for every set of the exercise; nil clears it.
+        case setInReserve(day: Int, exercise: Int, value: Int?)
         case moveExercise(day: Int, from: Int, to: Int)
         case deleteExercise(day: Int, exercise: Int)
         case duplicateDay(day: Int)
@@ -241,7 +246,8 @@ enum PlanEdit {
         // exercise says; otherwise, read as days, it is a day with nothing in it, and the
         // importer's own sentence for that ("has no exercises") is the right refusal.
         let exerciseKeys: Set<String> = ["reps", "durationSeconds", "sets", "weight", "repRange",
-                                         "bodyweight", "drops", "group", "warningBeep", "restSeconds"]
+                                         "bodyweight", "drops", "group", "warningBeep", "restSeconds",
+                                         "inReserve", "rir"]
         func isExerciseLike(_ value: RawJSON) -> Bool {
             !Set(value.object?.keys.map { $0 } ?? []).isDisjoint(with: exerciseKeys)
         }
@@ -409,6 +415,13 @@ enum PlanEdit {
                 for index in plan.days[target.day].exercises[member].sets.indices {
                     plan.days[target.day].exercises[member].sets[index].groupRestSeconds = seconds
                 }
+            }
+
+        case let .setInReserve(day, exercise, value):
+            guard let target = exerciseIndex(plan, day, exercise) else { return nil }
+            if let value, !(0...20).contains(value) { return nil }
+            for index in plan.days[target.day].exercises[target.exercise].sets.indices {
+                plan.days[target.day].exercises[target.exercise].sets[index].inReserve = value
             }
 
         case let .moveExercise(day, from, to):

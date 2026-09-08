@@ -129,7 +129,8 @@ enum StepCard {
         guard let step = session.steps[safe: index],
               let exercise = session.exercises[safe: step.exerciseIndex],
               let resolved = session.target(at: index) else { return "" }
-        let target = SetTarget(work: resolved.work, weight: resolved.weight, restSeconds: 0)
+        let target = SetTarget(work: resolved.work, weight: resolved.weight, restSeconds: 0,
+                               inReserve: resolved.reserve)
         var text = TargetText.target(target, range: step.dropIndex == 0 ? exercise.repRange : nil,
                                      units: session.units)
         // D42: said once, on the exercise's line, like the notes — never on every row.
@@ -164,6 +165,7 @@ enum StepCard {
               let exercise = session.exercises[safe: step.exerciseIndex],
               let target = session.target(at: index) else { return "" }
         var parts = [exercise.name, "set \(step.setIndex + 1) of \(exercise.targets.count)"]
+        if let n = target.reserve { parts.append(TargetText.reserve(n)) }
         if step.dropIndex > 0, let set = exercise.targets[safe: step.setIndex] {
             parts.append("drop \(step.dropIndex) of \(set.drops.count)")
         }

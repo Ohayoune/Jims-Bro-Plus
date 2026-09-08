@@ -71,10 +71,11 @@ extension Session {
         session.progressionWeeks = plan.progression?.weeks
         return session
     }
-    func target(at index: Int) -> (work: WorkTarget, weight: Double?, warning: Int?)? {
+    /// `reserve` is D51's effort target (v1.5); a drop has none.
+    func target(at index: Int) -> (work: WorkTarget, weight: Double?, warning: Int?, reserve: Int?)? {
         guard let step = steps[safe: index], let exercise = exercises[safe: step.exerciseIndex], let target = exercise.targets[safe: step.setIndex] else { return nil }
-        if step.dropIndex == 0 { return (target.work, exercise.bodyweight ? nil : target.weight, target.warningBeepSeconds) }
+        if step.dropIndex == 0 { return (target.work, exercise.bodyweight ? nil : target.weight, target.warningBeepSeconds, target.inReserve) }
         guard let drop = target.drops[safe: step.dropIndex - 1] else { return nil }
-        return (drop.work, exercise.bodyweight ? nil : drop.weight, nil)
+        return (drop.work, exercise.bodyweight ? nil : drop.weight, nil, nil)
     }
 }

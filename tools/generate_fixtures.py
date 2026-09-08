@@ -82,6 +82,14 @@ wj(V, "bodyweight.json", {"name": "Calisthenics", "days": [{"name": "A", "exerci
     {"name": "Pistol Squat", "sets": 2, "reps": 6, "bodyweight": True, "weight": 5, "restSeconds": 60},
     {"name": "Bodyweight Row", "sets": 2, "reps": 12, "bodyweight": False, "warningBeep": True, "restSeconds": 60},
     {"name": "Nordic Curl", "sets": 2, "reps": 5, "bodyweight": True, "drops": [{"weight": 5}]}]}]})
+# v1.5 (D51): the effort target — inReserve at exercise and set level, its alias, on a hold.
+wj(V, "in-reserve.json", {"name": "Effort", "days": [{"name": "A", "exercises": [
+    {"name": "Barbell Bench Press", "reps": "6-8", "weight": 80, "restSeconds": 150, "inReserve": 2, "sets": [{}, {}, {"inReserve": 1}]},
+    {"name": "Barbell Row", "sets": 2, "reps": "8-10", "weight": 70, "restSeconds": 90, "rir": 3},
+    {"name": "Plank", "sets": 2, "durationSeconds": 45, "bodyweight": True, "restSeconds": 45, "inReserve": 5},
+    {"name": "Dumbbell Curl", "sets": 1, "reps": 12, "weight": 12, "restSeconds": 60}]}]})
+wj(V, "in-reserve-alias.json", {"name": "Effort alias", "days": [{"name": "A", "exercises": [
+    {"name": "Lat Pulldown", "reps": "10-12", "weight": 50, "restSeconds": 90, "sets": [{"rir": "2"}, {"inReserve": 0}]}]}]})
 wj(V, "rest-precedence.json", {"name": "Rest chain", "defaultRestSeconds": 100, "days": [
     {"name": "Day A", "defaultRestSeconds": 80, "exercises": [
         {"name": "Ex 1", "sets": 2, "reps": 10},
@@ -199,6 +207,8 @@ wj(I, "drops-bad-weight.json", {"name": "X", "days": [{"name": "A", "exercises":
 wj(I, "cycle-unknown-day.json", {"name": "X", "cycle": ["A", "Legs"], "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10}]}]})
 wj(I, "cycle-empty.json", {"name": "X", "cycle": [], "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10}]}]})
 wj(I, "cycle-not-list.json", {"name": "X", "cycle": "A, rest", "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10}]}]})
+wj(I, "in-reserve-word.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Curl", "sets": 2, "reps": 10, "inReserve": "two"}]}]})
+wj(I, "in-reserve-too-many.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Curl", "reps": 10, "sets": [{}, {"inReserve": 25}]}]}]})
 wj(I, "warning-beep-zero.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Plank", "sets": 3, "durationSeconds": 30, "warningBeep": 0}]}]})
 wj(I, "warning-beep-too-long.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Plank", "sets": 3, "durationSeconds": 30, "warningBeep": 86400}]}]})
 wj(I, "warning-beep-word.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Plank", "sets": 3, "durationSeconds": 30, "warningBeep": "soon"}]}]})
@@ -315,6 +325,8 @@ fixtures = [
     restPerSet={"0.0":[90]*4}),
   V("unknown-fields.json", ["W_UNKNOWN_FIELD"]*4),
   V("lb-plan.json", units="lb"),
+  V("in-reserve.json", inReservePerSet={"0.0":[2,2,1], "0.1":[3,3], "0.2":[5,5], "0.3":[None]}),
+  V("in-reserve-alias.json", inReservePerSet={"0.0":[2,0]}),
   V("duplicate-day-names.json", ["W_DAY_RENAMED","W_DAY_RENAMED"], dayNames=["Push","push (2)","Push (3)"]),
   V("group-edge-cases.json", ["W_GROUP_SINGLE","W_GROUP_SINGLE","W_GROUP_SPLIT"], groups={"0":["A","A",None,None,None]},
     stepOrder={"0":["0.0","1.0","0.1","1.1","0.2","1.2","2.0","2.1","2.2","3.0","3.1","3.2","4.0","4.1"]}),
@@ -378,6 +390,8 @@ fixtures = [
   I("cycle-unknown-day.json", ("E_CYCLE_UNKNOWN_DAY", "cycle[1]")),
   I("cycle-empty.json", ("E_CYCLE_INVALID", "cycle")),
   I("cycle-not-list.json", ("E_CYCLE_INVALID", "cycle")),
+  I("in-reserve-word.json", ("E_IN_RESERVE_INVALID", f"{E0}.inReserve")),
+  I("in-reserve-too-many.json", ("E_IN_RESERVE_INVALID", f"{E0}.sets[1].inReserve")),
   I("warning-beep-zero.json", ("E_WARNING_BEEP_INVALID", f"{E0}.warningBeep")),
   I("warning-beep-too-long.json", ("E_WARNING_BEEP_INVALID", f"{E0}.warningBeep")),
   I("warning-beep-word.json", ("E_WARNING_BEEP_INVALID", f"{E0}.warningBeep")),

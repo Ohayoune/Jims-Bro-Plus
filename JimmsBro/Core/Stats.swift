@@ -267,8 +267,12 @@ enum TargetText {
         var text = work(target.work)
         if case let .reps(.fixed(n)) = target.work, let range, range.min != n || range.max != n { text += " (\(range.min)–\(range.max))" }
         if let w = target.weight { text += " · \(number(w)) \(units.rawValue)" }
+        // D51 (v1.5): the effort target, said as body text after the numbers you act on.
+        if let n = target.inReserve { text += " · \(reserve(n))" }
         return text
     }
+    /// "2 in reserve" — reps on a rep set, seconds on a hold; the number says which.
+    static func reserve(_ n: Int) -> String { "\(n) in reserve" }
 
     /// An exercise in one line, showing what actually varies across its sets (v1.1, R3/R4):
     /// "3 × 8–12 · 60 kg" when every set matches, "3 × 8–12 · 24 / 26 / 28 kg" when the weight
@@ -284,7 +288,10 @@ enum TargetText {
 
         var text: String
         if sameWork && sameWeight {
-            text = "\(count) × \(target(first, range: exercise.repRange, units: units))"
+            // The effort target is said once for the exercise, below, not per set here.
+            var plain = first
+            plain.inReserve = nil
+            text = "\(count) × \(target(plain, range: exercise.repRange, units: units))"
         } else if sameWork {
             // Only the load moves: say the work once and list the weights.
             var work = "\(count) × " + works[0]
@@ -301,6 +308,10 @@ enum TargetText {
         }
         let drops = exercise.sets.reduce(0) { $0 + $1.drops.count }
         if drops > 0 { text += " · \(drops) drop\(drops == 1 ? "" : "s")" }
+        // D51 (v1.5): one effort target for the whole exercise is said once; sets that differ
+        // are the JSON's business, and the review shows them per set.
+        let reserves = Set(exercise.sets.map(\.inReserve))
+        if reserves.count == 1, let n = reserves.first ?? nil { text += " · \(reserve(n))" }
         return text
     }
 }

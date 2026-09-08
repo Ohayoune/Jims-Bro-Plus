@@ -911,6 +911,44 @@
       }
     },
     {
+      "file": "valid/in-reserve.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "inReservePerSet": {
+          "0.0": [
+            2,
+            2,
+            1
+          ],
+          "0.1": [
+            3,
+            3
+          ],
+          "0.2": [
+            5,
+            5
+          ],
+          "0.3": [
+            null
+          ]
+        }
+      }
+    },
+    {
+      "file": "valid/in-reserve-alias.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "inReservePerSet": {
+          "0.0": [
+            2,
+            0
+          ]
+        }
+      }
+    },
+    {
       "file": "valid/duplicate-day-names.json",
       "outcome": "valid",
       "warnings": [
@@ -1628,6 +1666,26 @@
         {
           "code": "E_CYCLE_INVALID",
           "path": "cycle"
+        }
+      ]
+    },
+    {
+      "file": "invalid/in-reserve-word.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_IN_RESERVE_INVALID",
+          "path": "days[0].exercises[0].inReserve"
+        }
+      ]
+    },
+    {
+      "file": "invalid/in-reserve-too-many.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_IN_RESERVE_INVALID",
+          "path": "days[0].exercises[0].sets[1].inReserve"
         }
       ]
     },
