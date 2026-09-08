@@ -48,7 +48,8 @@ extension Settings {
             weightStepKg: container.value(.weightStepKg, or: defaults.weightStepKg),
             weightStepLb: container.value(.weightStepLb, or: defaults.weightStepLb),
             weightIncrementKg: container.value(.weightIncrementKg, or: defaults.weightIncrementKg),
-            weightIncrementLb: container.value(.weightIncrementLb, or: defaults.weightIncrementLb))
+            weightIncrementLb: container.value(.weightIncrementLb, or: defaults.weightIncrementLb),
+            introSeen: container.value(.introSeen, or: defaults.introSeen))
     }
 }
 

@@ -743,6 +743,18 @@ is testable without a phone; Q71–Q73 need the device and live in `DEVICE_CHECK
 | Y10 | unit | (D46, v1.4) `AppModel.loadBuiltInPlan` and `save(_:conflict:makeActive:)` | An unknown id is `E_NO_BUILT_IN` with a sentence; the empty card reads "Choose a built-in plan, or get one from a chatbot."; loading saves nothing; saving makes it active; saving again keeps both as "Full Body" and "Full Body (2)" without taking over; the card then reads "Full Body A" / **Start Full Body A**; a relaunch reads both plans back |
 | Y11 | manual | (D46, v1.4) Home → **Choose a built-in plan** → At Home → Save plan → Start | The picker's rows show days, minutes and equipment; the review opens on the paragraph; Home names At Home A; the first card asks for reps only; the plan's minutes are about what the day took |
 
+### Y3 — the introduction (D47)
+
+`JimmsBroTests/IntroductionTests.swift`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Y12 | unit | (D47, v1.4) `Introduction.pages` | Four pages in order, each with a symbol, a line and a paragraph of 80–400 characters; every name in `namedControls` appears in the copy; the three button titles |
+| Y13 | unit | (D47, v1.4) Every control the intro names exists by that name | "Add plan" and "Start Push" are the card's buttons; "Log set" is the workout's primary action; "Create with a chatbot", "History", "Progression" and "Choose a built-in plan" are read from the views' own source on the host routes (skipped on the simulator, like the prompt pins) |
+| Y14 | unit | (D47, v1.4) `isDue` and `AppModel.introDue` | Due with no plans and not seen; not with a plan; not once seen; false before `load`; true on a fresh store; false after `markIntroSeen` and still false on relaunch; never true on a store with plans; true again after Delete all data |
+| Y15 | unit | (D47, v1.4) `introSeen` on disk | Written and read back; the frozen v1.1 settings file decodes with it false and everything else intact; a file that says true reads true |
+| Y16 | manual | (D47, v1.4) Delete the app, install, launch; then Settings → About → **How the app works** | The intro covers the tabs; swiping reaches four pages; **Choose a plan** lands on the built-in picker; after Cancel, Home is the empty card and the intro does not return on relaunch; the Settings row reopens it with **Done** |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

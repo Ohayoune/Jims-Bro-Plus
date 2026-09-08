@@ -334,6 +334,17 @@ enum SaveFailure: Equatable {
 
     func dismissCorruptAlert() { showCorruptAlert = false }
 
+    // MARK: - Introduction (D47, v1.4)
+
+    /// Whether the introduction is due: the store has been read, holds no plans, and the
+    /// intro has not been dismissed (SPEC §5.1). False before `load`, so a launch never
+    /// flashes it over a phone that turns out to have plans.
+    var introDue: Bool { loaded && Introduction.isDue(plans: plans, settings: settings) }
+
+    /// Dismissed either way — Choose a plan or Not now — it does not come back. The setting
+    /// changes synchronously, so the cover is already gone while the write lands (D48).
+    func markIntroSeen() async { await update { $0.introSeen = true } }
+
     // MARK: - Save failure (D24, v1.1)
 
     /// Saves a session and only marks it "already persisted" once the write actually succeeds.

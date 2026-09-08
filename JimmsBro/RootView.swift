@@ -18,6 +18,9 @@ struct RootView: View {
     @State private var addPlan: AddPlanRequest?
     @State private var showWorkout = false
     @State private var tab: Tab = .home
+    /// D47 (v1.4): the intro's primary action was tapped, so Add plan opens on the picker
+    /// once the cover is down — presenting a sheet while a cover is dismissing loses one.
+    @State private var introChosePlan = false
 
     init(model: AppModel) { _model = State(initialValue: model) }
 
@@ -35,6 +38,22 @@ struct RootView: View {
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(Tab.settings)
+        }
+        // D47 (v1.4): the introduction, over the tabs, on a launch with no plans where it has
+        // not been dismissed (SPEC §5.1). `introDue` is the model's, so dismissing is a
+        // setting change and the cover follows it.
+        .fullScreenCover(isPresented: Binding(
+            get: { model.introDue },
+            set: { if !$0 { Task { await model.markIntroSeen() } } }),
+                         onDismiss: {
+            if introChosePlan {
+                introChosePlan = false
+                addPlan = .builtIns
+            }
+        }) {
+            IntroductionView(purpose: .firstRun,
+                             choosePlan: { introChosePlan = true; Task { await model.markIntroSeen() } },
+                             dismiss: { Task { await model.markIntroSeen() } })
         }
         .onAppear(perform: applyScreenshotArguments)
         .environment(model)

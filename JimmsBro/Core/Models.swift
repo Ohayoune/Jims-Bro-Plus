@@ -404,9 +404,14 @@ struct Settings: Codable, Equatable {
     /// a rack may step in 5 lb while the smallest plate pair is 2.5.
     var weightIncrementKg = 2.5
     var weightIncrementLb = 5.0
+    /// D47 (v1.4): the introduction has been dismissed. In Settings rather than a flag on the
+    /// side, so Delete all data brings the intro back (a first launch by choice) and a backup
+    /// carries it. Absent from a file written before v1.4, which reads as not seen.
+    var introSeen = false
     enum CodingKeys: String, CodingKey {
         case units, defaultRestSeconds, warmUpSeconds, transitionRestSeconds, sound, vibration,
-             keepAwake, weightStepKg, weightStepLb, weightIncrementKg, weightIncrementLb
+             keepAwake, weightStepKg, weightStepLb, weightIncrementKg, weightIncrementLb,
+             introSeen
     }
     func weightStep(for units: WeightUnit) -> Double { units == .kg ? weightStepKg : weightStepLb }
     func weightIncrement(for units: WeightUnit) -> Double {

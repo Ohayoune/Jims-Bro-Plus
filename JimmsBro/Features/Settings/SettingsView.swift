@@ -18,6 +18,8 @@ struct SettingsView: View {
     @State private var historyFile: URL?
     @State private var exportingHistory = false
     @State private var choosingHistory = false
+    /// D47 (v1.4): the introduction, reopened from About.
+    @State private var showIntro = false
 
     var body: some View {
         NavigationStack {
@@ -32,6 +34,9 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .task { await model.refreshNotificationState() }
+            .sheet(isPresented: $showIntro) {
+                IntroductionView(purpose: .reference, dismiss: { showIntro = false })
+            }
         }
     }
 
@@ -263,6 +268,8 @@ struct SettingsView: View {
             LabeledContent("Jimm's Bro+", value: AppModel.appVersion)
             LabeledContent("Plans", value: "\(model.plans.count)")
             LabeledContent("Workouts", value: "\(model.sessions.count)")
+            // D47 (v1.4): the introduction, for the day a friend asks.
+            Button("How the app works") { showIntro = true }
         }
     }
 
