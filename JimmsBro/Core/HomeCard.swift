@@ -160,7 +160,8 @@ struct HomeStart: Equatable {
         switch card {
         case .noPlan:
             start.title = "No plan yet"
-            start.subtitle = "Get one from a chatbot, or try the sample."
+            // D46 (v1.4): the built-in picker took the sample's place.
+            start.subtitle = "Choose a built-in plan, or get one from a chatbot."
             start.buttonTitle = "Add plan"
             start.isEmpty = true
             return start

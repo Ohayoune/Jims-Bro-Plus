@@ -13,6 +13,20 @@ struct ImportView: View {
     var replacingPlanId: UUID? = nil
     var prefillText: String = ""
 
+    private enum Route: Hashable { case builtIns }
+    /// D46 (v1.4): the picker is pushed inside this sheet's own stack. Home's link and the
+    /// intro's button open the sheet with the picker already on it, as the stack's initial
+    /// path. `RootView` presents this sheet from an `AddPlanRequest` item rather than a Bool
+    /// and a flag: a sheet's content closure runs with the values it captured *before* the
+    /// tap that presented it, so a flag set in the same tap arrived here as false.
+    @State private var path: [Route]
+
+    init(replacingPlanId: UUID? = nil, prefillText: String = "", openBuiltIns: Bool = false) {
+        self.replacingPlanId = replacingPlanId
+        self.prefillText = prefillText
+        _path = State(initialValue: openBuiltIns && replacingPlanId == nil ? [.builtIns] : [])
+    }
+
     @State private var text = ""
     @State private var issues: [Issue] = []
     @State private var preview: Plan?
@@ -30,7 +44,7 @@ struct ImportView: View {
     private var hasDraft: Bool { !text.trimmed.isEmpty }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 if !errors.isEmpty { errorSection }
                 actionsSection
@@ -41,6 +55,10 @@ struct ImportView: View {
             // the plan's text already open, titled for what you came to do.
             .navigationTitle(replacingPlanId == nil ? "Add plan" : "Edit JSON")
             .navigationBarTitleDisplayMode(.inline)
+            // D46 (v1.4): saving a built-in plan in the picker closes this sheet with it.
+            .navigationDestination(for: Route.self) { _ in
+                BuiltInPlansView { dismiss() }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
             }
@@ -101,6 +119,15 @@ struct ImportView: View {
 
     private var actionsSection: some View {
         Section {
+            // D46 (v1.4): four routines the app ships, first in the list. Not offered when the
+            // sheet is editing one plan's JSON, which is a different job.
+            if replacingPlanId == nil {
+                Button {
+                    path.append(.builtIns)
+                } label: {
+                    Label("Choose a built-in plan", systemImage: "books.vertical")
+                }
+            }
             // A PasteButton is a no-op when the clipboard holds no text (O3), which is exactly
             // the "primary when the clipboard has text" rule without having to read the pasteboard.
             HStack {
@@ -122,7 +149,7 @@ struct ImportView: View {
             }
         } footer: {
             Text(hasDraft ? "Review plan checks it and shows you what it found."
-                          : "Already have the plan? Paste it, or open the file.")
+                          : "Four routines to start from — or the plan you already have: paste it, or open the file.")
         }
     }
 
@@ -271,6 +298,8 @@ struct ImportView: View {
 struct PlanReviewSheet: View {
     @Environment(\.dismiss) private var dismiss
     let plan: Plan
+    /// D46 (v1.4): a built-in plan's paragraph — what it is and why — shown above the days.
+    var about: String? = nil
     /// nil hides the row entirely (Replace already targets a specific plan; see ImportView).
     var makeActive: Binding<Bool>?
     let save: () -> Void
@@ -285,6 +314,13 @@ struct PlanReviewSheet: View {
     var body: some View {
         NavigationStack {
             List {
+                if let about {
+                    Section {
+                        Text(about)
+                            .font(.subheadline)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
                 Section {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("\(plan.units.rawValue) · \(plan.schedule.rawValue) · \(plan.days.count) day\(plan.days.count == 1 ? "" : "s")")

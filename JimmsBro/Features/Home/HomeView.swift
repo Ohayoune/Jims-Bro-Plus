@@ -4,13 +4,14 @@ import SwiftUI
 /// the plan and its exercises; a week strip that opens into the month; one activity line.
 struct HomeView: View {
     @Environment(AppModel.self) private var model
-    @Binding var showImport: Bool
+    /// Opens Add plan — on the built-in picker when the empty card's link asks (D46, v1.4).
+    @Binding var addPlan: AddPlanRequest?
     @Binding var showWorkout: Bool
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
-                StartCardView(showImport: $showImport, showWorkout: $showWorkout)
+                StartCardView(addPlan: $addPlan, showWorkout: $showWorkout)
                 CalendarView()
                 Text(HomeActivity.line(sessions: model.sessions))
                     .font(.footnote)
@@ -25,7 +26,7 @@ struct HomeView: View {
 /// The start card. One primary action that says what it will do (P5).
 private struct StartCardView: View {
     @Environment(AppModel.self) private var model
-    @Binding var showImport: Bool
+    @Binding var addPlan: AddPlanRequest?
     @Binding var showWorkout: Bool
     @State private var showDiscardConfirm = false
     @State private var previewing: PlanRoute?
@@ -120,7 +121,9 @@ private struct StartCardView: View {
             }
             HStack(spacing: 18) {
                 if card.isEmpty {
-                    Button("Try the sample plan") { Task { await model.importSamplePlan() } }
+                    // D46 (v1.4): the picker took the sample's place — the sample was the
+                    // owner's own plan with the owner's weights in it.
+                    Button("Choose a built-in plan") { addPlan = .builtIns }
                     Button("Try a short practice workout") { Task { await model.importPracticePlan() } }
                 } else if let planId = card.planId, let dayIndex = card.dayIndex {
                     Button("Preview") { previewing = PlanRoute(id: planId, dayIndex: dayIndex) }
@@ -156,7 +159,7 @@ private struct StartCardView: View {
     }
 
     private func act(_ card: HomeStart) {
-        if card.isEmpty { showImport = true; return }
+        if card.isEmpty { addPlan = .plan; return }
         if card.isInProgress { showWorkout = true; return }
         guard let planId = card.planId, let dayIndex = card.dayIndex else { return }
         start(planId: planId, dayIndex: dayIndex)

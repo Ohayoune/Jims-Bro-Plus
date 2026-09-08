@@ -2,11 +2,20 @@ import SwiftUI
 import UIKit
 
 /// The four tabs of SPEC §4.0. Home carries no navigation chrome of its own.
+/// Why Add plan is opening: the ordinary sheet, or the sheet with the built-in picker already
+/// on it (D46, v1.4). An item rather than a Bool and a flag, because a sheet's content closure
+/// runs with the state it captured before the tap that presented it — a flag set in the same
+/// tap arrived at the sheet as false — while an item is handed to the closure as it is.
+enum AddPlanRequest: Identifiable, Equatable {
+    case plan, builtIns
+    var id: Self { self }
+}
+
 struct RootView: View {
     enum Tab: String { case home, plans, history, settings }
 
     @State private var model: AppModel
-    @State private var showImport = false
+    @State private var addPlan: AddPlanRequest?
     @State private var showWorkout = false
     @State private var tab: Tab = .home
 
@@ -14,10 +23,10 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $tab) {
-            HomeView(showImport: $showImport, showWorkout: $showWorkout)
+            HomeView(addPlan: $addPlan, showWorkout: $showWorkout)
                 .tabItem { Label("Home", systemImage: "house") }
                 .tag(Tab.home)
-            PlansView(showImport: $showImport, showWorkout: $showWorkout)
+            PlansView(addPlan: $addPlan, showWorkout: $showWorkout)
                 .tabItem { Label("Plans", systemImage: "list.bullet") }
                 .tag(Tab.plans)
             HistoryView()
@@ -30,7 +39,9 @@ struct RootView: View {
         .onAppear(perform: applyScreenshotArguments)
         .environment(model)
         .task { if !model.loaded { await model.load() } }
-        .sheet(isPresented: $showImport) { ImportView().environment(model) }
+        .sheet(item: $addPlan) { request in
+            ImportView(openBuiltIns: request == .builtIns).environment(model)
+        }
         .fullScreenCover(isPresented: $showWorkout) {
             NavigationStack { WorkoutView() }
                 .environment(model)
@@ -72,7 +83,8 @@ struct RootView: View {
         guard let index = arguments.firstIndex(of: "-uiScreen"),
               let name = arguments[safe: index + 1] else { return }
         if name == "import" {
-            showImport = true
+            // v1.4: `-uiBuiltIns` opens Add plan on the built-in picker (D46).
+            addPlan = arguments.contains("-uiBuiltIns") ? .builtIns : .plan
         } else if name == "workout" {
             // The screenshot run starts the card's day, optionally logs some sets to reach a
             // later phase, and opens the workout.

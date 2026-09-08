@@ -4,7 +4,7 @@ import SwiftUI
 /// v1.1 — the JSON editor is no longer the front door), swipe to delete with a confirmation.
 struct PlansView: View {
     @Environment(AppModel.self) private var model
-    @Binding var showImport: Bool
+    @Binding var addPlan: AddPlanRequest?
     @Binding var showWorkout: Bool
     @State private var path: [UUID] = []
     /// D25 (v1.1): swipe-to-delete confirms, matching every other delete path.
@@ -19,7 +19,7 @@ struct PlansView: View {
                     } description: {
                         Text("Get one from a chatbot in three steps, paste one you already have, or open a file.")
                     } actions: {
-                        Button("Add plan") { showImport = true }
+                        Button("Add plan") { addPlan = .plan }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.large)
                     }
@@ -34,7 +34,7 @@ struct PlansView: View {
                     }
                     .navigationDestination(for: UUID.self) { PlanDetailView(planId: $0, showWorkout: $showWorkout) }
                     .bottomAction {
-                        PrimaryButton(title: "Add plan") { showImport = true }
+                        PrimaryButton(title: "Add plan") { addPlan = .plan }
                     }
                 }
             }

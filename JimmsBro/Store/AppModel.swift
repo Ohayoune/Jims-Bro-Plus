@@ -41,6 +41,9 @@ enum SaveFailure: Equatable {
     var shownActivity: WorkoutActivityState?
     private let sampleJSON: () -> String?
     private let practiceJSON: () -> String?
+    /// D46 (v1.4): a built-in plan's JSON by resource name, injected like the other two so
+    /// tests read the files that ship from the source tree.
+    private let bundledPlanJSON: (String) -> String?
     /// Sessions already written to disk, so completing twice doesn't rewrite them.
     var persistedSessionIds: Set<UUID> = []
     var askedForNotifications = false
@@ -82,13 +85,15 @@ enum SaveFailure: Equatable {
          alerts: AlertPlaying = SilentAlerts(),
          activities: ActivityPresenting = NoActivities(),
          sampleJSON: @escaping () -> String? = AppModel.bundledSampleJSON,
-         practiceJSON: @escaping () -> String? = AppModel.bundledPracticeJSON) {
+         practiceJSON: @escaping () -> String? = AppModel.bundledPracticeJSON,
+         bundledPlanJSON: @escaping (String) -> String? = AppModel.bundledJSON) {
         self.store = store
         self.scheduler = scheduler
         self.alerts = alerts
         self.activities = activities
         self.sampleJSON = sampleJSON
         self.practiceJSON = practiceJSON
+        self.bundledPlanJSON = bundledPlanJSON
     }
 
     nonisolated static func bundledSampleJSON() -> String? { bundledJSON("SamplePlan") }
@@ -209,6 +214,18 @@ enum SaveFailure: Equatable {
     @discardableResult
     func importPracticePlan(now: Date = Date()) async -> ImportResult {
         await importBundled(practiceJSON(), what: "practice plan", now: now)
+    }
+
+    /// D46 (v1.4): a built-in plan, read from the bundle and put through the ordinary import
+    /// pipeline — not saved. The picker shows the result in the same Review sheet a pasted
+    /// plan gets, and Save plan goes through `save(_:conflict:makeActive:)` like any other.
+    func loadBuiltInPlan(_ id: String, now: Date = Date()) -> ImportResult {
+        guard BuiltInPlans.entry(id) != nil, let text = bundledPlanJSON(id) else {
+            return ImportResult(plan: nil, issues: [Issue(
+                severity: .error, code: "E_NO_BUILT_IN", path: "",
+                message: "The built-in plan \"\(id)\" is missing from the app bundle.")])
+        }
+        return runImport(text, now: now)
     }
 
     private func importBundled(_ text: String?, what: String, now: Date) async -> ImportResult {

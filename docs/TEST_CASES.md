@@ -728,6 +728,21 @@ is testable without a phone; Q71–Q73 need the device and live in `DEVICE_CHECK
 | Y2 | unit | (D48, v1.4) A start refused mid-session; a switch; a session restored at launch | The refusal leaves the count alone; the switch counts; `load` with an active session on disk resumes it with the count at 0 |
 | Y3 | manual | (D48, v1.4) Tap **Start** on the phone | The workout screen is up before the notification prompt or the Island appears; nothing waits on them |
 
+### Y2 — built-in plans (D46)
+
+`JimmsBroTests/BuiltInPlanTests.swift`, reading the files that ship from `JimmsBro/Resources`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Y4 | unit | (D46, v1.4) Every built-in plan through `PlanImport.run`, in kg and in lb | No errors and no warnings of either kind; the catalogue's four ids in order; each plan's name is the catalogue's; the plan takes the setting's unit; the build-your-own sentence names **Create with a chatbot** |
+| Y5 | unit | (D46, v1.4) The repeat blocks | Whole weeks; training days per week equal the catalogue's; every day is in the block; Full Body and At Home run A B A then B A B over 14 days; Upper Lower is four days on seven; Push Pull Legs is Push Pull Legs twice on seven |
+| Y6 | unit | (D46, v1.4) Every exercise of every plan | One kind of set per exercise; every rep exercise has a rep range and every set is that range; every hold is a fixed duration with the warning beep on and is bodyweight; no weight and no drops anywhere; At Home is entirely bodyweight; the gym plans flag only the plank, the pull-up and the knee raise |
+| Y7 | unit | (D46, v1.4) The shape of every day | Five to seven exercises, 15–22 sets, rest never climbing through the day, the day opening on a big lift's rest, every rest 30–180 s, a note on every exercise under 500 characters, and the first note of every plan explaining the empty weight field |
+| Y8 | unit | (D46, v1.4) Every exercise name across the four plans and the practice plan | One spelling per movement (compared with punctuation and case stripped), and more than thirty movements in all |
+| Y9 | unit | (D46, v1.4) `Session.start` on every day, and `estimatedMinutes` | Every day flattens to one step per set; every day estimates between 35 and 65 minutes with the default settings; the plan's typical day is to the nearest five minutes and heads the summary line; v1.1's settings take exactly the warm-up and the walks off; an index off the end is nil |
+| Y10 | unit | (D46, v1.4) `AppModel.loadBuiltInPlan` and `save(_:conflict:makeActive:)` | An unknown id is `E_NO_BUILT_IN` with a sentence; the empty card reads "Choose a built-in plan, or get one from a chatbot."; loading saves nothing; saving makes it active; saving again keeps both as "Full Body" and "Full Body (2)" without taking over; the card then reads "Full Body A" / **Start Full Body A**; a relaunch reads both plans back |
+| Y11 | manual | (D46, v1.4) Home → **Choose a built-in plan** → At Home → Save plan → Start | The picker's rows show days, minutes and equipment; the review opens on the paragraph; Home names At Home A; the first card asks for reps only; the plan's minutes are about what the day took |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|
@@ -837,7 +852,7 @@ is testable without a phone; Q71–Q73 need the device and live in `DEVICE_CHECK
 ## O. UI, accessibility, device (mostly manual)
 | ID | Type | Case | Expected |
 |---|---|---|---|
-| O1 | ui | Empty Home | Two buttons; "Try the sample plan" imports and activates the sample |
+| O1 | ui | Empty Home | Two links; "Try the sample plan" imports and activates the sample. **v1.4 (D46)**: the link is "Choose a built-in plan" and opens the picker (Y10, Y11); `importSamplePlan` remains for the seeder and the screenshots |
 | O2 | ui | Import screen Paste with text on clipboard | Editor filled |
 | O3 | ui | Paste with an image on clipboard | Nothing happens; PasteButton disabled or no-op |
 | O4 | ui | Import error list | Each row shows path, message, code; Copy fix-it button present |

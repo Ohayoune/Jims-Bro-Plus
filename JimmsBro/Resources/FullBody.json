@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "name": "Full Body",
+  "defaultRestSeconds": 90,
+  "schedule": "rotation",
+  "cycle": [
+    "Full Body A", "rest", "Full Body B", "rest", "Full Body A", "rest", "rest",
+    "Full Body B", "rest", "Full Body A", "rest", "Full Body B", "rest", "rest"
+  ],
+  "days": [
+    {
+      "name": "Full Body A",
+      "exercises": [
+        {
+          "name": "Barbell Back Squat",
+          "sets": 3,
+          "reps": "4-6",
+          "restSeconds": 180,
+          "notes": "No weights are filled in. Start light, type what you lift on the first set, and the app remembers it from then on; when every set reaches 6 it will tell you to add weight. Bar on the upper back, big breath, sit down between the knees, drive the floor away."
+        },
+        {
+          "name": "Barbell Bench Press",
+          "sets": 3,
+          "reps": "4-6",
+          "restSeconds": 150,
+          "notes": "Feet flat, shoulder blades pinched, bar to the lower chest, press to lockout."
+        },
+        {
+          "name": "Barbell Row",
+          "sets": 3,
+          "reps": "8-10",
+          "restSeconds": 120,
+          "notes": "Hinge to about 45 degrees, pull the bar to the lower ribs, lower under control."
+        },
+        {
+          "name": "Dumbbell Shoulder Press",
+          "sets": 3,
+          "reps": "8-12",
+          "restSeconds": 90,
+          "notes": "Seated or standing. Elbows a little forward, press to lockout without leaning back."
+        },
+        {
+          "name": "Plank",
+          "sets": 3,
+          "durationSeconds": 45,
+          "warningBeep": true,
+          "bodyweight": true,
+          "restSeconds": 45,
+          "notes": "Elbows under the shoulders, squeeze the glutes, one straight line. Too easy? Lift one foot."
+        }
+      ]
+    },
+    {
+      "name": "Full Body B",
+      "exercises": [
+        {
+          "name": "Deadlift",
+          "sets": 3,
+          "reps": "4-6",
+          "restSeconds": 180,
+          "notes": "Bar over mid-foot, hips high enough to keep the back flat, push the floor away. Reset every rep."
+        },
+        {
+          "name": "Overhead Press",
+          "sets": 3,
+          "reps": "4-6",
+          "restSeconds": 150,
+          "notes": "Bar at the collarbones, squeeze the glutes, press straight up and move the head through at the top."
+        },
+        {
+          "name": "Lat Pulldown",
+          "sets": 3,
+          "reps": "8-12",
+          "restSeconds": 90,
+          "notes": "Chest up, pull to the collarbones, control the way back. Pull-ups instead once you can do 6 in a row."
+        },
+        {
+          "name": "Dumbbell Lunge",
+          "sets": 3,
+          "reps": "8-12",
+          "restSeconds": 90,
+          "notes": "8 to 12 each leg. Step far enough that the front shin stays vertical."
+        },
+        {
+          "name": "Face Pull",
+          "sets": 3,
+          "reps": "12-15",
+          "restSeconds": 60,
+          "notes": "Cable or band at face height. Pull to the ears with the elbows high. This is what keeps the shoulders healthy under the presses."
+        }
+      ]
+    }
+  ]
+}

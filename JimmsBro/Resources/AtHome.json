@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "name": "At Home",
+  "defaultRestSeconds": 60,
+  "schedule": "rotation",
+  "cycle": [
+    "At Home A", "rest", "At Home B", "rest", "At Home A", "rest", "rest",
+    "At Home B", "rest", "At Home A", "rest", "At Home B", "rest", "rest"
+  ],
+  "days": [
+    {
+      "name": "At Home A",
+      "exercises": [
+        {
+          "name": "Push-Up",
+          "sets": 3,
+          "reps": "8-15",
+          "bodyweight": true,
+          "restSeconds": 75,
+          "notes": "Nothing to load here, so the app never asks for a weight; when every set reaches 15 it will tell you to make it harder. Too hard? Hands on a table. Too easy? Feet on a chair. Hands under the shoulders, body straight, chest to the floor."
+        },
+        {
+          "name": "Inverted Row",
+          "sets": 3,
+          "reps": "8-12",
+          "bodyweight": true,
+          "restSeconds": 75,
+          "notes": "Under a sturdy table, or a towel looped around a door handle. Body straight, pull the chest to the edge. Feet further back makes it harder."
+        },
+        {
+          "name": "Bodyweight Squat",
+          "sets": 3,
+          "reps": "15-20",
+          "bodyweight": true,
+          "restSeconds": 60,
+          "notes": "Feet shoulder width, sit down between the knees, heels on the floor. Too easy? Slow the way down to three seconds."
+        },
+        {
+          "name": "Reverse Lunge",
+          "sets": 3,
+          "reps": "10-12",
+          "bodyweight": true,
+          "restSeconds": 60,
+          "notes": "10 to 12 each leg. Step back far enough that the front shin stays vertical."
+        },
+        {
+          "name": "Plank",
+          "sets": 3,
+          "durationSeconds": 45,
+          "warningBeep": true,
+          "bodyweight": true,
+          "restSeconds": 45,
+          "notes": "Elbows under the shoulders, squeeze the glutes, one straight line. Too easy? Lift one foot."
+        },
+        {
+          "name": "Glute Bridge",
+          "sets": 3,
+          "reps": "15-20",
+          "bodyweight": true,
+          "restSeconds": 45,
+          "notes": "On your back, feet flat, drive the hips up and squeeze for a second at the top."
+        }
+      ]
+    },
+    {
+      "name": "At Home B",
+      "exercises": [
+        {
+          "name": "Pike Push-Up",
+          "sets": 3,
+          "reps": "6-10",
+          "bodyweight": true,
+          "restSeconds": 75,
+          "notes": "Hips high, head towards the floor between the hands. Feet on a chair makes it harder; this is the shoulder press of the plan."
+        },
+        {
+          "name": "Bulgarian Split Squat",
+          "sets": 3,
+          "reps": "8-12",
+          "bodyweight": true,
+          "restSeconds": 75,
+          "notes": "8 to 12 each leg, rear foot on a chair. Hold a bag or a bottle in each hand once bodyweight is easy."
+        },
+        {
+          "name": "Chair Dip",
+          "sets": 3,
+          "reps": "8-12",
+          "bodyweight": true,
+          "restSeconds": 60,
+          "notes": "Hands on the edge of a chair behind you, lower until the elbows reach 90 degrees. Legs straight makes it harder."
+        },
+        {
+          "name": "Single-Leg Glute Bridge",
+          "sets": 3,
+          "reps": "10-15",
+          "bodyweight": true,
+          "restSeconds": 45,
+          "notes": "10 to 15 each leg. Hips level; the free knee stays bent."
+        },
+        {
+          "name": "Superman Hold",
+          "sets": 3,
+          "durationSeconds": 30,
+          "warningBeep": true,
+          "bodyweight": true,
+          "restSeconds": 45,
+          "notes": "Face down, arms and legs lifted, look at the floor. This is the back of the plan."
+        },
+        {
+          "name": "Side Plank",
+          "sets": 4,
+          "durationSeconds": 30,
+          "warningBeep": true,
+          "bodyweight": true,
+          "restSeconds": 30,
+          "notes": "Alternate sides each set. Elbow under the shoulder, hips lifted, one straight line."
+        }
+      ]
+    }
+  ]
+}
