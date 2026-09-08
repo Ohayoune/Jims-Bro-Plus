@@ -53,6 +53,18 @@ and out (D45), and **Progression** — the chatbot round-trip run the other way 
 `docs/PROGRESSION_FORMAT.md`, `docs/PROMPT.md` §3). Everything through X6 is built and green;
 the v1.3 device rows (W3, W12, W21, W30, W40) join the checklist that still needs the phone.
 
+`docs/ITERATION_5_PLAN.md` is the v1.4 plan (milestones **Y0–Y5**), the owner's notes after
+running v1.3 on the phone: a tap's result before its side effects (D48 — the workout cover no
+longer waits for the notification, the Live Activity and the disk write), four **built-in
+plans** through the ordinary import pipeline with no weights in them (D46,
+`Core/BuiltInPlans.swift`, `JimmsBro/Resources/*.json`), an **introduction** whose pages are
+Core data pinned to real control names (D47, `Core/Introduction.swift`, `Settings.introSeen`),
+and store readiness (D49: an opaque icon, version 1.4 on every target, the export-compliance
+answer, `docs/PRIVACY.md`, `docs/APP_STORE.md`, `tools/check_release.py`, and a Release build
+as part of every milestone's green). Everything through Y5 is built and green. What remains is
+the owner's: the device checklist, the Developer Program, a release Xcode, the LICENSE and the
+submission (`docs/APP_STORE.md` §1 and §6).
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
@@ -77,12 +89,12 @@ Three v1.2 rules are worth knowing before touching anything:
 
 ## Working style
 
-- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the two doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all).
+- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25).
 - Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.
 - Use the fixtures in `examples/` verbatim in tests. Do not edit fixtures to make tests pass; if a fixture looks wrong, say so.
 - Use the iOS Simulator for visual checks. The owner installs on the physical iPhone (BUILD_PLAN §Device).
-- If you cannot run Xcode where you are (for example a chat session without a Mac), still write the complete project files, and give the owner exact commands to run the tests locally (`xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'`). Never claim tests passed that you did not run.
+- If you cannot run Xcode where you are (for example a chat session without a Mac), still write the complete project files, and give the owner exact commands to run the tests locally (`xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` — any installed iPhone works). Never claim tests passed that you did not run.
 `````
 
 ---
@@ -94,15 +106,24 @@ Three v1.2 rules are worth knowing before touching anything:
 
 A personal iPhone app that runs your workout for you: import a plan a chatbot wrote from your own description, then log each set while the app times your rest and remembers what you lifted last time.
 
-This folder contains the design package and the app, built through **v1 (M0–M7)**, **v1.1 (R0–R6)**, **v1.2 (V0–V7)** and **v1.3 (X0–X5)**: the Core import pipeline and session engine, the JSON store, every screen, the workout's five fixed zones, plan editing, backup and restore, v1.2's warm-up, timed walk between exercises, loadable weight suggestions, anchored calendar, metrics and Lock Screen / Dynamic Island activity, and v1.3's narrower Island, changing an exercise mid-workout, JSON edits at every size, history as CSV in and out, and Progression — the chatbot round-trip run the other way. Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the device checklist, which needs the owner's iPhone. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
+## If you just want the app
+
+- **What it is.** Pick a plan and tap Start. The app walks you through the day one set at a time, times your rest — on the Lock Screen and in the Dynamic Island, with a notification when the phone is in your pocket — and remembers what you lifted, so next time the weight is already filled in and it tells you when to add. Four built-in routines (Full Body, Upper Lower, Push Pull Legs, At Home), or a chatbot writes yours from a prompt the app copies for you.
+- **Getting it.** It is being submitted to the App Store; `docs/APP_STORE.md` is the submission. Until it is there, build it yourself: open `JimmsBro.xcodeproj` in Xcode, choose your team under Signing & Capabilities, plug in an iPhone, press Run.
+- **Privacy.** Nothing leaves the phone unless you export it. No account, no analytics, no network connection. `docs/PRIVACY.md` is the policy.
+- **License.** None has been chosen yet, so the code is published to read; ask before reusing it.
+
+Everything below is the design and handoff material the app was built from.
+
+This folder contains the design package and the app, built through **v1 (M0–M7)**, **v1.1 (R0–R6)**, **v1.2 (V0–V8)**, **v1.3 (X0–X6)** and **v1.4 (Y0–Y5)**: the Core import pipeline and session engine, the JSON store, every screen, the workout's five fixed zones, plan editing, backup and restore, v1.2's warm-up, timed walk between exercises, loadable weight suggestions, anchored calendar, metrics and Lock Screen / Dynamic Island activity, and v1.3's narrower Island, changing an exercise mid-workout, JSON edits at every size, history as CSV in and out, and Progression — the chatbot round-trip run the other way; and v1.4's four built-in plans, the introduction, a workout that opens the moment it exists, and the store readiness (an opaque icon, version 1.4 on every target, the export-compliance answer, the privacy policy and the submission page). Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the device checklist, which needs the owner's iPhone, and the submission itself — the Developer Program, a release Xcode and the form — which is the owner's to do from `docs/APP_STORE.md`. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
 
 Run the iOS tests from this folder:
 
 ```sh
-xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'
+xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-That is **246 tests** (3 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity, and v1.3's Island timer range, exercise substitution, JSON splices, history CSV and Progression. Imports use the original 111 fixtures and manifest verbatim. There are no third-party dependencies, and the signing team is already set for both targets.
+That is **259 tests** (4 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity, v1.3's Island timer range, exercise substitution, JSON splices, history CSV and Progression, and v1.4's start-before-the-side-effects rule, the four built-in plans and the introduction. Imports use the original 111 fixtures and manifest verbatim. There are no third-party dependencies, and the signing team is already set for both targets.
 
 Core can also be checked with the independently installed Command Line Tools:
 
@@ -117,9 +138,15 @@ This portable runner compiles the actual Core sources in Swift 5 language mode a
 swift test
 ```
 
-runs Core as an ordinary Swift Package. This route had not compiled since `AppModel` became `@Observable` — `Package.swift` declared macOS 13 and Observation needs 14 — and v1.2's V1 fixed it. It is also where the three cases the simulator skips actually run: they pin `Prompts.swift` to `docs/PROMPT.md`, which is outside the simulator's sandbox. See `docs/BUILD_STATUS.md` for results and remaining verification.
+runs Core as an ordinary Swift Package. This route had not compiled since `AppModel` became `@Observable` — `Package.swift` declared macOS 13 and Observation needs 14 — and v1.2's V1 fixed it. It is also where the four cases the simulator skips actually run: three pin `Prompts.swift` to `docs/PROMPT.md` and one pins the introduction's copy to the views' own source, all outside the simulator's sandbox. See `docs/BUILD_STATUS.md` for results and remaining verification.
 
-An iOS simulator runtime must be installed in Xcode; the commands above name the iPhone 16 simulator, and any installed iPhone works.
+An iOS simulator runtime must be installed in Xcode; the commands above name the iPhone 17 simulator (the one Xcode 27 ships), and any installed iPhone works.
+
+```sh
+python3 tools/check_release.py
+```
+
+checks what a script can about App Store readiness (v1.4, D49): the icon has no alpha channel, the three targets agree on a version and `docs/APP_STORE.md` says the same, the export-compliance answer is in the binary, the policy and the submission page exist, and every built-in plan is bundled. The other half is a Release build, `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`.
 
 ```sh
 python3 tools/check_bundle.py
@@ -138,6 +165,9 @@ fails when `HANDOFF_BUNDLE.md` or the zip has drifted from the files it is built
 | `docs/ITERATION_2_PLAN.md` | The v1.1 plan: milestones R0–R6 | both |
 | `docs/ITERATION_3_PLAN.md` | The v1.2 plan: milestones V0–V8 | both |
 | `docs/ITERATION_4_PLAN.md` | The v1.3 plan: milestones X0–X6 | both |
+| `docs/ITERATION_5_PLAN.md` | The v1.4 plan: milestones Y0–Y5 | both |
+| `docs/PRIVACY.md` | The privacy policy the App Store needs a URL for | you |
+| `docs/APP_STORE.md` | The App Store submission: the order of things, every field, the review notes, the screenshots, the choices only you can make | you |
 | `docs/PROGRESSION_FORMAT.md` | The progression reply format (D44): fields, leniency, codes | both |
 | `docs/CODE_HEALTH_REVIEW.md` | The 2026-09-07 review that prompted half of v1.2, and what became of each finding | you |
 | `docs/DEVICE_CHECKLIST.md` | The 32 manual cases to run on your iPhone, with a place to record results | you |
@@ -146,6 +176,7 @@ fails when `HANDOFF_BUNDLE.md` or the zip has drifted from the files it is built
 | `examples/` | 111 fixture files + `manifest.json` with expected results | the agent's tests |
 | `tools/reference_import.py` | Python reference implementation; `python3 tools/reference_import.py` checks every fixture | the agent, as an oracle |
 | `tools/generate_fixtures.py` | Regenerates all of `examples/` from scratch | the agent, if it only has the bundle |
+| `tools/check_release.py` | Checks what a script can about store readiness: the icon, the versions, the compliance answer, the built-in plans | both |
 | `HANDOFF_BUNDLE.md` | Everything above except the fixtures, in one file for pasting or uploading into a chat | ChatGPT (web) |
 | `JimmsBro-design-package.zip` | The whole folder, for uploading into a chat | ChatGPT (web) |
 
@@ -216,6 +247,7 @@ What it costs:
 |-------|------------------|-------|-------|
 | Free Apple ID in Xcode | 7 days, then re-run from Xcode (data survives) | $0 | Max 3 sideloaded apps at once. Fine for personal use. |
 | Apple Developer Program | 1 year, plus TestFlight | $99/yr | Only needed if the 7-day re-install annoys you or you want friends on it. |
+| App Store (v1.4, D49) | until the membership lapses | the same $99/yr | The paid program, a release Xcode (a beta build is refused), an opaque icon, the export-compliance answer in the binary, a privacy policy URL. `docs/APP_STORE.md` is the submission; `tools/check_release.py` checks what a script can. |
 
 What you do vs. what the implementing agent does: the agent writes all code and tests and can run the app in the iOS Simulator. Installing on your physical iPhone is a one-time 5-minute manual step (plug in, trust, enable Developer Mode, choose your Team in Xcode). Steps are in `docs/BUILD_PLAN.md`.
 
@@ -253,7 +285,7 @@ Rewritten in v1.1's R2 milestone. The v1 text is kept underneath each rule that 
 
 ### 4.1 Home (D18, rewritten in v1.1's R3)
 Three things, top to bottom, nothing else:
-1. **Start card**, which leads with the workout rather than with the calendar: the day's name as the headline ("Push"), a subtitle of the fragments that have data ("Push Pull Legs · 5 exercises · 48 min last time"), the day's first five exercise names and "and N more", then one button that says what it does — **Start Push**, **Resume Push · 23 min**, or, on a rest day, a "Rest day" headline with "Lower is next, Thu" and **Start Lower early**. **Preview** opens the day in Plan detail; **Another day** offers the plan's other days. **v1.3 (D44)**: when the plan carries a progression, the subtitle also says where it is — "· week 3 of 8"; the day after its last week, one line says "Your progression has run its course" with **Plan the next one**, which opens the plan. Nothing else on Home moves. No plans yet → "No plan yet" with **Add plan**, plus "Try the sample plan" and "Try a short practice workout". *(v1: "Next up · Pull" and a bare Start, which never said what you were about to do.)*
+1. **Start card**, which leads with the workout rather than with the calendar: the day's name as the headline ("Push"), a subtitle of the fragments that have data ("Push Pull Legs · 5 exercises · 48 min last time"), the day's first five exercise names and "and N more", then one button that says what it does — **Start Push**, **Resume Push · 23 min**, or, on a rest day, a "Rest day" headline with "Lower is next, Thu" and **Start Lower early**. **Preview** opens the day in Plan detail; **Another day** offers the plan's other days. **v1.3 (D44)**: when the plan carries a progression, the subtitle also says where it is — "· week 3 of 8"; the day after its last week, one line says "Your progression has run its course" with **Plan the next one**, which opens the plan. Nothing else on Home moves. No plans yet → "No plan yet" with **Add plan**, plus "Choose a built-in plan" (D46, v1.4, §6.23) and "Try a short practice workout". *(v1: "Next up · Pull" and a bare Start, which never said what you were about to do. v1.1–v1.3 offered "Try the sample plan" here — the owner's own Push Pull Legs, weights included, which is exactly wrong for a stranger.)*
 2. **Calendar**: a **7-day strip of the current week** by default, with **Month** disclosing the full grid (7 columns, weeks as rows, ‹ › to change month, today outlined) and **Week** collapsing it again. Cells are at least 44 pt in both (P6). A day with a completed session shows a filled accent dot; a future day with a projected workout (§6.12) shows a hollow accent dot; a scheduled rest day shows a filled grey dot; a day the plan says nothing about shows no dot at all. Tapping a day shows one line under the grid: "Wed 10 · Legs · 52 min" (tap again → session detail), "Sat 13 · Push · projected" with a small **Start this** if it's today, or "Sun 14 · Rest day". Days with no dot show no line.
 3. **One activity line**: "2 workouts this week · 1 h 32 min", or "No workouts yet this week". "This week" is the calendar week containing today, the same seven days the strip above shows. *(v1 had a 44 pt sparkline whose metric changed on an undocumented tap. Both v1.1 reviews called it undiscoverable rather than quiet; `Sparkline`, `HomeMetric` and the Settings row that picked the metric were removed with it. `ExerciseHistory.series` — the per-exercise data behind the chart of D13/§10 — is untouched.)*
 
@@ -270,8 +302,9 @@ List of plans (active one marked). Tap → Plan detail. Primary action: **Add pl
 - Any day has **Start** (override). If a session is in progress this triggers the switch popup (D17): "You're in the middle of Pull (5 of 16 sets). Switching workouts mid-session isn't recommended." Buttons: **Keep going** (default), Finish Pull and start Legs, Discard Pull and start Legs.
 
 ### 4.4 Add plan (D26, rewritten in v1.1's R3)
-The chatbot round-trip is this app's premise, and the v1 screen — a JSON text box — never explained it. **Add plan** offers three ways in, and the editor is a detail behind "Show text":
+The chatbot round-trip is this app's premise, and the v1 screen — a JSON text box — never explained it. **Add plan** offers four ways in, and the editor is a detail behind "Show text":
 
+- **Choose a built-in plan** (D46, v1.4, §6.23), first in the list: one screen with the four routines the app ships — the name, a line, "3 days a week · about 45 min · barbell, rack, bench…", who it is for — and, beneath them, the sentence that says to build your own. Tapping one opens the same **Review plan** sheet a pasted plan gets, with the routine's paragraph on top; **Save plan** saves it like any plan. Not offered when the sheet is editing one plan's JSON.
 - **Paste plan**, the one you use when the chatbot's reply is already on the clipboard. It imports immediately; the button does nothing when the clipboard holds no text (O3).
 - **Create with a chatbot**, three numbered steps: 1 **Copy prompt** (the button reads "Copied" and goes back on its own after about two seconds), 2 paste it into your chatbot and describe your training, 3 copy its reply and come back. The draft in the editor survives leaving the app.
 - **Import file**, for a `.json` on disk.
@@ -323,7 +356,7 @@ Leads with "**Workout saved**", then one line of what happened — "Push · 48 m
 Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly. Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1).
 
 ### 4.11 Settings
-Units, default rest, **warm-up length** (D32, v1.2), **between exercises** (D33, v1.2), sound, vibration, notifications state, keep awake, weight step, **smallest weight change** (D35, v1.2), Export backup, **Import backup** (D31, v1.1), **Export history (CSV)** and **Import history (CSV)** (D45, v1.3), Delete all data, About. (The home-chart metric row went with the sparkline in v1.1's R3.)
+Units, default rest, **warm-up length** (D32, v1.2), **between exercises** (D33, v1.2), sound, vibration, notifications state, keep awake, weight step, **smallest weight change** (D35, v1.2), Export backup, **Import backup** (D31, v1.1), **Export history (CSV)** and **Import history (CSV)** (D45, v1.3), Delete all data, About — the version, the counts, and **How the app works** (D47, v1.4, §6.24), which reopens the introduction with **Done** in place of Choose a plan. (The home-chart metric row went with the sparkline in v1.1's R3.)
 
 The three v1.2 rows, in the owner's words:
 
@@ -334,8 +367,10 @@ The three v1.2 rows, in the owner's words:
 ## 5. Flows
 
 ### 5.1 First run
+**The introduction** (D47, v1.4, §6.24) comes first, over the tabs, on a launch where the store holds no plans and it has not been dismissed: four pages — *A plan, then Start* · *Log the set, rest, repeat* · *It remembers* · *Your plan, your way* — and one primary action, **Choose a plan**, which opens Add plan on the built-in picker, with **Not now** beneath. Dismissed either way it does not come back; it lives in Settings → About → **How the app works**. It is never shown over a phone that already has plans.
+
 Home's empty state offers two ways to have something to run today:
-- **Try the sample plan** imports the bundled `SamplePlan.json` (same as `examples/valid/weekly-rotation.json`) and makes it active → Home shows "Push", its five exercises and **Start Push**.
+- **Choose a built-in plan** (D46, v1.4, §6.23) opens Add plan on the picker: four routines with no weights in them, each through the ordinary import pipeline, saved with **Save plan** → Home shows the first day, its exercises and **Start Full Body A**. *(v1.1–v1.3: **Try the sample plan** imported the bundled `SamplePlan.json` — the fixture `examples/valid/weekly-rotation.json` — and made it active. The file stays in the bundle for the seeder, the screenshots and O1; it is no longer offered here.)*
 - **Try a short practice workout** (v1.1) imports the bundled `PracticePlan.json`: one day, three straight-set exercises (one of them bodyweight), 60 s rest, no supersets, drops or timed work — small enough to run through in a few minutes to learn the app. It goes through the same import pipeline as any other plan; nothing in `examples/` is involved.
 
 ### 5.2 Getting a plan in (the loop that makes this app different)
@@ -346,7 +381,7 @@ Home's empty state offers two ways to have something to run today:
 5. If it fails validation: the sentence on screen says what and where; **Copy fix-it prompt** → paste into the same chat → chatbot outputs corrected JSON → repeat step 4.
 
 ### 5.3 Running a workout
-Home → Start → step card → Log set → rest → … → last set of the exercise → done screen (count-up) → Continue → next exercise … → last step → Summary → Done. Notification permission is requested the first time a session starts (not at app launch). If denied, a one-time in-app banner explains that alerts only work with the app open.
+Home → Start → step card → Log set → rest → … → last set of the exercise → done screen (count-up) → Continue → next exercise … → last step → Summary → Done. Notification permission is requested the first time a session starts (not at app launch). If denied, a one-time in-app banner explains that alerts only work with the app open. **v1.4 (D48, §6.22)**: the workout screen appears the moment the session exists; the notification, the Lock Screen activity and the disk write follow behind it.
 
 ### 5.4 Interrupted workout
 The active session is written to disk after every event. If the app is killed (or the phone dies), the Home start card offers Resume on next launch. Resume restores the exact step and, if a rest was running, shows it with the correct remaining or overrun time computed from `endsAt`; if the done screen was showing, its stopwatch continues from its `startedAt`.
@@ -579,6 +614,46 @@ A v1.2 defect fixed here, because the splice goes through the same `apply`: a pl
 - **The week** is calendar weeks from `startDate`, which is the day the progression is saved. `Session.start` applies the current week to the day's snapshot (D7 holds: the session records what it was asked to do) and stamps the week on the exercises it touched. An exercise, week or set the progression says nothing about keeps the plan's own target; a range of reps also becomes the rep range advice judges by. The day after the last week, the plan's own targets and advice are back — nothing lingers.
 - **On the workout**, prefill shows the week's weight and reps (§6.5, rule 0) and the chip says which week (§6.11). The Summary's line and Session detail's first line carry "week 3 of 8". Home's subtitle carries it too, and when it has run out Home offers **Plan the next one**.
 - **Edits keep it, Replace drops it.** A structured or JSON edit (D29, D43) carries the progression through — entries match by name, so a renamed exercise simply stops matching. Edit JSON / Replace of the whole plan, or a name-conflict Replace on import, starts a new plan without one.
+
+### 6.22 A tap's result before its side effects (D48, v1.4)
+"Sometimes when a button is pressed it takes a second for the app to load." The second was the workout cover waiting for `startDay` to finish, and `startDay` finished only when everything it causes had landed: the rest notification through `UNUserNotificationCenter` (one round-trip per request), `plans.json` through the store actor, and the Live Activity through ActivityKit, which is the slow one and the newest. The engine itself was ready in the first line; everything after it was the system being told, and Home and Plan detail both waited for the telling before setting `showWorkout`.
+
+- **The rule.** The model changes its state synchronously and *then* tells the system; a view never waits for the telling to show the change. `AppModel.startedWorkouts` counts the workouts this run of the app has started, incremented the moment the engine exists, and `RootView` opens the workout cover on every change of it. No view sets the cover after awaiting `startDay`.
+- `startDay` itself stays sequential and atomic: effects run in order, and every write lands before the next event's can. Only what the *view* waits for changed. Making the effects fire-and-forget would let a later event's write land before an earlier one's.
+- **Resume** sets the cover directly, as before. A session restored at launch is offered as Resume on the card (§5.4), because `load` never touches the count. A start refused mid-session (D17) does not count; a switch does.
+- Every other event already showed its result first — `library.apply` mutates before the first await, and `justCompleted` is set before the finish's writes — so Log set, Skip and the Summary were never waiting. Start was the one path whose visible result was a presentation the view held back.
+
+### 6.23 Built-in plans (D46, v1.4)
+"A couple of prebuilt plans that cover the major workout routines, with the suggestion that the user builds their own. The built-in plans should all be really well thought out." Until v1.4 the only plan without a chatbot was the sample — the owner's Push Pull Legs with the owner's weights in it. Built-in plans are four routines covering how most people actually train, written to the app's own format (`JimmsBro/Resources/<id>.json`), each through the ordinary import pipeline with **no errors and no warnings of either kind**, and offered next to — never instead of — writing your own.
+
+- **The four**: **Full Body** (3 days a week: A and B alternating across a 14-day repeat block, A B A then B A B; new to lifting, or back after a break), **Upper Lower** (4 days: Upper A · Lower A · rest · Upper B · Lower B · rest · rest), **Push Pull Legs** (6 days: Push · Pull · Legs twice, one rest day) and **At Home** (3 days, A and B on the same 14-day block, no equipment at all). Rotation plans, every one, so the calendar and the start card work as they do for any other.
+- **What "well thought out" means**, each a test (Y4–Y9): every day opens with the biggest movement and ends with the smallest, and rest never climbs as the day goes on; five to seven exercises and 15–22 sets a day; **every rep exercise carries a rep range**, so the advice of §6.11 works from the first session; every hold is a fixed duration with the warning beep on; rest is written on every exercise (180 s for the squat and the deadlift, 150 s for the presses, 90–120 s for rows and secondary work, 60 s for isolation, 30–45 s for core); two isolation exercises that share a rest are a superset in the two intermediate plans and nowhere in the two beginner ones; every exercise has a cue in its notes and the first note of every plan says what to do about the empty weight field.
+- **No weights.** The app never guesses what a stranger can lift. `units` is omitted, so the plan takes the user's setting; `weight` is omitted everywhere, so the first set's field is empty, the user types what they lift, and from then on prefill (§6.5) and the advice fill it in. Bodyweight movements are flagged, so the card never asks for a weight on a push-up.
+- **One spelling per movement across all four plans and the practice plan** — "Barbell Back Squat" in Full Body is "Barbell Back Squat" in Push Pull Legs — so moving from one routine to the next carries history, prefill and records along (§6.9).
+- **The catalogue** is Core (`BuiltInPlan`, `BuiltInPlans.all`): the id, which is the resource name; the name; a tagline; the paragraph shown on top of the review, saying what the routine is and why it is built this way; who it is for; days a week; the equipment. Everything countable is read off the plan, not stated: the picker's "about 45 min" is `BuiltInPlans.estimatedMinutes` — the warm-up, the walk between exercises, forty seconds a set of reps or a hold's own seconds, and the plan's rest after every set that is followed by another in its block, through the real flattening — with the user's own settings, to the nearest five minutes.
+- **The suggestion to build your own** is one sentence (`BuiltInPlans.buildYourOwn`), the picker's footer: these are starting points, not prescriptions; the best plan is the one written for you; **Create with a chatbot** is where that happens.
+- **Where**: Add plan's first row (§4.4); Home's empty state (§4.1); the introduction's last page (§6.24). `AppModel.loadBuiltInPlan(id)` reads and imports without saving; **Save plan** saves through the ordinary path with `keepBoth`, so a built-in plan saved twice is "Full Body" and "Full Body (2)" like any plan (§6.8). An unknown id, or a file missing from the bundle, is `E_NO_BUILT_IN` with a sentence, never a crash.
+
+### 6.24 The introduction (D47, v1.4)
+"An introduction screen that explains how the app runs." The app's premise is a loop nobody has seen before — a plan, Start, log the set, the rest runs itself, the app remembers — and until v1.4 the first screen a stranger saw was "No plan yet". The introduction says the loop out loud, once, and then gets out of the way.
+
+- **The content is Core.** `Introduction.pages`: four `IntroPage`s (a symbol, a line, a paragraph): *A plan, then Start* · *Log the set, rest, repeat* (the rest timer, the Lock Screen and the Island, a hold's own countdown) · *It remembers* (prefill, the advice at the top of the range, History and records) · *Your plan, your way* (built-in plans, the chatbot round-trip, Progression). What the app claims about itself is a test: every control a page names — **Start**, **Log set**, **Add plan**, **Create with a chatbot**, **History**, **Progression**, a **built-in plan** — must exist by exactly that name (`Introduction.namedControls`, Y13), so a rename that leaves the intro behind goes red.
+- **When.** `Introduction.isDue(plans:settings:)`: the store holds no plans and `Settings.introSeen` is false. `AppModel.introDue` adds "and the store has been read", so a launch never flashes it over a phone that turns out to have plans. A first launch, or the launch after Delete all data, which is a first launch by choice. Never over a phone with plans: the owner's phone gets the row in Settings, not a cover.
+- **`Settings.introSeen`**, optional in `Persistence.swift` (absent → false, so the frozen v1 settings file still decodes), set by `markIntroSeen()` on either dismissal. In Settings rather than a flag on the side, so Delete all data brings the intro back and a backup carries it. The setting changes synchronously and the cover follows it; the write lands behind (D48).
+- **The screen** (`IntroductionView`): pages you swipe with the system's page dots; one primary action — **Choose a plan**, which dismisses the intro and, once the cover is down, opens Add plan on the built-in picker (§4.4) — and one quiet **Not now**. Four screens is the ceiling; a page is one symbol, one line, one paragraph. Nothing on Home changes.
+- **Reachable later** from Settings → About → **How the app works**, as a sheet with **Done** in place of Choose a plan.
+
+### 6.25 Ready for the store (D49, v1.4)
+"v4 should be getting the app ready for publishing." What actually stops an upload, fixed in the build; what the store asks for, written down once.
+
+- **The icon is opaque.** App Store Connect rejects a 1024-pixel icon with an alpha channel, even one whose every pixel is opaque, and `tools/icon` wrote one (`premultipliedLast`). It now draws with `noneSkipLast`, the PNG's colour type is 2 (RGB), and `tools/check_release.py` reads the byte so it cannot come back.
+- **Export compliance is answered in the binary**: `ITSAppUsesNonExemptEncryption = NO` on the app target, because the app uses no encryption beyond what iOS applies to its files. Without it every upload stops at a question.
+- **Version 1.4, build 1**, the same on the app, the `JimmsBroActivity` extension and the tests — the extension's version must match the app's or validation fails. The number the store shows is the number the docs use.
+- **A Release build compiles** (`xcodebuild build -configuration Release`), which proves that nothing outside `#if DEBUG` refers to the screenshot hooks, the read-only store or the seeded launch arguments. Run for every milestone from Y4 on; recorded in BUILD_STATUS.
+- **`tools/check_release.py`** checks the static facts: the icon's colour type and size, the three versions agreeing and matching `docs/APP_STORE.md`, the compliance key on both app configurations, the extension's Info.plist not hard-coding a version of its own, the privacy policy and the submission page existing, and every catalogue id (§6.23) having its file in the bundle and in the project.
+- **`docs/PRIVACY.md`** is the privacy policy the store requires a URL for: nothing leaves the phone unless you export it; no account, no analytics, no network; what you paste into a chatbot is that chatbot's business. The public repository's copy of the file is the URL.
+- **`docs/APP_STORE.md`** is the submission: the order of things (the paid program, a release Xcode, Archive, the record, TestFlight for the device checklist, Submit, and how an update goes), every field of the record, the description and keywords, the review notes (a reviewer is in a workout in three taps through the built-in picker), the privacy questionnaire's answer and why it is true, the screenshot list with the `tools/shot.sh` line for each, and the choices only the owner can make: the LICENSE, the support URL, the name, the icon's design.
+- **No privacy manifest** is needed: the app uses none of Apple's required-reason APIs — no `UserDefaults`, no file timestamps, no boot time, no disk space (checked in v1.4).
 
 ### 6.12 Calendar projection
 `Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.
@@ -1193,7 +1268,7 @@ Warnings, **material** (shown on the review): `W_PROGRESSION_UNMATCHED`, `W_PROG
 `````markdown
 # Test cases
 
-Type: **unit** = automated test on Core types (required, must pass). **ui** = SwiftUI/XCUITest or simulator check. **manual** = physical-device checklist in BUILD_PLAN.
+Type: **unit** = automated test on Core types (required, must pass). **ui** = SwiftUI/XCUITest or simulator check. **manual** = physical-device checklist in BUILD_PLAN. **check** (v1.4) = a script in `tools/` that must exit 0.
 Fixtures referenced as `valid/x.json` / `invalid/x.txt` live in `examples/`; `examples/manifest.json` lists the expected codes for each. Tests for A–D should iterate the manifest, plus the specific assertions below. `tools/reference_import.py` passes the whole manifest and is the oracle for any disputed case.
 
 ## A. Import — Extract stage
@@ -1907,6 +1982,57 @@ is testable without a phone; Q71–Q73 need the device and live in `DEVICE_CHECK
 | W39 | unit | (D44, v1.3) Home in week 2, after the last week, and with no progression | "· week 2 of 4" in the subtitle; `progressionFinished` and no week afterwards; neither without one |
 | W40 | manual | (D44, v1.3) Plans → a plan → **Progression**, pick 4 weeks, Copy prompt, paste it into a chatbot, paste its reply, Save; then start today's workout | The review shows every exercise's four weeks; Plan detail reads "Week 1 of 4"; Home's subtitle ends "week 1 of 4"; the first set's card shows the week's weight with the chip's reason naming the week |
 
+## Y. v1.4 — a tap before its side effects, built-in plans, the introduction, the store
+
+`docs/ITERATION_5_PLAN.md` is the plan; one subsection per milestone, added as it lands.
+
+### Y1 — a tap's result before its side effects (D48)
+
+`JimmsBroTests/ResponsivenessTests.swift`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Y1 | unit | (D48, v1.4) `startDay` against a scheduler that never returns | While the first notification is still being held, the engine exists, `hasActiveSession` is true and `startedWorkouts` is already 1; releasing the scheduler finishes the start with the count unchanged |
+| Y2 | unit | (D48, v1.4) A start refused mid-session; a switch; a session restored at launch | The refusal leaves the count alone; the switch counts; `load` with an active session on disk resumes it with the count at 0 |
+| Y3 | manual | (D48, v1.4) Tap **Start** on the phone | The workout screen is up before the notification prompt or the Island appears; nothing waits on them |
+
+### Y2 — built-in plans (D46)
+
+`JimmsBroTests/BuiltInPlanTests.swift`, reading the files that ship from `JimmsBro/Resources`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Y4 | unit | (D46, v1.4) Every built-in plan through `PlanImport.run`, in kg and in lb | No errors and no warnings of either kind; the catalogue's four ids in order; each plan's name is the catalogue's; the plan takes the setting's unit; the build-your-own sentence names **Create with a chatbot** |
+| Y5 | unit | (D46, v1.4) The repeat blocks | Whole weeks; training days per week equal the catalogue's; every day is in the block; Full Body and At Home run A B A then B A B over 14 days; Upper Lower is four days on seven; Push Pull Legs is Push Pull Legs twice on seven |
+| Y6 | unit | (D46, v1.4) Every exercise of every plan | One kind of set per exercise; every rep exercise has a rep range and every set is that range; every hold is a fixed duration with the warning beep on and is bodyweight; no weight and no drops anywhere; At Home is entirely bodyweight; the gym plans flag only the plank, the pull-up and the knee raise |
+| Y7 | unit | (D46, v1.4) The shape of every day | Five to seven exercises, 15–22 sets, rest never climbing through the day, the day opening on a big lift's rest, every rest 30–180 s, a note on every exercise under 500 characters, and the first note of every plan explaining the empty weight field |
+| Y8 | unit | (D46, v1.4) Every exercise name across the four plans and the practice plan | One spelling per movement (compared with punctuation and case stripped), and more than thirty movements in all |
+| Y9 | unit | (D46, v1.4) `Session.start` on every day, and `estimatedMinutes` | Every day flattens to one step per set; every day estimates between 35 and 65 minutes with the default settings; the plan's typical day is to the nearest five minutes and heads the summary line; v1.1's settings take exactly the warm-up and the walks off; an index off the end is nil |
+| Y10 | unit | (D46, v1.4) `AppModel.loadBuiltInPlan` and `save(_:conflict:makeActive:)` | An unknown id is `E_NO_BUILT_IN` with a sentence; the empty card reads "Choose a built-in plan, or get one from a chatbot."; loading saves nothing; saving makes it active; saving again keeps both as "Full Body" and "Full Body (2)" without taking over; the card then reads "Full Body A" / **Start Full Body A**; a relaunch reads both plans back |
+| Y11 | manual | (D46, v1.4) Home → **Choose a built-in plan** → At Home → Save plan → Start | The picker's rows show days, minutes and equipment; the review opens on the paragraph; Home names At Home A; the first card asks for reps only; the plan's minutes are about what the day took |
+
+### Y3 — the introduction (D47)
+
+`JimmsBroTests/IntroductionTests.swift`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Y12 | unit | (D47, v1.4) `Introduction.pages` | Four pages in order, each with a symbol, a line and a paragraph of 80–400 characters; every name in `namedControls` appears in the copy; the three button titles |
+| Y13 | unit | (D47, v1.4) Every control the intro names exists by that name | "Add plan" and "Start Push" are the card's buttons; "Log set" is the workout's primary action; "Create with a chatbot", "History", "Progression" and "Choose a built-in plan" are read from the views' own source on the host routes (skipped on the simulator, like the prompt pins) |
+| Y14 | unit | (D47, v1.4) `isDue` and `AppModel.introDue` | Due with no plans and not seen; not with a plan; not once seen; false before `load`; true on a fresh store; false after `markIntroSeen` and still false on relaunch; never true on a store with plans; true again after Delete all data |
+| Y15 | unit | (D47, v1.4) `introSeen` on disk | Written and read back; the frozen v1.1 settings file decodes with it false and everything else intact; a file that says true reads true |
+| Y16 | manual | (D47, v1.4) Delete the app, install, launch; then Settings → About → **How the app works** | The intro covers the tabs; swiping reaches four pages; **Choose a plan** lands on the built-in picker; after Cancel, Home is the empty card and the intro does not return on relaunch; the Settings row reopens it with **Done** |
+
+### Y4 — ready for the store (D49)
+
+Type **check** = a script in `tools/` that must exit 0; it runs on the host with no Xcode.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Y17 | check | (D49, v1.4) `python3 tools/check_release.py` | Exit 0: the icon is a 1024 × 1024 PNG of colour type 2 (no alpha); every `MARKETING_VERSION` is 1.4 and every `CURRENT_PROJECT_VERSION` is 1, and `docs/APP_STORE.md` says the same; `ITSAppUsesNonExemptEncryption = NO` is on both app configurations; the extension's Info.plist hard-codes no version; `docs/PRIVACY.md` carries an effective date and `docs/APP_STORE.md` exists; every catalogue id has `JimmsBro/Resources/<id>.json` and the project copies it |
+| Y18 | check | (D49, v1.4) `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | Builds: nothing outside `#if DEBUG` refers to the screenshot hooks, the read-only store or the seeded launch arguments |
+| Y19 | manual | (D49, v1.4) The TestFlight build on the phone | Installs from TestFlight; the icon is the barbell; Settings → About reads 1.4 (1); the device checklist is run against this build rather than a cable install |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|
@@ -2016,7 +2142,7 @@ is testable without a phone; Q71–Q73 need the device and live in `DEVICE_CHECK
 ## O. UI, accessibility, device (mostly manual)
 | ID | Type | Case | Expected |
 |---|---|---|---|
-| O1 | ui | Empty Home | Two buttons; "Try the sample plan" imports and activates the sample |
+| O1 | ui | Empty Home | Two links; "Try the sample plan" imports and activates the sample. **v1.4 (D46)**: the link is "Choose a built-in plan" and opens the picker (Y10, Y11); `importSamplePlan` remains for the seeder and the screenshots |
 | O2 | ui | Import screen Paste with text on clipboard | Editor filled |
 | O3 | ui | Paste with an image on clipboard | Nothing happens; PasteButton disabled or no-op |
 | O4 | ui | Import error list | Each row shows path, message, code; Copy fix-it button present |
@@ -2164,7 +2290,7 @@ Run every `manual` case in TEST_CASES.md on the owner's iPhone. Log results in `
 3. iPhone: Settings → Privacy & Security → Developer Mode → on (restarts the phone).
 4. Plug in the iPhone, tap "Trust this computer", pick the phone in Xcode's run destination, press Run.
 5. First launch on the phone: Settings → General → VPN & Device Management → trust your developer certificate.
-6. Free account: the build expires after 7 days; just press Run again with the phone plugged in. Data survives. Paid account ($99/yr): builds last a year and TestFlight becomes available.
+6. Free account: the build expires after 7 days; just press Run again with the phone plugged in. Data survives. Paid account ($99/yr): builds last a year and TestFlight becomes available. **v1.4**: with the paid program, install from TestFlight instead; `docs/APP_STORE.md` §1 is the order of things from there to the store.
 
 ## Simulator note for the agent
 The simulator can't do notifications-while-locked, real haptics, or the silent switch. Everything in the manual column must be verified on the phone; everything else should be verified on the simulator before handing over.
@@ -2835,6 +2961,429 @@ the chatbot plans the next N weeks, and the plan carries the answer week by week
 
 ---
 
+### FILE: docs/ITERATION_5_PLAN.md
+
+`````markdown
+# Jimm's Bro+ — v1.4 plan (iteration 5)
+
+The owner ran v1.3 on the phone: *"everything works."* Then four things, in their words:
+
+1. *"Sometimes when a button is pressed it takes a second for the app to load."*
+2. *"v4 should be getting the app ready for publishing"* — the repository goes public, then
+   the App Store.
+3. *"An introduction screen that explains how the app runs."*
+4. *"A couple of prebuilt plans that cover the major workout routines, with the suggestion
+   that the user builds their own. The built-in plans should all be really well thought
+   out."*
+
+Milestones **Y0–Y5, in order**. Each ends with the full suite green
+(`xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'`,
+`swift test`, `python3 tools/check_core.py`) and one commit on `v1.4-release`, off `main`.
+SPEC amendments land **before** the code that depends on them, as in every iteration since
+v1.1. Each feature is one decision, D46–D49, and one Core type that a view only renders.
+
+This is the first release strangers will install. Until now every plan came from the owner's
+own chatbot round-trip, the owner's weights were in the sample, and the owner knew what the
+five zones were before the screen drew them. v1.4 is the app meeting someone who knows none of
+that — and it has to do it without adding chrome to Home, which is still three things (§4.1).
+
+---
+
+## Y0 — This plan, the branch, and the decisions
+
+- Branch `v1.4-release` off `main` (v1.3 is merged and pushed; the repo is
+  `github.com/Ohayoune/Jims-Bro-Plus`, private until the owner flips it).
+- D46–D49 are written into SPEC §6 and `DECISIONS_LOG.md` by the milestone that lands them.
+- The version the App Store will show is **1.4**, the same number the docs use. The first
+  public build being "1.4" is honest about what it is: the fourth refinement of a working app.
+- No app code.
+
+## Y1 — A tap's result before its side effects (owner note 1, D48)
+
+The second the owner waits is not the main thread being busy. It is the **workout cover
+waiting for `startDay` to finish**, and `startDay` finishes only after everything it causes has
+landed: the rest notification scheduled through `UNUserNotificationCenter` (one XPC round-trip
+per request), `plans.json` rewritten through the store actor, and the Live Activity requested
+through ActivityKit — which is the slow one, and the newest. Home and Plan detail both read
+`try await model.startDay(...)` **then** `showWorkout = true`. On a Debug build on a phone, with
+the Island being asked for the first time, that is about a second between the tap and the
+screen — with nothing on screen to say the tap was heard.
+
+The engine itself is ready in the first line of `startDay`: `library.startDay` is synchronous.
+Everything after it is the system being told.
+
+- **The rule (D48)**: a tap's visible result is on screen before its side effects run. The
+  model changes state synchronously and *then* tells the system; a view never waits for the
+  telling to show the change. `AppModel.startedWorkouts` counts the workouts this run of the
+  app has started, incremented right after the engine exists, and `RootView` opens the cover on
+  every change of it. Home's Start, "Do it now", "Another day", Plan detail's Start and the
+  switch dialog stop setting `showWorkout` after their awaits. Resume already sets it directly
+  and keeps doing so; a session restored at launch is offered as **Resume** on the card, exactly
+  as SPEC §5.4 says, because `load` never touches the count.
+- `startDay` itself stays sequential and atomic. Making the effects fire-and-forget would let
+  a later event's write land before an earlier one's, and every test that calls `startDay`
+  then reads the scheduler would have to learn to wait. Nothing about persistence order changes.
+- **Tested with a scheduler that does not return**: a `BlockingAlerts` double whose `schedule`
+  waits on a continuation. `startDay` is launched in a task; while the double is still holding
+  the first notification, `hasActiveSession` is already true and `startedWorkouts` is already 1.
+  A start refused with `sessionInProgress` does not count; a switch counts; `load` with an
+  active session on disk does not.
+- Two more things the owner should know, recorded in BUILD_STATUS rather than changed: a
+  Debug build from Xcode runs SwiftUI and the import pipeline unoptimised, and TestFlight's
+  Release build is what the store ships; and the first tap into a text field in a session pays
+  the keyboard's own warm-up, which no app controls.
+
+## Y2 — Built-in plans (owner note 4, D46)
+
+Until now the only plan without a chatbot was the sample — the owner's Push Pull Legs with the
+owner's weights in it, which is exactly wrong for a stranger. **Built-in plans** are four
+routines covering how most people actually train, written to the app's own format, with no
+weights in them, and offered next to — never instead of — writing your own.
+
+- **The four**, one JSON each in `JimmsBro/Resources`, each through the ordinary import
+  pipeline with **no errors and no warnings of either kind**:
+
+  | Plan | Days a week | Split | Who | Equipment |
+  |---|---|---|---|---|
+  | **Full Body** | 3 | A / B, alternating across a 14-day repeat block (A B A, then B A B) | New to lifting, or back after a break | Barbell, rack, bench, a lat pulldown or pull-up bar |
+  | **Upper Lower** | 4 | Upper A · Lower A · rest · Upper B · Lower B · rest · rest | A few months in and wanting more | A gym |
+  | **Push Pull Legs** | 6 | Push · Pull · Legs, twice, one rest day | Enthusiasts who want to lift most days | A gym |
+  | **At Home** | 3 | A / B on the same 14-day block | No gym, or travelling | A floor, a wall, a chair and a sturdy table |
+
+- **What "well thought out" means here**, and what the tests check:
+  - Every day opens with the biggest movement and ends with the smallest: squat, hinge, press
+    or pull first; isolation and core last. Sets per day between 15 and 22; five to seven
+    exercises; a session of 45–60 minutes with the plan's own rests.
+  - **Every rep-based exercise carries a rep range**, so the app's own advice (§6.11) works
+    from the first session: hit the top of the range on every set and it tells you to add
+    weight; fall below the bottom and it says so. Main lifts run 4–6 or 6–8; secondary 8–12;
+    isolation 10–15; core and holds are timed with the warning beep on.
+  - Rest is written on every exercise, never left to the setting: 180 s for the squat and
+    the deadlift, 150 s for the presses, 90–120 s for rows and secondary work, 60 s for
+    isolation, 45 s for core. Two isolation exercises that share a rest are a superset, so the
+    session stays short; the beginner plans have none, because a superset is one more thing to
+    learn.
+  - **No weights.** The app never guesses what a stranger can lift. The first exercise of
+    every plan says so in its notes: start light, type the weight on the first set, and from
+    then on the app fills it in and tells you when to add. `units` is omitted, so the plan
+    takes the user's setting.
+  - **One spelling per exercise across all four plans** — "Barbell Back Squat" in Full Body is
+    "Barbell Back Squat" in Push Pull Legs — so moving from one routine to the next carries your
+    history, prefill and records with you (§6.9). A test reads every name in every built-in
+    plan and fails on two spellings of one movement.
+  - Bodyweight movements are flagged, so the card never asks for a weight on a push-up. Notes
+    carry the cue that matters and the substitution when the equipment is missing ("No pull-up
+    bar? Lat pulldown, or a band"), under the 500-character cap. Push Pull Legs' deadlift note
+    says what to do if two heavy pulls a week is too much — **Change exercise** (D42) — because
+    a built-in plan should teach the app as well as the lift.
+- **The catalogue** is Core: `BuiltInPlan` (an id, the name, a one-line tagline, a paragraph
+  saying what the routine is and why it is built this way, who it is for, days a week, minutes,
+  equipment, the resource name) and `BuiltInPlans.all`. A test checks the catalogue and the
+  bundle agree: every entry has its file, every file has its entry.
+- **The suggestion to build your own** is the catalogue's one shared sentence,
+  `BuiltInPlans.buildYourOwn`, shown as the picker's footer: these are starting points; the
+  best plan is the one written for you, and **Create with a chatbot** is where that happens.
+- **Where it is offered**: Add plan gains **Choose a built-in plan** as its first row, above
+  Paste plan. Home's empty state offers **Choose a built-in plan** where it offered the sample,
+  next to the practice workout. The picker is one screen: four rows (name, tagline, "3 days a
+  week · 45–60 min · a gym"), tapping one opens the ordinary **Review plan** sheet with the
+  paragraph on top — the same days, exercises and per-set targets a pasted plan gets, the same
+  "Set as current plan" toggle, the same **Save plan**. A built-in plan saved twice is kept
+  both, suffixed, like any plan.
+- `SamplePlan.json` stays in the bundle: the seeder, the screenshots and O1 read it, and it is
+  the fixture `examples/valid/weekly-rotation.json`. It is simply no longer offered on Home.
+  `PracticePlan.json` and its link stay: a six-set run to learn the app is still the fastest
+  way to learn it.
+
+## Y3 — The introduction (owner note 3, D47)
+
+The app's premise is a loop nobody has seen before — a plan, Start, log the set, the rest runs
+itself, the app remembers — and the first screen a stranger sees is "No plan yet". The
+**introduction** says the loop out loud, once, and then gets out of the way.
+
+- **The content is Core**: `Introduction.pages`, four `IntroPage`s (a symbol, a title, a
+  paragraph), so what the app claims about itself is a test rather than a screenshot: every
+  page names a control that exists — **Start**, **Log set**, **Add plan**, **Create with a
+  chatbot**, **History**, **Progression** — and a test fails when one is renamed without the
+  intro following. The four: *A plan, then Start* · *Log the set, rest, repeat* (the rest
+  timer, the Lock Screen and the Island) · *It remembers* (prefill, the advice at the top of
+  the range, History and records) · *Your plan, your way* (built-in plans, the chatbot
+  round-trip, Progression).
+- **When it appears**: on a launch where the store holds **no plans** and the intro has not
+  been dismissed — a first launch, or after Delete all data, which is a first launch by choice.
+  Never over a phone that already has plans: the owner's phone gets the row in Settings, not a
+  cover. `Settings.introSeen` is the flag, optional in `Persistence.swift` (absent → false, so
+  the frozen v1 settings file still decodes), set by dismissing the intro either way.
+- **The screen**: pages you swipe with the system's page dots, one primary action —
+  **Choose a plan**, which dismisses the intro and opens Add plan with the built-in picker in
+  front — and one quiet **Not now**. Four screens is the ceiling; a page is one symbol, one
+  line, one paragraph. Nothing on Home changes.
+- **Reachable later** from Settings → About → **How the app works**, with **Done** instead of
+  Choose a plan, so the explanation is there the day a friend asks.
+
+## Y4 — Ready for the store (owner note 2, D49)
+
+What actually stops an upload, fixed; what the store asks for, written down so the owner's
+submission is a form-filling afternoon rather than a research project.
+
+- **The icon** is re-exported **opaque**: App Store Connect rejects a 1024-pixel icon that
+  carries an alpha channel, and this one does (`sips -g hasAlpha` says so). `tools/icon`
+  draws it without one from now on, so regenerating it cannot bring the channel back.
+- **Export compliance** answered in the binary: `ITSAppUsesNonExemptEncryption = NO` on the
+  app target, because the app opens no connection at all. Without it every upload stops at a
+  question.
+- **Version 1.4, build 1**, on the app, the extension and the tests alike — the extension's
+  version must match the app's or validation fails.
+- **A Release build compiles** (`xcodebuild build -configuration Release`), which proves that
+  nothing outside `#if DEBUG` refers to the screenshot hooks, the read-only store or the
+  seeded launch arguments. Run, recorded in BUILD_STATUS, and one line of
+  `tools/check_release.py` — the new script that checks the static facts: the icon has no
+  alpha, the three versions agree, the compliance key is set, the privacy page exists, the
+  catalogue's files are in the bundle.
+- **`docs/PRIVACY.md`**: the privacy policy the store requires a URL for, in the app's own
+  voice — nothing leaves the phone unless you export it; no account, no analytics, no
+  network. The public repository's copy of the file is the URL.
+- **`docs/APP_STORE.md`**: everything App Store Connect will ask, answered: the name and
+  subtitle, the description, keywords, the category (Health & Fitness), the age rating
+  answers, the privacy label ("Data Not Collected", and why that is true), the review notes
+  (a reviewer taps Choose a built-in plan and is in a workout in three taps — no chatbot
+  needed), which screenshots to take and the `tools/shot.sh` line for each, and the submission
+  order: the paid Developer Program, the release Xcode (27.0 on this Mac is a beta build, which
+  the store refuses), Archive, TestFlight for the device checklist, then Submit. Also the two
+  things only the owner can decide, stated as choices: the LICENSE for a public repository,
+  and the support URL.
+- **README** gains a short first section for people rather than agents: what the app is, a
+  screenshot, how to build it, where the privacy policy is. The handoff material below it is
+  unchanged.
+
+## Y5 — Docs, checklist, bundle
+
+- SPEC §4.1, §4.4, §4.11, §5.1, §5.3 and §10 reconciled; §6.22–6.25 for D46–D49.
+- `TEST_CASES.md` gains section **Y** (v1.4), per milestone as they land.
+- `DEVICE_CHECKLIST.md` gains v1.4 rows: the intro on a clean install, Start opening before the
+  Island appears, a built-in plan run end to end, the Release build from TestFlight.
+- `BUILD_STATUS.md`, `DECISIONS_LOG.md`, README, `CLAUDE.md`/`AGENTS.md` and
+  `HANDOFF_BUNDLE.md` regenerated; `tools/check_bundle.py` passes.
+- The memory of what is left: the device checklist, the owner's Developer Program enrolment,
+  the release Xcode, the LICENSE choice, and the submission itself.
+`````
+
+---
+
+### FILE: docs/PRIVACY.md
+
+`````markdown
+# Privacy policy — Jimm's Bro+
+
+Effective 8 September 2026. This is the privacy policy for the Jimm's Bro+ iPhone app.
+
+## The short version
+
+Everything you put into Jimm's Bro+ stays on your iPhone. The app has no account, no server,
+no analytics and no advertising, and it opens no network connection. Nothing leaves your phone
+unless you export it yourself.
+
+## What the app stores, and where
+
+- **Your plans, your workouts and your settings.** Every plan you add, every set you log and
+  every setting you change is written to files inside the app's own container on your iPhone.
+  Nobody else can read them, and the app does not send them anywhere.
+- **Nothing else.** The app does not ask for your name, your email, your location, your
+  contacts, your photos or your health data. It does not use Apple Health.
+
+## What the app never does
+
+- It never connects to the internet. There is no server, no sync and no account.
+- It never collects analytics, crash reports or usage statistics.
+- It never shows advertising, and it contains no third-party software that could.
+- It never tracks you across other apps or websites.
+
+## Things that happen on your phone, under your control
+
+- **Notifications.** The app asks permission to show local notifications so a rest timer can
+  alert you while your phone is locked. They are scheduled on your phone and go nowhere else.
+  You can refuse, and the app keeps working with alerts only while it is open.
+- **Lock Screen and Dynamic Island.** During a workout the app can show a Live Activity with
+  the current timer. It is drawn on your phone from data on your phone.
+- **Exports.** Settings → Export backup and Export history create a file only when you tap
+  them, and hand it to the iPhone share sheet. Where it goes from there — AirDrop, a message,
+  a cloud drive — is your choice, and that service's privacy policy applies to it.
+- **The chatbot prompt.** Add plan and Progression copy a prompt to your clipboard for you to
+  paste into a chatbot of your choosing. The prompt contains your plan and, if you keep the
+  option on, a summary of your recent workouts. What you paste into a chatbot is governed by
+  that chatbot's privacy policy, not this one, and the app never talks to a chatbot itself.
+- **Device backups.** Because the app's files live in its container, they are included in
+  your iPhone's own backups (iCloud Backup, or a backup to a computer) under Apple's terms.
+
+## Deleting your data
+
+Settings → Delete all data removes every plan, workout and setting. Deleting the app removes
+everything, including its container.
+
+## Children
+
+The app is not directed at children under 13 and collects no personal information from anyone.
+
+## Changes
+
+If this policy changes, the new version will be published at the same address with a new
+effective date. Since the app collects nothing, a change would most likely be a clarification.
+
+## Contact
+
+Questions about this policy can be raised on the app's public repository:
+https://github.com/Ohayoune/Jims-Bro-Plus/issues
+`````
+
+---
+
+### FILE: docs/APP_STORE.md
+
+`````markdown
+# App Store submission (v1.4, D49)
+
+Everything App Store Connect will ask, answered here so the submission is a form-filling
+afternoon rather than a research project. `python3 tools/check_release.py` checks the facts in
+the build that can be checked; the rest is typed into the form from this page.
+
+## 1. The order of things
+
+1. **Enrol in the Apple Developer Program** as an individual (99 USD a year). This Mac holds
+   only an *Apple Development* certificate and the checklist assumed a free account with the
+   seven-day expiry; publishing, TestFlight and a distribution certificate all need the paid
+   membership. Enrolment usually clears within a couple of days.
+2. **Install a release Xcode.** The Xcode on this Mac (27.0, build `27A5252f`) is a beta
+   build, and App Store Connect refuses uploads made with a beta Xcode or SDK. The release
+   normally arrives in mid-September alongside the new iOS. When it is installed, run the
+   three test routes once on it (`docs/BUILD_STATUS.md`) before archiving.
+3. **Make the repository public** if the privacy policy URL below is to work, and decide the
+   LICENSE (§6).
+4. **Archive and upload.** Xcode → the `JimmsBro` scheme → destination *Any iOS Device* →
+   Product → Archive → Distribute App → App Store Connect → Upload. Automatic signing creates
+   the distribution certificate and profile on first use.
+5. **Create the app record** in App Store Connect → My Apps → **+** → New App: iOS, the name
+   below, English (U.K. or U.S.), bundle id `com.ohayoune.jimmsbro`, SKU `jimmsbro`.
+6. **TestFlight first.** Add your own Apple ID as an internal tester, install the build on the
+   phone, and run `docs/DEVICE_CHECKLIST.md` on it. A TestFlight build lasts 90 days and is the
+   same binary reviewers get.
+7. **Fill in the form** from §2–§5, attach the build, and **Submit for Review**. First reviews
+   usually take one to two days.
+8. **Updating later**: bump `MARKETING_VERSION` (1.4 → 1.5) and `CURRENT_PROJECT_VERSION`
+   (1 → 2) on all three targets, tests green, Archive, Upload, Submit. Screenshots only need
+   redoing when the screens changed. `tools/check_release.py` fails if the three versions
+   disagree.
+
+## 2. The record
+
+| Field | Value |
+|---|---|
+| Name | **Jimm's Bro+** (30 characters max; the store requires it to be unique — if it is taken, *Jimm's Bro+ Workout*) |
+| Subtitle | *Your workout, one set at a time* |
+| Primary category | Health & Fitness |
+| Secondary category | none |
+| Price | Free |
+| Availability | All territories |
+| Bundle id | `com.ohayoune.jimmsbro` |
+| Version | **1.4**, build **1** — the same on the app, the `JimmsBroActivity` extension and the tests; the extension's must match the app's or validation fails |
+| Content rights | Contains no third-party content |
+| Age rating | None of the descriptors apply; Unrestricted Web Access: No; Gambling: No → **4+** |
+
+## 3. Description, keywords, notes
+
+**Promotional text** (170 characters, can change without a new build):
+
+> A plan, then Start. Log each set while the app times your rest, remembers what you lifted, and tells you when to add weight.
+
+**Description** (4,000 characters max):
+
+> Jimm's Bro+ runs your workout for you.
+>
+> Pick a plan and tap Start. The app walks you through the day one set at a time: the exercise, the target, and the weight you lifted last time. Type what you did, tap Log set, and the rest timer starts on its own — on the Lock Screen and in the Dynamic Island, with a notification when it ends, even with the phone in your pocket.
+>
+> It remembers everything. Next time the weight is already filled in. Hit the top of your rep range on every set and the app tells you to add weight; fall below it and it says so. History keeps every workout, your personal records and a chart for every exercise.
+>
+> Start with a built-in plan — Full Body, Upper Lower, Push Pull Legs, or At Home with no equipment — or have a chatbot write one from your own description: copy the prompt, paste it into ChatGPT or Claude, paste back the plan. Progression runs the loop the other way: the app writes out what you have actually lifted and the chatbot plans your next weeks.
+>
+> Everything stays on your phone. No account, no subscription, no ads, no network connection. Export a backup or your history as a spreadsheet whenever you like, and bring history in from Strong or Hevy.
+>
+> • Rest timer that alerts you while the phone is locked
+> • Warm-up and a timed walk between exercises
+> • Supersets, drop sets, timed holds with a warning beep
+> • Weights snapped to what you can actually load
+> • Change an exercise mid-workout when the machine is taken
+> • Four built-in routines, and a prompt that gets a chatbot to write yours
+> • History as CSV, in and out
+> • Lock Screen and Dynamic Island
+
+**Keywords** (100 characters, comma-separated, no spaces after commas):
+
+`workout,lifting,gym,rest timer,strength,training plan,sets,reps,progression,log,weights`
+
+**What's New** (first release): *First release.*
+
+**Support URL**: `https://github.com/Ohayoune/Jims-Bro-Plus/issues` (once the repository is
+public; see §6 for the alternative).
+
+**Marketing URL**: none.
+
+**Privacy policy URL**: `https://github.com/Ohayoune/Jims-Bro-Plus/blob/main/docs/PRIVACY.md`
+(once the repository is public).
+
+**Copyright**: `2026 <your name>`.
+
+**App Review notes** (the reviewer installs cold and must be able to use the app):
+
+> No account or sign-in. To try a workout in three taps: on the first screen tap "Choose a plan", pick "At Home" (no equipment needed), tap "Save plan", then "Start At Home A". Log a set with "Log set"; the rest timer starts on its own and can be skipped. Notifications are optional — the app asks the first time a workout starts, and everything works without them. The chatbot features (Add plan → Create with a chatbot, and Progression) copy text to the clipboard for the user to paste into a chatbot of their own; the app itself makes no network connection.
+
+## 4. App privacy
+
+The questionnaire's answer is **Data Not Collected**, and it is true: the app has no network
+code at all, no analytics, no third-party SDKs, no account. The two things that look like data
+leaving the phone are user-initiated — Export writes a file and hands it to the share sheet;
+Copy prompt puts text on the clipboard — and neither is collection by the developer.
+
+**Export compliance**: answered in the binary. `ITSAppUsesNonExemptEncryption = NO` is in the
+app target's Info settings, because the app uses no encryption beyond what iOS applies to its
+files, so the upload does not stop at the question.
+
+**Required-reason APIs**: none. The app uses no `UserDefaults`, no file-timestamp APIs, no
+system boot time and no disk-space APIs (checked in v1.4), so no privacy manifest is required.
+
+## 5. Screenshots
+
+App Store Connect requires the **6.9-inch** set (iPhone 17 Pro Max) and scales it for the
+other sizes; 1320 × 2868 pixels, portrait, up to ten. `tools/shot.sh` takes them from the
+simulator, seeded through the app's own store, so what they show is what the app writes:
+
+| # | What it shows | How |
+|---|---|---|
+| 1 | Home with a plan: the day, its exercises, **Start** | `SEED=1 DEVICE="iPhone 17 Pro Max" tools/shot.sh build/store-1.png -uiNoAsk` |
+| 2 | The workout mid-set: the card, the inputs, **Log set** | `SKIP_BUILD=1 DEVICE="iPhone 17 Pro Max" tools/shot.sh build/store-2.png -uiScreen workout -uiNoAsk -uiSkipWaits -uiAdvance 1` |
+| 3 | The rest countdown | `SKIP_BUILD=1 DEVICE="iPhone 17 Pro Max" tools/shot.sh build/store-3.png -uiScreen workout -uiNoAsk -uiAdvance 1` |
+| 4 | The built-in picker | `SKIP_BUILD=1 DEVICE="iPhone 17 Pro Max" tools/shot.sh build/store-4.png -uiScreen import -uiBuiltIns -uiNoAsk` |
+| 5 | History with the chart | `SKIP_BUILD=1 DEVICE="iPhone 17 Pro Max" tools/shot.sh build/store-5.png -uiScreen history -uiNoAsk` |
+| 6 | The introduction's first page | uninstall the app, then `SKIP_BUILD=1 DEVICE="iPhone 17 Pro Max" tools/shot.sh build/store-6.png -uiNoAsk` |
+
+The Lock Screen and the Dynamic Island cannot be captured on the simulator; take those two on
+the phone (Settings → Developer → Live Activities is not needed, a workout's rest is enough).
+Screenshots may not be shown inside device frames with home-screen backgrounds that are not
+the app's own; the plain captures above are fine as they are.
+
+## 6. Choices only the owner can make
+
+- **LICENSE.** A public repository without a license means people may read but not legally
+  reuse. MIT if reuse is wanted; nothing if all rights are to be kept. The app itself does not
+  need one to ship.
+- **Support URL.** The repository's issues page, above, or any page with a way to reach you.
+  App Review checks that it loads.
+- **The name.** "Jimm's Bro+" must be unique on the store; the fallback in §2 is one option.
+- **The icon.** Opaque now, as the store requires. It is a white barbell on blue, drawn by
+  `tools/icon`; a more distinctive one would be the first thing strangers see, and is a
+  design decision rather than a build step.
+`````
+
+---
+
 ### FILE: docs/CODE_HEALTH_REVIEW.md
 
 `````markdown
@@ -2927,8 +3476,66 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 `````markdown
 # Build status
 
-Updated 2026-09-08. **v1.3 (X0–X6) is built and green; the device checklist needs the phone.**
-v1.2, v1.1 and v1 are below, unchanged except where a later milestone corrected them.
+Updated 2026-09-08. **v1.4 (Y0–Y5) is built and green; the device checklist, the Developer
+Program, a release Xcode and the submission itself are the owner's.** v1.3, v1.2, v1.1 and v1 are
+below, unchanged except where a later milestone corrected them.
+
+## v1.4 (Y0–Y5): built and green
+
+`docs/ITERATION_5_PLAN.md` is the v1.4 plan — the owner's four notes after running v1.3 on the
+phone: the second between a tap and its screen, getting the app ready to publish, an
+introduction, and built-in plans. Every milestone ended with the whole suite green on all three
+routes, from Y4 with a Release build and `tools/check_release.py` as well, and one commit on
+`v1.4-release` (off `main`, which holds v1.3).
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **259 tests, 4 skipped, 0 failures** |
+| `swift test` | **258 tests, 0 failures** |
+| `python3 tools/check_core.py` | **258 bodies, 5,311 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **111/111 fixtures match** |
+| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** — the first Release build of the app |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell**: version 1.4 (1), an opaque icon, the compliance answer in the binary, the policy and the submission page, every built-in plan bundled |
+| `python3 tools/check_bundle.py` | **current** |
+
+The four skipped cases are the prompt pins (M9 and W37) and the introduction's source pin (Y13),
+which read the checkout — outside the simulator's sandbox. They run on the other two routes.
+The Xcode on this Mac is 27.0 build `27A5252f`, a beta, and its simulators are the iPhone 17
+family, so the destination is now `iPhone 17`; any installed iPhone works.
+
+| Milestone | What it did | State |
+|---|---|---|
+| Y0 | The plan, the branch | Done |
+| Y1 | The workout opens the moment it exists: `startedWorkouts` counted before the notification, the Island and the disk write; the cover on the count; no view waits on `startDay` (D48) | Done |
+| Y2 | Four built-in plans through the ordinary pipeline with no warnings and no weights, one spelling per movement, minutes computed from the plan; the picker in Add plan and on Home; Add plan presented from an item because a sheet's closure captures stale state (D46) | Done |
+| Y3 | The introduction: four Core pages pinned to real control names; a cover on a launch with no plans; `Settings.introSeen` optional on disk; How the app works in Settings (D47) | Done |
+| Y4 | An opaque icon and a generator that keeps it so, the compliance answer, version 1.4 (1) on all targets, the first Release build, `check_release.py`, `PRIVACY.md`, `APP_STORE.md`, a README section for people (D49) | Done |
+| Y5 | Docs, checklist rows, bundle | Done |
+| — | The v1.4 device rows (Y3, Y11, Y16, Y19) | **Written, not run** — Y19 needs TestFlight, which needs the paid program |
+| — | The Developer Program, a release Xcode, the LICENSE, the submission | **The owner's** — `docs/APP_STORE.md` §1 and §6 |
+
+### Checked on the simulator (v1.4)
+
+Every screenshot is from a real build on a booted iPhone 17 simulator.
+
+| File | Shows |
+|---|---|
+| `build/y2-home.png` | Home's empty card on a clean install: "Choose a built-in plan, or get one from a chatbot." and the two links |
+| `build/y2-builtins.png` | The built-in picker: four rows with days, minutes and equipment, and the build-your-own footer — opened from Home's link, and from `-uiScreen import -uiBuiltIns` |
+| `build/y2-review.png` | Full Body's review: the paragraph on top, the plan in lb (the simulator is set to the US), the repeat block, the days with ranges and no weights, Save plan |
+| `build/y3-intro.png` | The introduction's first page on a clean install, with Choose a plan and Not now |
+| `build/y3-after-choose.png` | Choose a plan landed on the picker once the cover was down |
+
+### Not run in v1.4
+
+The second the owner saw (Y1) was diagnosed by reading the code — the cover waited for
+`startDay`, which waited for the Live Activity — and the fix is proven by a test against a
+scheduler that never returns, not measured on the phone; Y3 is the row that measures it. Two
+things about that second are worth knowing and were not changed: a Debug build from Xcode runs
+SwiftUI and the import pipeline unoptimised, and TestFlight ships Release; and the first tap
+into a text field in a session pays the keyboard's own warm-up, which no app controls. The
+Release build was compiled for the simulator, not archived — archiving needs the distribution
+certificate the paid program provides.
 
 ## v1.3 (X0–X6): built and green
 
@@ -3442,6 +4049,23 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.3 X5: What the reply **left out or the app ignored** — an unmatched exercise, a weight on a bodyweight exercise, a short list — is a material warning; a rounded weight or an unknown field is tidying. Same rule as D26's review.
 - v1.3 X5: Plan edits keep the progression; Edit JSON / Replace of the whole plan drops it. An edit is the same plan changed; a replacement is a new plan, and a progression planned for another plan's targets is not worth guessing about.
 - v1.3 X5: When the progression has run out, Home says so in one line with **Plan the next one** — and the plan's own targets and advice are simply back. Nothing lingers, nothing nags.
+- v1.4 Y1 (D48): A tap's visible result is on screen **before** its side effects run. Start was the one path that waited: the cover opened only after the notification, the Live Activity and `plans.json` had all landed, about a second on a phone. The model now counts started workouts the moment the engine exists and the cover opens on the count; `startDay` itself stays sequential, so no write can land out of order.
+- v1.4 Y1: The effects were not made fire-and-forget. That would have let a later event's write land before an earlier one's, and every test that reads the scheduler after `startDay` would have had to learn to wait. Only what the view waits for changed.
+- v1.4 Y2 (D46): Four built-in plans — Full Body, Upper Lower, Push Pull Legs, At Home — written to the app's own format and put through the ordinary import pipeline, offered next to writing your own and never instead of it. They carry **no weights**: the app never guesses what a stranger can lift, the first note of every plan says to type it on the first set, and from then on prefill and the advice take over.
+- v1.4 Y2: What "well thought out" means is a test, not a claim: no warnings of either kind, a rep range on every rep exercise so the advice works from day one, the biggest lift first and rest never climbing through a day, one spelling per movement across every plan so switching routines keeps your history, and every day running through the real flattening in the minutes the picker states.
+- v1.4 Y2: The picker's minutes are computed from the plan and the user's own warm-up and walk, to the nearest five, rather than typed into the catalogue. A number the plan does not back would be the first thing a stranger caught the app out on.
+- v1.4 Y2: "Try the sample plan" left Home; "Choose a built-in plan" took its place. The sample was the owner's own plan with the owner's weights in it. The file stays bundled for the seeder, the screenshots and O1.
+- v1.4 Y2: The Full Body and At Home blocks are **14 days**, A B A then B A B, rather than a 7-day A rest B rest A rest rest that would repeat A B A every week. Alternating is the point of having two days.
+- v1.4 Y2: Add plan is presented from an **`AddPlanRequest` item**, not a Bool plus a "open on the picker" flag. A sheet's content closure runs with the state it captured *before* the tap that presented it, so a flag set in the same tap reached the sheet as false and the picker never opened; an item is handed to the closure as it is. Found on the simulator, not by a test — views are not unit-tested here — and worth knowing before the next sheet that takes an argument.
+- v1.4 Y3 (D47): The introduction is shown on a launch with **no plans** where it has not been dismissed, and never over a phone that already has plans — that phone gets **How the app works** in Settings, not a cover. The owner's phone, updating from v1.3, sees nothing uninvited.
+- v1.4 Y3: `introSeen` lives in `Settings`, optional in the on-disk contract, rather than in UserDefaults: Delete all data then brings the intro back (a first launch by choice), a backup carries it, and the frozen v1 settings file still decodes. `AppModel.introDue` also requires `loaded`, so a launch never flashes the intro over plans it has not read yet.
+- v1.4 Y3: The pages are Core data pinned to the names of real controls (Y13), so renaming **Log set** or **Progression** without the intro following is a red test, not a stale screen found by a stranger.
+- v1.4 Y3: **Choose a plan** opens Add plan on the built-in picker only once the cover is down (`onDismiss`); presenting a sheet while a full-screen cover is dismissing loses one of them.
+- v1.4 Y4 (D49): The icon is drawn **without an alpha channel** — App Store Connect rejects one that has it, opaque pixels or not — and `tools/check_release.py` reads the PNG's colour type so a regeneration cannot bring it back. The barbell itself is unchanged; a more distinctive icon is a design choice for the owner, not a build step.
+- v1.4 Y4: The store's version is **1.4, build 1**, the number the docs use, on all three targets because the extension's must match the app's. Shipping the first public build as 1.4 is honest about what it is.
+- v1.4 Y4: Export compliance is answered in the binary (`ITSAppUsesNonExemptEncryption = NO`) so no upload stops at the question; the privacy policy is a file in the repository, whose public URL is the policy URL; the submission is a document (`docs/APP_STORE.md`) because the form is filled from it, once, by the owner.
+- v1.4 Y4: A **Release build** is now part of a milestone's green, alongside the three test routes. The DEBUG-only hooks had never been compiled out before, and the store ships Release.
+- v1.4 Y4: The choices the plan leaves to the owner are stated as choices, not defaulted: the LICENSE of a public repository, the support URL, the name if the store has it taken, the icon's design.
 `````
 
 ---
@@ -3455,8 +4079,11 @@ Every `manual` case from `TEST_CASES.md`, to run on the owner's iPhone. The simu
 notifications while locked, real haptics, the silent switch, or the free-account expiry, which is why
 these are here rather than automated.
 
-Everything else — 246 automated tests plus the simulator screen checks — is green; see
+Everything else — 259 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
+**v1.4** added Y3, Y11, Y16 and Y19 after them. Y19 needs a TestFlight build, which needs the paid
+Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
+other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
 **v1.1 (R6)**: the workout screen was rebuilt (SPEC §4.5, D22), so every row below that touches it
 is being run against a different layout than the one M8 described, and the **v1.1 rows** section at
@@ -3472,7 +4099,7 @@ of "Before starting" are done; start at step 3. H33's read-only-store case needs
 3. iPhone → Settings → Privacy & Security → Developer Mode → on (the phone restarts).
 4. Plug in the phone, tap "Trust this computer", pick it as the run destination, press Run.
 5. On the phone: Settings → General → VPN & Device Management → trust your developer certificate.
-6. Import the sample plan from Home, or paste a real one, before starting the timer cases.
+6. Choose a built-in plan from Home (v1.4), or paste a real one, before starting the timer cases.
 
 Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Notes.
 
@@ -3572,6 +4199,15 @@ Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Note
 | **W30** | Settings → **Export history (CSV)**, AirDrop it to the Mac and open it in Numbers; then delete one workout in History and Settings → **Import history (CSV)** with that file | The spreadsheet shows one row per set with named columns and the unit last; the dialog says "1 workout … · N already here"; Import brings only the deleted workout back, and its exercise chart is whole again |  |  |
 | **W40** | Plans → a plan → **Progression**; pick 4 weeks; Copy prompt; paste it into ChatGPT or Claude; copy the reply; **Paste progression**; Save. Then Home → Start | The review lists every exercise's four weeks with any warnings in yellow; Plan detail's row reads "Week 1 of 4"; Home's subtitle ends "week 1 of 4"; the first set's card shows the week's weight and the chip says "Week 1 of 4 of your progression" |  |  |
 
+## v1.4 rows (new or changed in Y1–Y4)
+
+| Case | What to do | Expected | Result | Notes |
+|---|---|---|---|---|
+| **Y3** | Home → **Start** | The workout screen is up at once — before the notification prompt (first time) and before the Island appears; nothing waits on either. Log a set: the card moves on before the rest notification is scheduled |  |  |
+| **Y11** | Home → **Choose a built-in plan** → At Home → Save plan → **Start At Home A** | The picker's rows show days, minutes and equipment; the review opens on the paragraph with the days beneath; Home names At Home A; the first card asks for reps only (no weight field); the day takes about the minutes the picker said |  |  |
+| **Y16** | Delete the app, install, launch; then Settings → About → **How the app works** | The intro covers the tabs on the clean install; four pages; **Choose a plan** lands on the built-in picker; after Cancel, Home is the empty card and the intro does not return on relaunch; the Settings row reopens it, ending on **Done** |  |  |
+| **Y19** | Install from TestFlight | The icon is the barbell on blue; Settings → About reads 1.4 (1); the rest of this checklist is run against this build |  |  |
+
 ## When you are done
 
 Anything that fails is a bug to bring back here with the row and what actually happened. A `fail` on
@@ -3584,6 +4220,11 @@ For the v1.2 rows: a `fail` on Q71–Q73 points at `SystemActivityPresenter` or 
 Q35 at `WeightRounding` (D35); and on **K29** at `Core/Persistence.swift` — which would mean a
 field added in v1.2 is being required of a file written by v1.1, the exact failure the frozen
 fixtures in `examples/store/v1/` exist to prevent.
+
+For the v1.4 rows: a `fail` on Y3 points at `RootView`'s `onChange(of: model.startedWorkouts)`, or
+at a view that still sets the cover after awaiting `startDay` (D48); on Y11 at `BuiltInPlansView`
+or `AppModel.loadBuiltInPlan`; on Y16 at `AppModel.introDue` and the cover's binding, or at
+`Settings.introSeen` in `Persistence.swift`; on Y19 at signing, or at `tools/check_release.py`.
 `````
 
 ---
@@ -5285,6 +5926,18 @@ and out (D45), and **Progression** — the chatbot round-trip run the other way 
 `docs/PROGRESSION_FORMAT.md`, `docs/PROMPT.md` §3). Everything through X6 is built and green;
 the v1.3 device rows (W3, W12, W21, W30, W40) join the checklist that still needs the phone.
 
+`docs/ITERATION_5_PLAN.md` is the v1.4 plan (milestones **Y0–Y5**), the owner's notes after
+running v1.3 on the phone: a tap's result before its side effects (D48 — the workout cover no
+longer waits for the notification, the Live Activity and the disk write), four **built-in
+plans** through the ordinary import pipeline with no weights in them (D46,
+`Core/BuiltInPlans.swift`, `JimmsBro/Resources/*.json`), an **introduction** whose pages are
+Core data pinned to real control names (D47, `Core/Introduction.swift`, `Settings.introSeen`),
+and store readiness (D49: an opaque icon, version 1.4 on every target, the export-compliance
+answer, `docs/PRIVACY.md`, `docs/APP_STORE.md`, `tools/check_release.py`, and a Release build
+as part of every milestone's green). Everything through Y5 is built and green. What remains is
+the owner's: the device checklist, the Developer Program, a release Xcode, the LICENSE and the
+submission (`docs/APP_STORE.md` §1 and §6).
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
@@ -5309,12 +5962,12 @@ Three v1.2 rules are worth knowing before touching anything:
 
 ## Working style
 
-- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the two doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all).
+- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25).
 - Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.
 - Use the fixtures in `examples/` verbatim in tests. Do not edit fixtures to make tests pass; if a fixture looks wrong, say so.
 - Use the iOS Simulator for visual checks. The owner installs on the physical iPhone (BUILD_PLAN §Device).
-- If you cannot run Xcode where you are (for example a chat session without a Mac), still write the complete project files, and give the owner exact commands to run the tests locally (`xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'`). Never claim tests passed that you did not run.
+- If you cannot run Xcode where you are (for example a chat session without a Mac), still write the complete project files, and give the owner exact commands to run the tests locally (`xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` — any installed iPhone works). Never claim tests passed that you did not run.
 `````
 
 ---

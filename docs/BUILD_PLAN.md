@@ -47,7 +47,7 @@ Run every `manual` case in TEST_CASES.md on the owner's iPhone. Log results in `
 3. iPhone: Settings → Privacy & Security → Developer Mode → on (restarts the phone).
 4. Plug in the iPhone, tap "Trust this computer", pick the phone in Xcode's run destination, press Run.
 5. First launch on the phone: Settings → General → VPN & Device Management → trust your developer certificate.
-6. Free account: the build expires after 7 days; just press Run again with the phone plugged in. Data survives. Paid account ($99/yr): builds last a year and TestFlight becomes available.
+6. Free account: the build expires after 7 days; just press Run again with the phone plugged in. Data survives. Paid account ($99/yr): builds last a year and TestFlight becomes available. **v1.4**: with the paid program, install from TestFlight instead; `docs/APP_STORE.md` §1 is the order of things from there to the store.
 
 ## Simulator note for the agent
 The simulator can't do notifications-while-locked, real haptics, or the silent switch. Everything in the manual column must be verified on the phone; everything else should be verified on the simulator before handing over.

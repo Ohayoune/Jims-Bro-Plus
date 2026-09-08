@@ -4,8 +4,11 @@ Every `manual` case from `TEST_CASES.md`, to run on the owner's iPhone. The simu
 notifications while locked, real haptics, the silent switch, or the free-account expiry, which is why
 these are here rather than automated.
 
-Everything else — 246 automated tests plus the simulator screen checks — is green; see
+Everything else — 259 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
+**v1.4** added Y3, Y11, Y16 and Y19 after them. Y19 needs a TestFlight build, which needs the paid
+Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
+other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
 **v1.1 (R6)**: the workout screen was rebuilt (SPEC §4.5, D22), so every row below that touches it
 is being run against a different layout than the one M8 described, and the **v1.1 rows** section at
@@ -21,7 +24,7 @@ of "Before starting" are done; start at step 3. H33's read-only-store case needs
 3. iPhone → Settings → Privacy & Security → Developer Mode → on (the phone restarts).
 4. Plug in the phone, tap "Trust this computer", pick it as the run destination, press Run.
 5. On the phone: Settings → General → VPN & Device Management → trust your developer certificate.
-6. Import the sample plan from Home, or paste a real one, before starting the timer cases.
+6. Choose a built-in plan from Home (v1.4), or paste a real one, before starting the timer cases.
 
 Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Notes.
 
@@ -121,6 +124,15 @@ Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Note
 | **W30** | Settings → **Export history (CSV)**, AirDrop it to the Mac and open it in Numbers; then delete one workout in History and Settings → **Import history (CSV)** with that file | The spreadsheet shows one row per set with named columns and the unit last; the dialog says "1 workout … · N already here"; Import brings only the deleted workout back, and its exercise chart is whole again |  |  |
 | **W40** | Plans → a plan → **Progression**; pick 4 weeks; Copy prompt; paste it into ChatGPT or Claude; copy the reply; **Paste progression**; Save. Then Home → Start | The review lists every exercise's four weeks with any warnings in yellow; Plan detail's row reads "Week 1 of 4"; Home's subtitle ends "week 1 of 4"; the first set's card shows the week's weight and the chip says "Week 1 of 4 of your progression" |  |  |
 
+## v1.4 rows (new or changed in Y1–Y4)
+
+| Case | What to do | Expected | Result | Notes |
+|---|---|---|---|---|
+| **Y3** | Home → **Start** | The workout screen is up at once — before the notification prompt (first time) and before the Island appears; nothing waits on either. Log a set: the card moves on before the rest notification is scheduled |  |  |
+| **Y11** | Home → **Choose a built-in plan** → At Home → Save plan → **Start At Home A** | The picker's rows show days, minutes and equipment; the review opens on the paragraph with the days beneath; Home names At Home A; the first card asks for reps only (no weight field); the day takes about the minutes the picker said |  |  |
+| **Y16** | Delete the app, install, launch; then Settings → About → **How the app works** | The intro covers the tabs on the clean install; four pages; **Choose a plan** lands on the built-in picker; after Cancel, Home is the empty card and the intro does not return on relaunch; the Settings row reopens it, ending on **Done** |  |  |
+| **Y19** | Install from TestFlight | The icon is the barbell on blue; Settings → About reads 1.4 (1); the rest of this checklist is run against this build |  |  |
+
 ## When you are done
 
 Anything that fails is a bug to bring back here with the row and what actually happened. A `fail` on
@@ -133,3 +145,8 @@ For the v1.2 rows: a `fail` on Q71–Q73 points at `SystemActivityPresenter` or 
 Q35 at `WeightRounding` (D35); and on **K29** at `Core/Persistence.swift` — which would mean a
 field added in v1.2 is being required of a file written by v1.1, the exact failure the frozen
 fixtures in `examples/store/v1/` exist to prevent.
+
+For the v1.4 rows: a `fail` on Y3 points at `RootView`'s `onChange(of: model.startedWorkouts)`, or
+at a view that still sets the cover after awaiting `startDay` (D48); on Y11 at `BuiltInPlansView`
+or `AppModel.loadBuiltInPlan`; on Y16 at `AppModel.introDue` and the cover's binding, or at
+`Settings.introSeen` in `Persistence.swift`; on Y19 at signing, or at `tools/check_release.py`.

@@ -1,7 +1,65 @@
 # Build status
 
-Updated 2026-09-08. **v1.3 (X0–X6) is built and green; the device checklist needs the phone.**
-v1.2, v1.1 and v1 are below, unchanged except where a later milestone corrected them.
+Updated 2026-09-08. **v1.4 (Y0–Y5) is built and green; the device checklist, the Developer
+Program, a release Xcode and the submission itself are the owner's.** v1.3, v1.2, v1.1 and v1 are
+below, unchanged except where a later milestone corrected them.
+
+## v1.4 (Y0–Y5): built and green
+
+`docs/ITERATION_5_PLAN.md` is the v1.4 plan — the owner's four notes after running v1.3 on the
+phone: the second between a tap and its screen, getting the app ready to publish, an
+introduction, and built-in plans. Every milestone ended with the whole suite green on all three
+routes, from Y4 with a Release build and `tools/check_release.py` as well, and one commit on
+`v1.4-release` (off `main`, which holds v1.3).
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **259 tests, 4 skipped, 0 failures** |
+| `swift test` | **258 tests, 0 failures** |
+| `python3 tools/check_core.py` | **258 bodies, 5,311 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **111/111 fixtures match** |
+| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** — the first Release build of the app |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell**: version 1.4 (1), an opaque icon, the compliance answer in the binary, the policy and the submission page, every built-in plan bundled |
+| `python3 tools/check_bundle.py` | **current** |
+
+The four skipped cases are the prompt pins (M9 and W37) and the introduction's source pin (Y13),
+which read the checkout — outside the simulator's sandbox. They run on the other two routes.
+The Xcode on this Mac is 27.0 build `27A5252f`, a beta, and its simulators are the iPhone 17
+family, so the destination is now `iPhone 17`; any installed iPhone works.
+
+| Milestone | What it did | State |
+|---|---|---|
+| Y0 | The plan, the branch | Done |
+| Y1 | The workout opens the moment it exists: `startedWorkouts` counted before the notification, the Island and the disk write; the cover on the count; no view waits on `startDay` (D48) | Done |
+| Y2 | Four built-in plans through the ordinary pipeline with no warnings and no weights, one spelling per movement, minutes computed from the plan; the picker in Add plan and on Home; Add plan presented from an item because a sheet's closure captures stale state (D46) | Done |
+| Y3 | The introduction: four Core pages pinned to real control names; a cover on a launch with no plans; `Settings.introSeen` optional on disk; How the app works in Settings (D47) | Done |
+| Y4 | An opaque icon and a generator that keeps it so, the compliance answer, version 1.4 (1) on all targets, the first Release build, `check_release.py`, `PRIVACY.md`, `APP_STORE.md`, a README section for people (D49) | Done |
+| Y5 | Docs, checklist rows, bundle | Done |
+| — | The v1.4 device rows (Y3, Y11, Y16, Y19) | **Written, not run** — Y19 needs TestFlight, which needs the paid program |
+| — | The Developer Program, a release Xcode, the LICENSE, the submission | **The owner's** — `docs/APP_STORE.md` §1 and §6 |
+
+### Checked on the simulator (v1.4)
+
+Every screenshot is from a real build on a booted iPhone 17 simulator.
+
+| File | Shows |
+|---|---|
+| `build/y2-home.png` | Home's empty card on a clean install: "Choose a built-in plan, or get one from a chatbot." and the two links |
+| `build/y2-builtins.png` | The built-in picker: four rows with days, minutes and equipment, and the build-your-own footer — opened from Home's link, and from `-uiScreen import -uiBuiltIns` |
+| `build/y2-review.png` | Full Body's review: the paragraph on top, the plan in lb (the simulator is set to the US), the repeat block, the days with ranges and no weights, Save plan |
+| `build/y3-intro.png` | The introduction's first page on a clean install, with Choose a plan and Not now |
+| `build/y3-after-choose.png` | Choose a plan landed on the picker once the cover was down |
+
+### Not run in v1.4
+
+The second the owner saw (Y1) was diagnosed by reading the code — the cover waited for
+`startDay`, which waited for the Live Activity — and the fix is proven by a test against a
+scheduler that never returns, not measured on the phone; Y3 is the row that measures it. Two
+things about that second are worth knowing and were not changed: a Debug build from Xcode runs
+SwiftUI and the import pipeline unoptimised, and TestFlight ships Release; and the first tap
+into a text field in a session pays the keyboard's own warm-up, which no app controls. The
+Release build was compiled for the simulator, not archived — archiving needs the distribution
+certificate the paid program provides.
 
 ## v1.3 (X0–X6): built and green
 
