@@ -48,11 +48,28 @@ enum RestResolution {
     }
 }
 extension Session {
-    static func start(plan: Plan, dayIndex: Int, now: Date) -> Session? {
-        guard let day = plan.days[safe: dayIndex] else { return nil }
-        return Session(planId: plan.id, planName: plan.name, dayName: day.name, units: plan.units, startedAt: now,
+    /// The day as the session will do it. D44 (v1.3): when the plan carries a progression and
+    /// today falls in one of its weeks, that week's targets are written into the snapshot —
+    /// D7 holds, the session records what it was asked to do — and the exercises it touched
+    /// carry the week, so the chip can say so.
+    static func start(plan: Plan, dayIndex: Int, now: Date, calendar: Calendar = .current) -> Session? {
+        guard var day = plan.days[safe: dayIndex] else { return nil }
+        var touched = Set<Int>()
+        var week: Int?
+        if let progression = plan.progression, let index = progression.weekIndex(on: now, calendar: calendar) {
+            let applied = progression.apply(to: day, week: index)
+            day = applied.day
+            touched = applied.touched
+            week = index + 1
+        }
+        var session = Session(planId: plan.id, planName: plan.name, dayName: day.name, units: plan.units, startedAt: now,
                        exercises: day.exercises.map { SessionExercise(name: $0.name, group: $0.group, notes: $0.notes, repRange: $0.repRange, bodyweight: $0.bodyweight, targets: $0.sets) },
                        steps: flatten(day: day).map { SessionStep(exerciseIndex: $0.exerciseIndex, setIndex: $0.setIndex, dropIndex: $0.dropIndex, blockIndex: $0.blockIndex, isLastInRound: $0.isLastInRound, isLastInBlock: $0.isLastInBlock) })
+        guard !touched.isEmpty, let week else { return session }
+        for index in touched { session.exercises[index].progressionWeek = week }
+        session.progressionWeek = week
+        session.progressionWeeks = plan.progression?.weeks
+        return session
     }
     func target(at index: Int) -> (work: WorkTarget, weight: Double?, warning: Int?)? {
         guard let step = steps[safe: index], let exercise = exercises[safe: step.exerciseIndex], let target = exercise.targets[safe: step.setIndex] else { return nil }

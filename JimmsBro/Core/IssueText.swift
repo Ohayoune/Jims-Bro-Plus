@@ -17,6 +17,8 @@ enum IssueText {
             case "sets": parts.append("set \(index + 1)")
             case "drops": parts.append("drop \(index + 1)")
             case "cycle": parts.append("repeat block entry \(index + 1)")
+            // D44 (v1.3): a progression reply's paths — exercises[2].weeks[1].
+            case "weeks": parts.append("week \(index + 1)")
             default: continue
             }
         }
@@ -47,6 +49,17 @@ enum IssueText {
             return "The plan isn't complete — the chatbot's reply looks cut off. Ask it to send the whole plan again."
         case "E_NOT_A_PLAN":
             return "That's valid JSON, but it isn't a workout plan."
+        // D44 (v1.3): a progression reply's own refusals.
+        case "E_PROGRESSION_INVALID":
+            return "That's valid JSON, but it isn't a progression. Paste the reply to the progression prompt."
+        case "E_PROGRESSION_WEEKS_INVALID":
+            return prefixed("the number of weeks must be a whole number from 1 to \(Progression.maxWeeks).")
+        case "E_PROGRESSION_EXERCISE_INVALID":
+            return prefixed("this entry needs the exercise's name, exactly as the plan writes it.")
+        case "E_PROGRESSION_WEEK_INVALID":
+            return prefixed("each week must be an object with a weight and/or reps, or {} for no change.")
+        case "E_PROGRESSION_EMPTY":
+            return "None of the exercises in the reply match this plan. Ask the chatbot to use the plan's exact names."
         case "E_SCHEMA_VERSION":
             return "This plan was written for a newer version of the app than this one."
         case "E_UNITS_INVALID":
@@ -119,6 +132,8 @@ enum IssueText {
         "W_CURLY_QUOTES_FIXED", "W_SURROUNDING_TEXT", "W_UNKNOWN_FIELD", "W_NAME_TRUNCATED",
         "W_NOTES_TRUNCATED", "W_WEIGHT_ROUNDED", "W_DEFAULT_NAME", "W_DAY_RENAMED",
         "W_WRAPPED_SINGLE_DAY",
+        // D44 (v1.3): tidying a progression reply. What was *left out* or *ignored* is material.
+        "W_PROGRESSION_ROUNDED", "W_PROGRESSION_LONG", "W_PROGRESSION_DAY_ASSUMED",
     ]
 
     static func isMaterial(_ issue: Issue) -> Bool { !cleanupWarningCodes.contains(issue.code) }

@@ -30,10 +30,43 @@ struct Plan: Codable, Identifiable, Equatable {
     /// the compounding the owner described. Set whenever a session completes, and once at
     /// launch for a plan that predates it.
     var cycleAnchor: Date?
+    /// D44 (v1.3): the chatbot's week-by-week targets, attached to this plan. Nil for a plan
+    /// without one, which is exactly a v1.2 plan.
+    var progression: Progression?
     enum CodingKeys: String, CodingKey {
         case id, name, units, schedule, days, importedAt, sourceText, warnings, cycle,
-             cyclePosition, cycleAnchor
+             cyclePosition, cycleAnchor, progression
     }
+}
+
+/// D44 (v1.3): a progression — what the chatbot planned for the next N weeks, per exercise.
+/// Week 1 starts on `startDate`; the plan's own targets apply to any exercise, week or set
+/// the progression says nothing about.
+struct Progression: Codable, Equatable {
+    var startDate: Date
+    var weeks: Int
+    var entries: [ProgressionEntry] = []
+    enum CodingKeys: String, CodingKey { case startDate, weeks, entries }
+}
+struct ProgressionEntry: Codable, Equatable {
+    /// Matched to the plan by normalized name (§6.9).
+    var dayName: String
+    var exerciseName: String
+    /// One per week, week 1 first. Shorter than the progression means "then the plan's own".
+    var weeks: [ProgressionWeek]
+    enum CodingKeys: String, CodingKey { case dayName, exerciseName, weeks }
+}
+struct ProgressionWeek: Codable, Equatable {
+    /// For every set of the exercise that week; nil leaves the plan's.
+    var weight: Double? = nil
+    var work: WorkTarget? = nil
+    /// Per-set overrides instead, when the chatbot varied the sets within the week.
+    var sets: [ProgressionSet]? = nil
+    var isChange: Bool { weight != nil || work != nil || !(sets ?? []).isEmpty }
+}
+struct ProgressionSet: Codable, Equatable {
+    var weight: Double? = nil
+    var work: WorkTarget? = nil
 }
 struct Day: Codable, Identifiable, Equatable {
     var id = UUID()
@@ -92,8 +125,13 @@ struct Session: Codable, Identifiable, Equatable {
     var endedAt: Date?
     var exercises: [SessionExercise]
     var steps: [SessionStep]
+    /// D44 (v1.3): which week of the plan's progression this workout was, 1-based, and how
+    /// many it had — so the Summary and history can say "week 3 of 8". Nil when none applied.
+    var progressionWeek: Int?
+    var progressionWeeks: Int?
     enum CodingKeys: String, CodingKey {
-        case id, planId, planName, dayName, units, startedAt, endedAt, exercises, steps
+        case id, planId, planName, dayName, units, startedAt, endedAt, exercises, steps,
+             progressionWeek, progressionWeeks
     }
 }
 struct SessionExercise: Codable, Identifiable, Equatable {
@@ -113,8 +151,12 @@ struct SessionExercise: Codable, Identifiable, Equatable {
     /// the day for "Exercise 2 of 5", and the original earns no advice for a job it did not
     /// finish. Nil when the exercise was simply renamed in place.
     var replaces: Int?
+    /// D44 (v1.3): the progression week (1-based) whose targets this exercise carries, so the
+    /// chip can say "Week 3 of 8 of your progression". Nil when the plan's own targets apply.
+    var progressionWeek: Int?
     enum CodingKeys: String, CodingKey {
-        case id, name, group, notes, repRange, bodyweight, targets, advice, substitutedFor, replaces
+        case id, name, group, notes, repRange, bodyweight, targets, advice, substitutedFor, replaces,
+             progressionWeek
     }
 
     /// D11 (v1.1): true when the main-set target weights are not all equal (or all absent) — a

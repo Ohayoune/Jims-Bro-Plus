@@ -70,6 +70,11 @@ enum Prefill {
         let previousSteps = session.steps.prefix(index).filter { $0.status == .logged && $0.exerciseIndex == step.exerciseIndex }
         let weight: Double?
         if e.bodyweight { weight = nil }
+        else if e.progressionWeek != nil, step.dropIndex == 0, let planned = target.weight {
+            // D44 (v1.3), rule 0: this week's progression target beats last time — you asked
+            // a chatbot to plan it, and the plan is what the card should show.
+            weight = planned
+        }
         else if step.dropIndex > 0 {
             weight = last?.weight ?? target.weight ?? session.steps[safe:index-1]?.result?.weight
         } else if e.hasVariedTargets {
@@ -81,7 +86,10 @@ enum Prefill {
             // Straight sets: most recently logged weight this session, not the largest set index.
             weight = previousSteps.filter { $0.result?.weight != nil }.max { ($0.loggedAt ?? .distantPast) < ($1.loggedAt ?? .distantPast) }?.result?.weight ?? lastWeight ?? target.weight
         }
-        let reps = weight == (e.bodyweight ? nil : last?.weight) ? last?.reps ?? targetReps(target.work) : targetReps(target.work)
+        // D44: in a progression week the week's reps are the target, whatever last time was.
+        let reps = e.progressionWeek != nil && step.dropIndex == 0
+            ? targetReps(target.work) ?? last?.reps
+            : (weight == (e.bodyweight ? nil : last?.weight) ? last?.reps ?? targetReps(target.work) : targetReps(target.work))
         let seconds: Int?
         if case let .duration(n) = target.work { seconds = last?.seconds ?? n } else { seconds = nil }
         var suggestion: Double?
@@ -110,7 +118,9 @@ enum Prefill {
         values.suggestion = setSuggestion(session: session, step: index, exercise: e, target: target,
                                           last: last, lastWeight: lastWeight,
                                           advice: e.bodyweight ? nil : suggestion,
-                                          adviceReason: adviceReason, units: session.units)
+                                          adviceReason: adviceReason, units: session.units,
+                                          progression: step.dropIndex == 0
+                                              ? e.progressionWeek.map { (week: $0, weeks: session.progressionWeeks) } : nil)
         return values
     }
     /// D36 (v1.2): the suggestion for one set, in order of how much it knows.
@@ -124,7 +134,8 @@ enum Prefill {
     static func setSuggestion(session: Session, step index: Int, exercise: SessionExercise,
                               target: (work: WorkTarget, weight: Double?, warning: Int?),
                               last: SetResult?, lastWeight: Double?, advice: Double?,
-                              adviceReason: String?, units: WeightUnit) -> SetSuggestion? {
+                              adviceReason: String?, units: WeightUnit,
+                              progression: (week: Int, weeks: Int?)? = nil) -> SetSuggestion? {
         let unit = units.rawValue
         func line(_ reps: Int?, _ weight: Double?) -> String {
             switch (reps, weight) {
@@ -133,6 +144,21 @@ enum Prefill {
             case let (nil, weight?): return "\(TargetText.number(weight)) \(unit)"
             case (nil, nil): return ""
             }
+        }
+        // D44 (v1.3): in a progression week the set's target *is* the suggestion, and the
+        // reason says which week — it outranks advice from last time, which the chatbot has
+        // already read.
+        if let progression {
+            let reason = ProgressionText.reason(week: progression.week, of: progression.weeks)
+            if case let .duration(planned) = target.work {
+                return SetSuggestion(reps: nil, weight: nil, text: "\(planned) s", reason: reason, isProgression: true)
+            }
+            guard !target.work.isTimed else { return nil }
+            let reps = targetReps(target.work)
+            let weight = exercise.bodyweight ? nil : target.weight
+            guard reps != nil || weight != nil else { return nil }
+            return SetSuggestion(reps: reps, weight: weight, text: line(reps, weight), reason: reason,
+                                 isProgression: true)
         }
         // Timed work is measured in seconds; suggesting reps for it would be nonsense.
         if target.work.isTimed {

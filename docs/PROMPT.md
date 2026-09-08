@@ -69,8 +69,39 @@ Fix them and reply with the complete corrected JSON only, in one code block tagg
 
 `{{errorLines}}` is one line per error: `- <path>: <message>`. Include at most 20 errors; if more, add `- …and N more`. Include the original decoder message for `E_NOT_JSON` (e.g. "Unexpected end of file" tells the chatbot its output was cut off).
 
-## 3. Behavior notes for the app
-- Both prompts are plain strings in `Core/Prompts.swift` with a `render(settings:)` / `render(errors:)` function, unit-tested (placeholders substituted, marker present, length bound).
+## 3. Progression prompt (Plan → Progression → Copy prompt)
+
+The line `JIMMSBRO-PROGRESSION-PROMPT-V1` is this prompt's marker, with the same rule as §1: the marker and no fenced code block means the prompt itself was pasted (`E_PROMPT_PASTED`). `{{weeks}}` is the period the owner picked (4, 6, 8 or 12), `{{units}}` and `{{increment}}` come from the plan and Settings, `{{plan}}` is the plan as a compact listing — one line per exercise, not its JSON — and `{{history}}` is empty or a block headed `MY HISTORY (most recent last)` with one line per exercise: its last sessions (up to six, within 90 days) and the advice the most recent one earned. The history is shortened first, never the plan, to stay under 9,000 characters (`COPY_PASTE_NOTES.md`).
+
+```
+JIMMSBRO-PROGRESSION-PROMPT-V1
+Plan my progression for the next {{weeks}} weeks for the workout plan below. Reply with ONE complete JSON object in a single code block tagged json, with no other text.
+
+FORMAT:
+{
+  "weeks": {{weeks}},
+  "exercises": [
+    { "day": "Push", "name": "Barbell Bench Press", "weeks": [ { "weight": 80, "reps": "6-8" }, { "weight": 82.5, "reps": "6-8" }, {} ] }
+  ]
+}
+
+RULES
+- One entry per exercise in the plan, with its day and its exact name as written below. Leave an exercise out only if nothing about it should change.
+- weeks: exactly {{weeks}} objects per exercise, week 1 first. An object gives the weight (in {{units}}, no unit text) and/or the reps for every set that week; {} means no change from the plan that week.
+- reps: a whole number, a range like "8-12", "AMRAP", or "10+". For timed exercises give durationSeconds instead of reps. For bodyweight exercises give reps only.
+- To vary the sets within a week, give "sets": [ { "weight": 60, "reps": 10 }, { "weight": 65, "reps": 8 } ] instead of weight and reps.
+- Every weight must be loadable: a multiple of {{increment}} {{units}}.
+- Progress conservatively from the plan and from my history below. If the period is 6 weeks or more, make one week a deload.
+- Return ALL JSON, never abbreviate with "...".
+
+MY PLAN
+{{plan}}{{history}}
+```
+
+The reply format is `docs/PROGRESSION_FORMAT.md`.
+
+## 4. Behavior notes for the app
+- All three prompts are plain strings in `Core/Prompts.swift` with a `render(settings:)` / `render(errors:)` function, unit-tested (placeholders substituted, marker present, length bound).
 - After **Copy prompt**, show a toast for 3 s. Don't navigate away.
 - The prompt marker line must never appear in the JSON example, or a chatbot might echo it inside the plan.
 - The example JSON inside the plan prompt is also exposed as `Prompts.exampleJSON` so a test can import it (TEST_CASES M4). `examples/valid/prompt-example.txt` is that same text; `examples/invalid/prompt-pasted-full.txt` preserves the original full prompt as an unchanged regression fixture; the shortened prompt has its own automated marker test.

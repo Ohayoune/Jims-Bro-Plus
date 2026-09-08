@@ -97,6 +97,24 @@ private struct StartCardView: View {
                 .accessibilityElement(children: .contain)
             }
 
+            // D44 (v1.3): the progression has run its course. One line, one offer; the plan's
+            // own targets are already back in use.
+            if card.progressionFinished, let planId = card.planId {
+                HStack(spacing: 12) {
+                    Text("Your progression has run its course.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Button("Plan the next one") {
+                        previewing = PlanRoute(id: planId, dayIndex: card.dayIndex ?? 0)
+                    }
+                    .font(.footnote.weight(.medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentColor)
+            }
+
             if let title = card.buttonTitle {
                 PrimaryButton(title: title) { act(card) }
             }

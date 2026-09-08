@@ -69,6 +69,8 @@ enum ExerciseText {
         parts.append("\(SessionStats.loggedCount(session)) sets")
         let volume = SessionStats.volume(session.steps)
         if volume > 0 { parts.append("\(TargetText.grouped(volume)) \(session.units.rawValue)") }
+        // D44 (v1.3): which week of the progression it was, when it was one.
+        if let week = ProgressionText.weekLine(session) { parts.append(week) }
         return parts.joined(separator: " · ")
     }
 

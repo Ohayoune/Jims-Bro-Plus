@@ -194,6 +194,9 @@ enum PlanEdit {
         // v1.3: an edit used to drop the anchor, so the next launch re-anchored the rotation
         // to that day and the calendar moved — the compounding D37 had just fixed.
         reimported.cycleAnchor = plan.cycleAnchor
+        // D44: an edit to the plan is not a reason to lose the progression attached to it;
+        // entries match by name, so a renamed exercise simply stops matching.
+        reimported.progression = plan.progression
         // A spliced tree is JSON in the encoder's key order; what the plan keeps as its text
         // is the canonical rendering, the same as after any other edit.
         reimported.sourceText = PlanJSON.render(reimported)

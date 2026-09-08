@@ -94,6 +94,8 @@ struct SummaryView: View {
                      "\(SessionStats.loggedCount(session)) of \(session.steps.count) sets"]
         // P5: a bare number is not a label. Zero volume is a bodyweight day, not a failure.
         if volume > 0 { parts.append("Volume \(TargetText.grouped(volume)) \(session.units.rawValue)") }
+        // D44 (v1.3): which week of the progression this was, when it was one.
+        if let week = ProgressionText.weekLine(session) { parts.append(week) }
         return parts.joined(separator: " · ")
     }
 

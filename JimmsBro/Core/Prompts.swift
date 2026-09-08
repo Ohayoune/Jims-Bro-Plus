@@ -78,6 +78,123 @@ Fix them and reply with the complete corrected JSON only, in one code block tagg
             .replacingOccurrences(of: "{{defaultRest}}", with: String(settings.defaultRestSeconds))
     }
     static func render(settings: Settings) -> String { substitute(planTemplate, settings: settings) }
+
+    // MARK: - D44 (v1.3): the progression prompt
+
+    static let progressionMarker = ProgressionImport.promptMarker
+    /// Pinned to docs/PROMPT.md §3 by `PromptPinningTests`.
+    static let progressionTemplate = #"""
+JIMMSBRO-PROGRESSION-PROMPT-V1
+Plan my progression for the next {{weeks}} weeks for the workout plan below. Reply with ONE complete JSON object in a single code block tagged json, with no other text.
+
+FORMAT:
+{
+  "weeks": {{weeks}},
+  "exercises": [
+    { "day": "Push", "name": "Barbell Bench Press", "weeks": [ { "weight": 80, "reps": "6-8" }, { "weight": 82.5, "reps": "6-8" }, {} ] }
+  ]
+}
+
+RULES
+- One entry per exercise in the plan, with its day and its exact name as written below. Leave an exercise out only if nothing about it should change.
+- weeks: exactly {{weeks}} objects per exercise, week 1 first. An object gives the weight (in {{units}}, no unit text) and/or the reps for every set that week; {} means no change from the plan that week.
+- reps: a whole number, a range like "8-12", "AMRAP", or "10+". For timed exercises give durationSeconds instead of reps. For bodyweight exercises give reps only.
+- To vary the sets within a week, give "sets": [ { "weight": 60, "reps": 10 }, { "weight": 65, "reps": 8 } ] instead of weight and reps.
+- Every weight must be loadable: a multiple of {{increment}} {{units}}.
+- Progress conservatively from the plan and from my history below. If the period is 6 weeks or more, make one week a deload.
+- Return ALL JSON, never abbreviate with "...".
+
+MY PLAN
+{{plan}}{{history}}
+"""#
+
+    /// The prompt for `plan`, over `weeks`, with the plan as a compact listing and — when asked
+    /// and there is any — the last sessions of every exercise in it. Kept under the paste bound
+    /// by shortening the history first, never the plan.
+    static func progression(plan: Plan, history: [Session], weeks: Int, includeHistory: Bool,
+                            settings: Settings, now: Date = Date()) -> String {
+        let increment = TargetText.number(settings.weightIncrement(for: plan.units))
+        func render(sessionsPerExercise: Int) -> String {
+            let listing = includeHistory && sessionsPerExercise > 0
+                ? historyListing(plan: plan, history: history, now: now, sessionsPerExercise: sessionsPerExercise) : ""
+            return progressionTemplate
+                .replacingOccurrences(of: "{{weeks}}", with: String(weeks))
+                .replacingOccurrences(of: "{{units}}", with: plan.units.rawValue)
+                .replacingOccurrences(of: "{{increment}}", with: increment)
+                .replacingOccurrences(of: "{{plan}}", with: planListing(plan))
+                .replacingOccurrences(of: "{{history}}", with: listing.isEmpty ? "" : "\n\nMY HISTORY (most recent last)\n" + listing)
+        }
+        for count in [6, 3, 1] {
+            let text = render(sessionsPerExercise: count)
+            if text.count <= progressionBound { return text }
+        }
+        return render(sessionsPerExercise: 0)
+    }
+
+    /// Chat apps turn very long pastes into attachments (COPY_PASTE_NOTES.md); stay well under.
+    static let progressionBound = 9_000
+
+    /// "Push:\n- Barbell Bench Press: 4 × 6–8 · 80 kg · rest 150 s" — what the chatbot needs to
+    /// know about the plan, without the JSON's weight.
+    static func planListing(_ plan: Plan) -> String {
+        plan.days.map { day -> String in
+            let exercises = day.exercises.map { exercise -> String in
+                var parts = [TargetText.summary(exercise, units: plan.units)]
+                if let rest = exercise.sets.first?.restSeconds { parts.append("rest \(rest) s") }
+                if exercise.bodyweight { parts.append("bodyweight") }
+                if let group = exercise.group { parts.append("superset \(group)") }
+                if let notes = exercise.notes?.trimmed, !notes.isEmpty { parts.append(notes) }
+                return "- \(exercise.name): " + parts.joined(separator: " · ")
+            }
+            return "\(day.name):\n" + exercises.joined(separator: "\n")
+        }.joined(separator: "\n")
+    }
+
+    /// One line per exercise of the plan that has history: its last sessions, oldest first,
+    /// and the advice the most recent one earned.
+    static func historyListing(plan: Plan, history: [Session], now: Date, sessionsPerExercise: Int) -> String {
+        let cutoff = now.addingTimeInterval(-90 * 86_400)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        var seen = Set<String>()
+        var lines: [String] = []
+        for exercise in plan.days.flatMap(\.exercises) where seen.insert(normalized(exercise.name)).inserted {
+            let sessions = history
+                .filter { $0.endedAt != nil && $0.units == plan.units && $0.startedAt >= cutoff
+                    && $0.exercises.contains { normalized($0.name) == normalized(exercise.name) } }
+                .sorted { $0.startedAt < $1.startedAt }
+                .suffix(sessionsPerExercise)
+            guard !sessions.isEmpty else { continue }
+            let entries = sessions.compactMap { session -> String? in
+                let steps = ExerciseHistory.steps(name: exercise.name, session: session).filter { $0.status == .logged }
+                guard !steps.isEmpty else { return nil }
+                let results = steps.compactMap(\.result)
+                let weights = results.map(\.weight)
+                let same = weights.allSatisfy { $0 == weights.first ?? nil }
+                let sets = results.map { result -> String in
+                    if let seconds = result.seconds { return "\(seconds)s" }
+                    let reps = result.reps.map(String.init) ?? "?"
+                    if !same, let weight = result.weight { return "\(reps)@\(TargetText.number(weight))" }
+                    return reps
+                }.joined(separator: ",")
+                var text = "\(formatter.string(from: session.startedAt)) \(sets)"
+                if same, let weight = weights.first ?? nil { text += " @ \(TargetText.number(weight)) \(plan.units.rawValue)" }
+                return text
+            }
+            var line = "- \(exercise.name): " + entries.joined(separator: "; ")
+            if let last = sessions.last,
+               let done = last.exercises.first(where: { normalized($0.name) == normalized(exercise.name) }),
+               let advice = done.advice, let range = done.repRange {
+                let logged = ExerciseHistory.steps(name: exercise.name, session: last).filter { $0.status == .logged }
+                line += " (advice: " + ProgressionAdvice.message(advice, range: range, loggedSets: logged.count,
+                                                                  currentWeight: logged.first?.result?.weight,
+                                                                  units: plan.units) + ")"
+            }
+            lines.append(line)
+        }
+        return lines.joined(separator: "\n")
+    }
     static func render(errors: [Issue]) -> String {
         let errors = errors.filter { $0.severity == .error }
         var lines = errors.prefix(20).map { "- \($0.path): \($0.message)" }

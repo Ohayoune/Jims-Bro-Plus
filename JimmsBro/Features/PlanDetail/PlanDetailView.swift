@@ -24,6 +24,8 @@ struct PlanDetailView: View {
     /// has finished dismissing (presenting the next in the same turn leaves it half-built).
     @State private var fragment: FragmentTarget?
     @State private var pendingFragment: FragmentTarget?
+    /// D44 (v1.3): the Progression screen.
+    @State private var showProgression = false
 
     private var plan: Plan? { model.plans.first { $0.id == planId } }
 
@@ -32,6 +34,21 @@ struct PlanDetailView: View {
             if let plan {
                 List {
                     Section { repeatBlock(plan) }
+                    // D44 (v1.3): where the progression is, or the offer to plan one.
+                    Section {
+                        Button { showProgression = true } label: {
+                            HStack {
+                                Text("Progression")
+                                Spacer()
+                                Text(plan.progression.map { ProgressionText.status($0, on: Date()) } ?? "Plan it")
+                                    .foregroundStyle(.secondary)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .buttonStyle(PressableRow())
+                    }
                     ForEach(Array(plan.days.enumerated()), id: \.element.id) { index, day in
                         Section {
                             ForEach(Array(day.exercises.enumerated()), id: \.element.id) { position, exercise in
@@ -99,6 +116,9 @@ struct PlanDetailView: View {
                                       footer: target.footer) { text in
                         await model.editPlan(planId, target.operation(text))
                     }
+                }
+                .sheet(isPresented: $showProgression) {
+                    ProgressionView(planId: planId).environment(model)
                 }
                 .alert("Rename day", isPresented: Binding(get: { renamingDay != nil },
                                                           set: { if !$0 { renamingDay = nil } })) {

@@ -43,6 +43,14 @@ final class PromptPinningTests: XCTestCase {
                        "docs/PROMPT.md §2 and Prompts.fixTemplate have drifted apart")
     }
 
+    // W37 (v1.3): and the progression prompt of D44 (docs/PROMPT.md §3).
+    func testProgressionPromptMatchesTheDocument() throws {
+        let published = try fenced(try document(), 2)
+        XCTAssertEqual(Prompts.progressionTemplate.trimmedTrailingNewlines,
+                       published.trimmedTrailingNewlines,
+                       "docs/PROMPT.md §3 and Prompts.progressionTemplate have drifted apart")
+    }
+
     // The example JSON is now written once. It must still be a plan the app imports, and it
     // must still be inside the prompt the chatbot is given.
     func testTheExampleIsWrittenOnceAndStillImports() {

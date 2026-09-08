@@ -138,6 +138,8 @@ struct HomeStart: Equatable {
     /// D37 (v1.2): the training day the schedule put before today that never happened, said
     /// plainly rather than resolved behind your back. "Push was due Tuesday."
     var missed: MissedWorkout?
+    /// D44 (v1.3): the plan's progression has run its course, so Home offers the next one.
+    var progressionFinished = false
 
     static let previewLimit = 5
 
@@ -215,6 +217,15 @@ struct HomeStart: Equatable {
         }
         if let last = lastDuration(dayName: day.name, sessions: library.sessions) {
             fragments.append("\(last) min last time")
+        }
+        // D44 (v1.3): where the progression is, in the subtitle that already says what today
+        // is; and when it has run out, one line offering the next — nothing else moves.
+        if let progression = plan.progression {
+            if let index = progression.weekIndex(on: now, calendar: calendar) {
+                fragments.append("week \(index + 1) of \(progression.weeks)")
+            } else if progression.isFinished(on: now, calendar: calendar) {
+                start.progressionFinished = true
+            }
         }
         // A rest day already used the subtitle to say what is next; the rest hangs off that.
         start.subtitle = ([start.subtitle].compactMap { $0 } + fragments).joined(separator: " · ")

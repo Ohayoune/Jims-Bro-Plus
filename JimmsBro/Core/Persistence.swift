@@ -71,7 +71,8 @@ extension Plan {
             // the importer would have given it.
             cycle: container.value(.cycle, or: days.indices.map(CycleEntry.day)),
             cyclePosition: container.optional(.cyclePosition),
-            cycleAnchor: container.optional(.cycleAnchor))
+            cycleAnchor: container.optional(.cycleAnchor),
+            progression: container.optional(.progression))
     }
 }
 
@@ -123,7 +124,9 @@ extension Session {
                   startedAt: try container.decode(Date.self, forKey: .startedAt),
                   endedAt: container.optional(.endedAt),
                   exercises: try container.decode([SessionExercise].self, forKey: .exercises),
-                  steps: try container.decode([SessionStep].self, forKey: .steps))
+                  steps: try container.decode([SessionStep].self, forKey: .steps),
+                  progressionWeek: container.optional(.progressionWeek),
+                  progressionWeeks: container.optional(.progressionWeeks))
     }
 }
 
@@ -139,7 +142,8 @@ extension SessionExercise {
                   targets: try container.decode([SetTarget].self, forKey: .targets),
                   advice: container.optional(.advice),
                   substitutedFor: container.optional(.substitutedFor),
-                  replaces: container.optional(.replaces))
+                  replaces: container.optional(.replaces),
+                  progressionWeek: container.optional(.progressionWeek))
     }
 }
 

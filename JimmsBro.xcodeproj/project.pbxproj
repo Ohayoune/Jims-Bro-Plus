@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		22596811096049DE8D43B0DA /* ProgressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E6A382E1EE403A84C759E7 /* ProgressionTests.swift */; };
+		C924AFF47036440097C8E751 /* ProgressionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4121368C37C7456EAB61E006 /* ProgressionView.swift */; };
+		9B75BE6D69C2415C9D64E544 /* ProgressionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FBD27D2E11B430C937A1579 /* ProgressionModel.swift */; };
+		9549B2DF8E7F45A49124CA0D /* Progression.swift in Sources */ = {isa = PBXBuildFile; fileRef = E741F068B39644FBA12803B9 /* Progression.swift */; };
 		A739B83332FE43A580221FEE /* HistoryCSVTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5AC840139EE42C7BD4BAC83 /* HistoryCSVTests.swift */; };
 		23795D6C27C3402C98C39D75 /* HistoryImportFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8E8D44053024272B13E21A9 /* HistoryImportFlow.swift */; };
 		B7C60316184D462A9466602B /* HistoryTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9927C3B8D84753A38D46D3 /* HistoryTransfer.swift */; };
@@ -131,6 +135,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		E9E6A382E1EE403A84C759E7 /* ProgressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionTests.swift; sourceTree = "<group>"; };
+		4121368C37C7456EAB61E006 /* ProgressionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionView.swift; sourceTree = "<group>"; };
+		4FBD27D2E11B430C937A1579 /* ProgressionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionModel.swift; sourceTree = "<group>"; };
+		E741F068B39644FBA12803B9 /* Progression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Progression.swift; sourceTree = "<group>"; };
 		E5AC840139EE42C7BD4BAC83 /* HistoryCSVTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryCSVTests.swift; sourceTree = "<group>"; };
 		E8E8D44053024272B13E21A9 /* HistoryImportFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryImportFlow.swift; sourceTree = "<group>"; };
 		CD9927C3B8D84753A38D46D3 /* HistoryTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryTransfer.swift; sourceTree = "<group>"; };
@@ -285,6 +293,7 @@
 		3A21295D813C26EB287FC6B5 /* Store */ = {
 			isa = PBXGroup;
 			children = (
+				4FBD27D2E11B430C937A1579 /* ProgressionModel.swift */,
 				CD9927C3B8D84753A38D46D3 /* HistoryTransfer.swift */,
 				559100F244E7447A9C1DEA28 /* SessionRunner.swift */,
 				2FE314A02BFE4034970A22BA /* AppModel.swift */,
@@ -329,6 +338,7 @@
 		5096789945D69DA3AC9A0D4A /* PlanDetail */ = {
 			isa = PBXGroup;
 			children = (
+				4121368C37C7456EAB61E006 /* ProgressionView.swift */,
 				B2E6EBAEA094407981604FCE /* JSONFragmentSheet.swift */,
 				CCD6005D8B4C4BEBB795803C /* PlanDetailView.swift */,
 			);
@@ -354,6 +364,7 @@
 		8B7A6DECC0651D269EA794C7 /* JimmsBroTests */ = {
 			isa = PBXGroup;
 			children = (
+				E9E6A382E1EE403A84C759E7 /* ProgressionTests.swift */,
 				E5AC840139EE42C7BD4BAC83 /* HistoryCSVTests.swift */,
 				F3B42BB5F37D4577BB31378A /* JSONEditTests.swift */,
 				1374E419EAD343B697A28F06 /* ChangeExerciseTests.swift */,
@@ -408,6 +419,7 @@
 		94A0426E8D3203DA5468CCF0 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				E741F068B39644FBA12803B9 /* Progression.swift */,
 				D785BE8793B4406986BDBEE7 /* HistoryCSV.swift */,
 				D433685A1BA648309AEB614B /* WorkoutActivityState.swift */,
 				BA72B469648A469895316435 /* WorkoutActivity.swift */,
@@ -633,6 +645,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C924AFF47036440097C8E751 /* ProgressionView.swift in Sources */,
+				9B75BE6D69C2415C9D64E544 /* ProgressionModel.swift in Sources */,
+				9549B2DF8E7F45A49124CA0D /* Progression.swift in Sources */,
 				23795D6C27C3402C98C39D75 /* HistoryImportFlow.swift in Sources */,
 				B7C60316184D462A9466602B /* HistoryTransfer.swift in Sources */,
 				40D7674A880D4945A56B2B10 /* HistoryCSV.swift in Sources */,
@@ -689,6 +704,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				22596811096049DE8D43B0DA /* ProgressionTests.swift in Sources */,
 				A739B83332FE43A580221FEE /* HistoryCSVTests.swift in Sources */,
 				BFF32C02BE544CED9F319F4E /* JSONEditTests.swift in Sources */,
 				DF1A119FAD2849449B70E433 /* ChangeExerciseTests.swift in Sources */,
