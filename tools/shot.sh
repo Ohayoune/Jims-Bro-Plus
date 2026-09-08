@@ -1,7 +1,7 @@
 #!/bin/zsh
 # Build, seed and screenshot the app on a booted simulator.
 #   tools/shot.sh <out.png> [launch args...]
-# The container is seeded through the app's own Store (build/seed), so what the screenshot
+# The container is seeded through the app's own Store (tools/seed), so what the screenshot
 # shows is what the app would really have written. Rebuilds only when sources changed.
 set -e
 cd "$(dirname "$0")/.."
@@ -26,6 +26,14 @@ fi
 xcrun simctl install "$DEVICE" "$APP"
 
 if [[ -n "$SEED" ]]; then
+  # The seeder's source is tracked in tools/seed; the binary is built into the ignored
+  # build/ folder, and only when it is missing or older than any source it compiles.
+  mkdir -p build/seed
+  if [[ ! -x build/seed/seed || -n $(find tools/seed/main.swift JimmsBro/Core JimmsBro/Store -newer build/seed/seed 2>/dev/null) ]]; then
+    xcrun swiftc -O -o build/seed/seed tools/seed/main.swift \
+      JimmsBro/Core/*.swift JimmsBro/Store/*.swift > build/seed-build.log 2>&1 \
+      || { tail -30 build/seed-build.log; exit 1; }
+  fi
   CONTAINER=$(xcrun simctl get_app_container "$DEVICE" com.ohayoune.jimmsbro data)
   rm -rf "$CONTAINER/Library/Application Support/JimmsBro"
   mkdir -p "$CONTAINER/Library/Application Support/JimmsBro"

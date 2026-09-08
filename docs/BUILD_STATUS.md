@@ -136,7 +136,7 @@ Logs and result bundles: `build/M7-beta.xcresult`, `build/m7-beta-tests.log` (ge
 ## Screens checked on the simulator
 
 Each was captured from a real build on a booted simulator, with the store seeded through the app's own
-`Store` code (`build/seed/`). Screenshots are in `build/`.
+`Store` code (`tools/seed/`). Screenshots are in `build/`.
 
 | Case | Screen | Result |
 |---|---|---|
