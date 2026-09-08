@@ -102,7 +102,8 @@ Three v1.2 rules are worth knowing before touching anything:
 ## Working style
 
 - Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25).
-- Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author.
+- Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author — no `Co-Authored-By` trailer of any kind, whatever a harness suggests; the history was rewritten once (2026-09-08) to remove them.
+- The repository is public under the MIT license (`LICENSE`), with a landing page at the top of `README.md` and CI in `.github/workflows/ci.yml` running the three routes on every push. Keep the README's landing section for people and its lower half for you; keep `docs/screenshots/` to what the README shows.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.
 - Use the fixtures in `examples/` verbatim in tests. Do not edit fixtures to make tests pass; if a fixture looks wrong, say so.
 - Use the iOS Simulator for visual checks. The owner installs on the physical iPhone (BUILD_PLAN §Device).
@@ -116,16 +117,48 @@ Three v1.2 rules are worth knowing before touching anything:
 `````markdown
 # Jimm's Bro+
 
-A personal iPhone app that runs your workout for you: import a plan a chatbot wrote from your own description, then log each set while the app times your rest and remembers what you lifted last time.
+[![CI](https://github.com/Ohayoune/Jims-Bro-Plus/actions/workflows/ci.yml/badge.svg)](https://github.com/Ohayoune/Jims-Bro-Plus/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## If you just want the app
+An iPhone app that runs your workout for you. Pick a plan and tap Start; it walks you through the day one set at a time, times your rest on the Lock Screen, remembers what you lifted, and tells you when to add weight. Plans come from four built-in routines or from a prompt a chatbot answers. No account, no server, no network connection.
 
-- **What it is.** Pick a plan and tap Start. The app walks you through the day one set at a time, times your rest — on the Lock Screen and in the Dynamic Island, with a notification when the phone is in your pocket — and remembers what you lifted, so next time the weight is already filled in and it tells you when to add. Four built-in routines (Full Body, Upper Lower, Push Pull Legs, At Home), or a chatbot writes yours from a prompt the app copies for you.
-- **Getting it.** It is being submitted to the App Store; `docs/APP_STORE.md` is the submission. Until it is there, build it yourself: open `JimmsBro.xcodeproj` in Xcode, choose your team under Signing & Capabilities, plug in an iPhone, press Run.
-- **Privacy.** Nothing leaves the phone unless you export it. No account, no analytics, no network connection. `docs/PRIVACY.md` is the policy.
-- **License.** None has been chosen yet, so the code is published to read; ask before reusing it.
+<p align="center">
+  <img src="docs/screenshots/intro.png" width="150" alt="The introduction: a plan, then Start">
+  <img src="docs/screenshots/home.png" width="150" alt="Home: the day's workout and Start">
+  <img src="docs/screenshots/workout.png" width="150" alt="A rest counting down mid-workout">
+  <img src="docs/screenshots/progression.png" width="150" alt="A progression of steps, one exercise on its second">
+  <img src="docs/screenshots/history.png" width="150" alt="History with goals">
+</p>
 
-Everything below is the design and handoff material the app was built from.
+## What it does
+
+- **Runs the workout.** The card shows the exercise, the target and the weight you used last time. Log what you did and the rest timer starts on its own — on the Lock Screen and in the Dynamic Island, with a notification when the phone is in your pocket. Warm-up, timed holds, supersets, drop sets, a walk between exercises.
+- **Remembers.** Next time the weight is already filled in. Hit the top of your rep range and it suggests the next weight, snapped to what your plates can make. Every set is kept: history, personal records, a chart per exercise, metrics over time.
+- **Gets plans from a chatbot.** Copy the prompt, paste it into ChatGPT or Claude, paste the reply back. Long plans come in one day at a time. Four built-in routines — Full Body, Upper Lower, Push Pull Legs, At Home — to start from.
+- **Progresses.** Ask the chatbot for a progression from what you actually lifted, then earn each step by hitting it. Set a goal per exercise and watch it climb.
+- **Keeps your data on the phone.** Back up to a file, export history as a spreadsheet, import from Strong or Hevy. Nothing leaves the phone unless you send it. [Privacy policy](docs/PRIVACY.md).
+
+## Status
+
+**v1.5**, built and green on every route ([docs/BUILD_STATUS.md](docs/BUILD_STATUS.md)). Not yet on the App Store: the submission is prepared in [docs/APP_STORE.md](docs/APP_STORE.md) and waits on the paid Developer Program and a release Xcode. Until then, build it yourself.
+
+## Build it
+
+Xcode 16 or later on a Mac, an iPhone on iOS 17 or later.
+
+1. Open `JimmsBro.xcodeproj` and pick the shared `JimmsBro` scheme.
+2. Signing & Capabilities → choose your team (a free Apple ID works for seven days at a time).
+3. Plug in the phone, choose it as the destination, press Run. [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) has the one-time steps on the phone.
+
+The tests run on three routes — the simulator, `swift test` on the host, and a portable runner that needs no Xcode — and on every push through [GitHub Actions](.github/workflows/ci.yml). The commands are below.
+
+## License
+
+[MIT](LICENSE).
+
+---
+
+## For the implementing agent
 
 This folder contains the design package and the app, built through **v1 (M0–M7)**, **v1.1 (R0–R6)**, **v1.2 (V0–V8)**, **v1.3 (X0–X6)**, **v1.4 (Y0–Y5)** and **v1.5 (Z0–Z6)**: the Core import pipeline and session engine, the JSON store, every screen, the workout's five fixed zones, plan editing, backup and restore, v1.2's warm-up, timed walk between exercises, loadable weight suggestions, anchored calendar, metrics and Lock Screen / Dynamic Island activity, and v1.3's narrower Island, changing an exercise mid-workout, JSON edits at every size, history as CSV in and out, and Progression — the chatbot round-trip run the other way; and v1.4's four built-in plans, the introduction, a workout that opens the moment it exists, and the store readiness (an opaque icon, version 1.4 on every target, the export-compliance answer, the privacy policy and the submission page); and v1.5's clearer Progression row and Copy prompt, an effort target (reps or seconds in reserve) in the plan format, a plan built in several pastes for free chatbot tiers, progression as steps you earn by performance with the calendar kept as a mode, and a goal per exercise. Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the device checklist, which needs the owner's iPhone, and the submission itself — the Developer Program, a release Xcode and the form — which is the owner's to do from `docs/APP_STORE.md`. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
 
@@ -3801,9 +3834,9 @@ the app's own; the plain captures above are fine as they are.
 
 ## 6. Choices only the owner can make
 
-- **LICENSE.** A public repository without a license means people may read but not legally
-  reuse. MIT if reuse is wanted; nothing if all rights are to be kept. The app itself does not
-  need one to ship.
+- **LICENSE.** Chosen: MIT, in `LICENSE` at the root, with the GitHub handle as the holder.
+  Change the holder to a legal name if that is preferred; the app itself does not need a
+  license to ship.
 - **Support URL.** The repository's issues page, above, or any page with a way to reach you.
   App Review checks that it loads.
 - **The name.** "Jimm's Bro+" must be unique on the store; the fallback in §2 is one option.
@@ -4592,6 +4625,12 @@ Everything else — 287 automated tests plus the simulator screen checks — is 
 **v1.4** added Y3, Y11, Y16 and Y19 after them, and **v1.5** Z4, Z10, Z17, Z25 and Z31. Y19 needs a TestFlight build, which needs the paid
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
+
+**What the phone has actually seen.** On 2026-09-08 the owner installed v1.3 from Xcode and
+reported that everything worked, without recording rows here; the one thing raised was a
+second's lag on Start, which v1.4's D48 fixed. The rows below are therefore still unticked: the
+evidence so far is the owner's word for v1.3 as a whole, not this table, and v1.4 and v1.5 have
+not been on a phone at all.
 
 **v1.1 (R6)**: the workout screen was rebuilt (SPEC §4.5, D22), so every row below that touches it
 is being run against a different layout than the one M8 described, and the **v1.1 rows** section at
@@ -6539,7 +6578,8 @@ Three v1.2 rules are worth knowing before touching anything:
 ## Working style
 
 - Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25).
-- Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author.
+- Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author — no `Co-Authored-By` trailer of any kind, whatever a harness suggests; the history was rewritten once (2026-09-08) to remove them.
+- The repository is public under the MIT license (`LICENSE`), with a landing page at the top of `README.md` and CI in `.github/workflows/ci.yml` running the three routes on every push. Keep the README's landing section for people and its lower half for you; keep `docs/screenshots/` to what the README shows.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.
 - Use the fixtures in `examples/` verbatim in tests. Do not edit fixtures to make tests pass; if a fixture looks wrong, say so.
 - Use the iOS Simulator for visual checks. The owner installs on the physical iPhone (BUILD_PLAN §Device).

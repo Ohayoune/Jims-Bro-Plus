@@ -1,0 +1,78 @@
+# The three test routes of docs/BUILD_STATUS.md, run where GitHub can see them.
+#
+# - checks: the Python side, on Linux — every fixture through the reference importer, the
+#   store-readiness facts, and the handoff bundle's freshness.
+# - core:   Core on the host, on a Mac — `swift test` and the portable runner, which compile
+#   the same sources without Xcode's project.
+# - app:    the app on a simulator, on a Mac — `xcodebuild test`, then a Release build so
+#   nothing outside `#if DEBUG` refers to the screenshot hooks.
+#
+# The simulator is whichever iPhone the runner's Xcode ships; the docs name the one on the
+# owner's Mac, and any installed iPhone works (README).
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  checks:
+    name: Fixtures, release facts, bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Every fixture through the reference importer
+        run: python3 tools/reference_import.py
+      - name: Store-readiness facts
+        run: python3 tools/check_release.py
+      - name: Handoff bundle is current
+        run: python3 tools/check_bundle.py
+
+  core:
+    name: Core on the host
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: swift --version
+      - name: swift test
+        run: swift test
+      - name: Portable runner
+        run: python3 tools/check_core.py
+
+  app:
+    name: App on the simulator
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode
+        run: xcodebuild -version
+      - name: Pick an iPhone simulator
+        id: sim
+        run: |
+          NAME=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          data = json.load(sys.stdin)
+          names = sorted({device["name"] for devices in data["devices"].values() for device in devices
+                          if device["name"].startswith("iPhone")})
+          print(names[-1] if names else "iPhone 16")')
+          echo "Using $NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+      - name: xcodebuild test
+        run: |
+          set -o pipefail
+          xcodebuild test -scheme JimmsBro \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }}" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            | tail -n 40
+      - name: Release build
+        run: |
+          set -o pipefail
+          xcodebuild build -scheme JimmsBro -configuration Release \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }}" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            | tail -n 20

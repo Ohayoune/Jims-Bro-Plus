@@ -1,15 +1,47 @@
 # Jimm's Bro+
 
-A personal iPhone app that runs your workout for you: import a plan a chatbot wrote from your own description, then log each set while the app times your rest and remembers what you lifted last time.
+[![CI](https://github.com/Ohayoune/Jims-Bro-Plus/actions/workflows/ci.yml/badge.svg)](https://github.com/Ohayoune/Jims-Bro-Plus/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## If you just want the app
+An iPhone app that runs your workout for you. Pick a plan and tap Start; it walks you through the day one set at a time, times your rest on the Lock Screen, remembers what you lifted, and tells you when to add weight. Plans come from four built-in routines or from a prompt a chatbot answers. No account, no server, no network connection.
 
-- **What it is.** Pick a plan and tap Start. The app walks you through the day one set at a time, times your rest — on the Lock Screen and in the Dynamic Island, with a notification when the phone is in your pocket — and remembers what you lifted, so next time the weight is already filled in and it tells you when to add. Four built-in routines (Full Body, Upper Lower, Push Pull Legs, At Home), or a chatbot writes yours from a prompt the app copies for you.
-- **Getting it.** It is being submitted to the App Store; `docs/APP_STORE.md` is the submission. Until it is there, build it yourself: open `JimmsBro.xcodeproj` in Xcode, choose your team under Signing & Capabilities, plug in an iPhone, press Run.
-- **Privacy.** Nothing leaves the phone unless you export it. No account, no analytics, no network connection. `docs/PRIVACY.md` is the policy.
-- **License.** None has been chosen yet, so the code is published to read; ask before reusing it.
+<p align="center">
+  <img src="docs/screenshots/intro.png" width="150" alt="The introduction: a plan, then Start">
+  <img src="docs/screenshots/home.png" width="150" alt="Home: the day's workout and Start">
+  <img src="docs/screenshots/workout.png" width="150" alt="A rest counting down mid-workout">
+  <img src="docs/screenshots/progression.png" width="150" alt="A progression of steps, one exercise on its second">
+  <img src="docs/screenshots/history.png" width="150" alt="History with goals">
+</p>
 
-Everything below is the design and handoff material the app was built from.
+## What it does
+
+- **Runs the workout.** The card shows the exercise, the target and the weight you used last time. Log what you did and the rest timer starts on its own — on the Lock Screen and in the Dynamic Island, with a notification when the phone is in your pocket. Warm-up, timed holds, supersets, drop sets, a walk between exercises.
+- **Remembers.** Next time the weight is already filled in. Hit the top of your rep range and it suggests the next weight, snapped to what your plates can make. Every set is kept: history, personal records, a chart per exercise, metrics over time.
+- **Gets plans from a chatbot.** Copy the prompt, paste it into ChatGPT or Claude, paste the reply back. Long plans come in one day at a time. Four built-in routines — Full Body, Upper Lower, Push Pull Legs, At Home — to start from.
+- **Progresses.** Ask the chatbot for a progression from what you actually lifted, then earn each step by hitting it. Set a goal per exercise and watch it climb.
+- **Keeps your data on the phone.** Back up to a file, export history as a spreadsheet, import from Strong or Hevy. Nothing leaves the phone unless you send it. [Privacy policy](docs/PRIVACY.md).
+
+## Status
+
+**v1.5**, built and green on every route ([docs/BUILD_STATUS.md](docs/BUILD_STATUS.md)). Not yet on the App Store: the submission is prepared in [docs/APP_STORE.md](docs/APP_STORE.md) and waits on the paid Developer Program and a release Xcode. Until then, build it yourself.
+
+## Build it
+
+Xcode 16 or later on a Mac, an iPhone on iOS 17 or later.
+
+1. Open `JimmsBro.xcodeproj` and pick the shared `JimmsBro` scheme.
+2. Signing & Capabilities → choose your team (a free Apple ID works for seven days at a time).
+3. Plug in the phone, choose it as the destination, press Run. [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) has the one-time steps on the phone.
+
+The tests run on three routes — the simulator, `swift test` on the host, and a portable runner that needs no Xcode — and on every push through [GitHub Actions](.github/workflows/ci.yml). The commands are below.
+
+## License
+
+[MIT](LICENSE).
+
+---
+
+## For the implementing agent
 
 This folder contains the design package and the app, built through **v1 (M0–M7)**, **v1.1 (R0–R6)**, **v1.2 (V0–V8)**, **v1.3 (X0–X6)**, **v1.4 (Y0–Y5)** and **v1.5 (Z0–Z6)**: the Core import pipeline and session engine, the JSON store, every screen, the workout's five fixed zones, plan editing, backup and restore, v1.2's warm-up, timed walk between exercises, loadable weight suggestions, anchored calendar, metrics and Lock Screen / Dynamic Island activity, and v1.3's narrower Island, changing an exercise mid-workout, JSON edits at every size, history as CSV in and out, and Progression — the chatbot round-trip run the other way; and v1.4's four built-in plans, the introduction, a workout that opens the moment it exists, and the store readiness (an opaque icon, version 1.4 on every target, the export-compliance answer, the privacy policy and the submission page); and v1.5's clearer Progression row and Copy prompt, an effort target (reps or seconds in reserve) in the plan format, a plan built in several pastes for free chatbot tiers, progression as steps you earn by performance with the calendar kept as a mode, and a goal per exercise. Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the device checklist, which needs the owner's iPhone, and the submission itself — the Developer Program, a release Xcode and the form — which is the owner's to do from `docs/APP_STORE.md`. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
 

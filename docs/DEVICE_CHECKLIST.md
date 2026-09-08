@@ -10,6 +10,12 @@ Everything else — 287 automated tests plus the simulator screen checks — is 
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
+**What the phone has actually seen.** On 2026-09-08 the owner installed v1.3 from Xcode and
+reported that everything worked, without recording rows here; the one thing raised was a
+second's lag on Start, which v1.4's D48 fixed. The rows below are therefore still unticked: the
+evidence so far is the owner's word for v1.3 as a whole, not this table, and v1.4 and v1.5 have
+not been on a phone at all.
+
 **v1.1 (R6)**: the workout screen was rebuilt (SPEC §4.5, D22), so every row below that touches it
 is being run against a different layout than the one M8 described, and the **v1.1 rows** section at
 the end is new. Nothing here has been run yet on this build — it needs the phone. Signing is already

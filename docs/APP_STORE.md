@@ -129,9 +129,9 @@ the app's own; the plain captures above are fine as they are.
 
 ## 6. Choices only the owner can make
 
-- **LICENSE.** A public repository without a license means people may read but not legally
-  reuse. MIT if reuse is wanted; nothing if all rights are to be kept. The app itself does not
-  need one to ship.
+- **LICENSE.** Chosen: MIT, in `LICENSE` at the root, with the GitHub handle as the holder.
+  Change the holder to a legal name if that is preferred; the app itself does not need a
+  license to ship.
 - **Support URL.** The repository's issues page, above, or any page with a way to reach you.
   App Review checks that it loads.
 - **The name.** "Jimm's Bro+" must be unique on the store; the fallback in §2 is one option.

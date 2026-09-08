@@ -10,10 +10,16 @@ let package = Package(
     platforms: [.macOS(.v14), .iOS(.v17)],
     products: [.library(name: "JimmsBroCore", targets: ["JimmsBro"])],
     targets: [
-        .target(name: "JimmsBro", path: "JimmsBro", sources: ["Core", "Store"]),
+        .target(name: "JimmsBro", path: "JimmsBro",
+                // The app's views, resources and entry point are Xcode's; the two READMEs sit
+                // inside the source folders and are not sources.
+                exclude: ["Features", "Resources", "JimmsBroApp.swift", "RootView.swift",
+                          "Core/README.md", "Store/README.md"],
+                sources: ["Core", "Store"]),
         .testTarget(
             name: "JimmsBroTests", dependencies: ["JimmsBro"], path: ".",
-            exclude: ["JimmsBro", "JimmsBro.xcodeproj", "docs", "schema", "tools", "build",
+            exclude: ["JimmsBro", "JimmsBroActivity", "JimmsBro.xcodeproj", "docs", "schema", "tools",
+                      "build", ".github", "LICENSE",
                       "AGENTS.md", "CLAUDE.md", "README.md", "HANDOFF_BUNDLE.md",
                       "JimmsBro-design-package.zip", "JimmsBroTests/ProjectSkeletonTests.swift"],
             sources: ["JimmsBroTests/FixtureLoader.swift", "JimmsBroTests/CoreTestSupport.swift",
