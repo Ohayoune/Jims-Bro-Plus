@@ -214,7 +214,7 @@ final class StepsAndEngineTests: XCTestCase {
     func testTimedWeightPrefillEditsAndRestore() throws {
         let p = CoreTestSupport.plan(work:.duration(seconds:45),weight:60)
         let last = CoreTestSupport.completed([1,1,1],weights:[70,70,70],plan:p)
-        var e = SessionEngine(session:CoreTestSupport.session(p),history:[last],now:now)
+        var e = SessionEngine(session:CoreTestSupport.session(p),settings:CoreTestSupport.classic,history:[last],now:now)
         XCTAssertEqual(e.active.workWeight,70)
         // v1.2 (Q5): the displayed weight is not worth a write of its own — one keystroke is
         // not a fact about the workout — so this emits nothing. It still takes effect, and the

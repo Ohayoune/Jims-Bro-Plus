@@ -60,8 +60,10 @@ struct PlanLibrary {
             case .discard: effects += discardSession()
             }
         }
-        engine = SessionEngine(session:session,settings:settings,history:sessions,now:now)
-        effects.append(.persist)
+        let started = SessionEngine(session:session,settings:settings,history:sessions,now:now)
+        engine = started
+        // Carries the warm-up's notification (D32) as well as the save.
+        effects += started.initialEffects
         return effects
     }
     @discardableResult mutating func apply(_ event: Event, now: Date) -> [Effect] {

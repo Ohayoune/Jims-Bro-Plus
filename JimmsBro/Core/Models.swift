@@ -218,7 +218,61 @@ struct ActiveSession: Codable, Equatable {
         try container.encodeIfPresent(lastCompletedStep, forKey: .lastCompletedStep)
     }
 }
-struct RestState: Codable, Equatable { var startedAt: Date; var endsAt: Date; var nextStep: Int; var isWork = false }
+/// SPEC §4.6 (v1.2): the app has one rest, and it says which of three things it is. The
+/// warm-up before the first set and the gap between two exercises are mechanically rests —
+/// same countdown, same −30 / +30, same notification, same right to log straight out of them —
+/// and modelling them as anything else would have meant three copies of the timer.
+enum RestKind: String, Codable, Equatable, CaseIterable {
+    case warmUp, betweenSets, betweenExercises
+
+    /// What the strip calls it. "Rest" stays unqualified: it is the one the app is mostly in.
+    var title: String {
+        switch self {
+        case .warmUp: return "Warm-up"
+        case .betweenSets: return "Rest"
+        case .betweenExercises: return "Between exercises"
+        }
+    }
+    /// The Skip button names what it skips, so it is never ambiguous which timer it ends.
+    var skipTitle: String {
+        switch self {
+        case .warmUp: return "Skip warm-up"
+        case .betweenSets: return "Skip rest"
+        case .betweenExercises: return "Skip"
+        }
+    }
+    /// What the strip says once it has run out.
+    var overTitle: String {
+        switch self {
+        case .warmUp: return "Warm-up over"
+        case .betweenSets: return "Rest over"
+        case .betweenExercises: return "Time to start"
+        }
+    }
+}
+
+struct RestState: Codable, Equatable {
+    var startedAt: Date
+    var endsAt: Date
+    var nextStep: Int
+    var kind: RestKind = .betweenSets
+
+    enum CodingKeys: String, CodingKey { case startedAt, endsAt, nextStep, kind }
+
+    init(startedAt: Date, endsAt: Date, nextStep: Int, kind: RestKind = .betweenSets) {
+        self.startedAt = startedAt; self.endsAt = endsAt; self.nextStep = nextStep; self.kind = kind
+    }
+
+    /// A v1.1 file has no `kind` (it had an unused `isWork` instead); every rest it could have
+    /// been holding was a rest between sets.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(startedAt: try container.decode(Date.self, forKey: .startedAt),
+                  endsAt: try container.decode(Date.self, forKey: .endsAt),
+                  nextStep: try container.decode(Int.self, forKey: .nextStep),
+                  kind: container.value(.kind, or: .betweenSets))
+    }
+}
 
 /// SPEC §6.6 (v1.1): the `.transition` phase is gone — a finished block advances straight to
 /// `working(next)`, with `BlockDone` describing the strip. Kept `Codable` by hand (rather than
@@ -276,15 +330,31 @@ enum TimerBeep: String, Codable, Hashable { case warning, end, minimum }
 struct Settings: Codable, Equatable {
     var units: WeightUnit = .kg
     var defaultRestSeconds = 90
+    /// D32 (v1.2): the warm-up before the first set of a session. 0 turns it off, which is
+    /// exactly v1.1's behavior.
+    var warmUpSeconds = 300
+    /// D33 (v1.2): how long it takes to get from one exercise to the next. v1.1 gave this no
+    /// time at all and moved straight on; 0 restores that.
+    var transitionRestSeconds = 120
     var sound = true
     var vibration = true
     var keepAwake = true
     var weightStepKg = 2.5
     var weightStepLb = 5.0
+    /// D35 (v1.2): the smallest change the equipment can actually make. Every weight the app
+    /// *suggests* is rounded to a multiple of it, so it never offers 134 lb on a bar that can
+    /// only be loaded to 135. Separate from `weightStep`, which is what one tap of − or + does:
+    /// a rack may step in 5 lb while the smallest plate pair is 2.5.
+    var weightIncrementKg = 2.5
+    var weightIncrementLb = 5.0
     enum CodingKeys: String, CodingKey {
-        case units, defaultRestSeconds, sound, vibration, keepAwake, weightStepKg, weightStepLb
+        case units, defaultRestSeconds, warmUpSeconds, transitionRestSeconds, sound, vibration,
+             keepAwake, weightStepKg, weightStepLb, weightIncrementKg, weightIncrementLb
     }
     func weightStep(for units: WeightUnit) -> Double { units == .kg ? weightStepKg : weightStepLb }
+    func weightIncrement(for units: WeightUnit) -> Double {
+        units == .kg ? weightIncrementKg : weightIncrementLb
+    }
     static func defaults(locale: Locale = .current) -> Settings {
         Settings(units: locale.region?.identifier == "US" ? .lb : .kg)
     }

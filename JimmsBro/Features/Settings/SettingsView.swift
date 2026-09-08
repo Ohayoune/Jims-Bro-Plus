@@ -54,9 +54,33 @@ struct SettingsView: View {
                     in: 0...600, step: 15) {
                 row("Default rest", "\(model.settings.defaultRestSeconds) s")
             }
+            // D32 (v1.2): the warm-up before the first set.
+            Stepper(value: Binding(
+                get: { model.settings.warmUpSeconds },
+                set: { seconds in Task { await model.setWarmUp(seconds) } }),
+                    in: 0...1800, step: 60) {
+                row("Warm-up", duration(model.settings.warmUpSeconds))
+            }
+            // D33 (v1.2): the walk to the next machine.
+            Stepper(value: Binding(
+                get: { model.settings.transitionRestSeconds },
+                set: { seconds in Task { await model.setTransitionRest(seconds) } }),
+                    in: 0...600, step: 30) {
+                row("Between exercises", duration(model.settings.transitionRestSeconds))
+            }
         } footer: {
-            Text("Used when a plan doesn't give a rest time.")
+            Text("Default rest is used when a plan doesn't give a rest time. "
+                 + "The warm-up runs before the first set, and \"between exercises\" is the "
+                 + "walk to the next one. Set either to Off to go straight in.")
         }
+    }
+
+    /// "Off", "90 s", "5 min", "1 min 30 s" — a setting the owner reads in minutes.
+    private func duration(_ seconds: Int) -> String {
+        guard seconds > 0 else { return "Off" }
+        guard seconds >= 60 else { return "\(seconds) s" }
+        let minutes = seconds / 60, remainder = seconds % 60
+        return remainder == 0 ? "\(minutes) min" : "\(minutes) min \(remainder) s"
     }
 
     private var alertsSection: some View {
@@ -99,8 +123,19 @@ struct SettingsView: View {
                 row("Weight step",
                     "\(TargetText.number(model.settings.weightStep(for: model.settings.units))) \(model.settings.units.rawValue)")
             }
+            // D35 (v1.2): the smallest change the equipment can make. Every suggestion is
+            // rounded to a multiple of it, so the app never offers a weight you cannot load.
+            Stepper(value: Binding(
+                get: { model.settings.weightIncrement(for: model.settings.units) },
+                set: { step in Task { await model.setWeightIncrement(step, for: model.settings.units) } }),
+                    in: 0.5...25, step: model.settings.units == .kg ? 0.5 : 1) {
+                row("Smallest change",
+                    "\(TargetText.number(model.settings.weightIncrement(for: model.settings.units))) \(model.settings.units.rawValue)")
+            }
         } footer: {
-            Text("The − and + buttons move the weight by one step.")
+            Text("The − and + buttons move the weight by one step. "
+                 + "Suggestions are rounded to the smallest change your equipment can make, so "
+                 + "the app never suggests a weight you can't load.")
         }
     }
 

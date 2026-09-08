@@ -32,7 +32,9 @@ struct SessionEngine {
     var session: Session { active.session }
     var phase: Phase { active.phase }
     var loggedCount: Int { session.steps.filter { $0.status == .logged }.count }
-    var initialEffects: [Effect] { [.persist] }
+    /// What a freshly started session needs run: the warm-up's notification, if it has one,
+    /// and the save. `PlanLibrary.startDay` returns these, so nothing else has to know.
+    var initialEffects: [Effect] { startEffects + [.persist] }
     var adviceForBlockJustFinished: [Advice] {
         guard let blockDone = active.blockDone else { return [] }
         let indices = Set(session.steps.filter { $0.blockIndex == blockDone.finishedBlock }.map(\.exerciseIndex))
@@ -40,11 +42,25 @@ struct SessionEngine {
     }
     /// Whether `undoLog` would currently succeed, so the UI can show or hide the affordance.
     var canUndo: Bool { active.canUndo }
+    /// The effects a new session's warm-up needs scheduling, if it has one. `initialEffects`
+    /// stays what it was — a `.persist` — so nothing that only wants to save has to change.
+    private(set) var startEffects: [Effect] = []
+
     init(session: Session, settings: Settings = Settings(), history: [Session] = [], now: Date) {
         self.settings = settings
         self.history = history
         active = ActiveSession(session: session, phase: session.steps.isEmpty ? .completed : .working(step: 0))
-        if let index = session.steps.indices.first { enterWorking(index, now: now) }
+        guard let index = session.steps.indices.first else { return }
+        enterWorking(index, now: now)
+        // D32 (v1.2, §6.14): a session begins with a warm-up, not on set 1. It is a rest in
+        // every mechanical sense, so it is one — the countdown, the controls, the notification
+        // and the right to log straight out of it are all already written.
+        guard settings.warmUpSeconds > 0 else { return }
+        let endsAt = now.addingTimeInterval(Double(settings.warmUpSeconds))
+        active.phase = .resting(RestState(startedAt: now, endsAt: endsAt, nextStep: index,
+                                          kind: .warmUp))
+        startEffects = [.cancelNotification(id: .rest),
+                        .scheduleNotification(id: .rest, at: endsAt, body: nextBody(index))]
     }
     init(active: ActiveSession, settings: Settings = Settings(), history: [Session] = []) { self.active = active; self.settings = settings; self.history = history }
     func elapsed(now: Date) -> TimeInterval { max(0, (session.endedAt ?? now).timeIntervalSince(session.startedAt)) }
@@ -83,20 +99,30 @@ struct SessionEngine {
         active.blockDone = nil
         let next = nextStep(after: index)
         guard let next else { return complete(now: now) }
-        let advance = RestResolution.after(index, next: next, steps: session.steps, exercises: session.exercises)
+        let advance = RestResolution.after(index, next: next, steps: session.steps,
+                                          exercises: session.exercises, settings: settings)
         switch advance {
         case .completed: return complete(now: now)
-        case .blockDone:
+        case let .blockDone(seconds):
             let finishedBlock = session.steps[index].blockIndex
             enterWorking(next, now: now)
             active.blockDone = BlockDone(finishedBlock: finishedBlock, startedAt: now)
-            return []
+            // D33 (v1.2): a real countdown for the walk to the next machine. Unlike a rest
+            // between sets, a *skipped* set still gets it — the walk happens either way — and
+            // the next exercise's card is already on screen throughout, so it gates nothing.
+            guard seconds > 0 else { return [] }
+            return startRest(seconds: seconds, next: next, kind: .betweenExercises, now: now)
         case let .rest(seconds):
             if skipped || seconds == 0 { enterWorking(next, now: now); return [] }
-            let endsAt = now.addingTimeInterval(Double(seconds))
-            active.phase = .resting(RestState(startedAt: now, endsAt: endsAt, nextStep: next))
-            return [.cancelNotification(id: .rest), .scheduleNotification(id: .rest, at: endsAt, body: nextBody(next))]
+            return startRest(seconds: seconds, next: next, kind: .betweenSets, now: now)
         }
+    }
+
+    private mutating func startRest(seconds: Int, next: Int, kind: RestKind, now: Date) -> [Effect] {
+        let endsAt = now.addingTimeInterval(Double(seconds))
+        active.phase = .resting(RestState(startedAt: now, endsAt: endsAt, nextStep: next, kind: kind))
+        return [.cancelNotification(id: .rest),
+                .scheduleNotification(id: .rest, at: endsAt, body: nextBody(next))]
     }
     private func nextBody(_ index: Int) -> String {
         guard let step = session.steps[safe: index], let e = session.exercises[safe: step.exerciseIndex], let target = session.target(at: index) else { return "Next set" }
@@ -186,6 +212,8 @@ struct SessionEngine {
             if session.exercises.indices.contains(e) { active.session.exercises[e].advice = nil }
             enterWorking(i, now: now)
         case let .adjustRest(seconds):
+            // Works on all three kinds: the warm-up and the walk between exercises are as
+            // adjustable as a rest between sets, and for the same reason.
             guard case var .resting(rest) = phase else { return [] }
             rest.endsAt = rest.endsAt.addingTimeInterval(Double(seconds))
             effects.append(.cancelNotification(id: .rest))

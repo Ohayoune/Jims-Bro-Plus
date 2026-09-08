@@ -124,7 +124,7 @@ One screen, five fixed zones, top to bottom, identical across every state below.
 
 > **Build status**: built in R2. `WorkoutScreen.model(active:history:now:)` resolves the whole screen — zones, set rows, prefilled inputs, strip and primary action — as a `WorkoutScreenModel`, and the view only renders it, which is what makes "the zones never move" a unit test (O50) rather than a convention.
 
-1. **Header**: elapsed time · progress ("Exercise 2 of 5 · Set 2 of 3", or "· drop 1 of 2", or "A · round 2 of 3" for a superset member) · **Exercises** (opens the Overview sheet, §4.8, reachable in every state including rest) · minimize (returns to the tabs; the session and its timers keep running; Home shows "<Day> in progress · <elapsed>" with **Resume**) · "···" (Skip set, Skip exercise, Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one).
+1. **Header** (v1.2, D34): the **stage** the workout is in, said in words, above a progress bar of the whole day — **Warm-up**, **Exercise 2 of 5 · Set 2 of 3**, **Resting**, **Between exercises**. Then elapsed time · progress ("Exercise 2 of 5 · Set 2 of 3", or "· drop 1 of 2", or "A · round 2 of 3" for a superset member) · **Exercises** (opens the Overview sheet, §4.8, reachable in every state including rest) · minimize (returns to the tabs; the session and its timers keep running; Home shows "<Day> in progress · <elapsed>" with **Resume**) · "···" (Skip set, Skip exercise, Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one).
 2. **Exercise block**: the exercise's name (opens its history) and target line (with notes, truncated to one line), then the current exercise's set rows: finished rows show what was logged ("✓ 10 @ 80") and never how long it took (D19), the current row is highlighted with its target and last-time value, upcoming rows show their targets. A row carries the set's own target only — the exercise's notes appear once, on the target line above, rather than repeating on every row. In a block holding more than one exercise (a superset round) each row names its exercise instead of repeating the shared group tag, which would otherwise make two rows read identically. A superset shows the current round's members. Tapping a finished row opens the edit sheet; tapping an upcoming row jumps to it (§6.6 `jumpTo`).
 3. **Inputs**: small-caps labels **REPS** and the unit (**KG**/**LB**) above the − value + rows; the weight row is omitted for bodyweight exercises (D21); a "72.5 suggested" chip appears under the weight when §6.11 produced one. Timed sets replace the reps row with the timer block described below; the weight row stays unless bodyweight.
 4. **Status strip** (always present; its content depends on phase, per §4.6/§4.7 below).
@@ -132,11 +132,23 @@ One screen, five fixed zones, top to bottom, identical across every state below.
 
 After logging, a step's seconds (D19) remain editable in the Overview like any other value.
 
-### 4.6 Rest, within the status strip (between sets of the same exercise, or after a superset round)
-The strip shows: countdown m:ss, −30 s / +30 s, **Skip rest**, and "Set logged · **Undo**" (D23) for as long as the rest runs. Alert at zero (§6.4); at zero the strip reads "Rest over · +0:12" until the next log. "set 0:34" (how long the set just logged took, D19) appears in the strip in small text, never as the largest element on the screen.
+### 4.6 Rest, within the status strip (v1.2: one rest, three kinds)
+There is one rest in the app, and it says which of three kinds it is, because "a break" that does not say what it is for is the thing the owner said was unclear:
 
-### 4.7 Between exercises: the status strip's block-done state (D14, revised in v1.1)
-There is no separate screen and no Continue gate. The moment a block's last step is logged or skipped, the next step's card appears immediately (phase → `working`, §6.6) and the exercise block (zone 2) already shows the next exercise. The status strip instead reads the finished block's line — "Barbell Row done · 9:40 · try 72.5 kg next time" — with a small count-up "moving on · 0:42" beneath, until the next set is logged. No alert, no notification, no countdown; the strip clears automatically on the next log or skip, or can be dismissed directly (`dismissBlockDone`, §6.6). Timed-set and rest logic behave as normal from the moment the strip appears — there is no screen on which they are suspended.
+| Kind | When | Length |
+|---|---|---|
+| **Warm-up** (D32) | Before the first set of the session | `Settings.warmUpSeconds`, 0 = off |
+| **Rest** | Between sets of an exercise, and after a superset round | The set's resolved `restSeconds` (§6.3) |
+| **Between exercises** (D33) | After a block's last step, before the next exercise | `Settings.transitionRestSeconds`, 0 = straight through, as v1.1 |
+
+The strip shows: the kind, named; the countdown m:ss; −30 s / +30 s; **Skip** (whose label names the kind — "Skip rest", "Skip warm-up"); and "Set logged · **Undo**" (D23) for as long as the rest runs. Alert at zero (§6.4); at zero the strip reads "Rest over · +0:12" (or "Warm-up over") until the next log. "set 0:34" (how long the set just logged took, D19) appears in the strip in small text, never as the largest element on the screen.
+
+None of the three gates anything. The next set's card is already on screen and the primary button works throughout — logging (or starting a timed set) during any of them ends it early, exactly as v1.1's rest did.
+
+### 4.7 Between exercises: the status strip's block-done state (D14, revised in v1.1; timed in v1.2's D33)
+There is no separate screen and no Continue gate. The moment a block's last step is logged or skipped, the next step's card appears immediately and the exercise block (zone 2) already shows the next exercise. The status strip reads the finished block's line — "Barbell Row done · 9:40 · try 72.5 kg next time".
+
+**v1.2 (D33)**: walking to the next machine takes as long as a rest does, and v1.1 gave it no time at all — so it now runs a real countdown of `Settings.transitionRestSeconds` (default 120 s), with the same −30 / +30 / Skip controls as any other rest, and the same alert at zero. Set that setting to 0 and v1.1's behavior comes back exactly: no countdown, and the count-up "moving on · 0:42" beneath the block's line instead. The strip clears on the next log or skip, or can be dismissed directly (`dismissBlockDone`, §6.6). Timed-set logic behaves as normal throughout — there is no state in which it is suspended.
 
 ### 4.8 Overview (from "···", or the header's Exercises button)
 Every step grouped by exercise with status and set time ("10 @ 60 · 0:34"); finished blocks show duration and advice. Tap logged → edit; tap pending → jump (cancels rest, and clears any block-done strip). A **skipped** step (v1.1, D27) can also be edited: the sheet's Save now sets its result, marks it logged, and updates `loggedAt` — recovering it rather than silently doing nothing. Reachable in every workout state, including rest and a block-done strip (v1.1) — previously it was attached only to the step card and unreachable during rest.
@@ -150,7 +162,13 @@ Leads with "**Workout saved**", then one line of what happened — "Push · 48 m
 Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly. Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1).
 
 ### 4.11 Settings
-Units, default rest, sound, vibration, notifications state, keep awake, weight step, Export, **Import backup** (D31, v1.1), Delete all data, About. (The home-chart metric row went with the sparkline in v1.1's R3.)
+Units, default rest, **warm-up length** (D32, v1.2), **between exercises** (D33, v1.2), sound, vibration, notifications state, keep awake, weight step, **smallest weight change** (D35, v1.2), Export, **Import backup** (D31, v1.1), Delete all data, About. (The home-chart metric row went with the sparkline in v1.1's R3.)
+
+The three v1.2 rows, in the owner's words:
+
+- **Warm-up length** — "there should be a warm-up phase before you actually start the first exercise." A duration, 0 to 30 min, 0 meaning off.
+- **Between exercises** — "type how long it takes between switching different exercises." A duration, 0 to 10 min; 0 restores v1.1's behavior of moving straight on.
+- **Smallest weight change** — the smallest increment the equipment actually allows, per unit. It is what every suggestion is rounded to (§6.11), so the app never says "try 134 lb" when the plates only make 135.
 
 ## 5. Flows
 
@@ -199,11 +217,13 @@ Resolved at import into every Set Target as `restSeconds: Int`. Fallback chain, 
 
 At execution, after logging step i, with n = nextStep(after: i):
 - n == nil → the session completes.
-- `steps[i].isLastInBlock` and n is in a different block → **transition** (D14): the done screen with a count-up stopwatch; no countdown. The Set Target's `restSeconds` is unused here.
+- `steps[i].isLastInBlock` and n is in a different block → **between exercises** (D14, timed in v1.2's D33): a rest of `Settings.transitionRestSeconds`, with the block's line in the strip. The Set Target's own `restSeconds` is not used here — the gap between two exercises is about the room, not about the set. `transitionRestSeconds = 0` means no countdown, which is v1.1's behavior.
 - `!steps[i].isLastInRound` (the next step is a drop of this set, or the next superset member) → 0: the next step card appears immediately.
 - otherwise → countdown of `restSeconds` of step i's Set Target, except for grouped exercises where the rest after a round is the first explicit `restSeconds` found among the group's members in listed order, else the fallback chain. A value of 0 means no timer.
 
-If n is in the same block but earlier (the user jumped ahead and comes back), the rule for "otherwise" applies. If n is in an earlier block, transition.
+If n is in the same block but earlier (the user jumped ahead and comes back), the rule for "otherwise" applies. If n is in an earlier block, between exercises.
+
+**Before the first step (v1.2, D32)**: a session starts in a warm-up rest of `Settings.warmUpSeconds` whose `nextStep` is the first step, unless that setting is 0, in which case the session starts on the first step exactly as v1.1 did.
 
 ### 6.4 Rest timer
 - State is `RestState(endsAt: Date, nextStep: Int, startedAt: Date)`. Remaining = `endsAt − now`, recomputed on every tick (TimelineView, 1 s) and on every foreground event. Never store a countdown integer.
@@ -245,7 +265,11 @@ Under the weight field: "Last: <last session's weight at index k, or last logged
 Pure struct `SessionEngine` with `apply(_ event: Event, now: Date) -> [Effect]`. Effects: `scheduleNotification(at:body:)`, `cancelNotification`, `playAlert`, `persist`, `sessionCompleted`.
 
 ```
-enum Phase { case working(step: Int), resting(RestState), transition(TransitionState), completed }
+// v1.1 removed `.transition`; v1.2 folds the warm-up and the between-exercises gap into
+// `resting`, which is where the countdown, the controls and the notification already lived.
+enum Phase { case working(step: Int), resting(RestState), completed }
+enum RestKind { case warmUp, betweenSets, betweenExercises }
+struct RestState { var startedAt: Date; var endsAt: Date; var nextStep: Int; var kind: RestKind }
 
 enum Event {
   case logSet(step: Int, result: SetResult)
@@ -260,7 +284,7 @@ enum Event {
   case stopTimer(step: Int)                       // open duration: logs elapsed seconds
   case timerDone(step: Int)                       // fixed duration, early: logs elapsed seconds
   case timerElapsed(step: Int)                    // fixed duration reached zero: logs the target
-  case continueTransition                         // done screen → working(nextStep)
+  case dismissBlockDone                           // v1.1: clears the strip's block-done line
   case renameExercise(exerciseIndex: Int, name: String)
   case finish                                     // remaining pending → skipped, → completed
 }
@@ -270,11 +294,11 @@ Rules:
 - Whenever the phase becomes `working(step)` (from any event), set `steps[step].startedAt = now` unless the step is a timed set, whose `startedAt` is set by `.startTimer` instead. Re-entering a step (jump back) resets it.
 - `startTimer(step)`: timed sets only; sets `startedAt = now`, phase stays working. Effects: fixed duration → `scheduleNotification("set-end", endsAt)` and, if `warningBeepSeconds` is set, `scheduleNotification("set-warning", endsAt − w)`; open duration with a minimum → `scheduleNotification("set-minimum", startedAt + min)`. `stopTimer`/`timerDone`/`timerElapsed`/skip/jump emit `cancelNotification` for all three ids. `stopTimer` (open) / `timerDone` (fixed, early) log `floor(now − startedAt)` seconds via the normal logSet path; `timerElapsed` (fixed, at zero) logs the full duration.
 - `nextStep(after i)`: first pending step with index > i; else first pending step with any index; else nil.
-- `logSet(i)`: set result, status = logged, `loggedAt = now`. Let n = nextStep(after: i). If n == nil → completed. Else per §6.3: transition → `transition(startedAt: now, nextStep: n)` (no notification, `adviceForBlockJustFinished` computed); rest 0 → working(n); else resting(endsAt: now + rest, nextStep: n) + scheduleNotification.
-- `skipSet(i)`: status = skipped, `loggedAt = now`, then the same advance logic but **never starts a countdown**: transition if the block ended, else working(n), or completed.
-- `skipExercise`: mark that exercise's pending steps skipped (loggedAt = now), then transition if a block ended and another remains, else working(nextStep(after: current)) or completed.
-- `continueTransition`: only valid in `transition` → working(nextStep). Any other phase: no-op.
-- `jumpTo` from `transition` → working(step) (stopwatch discarded).
+- `logSet(i)`: set result, status = logged, `loggedAt = now`. Let n = nextStep(after: i). If n == nil → completed. Else per §6.3: a block ended → `blockDone` is recorded for the strip and, when `transitionRestSeconds > 0`, phase → `resting(kind: .betweenExercises)`; rest 0 → working(n); else `resting(kind: .betweenSets, endsAt: now + rest, nextStep: n)` + scheduleNotification.
+- `skipSet(i)`: status = skipped, `loggedAt = now`, then the same advance logic but **never starts a between-sets countdown** — you skipped the set, you do not need the rest after it. A skipped set that ends a block still gets the between-exercises rest (v1.2): the walk to the next machine happens either way.
+- `skipExercise`: mark that exercise's pending steps skipped (loggedAt = now), then the block-done strip if a block ended and another remains, else working(nextStep(after: current)) or completed.
+- `dismissBlockDone`: clears the strip's block-done line; it does not end a between-exercises rest, which has its own Skip.
+- A session starts in `resting(kind: .warmUp, nextStep: firstStep)` when `Settings.warmUpSeconds > 0` (D32, §6.14), and on the first step otherwise.
 - Any event that changes phase away from resting emits `cancelNotification`.
 - `finish` with pending steps: the UI must confirm ("3 sets not done. Finish anyway?"); the engine just does it.
 - `finish` or completing with **zero logged steps**: UI asks "Nothing was logged. Discard this workout?" → discard (no session saved, no rotation advance). "Save anyway" is not offered.
@@ -294,6 +318,22 @@ Let `achieved = Σ r_i`, `ceiling = n × max`, `floor = n × min`, `tolerance = 
 - otherwise → nil (inside the range; keep the weight). The UI shows nothing.
 
 The advice is stored on the completed session's exercise (`advice`) so the next session can show the "Suggested" chip without recomputing across history. Advice is never applied to the weight field automatically.
+
+**v1.2 (D35): every suggested weight is snapped to a weight you can actually load.** `w ± weightStep` is arithmetic, and arithmetic will happily produce 134 lb on a rack whose smallest plate pair makes 135. So the result is rounded to the nearest multiple of `Settings.weightIncrement(for: units)` — 2.5 kg or 5 lb by default — and never rounded down to a number that is not an increase when the advice was to increase (or up, when it was to decrease). A weight already on an increment is unchanged. The same rounding applies to the − / + steppers and the suggestion chip, so every number the app offers is loadable.
+
+### 6.14 Warm-up (D32, v1.2)
+"There should be a warm-up phase before you actually start the first exercise."
+
+A session with `Settings.warmUpSeconds > 0` starts in `resting(kind: .warmUp, nextStep: <first step>)`. It is a rest in every mechanical sense — the same countdown, the same −30 / +30, the same notification, the same alert at zero, the same right to log straight out of it — and it differs only in what the strip says and in the fact that it comes before anything has been logged. At zero it becomes `working(firstStep)`; its Skip reads **Skip warm-up**.
+
+It is not a set, it is not logged, and it does not appear in history. A session whose warm-up is the only thing that happened is still a session with nothing logged, and is discarded on finish exactly as before (§6.6).
+
+`warmUpSeconds = 0` starts the session on its first step, which is what v1.1 did.
+
+### 6.15 The stage (D34, v1.2)
+"It should be a bit more clear what stage of the workout you're on."
+
+`WorkoutStage` resolves, in Core, to one of: **Warm-up**, **Exercise k of n · Set j of m**, **Resting**, **Between exercises**, **Done** — plus a `progress` fraction of the whole day, which is logged-or-skipped steps over total steps. The header renders both; nothing about the stage is computed in a view, so the wording per state is a unit test.
 
 ### 6.12 Calendar projection
 `Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.
@@ -375,12 +415,18 @@ struct SessionStep: Codable { var exerciseIndex: Int; var setIndex: Int; var dro
 enum StepStatus: String, Codable { case pending, logged, skipped }
 enum SetResult: Codable { case reps(count: Int, weight: Double?); case duration(seconds: Int, weight: Double?) }
 
-struct ActiveSession: Codable { var session: Session; var phase: Phase; var lastRestEndedAt: Date? }
-struct RestState: Codable { var startedAt: Date; var endsAt: Date; var nextStep: Int; var isWork: Bool }  // isWork = timed-set countdown
-struct TransitionState: Codable { var startedAt: Date; var nextStep: Int; var finishedBlock: Int }
+// v1.1 added the last five fields; `blockDone` replaced the removed `.transition` phase, and
+// `lastCompletedStep` is what D23's Undo acts on.
+struct ActiveSession: Codable { var session: Session; var phase: Phase; var lastRestEndedAt: Date?; var workWeight: Double?; var timerRunning: Bool; var deliveredBeeps: Set<TimerBeep>; var blockDone: BlockDone?; var lastCompletedStep: Int? }
+struct BlockDone: Codable { var finishedBlock: Int; var startedAt: Date }
+struct RestState: Codable { var startedAt: Date; var endsAt: Date; var nextStep: Int; var kind: RestKind }
+enum RestKind: String, Codable { case warmUp, betweenSets, betweenExercises }   // v1.2, §4.6
 
-struct Settings: Codable { var units: WeightUnit; var defaultRestSeconds: Int; var sound: Bool; var vibration: Bool; var keepAwake: Bool; var weightStepKg: Double; var weightStepLb: Double; var homeMetric: HomeMetric }
-enum HomeMetric: String, Codable, CaseIterable { case duration, volume, setsLogged, avgWeight, avgReps, exercises }
+// `homeMetric` went with the sparkline in v1.1's R3. The last three are v1.2's (D32, D33, D35).
+struct Settings: Codable { var units: WeightUnit; var defaultRestSeconds: Int; var sound: Bool; var vibration: Bool; var keepAwake: Bool; var weightStepKg: Double; var weightStepLb: Double; var warmUpSeconds: Int; var transitionRestSeconds: Int; var weightIncrementKg: Double; var weightIncrementLb: Double }
+
+// Every one of these may be absent from a file written by an older version; `Core/Persistence.swift`
+// says which keys are required (identity) and which take a default (everything else).
 
 struct Issue: Codable, Equatable { var severity: Severity; var code: String; var path: String; var message: String }   // e.g. ("error","E_REPS_INVALID","days[0].exercises[2].reps","…")
 ```

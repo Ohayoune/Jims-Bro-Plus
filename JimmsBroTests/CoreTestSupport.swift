@@ -26,7 +26,15 @@ enum CoreTestSupport {
         s.endedAt = s.steps.last?.loggedAt ?? start
         return s
     }
-    static func engine(_ plan: Plan = plan()) -> SessionEngine { SessionEngine(session:session(plan),now:now) }
+    /// v1.1's settings: no warm-up, and no countdown between exercises. Every test written
+    /// before v1.2 asserts the flow these produce, and that flow is still exactly what the app
+    /// does when both settings are Off — so they keep asserting it, explicitly, instead of
+    /// being rewritten to expect the new defaults. `warmUpSeconds` and `transitionRestSeconds`
+    /// have their own tests (WarmUpAndTransitionTests).
+    static let classic = Settings(warmUpSeconds: 0, transitionRestSeconds: 0)
+    static func engine(_ plan: Plan = plan(), settings: Settings = classic) -> SessionEngine {
+        SessionEngine(session:session(plan),settings:settings,now:now)
+    }
     /// A one-day plan as JSON, so tests exercise the real import (resolved rest, warning offsets).
     static func planJSON(exercise: String = #"{ "name": "Bench Press", "sets": 3, "reps": "8-12", "repRange": "8-12", "weight": 60, "restSeconds": 90 }"#) -> String {
         """

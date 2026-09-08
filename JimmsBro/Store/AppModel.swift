@@ -253,6 +253,13 @@ enum SaveFailure: Equatable {
     func setDefaultRest(_ seconds: Int) async {
         await update { $0.defaultRestSeconds = max(0, min(3600, seconds)) }
     }
+    /// D32 (v1.2): 0 turns the warm-up off; 30 min is the ceiling, past which it is not a
+    /// warm-up but a workout of its own.
+    func setWarmUp(_ seconds: Int) async { await update { $0.warmUpSeconds = max(0, min(1800, seconds)) } }
+    /// D33 (v1.2): 0 restores v1.1's "move straight on".
+    func setTransitionRest(_ seconds: Int) async {
+        await update { $0.transitionRestSeconds = max(0, min(600, seconds)) }
+    }
     func setSound(_ on: Bool) async { await update { $0.sound = on } }
     func setVibration(_ on: Bool) async { await update { $0.vibration = on } }
     func setKeepAwake(_ on: Bool) async { await update { $0.keepAwake = on } }
@@ -260,6 +267,12 @@ enum SaveFailure: Equatable {
     func setWeightStep(_ step: Double, for units: WeightUnit) async {
         let clamped = min(100, max(0.1, (step * 10).rounded() / 10))
         await update { units == .kg ? ($0.weightStepKg = clamped) : ($0.weightStepLb = clamped) }
+    }
+
+    /// D35 (v1.2): the smallest weight change the equipment allows, per unit.
+    func setWeightIncrement(_ step: Double, for units: WeightUnit) async {
+        let clamped = min(50, max(0.1, (step * 10).rounded() / 10))
+        await update { units == .kg ? ($0.weightIncrementKg = clamped) : ($0.weightIncrementLb = clamped) }
     }
 
     private func update(_ change: (inout Settings) -> Void) async {

@@ -77,7 +77,10 @@ final class LibraryCalendarPromptTests: XCTestCase {
         simple.cyclePosition=Int.max; XCTAssertEqual(PlanSchedule.next(simple)?.dayIndex,0)
     }
     func testStartSwitchCompletionDiscardAndHistoryEdits() throws {
-        var library = PlanLibrary(); let p = rotation(); library.save(p)
+        // v1.1's flow: no warm-up, so a started day is on its first step. The warm-up has its
+        // own tests (WarmUpAndTransitionTests); this one is about switching and finishing days.
+        var library = PlanLibrary(); library.settings = CoreTestSupport.classic
+        let p = rotation(); library.save(p)
         try library.startDay(planId:p.id,dayIndex:0,now:now)
         XCTAssertThrowsError(try library.startDay(planId:p.id,dayIndex:1,now:now)) { XCTAssertEqual($0 as? LibraryError,.sessionInProgress) }
         library.apply(.logSet(step:0,result:.reps(count:12,weight:60)),now:now.addingTimeInterval(30))

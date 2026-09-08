@@ -148,6 +148,25 @@ private struct WorkoutScreenView: View {
     /// "Exercises" wrap to four lines and push the exercise off screen (O60).
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
+            // D34 (v1.2): the stage, in words, over a bar of the whole day. v1.1 said only
+            // "Exercise 2 of 5 · Set 2 of 3" in the smallest text on screen, and said nothing
+            // at all when you were in a break.
+            HStack(spacing: 8) {
+                Text(screen.stage.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(screen.stage.isBreak ? Color.accentColor : .primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Spacer(minLength: 4)
+                Text("\(Int((screen.completion * 100).rounded()))%")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            ProgressView(value: screen.completion)
+                .tint(screen.stage.isBreak ? Color.accentColor : Color.done)
+                .accessibilityLabel("Workout progress")
+                .accessibilityValue("\(Int((screen.completion * 100).rounded())) percent")
+                .padding(.bottom, 2)
             HStack(spacing: 14) {
                 if !typeSize.isAccessibilitySize {
                     Text(screen.elapsed)
@@ -191,7 +210,7 @@ private struct WorkoutScreenView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel("Elapsed \(screen.elapsed), \(screen.progress)")
+                    .accessibilityLabel("\(screen.stage.title). Elapsed \(screen.elapsed), \(screen.progress)")
             }
         }
         .font(.footnote)
@@ -388,7 +407,13 @@ private struct StatusStripView: View {
             if strip.showsRestControls, typeSize.isAccessibilitySize { restControls }
             HStack(spacing: 12) {
                 if let next = strip.next {
-                    Text(next).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    // Two lines: between exercises this row carries the finished block's
+                    // sentence, advice and all, which does not fit in one.
+                    Text(next)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 if let detail = strip.detail {
                     // D19: a set's duration is small text, never the hero of the screen.
@@ -417,8 +442,10 @@ private struct StatusStripView: View {
                 .accessibilityLabel("Thirty seconds less rest")
             Button("+30") { Task { await model.apply(.adjustRest(seconds: 30)) } }
                 .accessibilityLabel("Thirty seconds more rest")
+            // The capsule stays "Skip" — three of them share a row — but VoiceOver says which
+            // of the three breaks it ends, and the strip's title says it in print (§4.6).
             Button("Skip") { Task { await model.apply(.skipRest) } }
-                .accessibilityLabel("Skip rest")
+                .accessibilityLabel(strip.skipTitle)
         }
         .lineLimit(1)
         .fixedSize()

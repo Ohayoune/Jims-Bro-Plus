@@ -40,11 +40,15 @@ extension Settings {
         self.init(
             units: container.value(.units, or: defaults.units),
             defaultRestSeconds: container.value(.defaultRestSeconds, or: defaults.defaultRestSeconds),
+            warmUpSeconds: container.value(.warmUpSeconds, or: defaults.warmUpSeconds),
+            transitionRestSeconds: container.value(.transitionRestSeconds, or: defaults.transitionRestSeconds),
             sound: container.value(.sound, or: defaults.sound),
             vibration: container.value(.vibration, or: defaults.vibration),
             keepAwake: container.value(.keepAwake, or: defaults.keepAwake),
             weightStepKg: container.value(.weightStepKg, or: defaults.weightStepKg),
-            weightStepLb: container.value(.weightStepLb, or: defaults.weightStepLb))
+            weightStepLb: container.value(.weightStepLb, or: defaults.weightStepLb),
+            weightIncrementKg: container.value(.weightIncrementKg, or: defaults.weightIncrementKg),
+            weightIncrementLb: container.value(.weightIncrementLb, or: defaults.weightIncrementLb))
     }
 }
 

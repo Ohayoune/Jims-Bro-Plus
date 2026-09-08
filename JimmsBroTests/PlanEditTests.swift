@@ -198,7 +198,7 @@ final class PlanEditTests: XCTestCase {
         let after = try XCTUnwrap(Session.start(plan: edited, dayIndex: 0, now: now))
         XCTAssertEqual(after.steps.count, before.steps.count - 2, "two sets fewer, two steps fewer")
 
-        var engine = SessionEngine(session: after, now: now)
+        var engine = SessionEngine(session: after, settings: CoreTestSupport.classic, now: now)
         engine.apply(.logSet(step: 0, result: .reps(count: 8, weight: 80)), now: now)
         XCTAssertEqual(engine.session.steps[0].status, .logged)
     }

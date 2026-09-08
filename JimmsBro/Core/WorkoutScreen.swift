@@ -7,6 +7,78 @@ enum WorkoutZone: String, Equatable, Sendable, CaseIterable {
     case header, exercise, inputs, strip, primary
 }
 
+/// SPEC §6.15 (D34, v1.2): which stage of the workout you are in, said in words, plus how far
+/// through the day you are. The owner's note was "it should be a bit more clear what stage of
+/// the workout you're on"; v1.1 said only "Exercise 2 of 5 · Set 2 of 3" in the smallest text
+/// on the screen, and said nothing at all about being in a break.
+enum WorkoutStage: Equatable {
+    case warmUp
+    case working(exercise: Int, exercises: Int, set: Int, sets: Int)
+    case resting
+    case betweenExercises
+    case done
+
+    /// "Warm-up", "Exercise 2 of 5 · Set 2 of 3", "Resting", "Between exercises".
+    var title: String {
+        switch self {
+        case .warmUp: return RestKind.warmUp.title
+        case let .working(exercise, exercises, set, sets):
+            return "Exercise \(exercise) of \(exercises) · Set \(set) of \(sets)"
+        case .resting: return "Resting"
+        case .betweenExercises: return RestKind.betweenExercises.title
+        case .done: return "Done"
+        }
+    }
+
+    /// Whether this stage is a break of some kind, so the header can say so at a glance.
+    var isBreak: Bool {
+        switch self {
+        case .warmUp, .resting, .betweenExercises: return true
+        case .working, .done: return false
+        }
+    }
+
+    static func current(active: ActiveSession, step index: Int) -> WorkoutStage {
+        switch active.phase {
+        case .completed:
+            return .done
+        case let .resting(rest):
+            switch rest.kind {
+            case .warmUp: return .warmUp
+            case .betweenSets: return .resting
+            case .betweenExercises: return .betweenExercises
+            }
+        case .working:
+            // A block that just ended without a countdown is still "between exercises": the
+            // next card is up, but you are walking, not lifting.
+            if active.blockDone != nil { return .betweenExercises }
+            let session = active.session
+            guard let step = session.steps[safe: index],
+                  let exercise = session.exercises[safe: step.exerciseIndex] else { return .done }
+            // Counted over the exercises as the day now runs them, so "Do later" (D28) moves an
+            // exercise's number with it rather than leaving a gap.
+            let order = SessionBlocks.indices(session)
+                .flatMap { indices in
+                    var seen = Set<Int>()
+                    return indices.map { session.steps[$0].exerciseIndex }
+                        .filter { seen.insert($0).inserted }
+                }
+            let position = (order.firstIndex(of: step.exerciseIndex) ?? 0) + 1
+            return .working(exercise: position, exercises: max(order.count, position),
+                            set: step.setIndex + 1,
+                            sets: max(exercise.targets.count, step.setIndex + 1))
+        }
+    }
+
+    /// How far through the day, 0…1: steps logged or skipped over steps in total. It counts
+    /// sets, not exercises, so a long exercise moves the bar rather than sitting still.
+    static func progress(_ session: Session) -> Double {
+        guard !session.steps.isEmpty else { return 0 }
+        let done = session.steps.filter { $0.status != .pending }.count
+        return Double(done) / Double(session.steps.count)
+    }
+}
+
 /// Zone 3 when the work is timed: the countdown or stopwatch that takes the reps row's place.
 struct TimerDisplay: Equatable {
     var text: String
@@ -34,6 +106,10 @@ struct StatusStrip: Equatable {
     var showsRestControls = false
     /// "Set logged · Undo" while D23's undo is still valid.
     var undo: String?
+    /// v1.2: which break is running, so the view can say so without inspecting the phase.
+    var restKind: RestKind?
+    /// "Skip rest", "Skip warm-up", "Skip" — the button names what it ends.
+    var skipTitle: String = RestKind.betweenSets.skipTitle
 }
 
 /// Zone 5. One control, one slot, whatever the work is (D20, D22).
@@ -59,6 +135,9 @@ struct WorkoutScreenModel: Equatable {
     var zones: [WorkoutZone]
     var step: Int
     var exerciseIndex: Int
+    /// D34 (v1.2): which stage the workout is in, and how far through the day it is.
+    var stage: WorkoutStage
+    var completion: Double
     var elapsed: String
     var progress: String
     var exerciseName: String
@@ -93,6 +172,8 @@ enum WorkoutScreen {
             zones: WorkoutZone.allCases,
             step: index,
             exerciseIndex: step.exerciseIndex,
+            stage: WorkoutStage.current(active: active, step: index),
+            completion: WorkoutStage.progress(session),
             elapsed: TargetText.time(wholeSeconds(SessionStats.duration(session, now: now))),
             progress: StepCard.progress(session: session, step: index),
             exerciseName: exercise.name,
@@ -170,9 +251,24 @@ enum WorkoutScreen {
             strip.countdown = remaining > 0
                 ? TargetText.time(remaining)
                 : "+" + TargetText.time(wholeSeconds(now.timeIntervalSince(rest.endsAt)))
-            strip.title = remaining > 0 ? nil : "Rest over"
+            // v1.2: a break always says which of the three it is (§4.6). v1.1 showed a bare
+            // countdown, which is the thing the owner said was unclear.
+            strip.title = remaining > 0 ? rest.kind.title : rest.kind.overTitle
+            strip.restKind = rest.kind
+            strip.skipTitle = rest.kind.skipTitle
             strip.next = nextLine(session: session, step: rest.nextStep)
-            strip.detail = lastSetLine(session)
+            // A block that ended and then started this walk still says what finished — but on
+            // the strip's own line, not squeezed in beside the countdown, where it wrapped and
+            // truncated its own advice. "Next:" would be redundant here anyway: the next
+            // exercise is already the heading on screen.
+            strip.detail = rest.kind == .warmUp ? nil : lastSetLine(session)
+            if rest.kind == .betweenExercises, let blockDone = active.blockDone,
+               let line = StepCard.blockDoneLine(session: session, blockDone: blockDone) {
+                strip.next = line
+                // The block's line is a sentence with the advice in it; "set 0:34" is not worth
+                // truncating it for, and the Overview keeps the set durations anyway (D19).
+                strip.detail = nil
+            }
             strip.showsRestControls = true
             return strip
         }

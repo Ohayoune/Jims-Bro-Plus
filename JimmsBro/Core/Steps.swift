@@ -29,13 +29,19 @@ enum StepBuilder {
 func flatten(day: Day) -> [Step] { StepBuilder.flatten(day) }
 
 /// `.blockDone` (v1.1; was `.transition`) means the block containing `index` has finished and
-/// `next` starts a different block — SPEC §6.3, §4.7.
-enum Advance: Equatable { case completed, blockDone, rest(Int) }
+/// `next` starts a different block — SPEC §6.3, §4.7. In v1.2 it carries a rest of its own:
+/// walking to the next machine takes as long as a rest does, and v1.1 allowed it none.
+enum Advance: Equatable { case completed, blockDone(rest: Int), rest(Int) }
 enum RestResolution {
-    static func after(_ index: Int, next: Int?, steps: [SessionStep], exercises: [SessionExercise]) -> Advance {
+    static func after(_ index: Int, next: Int?, steps: [SessionStep], exercises: [SessionExercise],
+                      settings: Settings = Settings()) -> Advance {
         guard let next else { return .completed }
         guard let step = steps[safe: index], let nextStep = steps[safe: next] else { return .completed }
-        if nextStep.blockIndex < step.blockIndex || (step.isLastInBlock && step.blockIndex != nextStep.blockIndex) { return .blockDone }
+        if nextStep.blockIndex < step.blockIndex || (step.isLastInBlock && step.blockIndex != nextStep.blockIndex) {
+            // D33: the gap between two exercises is about the room, not about the set that
+            // just ended, so it comes from the setting rather than from the set's own rest.
+            return .blockDone(rest: max(0, settings.transitionRestSeconds))
+        }
         guard step.isLastInRound else { return .rest(0) }
         guard let exercise = exercises[safe: step.exerciseIndex], let target = exercise.targets[safe: step.setIndex] else { return .rest(0) }
         return .rest(max(0, exercise.group == nil ? target.restSeconds : target.groupRestSeconds ?? target.restSeconds))

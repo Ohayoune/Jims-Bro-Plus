@@ -179,7 +179,7 @@ final class WorkoutScreenTests: XCTestCase {
                                      repRange: RepRange(min: 8, max: 12),
                                      sets: Array(repeating: target, count: 3))])],
                          importedAt: now, sourceText: "", cycle: [.day(0)])
-        let notedEngine = SessionEngine(session: CoreTestSupport.session(noted), now: now)
+        let notedEngine = SessionEngine(session: CoreTestSupport.session(noted), settings: CoreTestSupport.classic, now: now)
         let withNotes = try XCTUnwrap(WorkoutScreen.model(active: notedEngine.active, history: [], now: now))
         XCTAssertEqual(withNotes.targetLine, "8–12 · 80 kg · Pause on chest")
         XCTAssertEqual(withNotes.rows.map(\.value), Array(repeating: "8–12 · 80 kg", count: 3),
@@ -211,7 +211,7 @@ final class WorkoutScreenTests: XCTestCase {
         let plan = Plan(name: "Big", units: .kg, schedule: .rotation,
                         days: [Day(name: "Everything", exercises: exercises)],
                         importedAt: now, sourceText: "", cycle: [.day(0)])
-        var engine = SessionEngine(session: CoreTestSupport.session(plan), now: now)
+        var engine = SessionEngine(session: CoreTestSupport.session(plan), settings: CoreTestSupport.classic, now: now)
         XCTAssertEqual(engine.session.steps.count, 12)
 
         var clock = now
@@ -297,7 +297,7 @@ final class WorkoutScreenTests: XCTestCase {
     // O62: a timed set uses the same bottom slot, and can be started straight out of a rest.
     func testTimedSetSharesTheOnePrimarySlot() throws {
         let fixed = CoreTestSupport.plan(sets: 1, work: .duration(seconds: 45))
-        var engine = SessionEngine(session: CoreTestSupport.session(fixed), now: now)
+        var engine = SessionEngine(session: CoreTestSupport.session(fixed), settings: CoreTestSupport.classic, now: now)
         var screen = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [], now: now))
         XCTAssertEqual(screen.primary, PrimaryAction(title: "Start timer", kind: .startTimer))
         XCTAssertEqual(screen.timer?.text, "0:45", "the timer takes the reps slot")
@@ -312,7 +312,7 @@ final class WorkoutScreenTests: XCTestCase {
 
         // An open set stops rather than finishing, in the same slot.
         let open = CoreTestSupport.plan(sets: 1, work: .openDuration(minSeconds: 30))
-        var openEngine = SessionEngine(session: CoreTestSupport.session(open), now: now)
+        var openEngine = SessionEngine(session: CoreTestSupport.session(open), settings: CoreTestSupport.classic, now: now)
         XCTAssertEqual(WorkoutScreen.model(active: openEngine.active, history: [], now: now)?.timer?.minimumNote,
                        "30+ s")
         openEngine.apply(.startTimer(step: 0), now: now)
@@ -323,7 +323,8 @@ final class WorkoutScreenTests: XCTestCase {
         // starts from the one button. Before v1.1 the engine accepted `startTimer` only while
         // already working, so the primary action would have been inert for the whole rest.
         var twoPlanks = SessionEngine(session: CoreTestSupport.session(
-            CoreTestSupport.plan(sets: 2, work: .duration(seconds: 45))), now: now)
+            CoreTestSupport.plan(sets: 2, work: .duration(seconds: 45))),
+            settings: CoreTestSupport.classic, now: now)
         twoPlanks.apply(.startTimer(step: 0), now: now)
         twoPlanks.apply(.timerDone(step: 0), now: now.addingTimeInterval(45))
         guard case let .resting(rest) = twoPlanks.phase else { return XCTFail("expected a rest") }

@@ -58,6 +58,7 @@ final class HomeAndAddPlanTests: XCTestCase {
         // A workout in progress takes over the card.
         var running = library
         running.engine = SessionEngine(session: CoreTestSupport.session(rotation(), start: now),
+                                      settings: CoreTestSupport.classic,
                                        now: now)
         let inProgress = HomeStart.current(library: running, now: now.addingTimeInterval(23 * 60))
         XCTAssertEqual(inProgress.title, "Push")

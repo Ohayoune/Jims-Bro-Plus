@@ -29,7 +29,8 @@ let package = Package(
                       "JimmsBroTests/RestoreTests.swift",
                       "JimmsBroTests/DefectFixesTests.swift",
                       "JimmsBroTests/StoreMigrationTests.swift",
-                      "JimmsBroTests/PromptPinningTests.swift"],
+                      "JimmsBroTests/PromptPinningTests.swift",
+                      "JimmsBroTests/WarmUpAndTransitionTests.swift"],
             resources: [.copy("examples")]
         )
     ]

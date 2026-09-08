@@ -78,7 +78,21 @@ struct RootView: View {
                 showWorkout = true
                 if let index = arguments.firstIndex(of: "-uiAdvance"),
                    let count = arguments[safe: index + 1].flatMap(Int.init) {
+                    // v1.2: `-uiSkipWaits` skips the waits *inside* an exercise — the warm-up
+                    // and the rests between sets — and deliberately never skips the walk between
+                    // exercises, so a run of N sets ends on that countdown, which is a state
+                    // worth screenshotting.
+                    let skippable: Set<RestKind> = [.warmUp, .betweenSets]
+                    @MainActor func skipWaitIfAsked() async {
+                        guard arguments.contains("-uiSkipWaits"),
+                              case let .resting(rest)? = model.phase,
+                              skippable.contains(rest.kind) else { return }
+                        await model.apply(.skipRest)
+                    }
                     for _ in 0..<count {
+                        // A session now opens in a warm-up (D32), so the loop has to be able to
+                        // step out of a break before it can log anything at all.
+                        await skipWaitIfAsked()
                         guard case let .working(step)? = model.phase else { break }
                         let target = model.session?.target(at: step)
                         if target?.work.isTimed == true {
@@ -94,9 +108,7 @@ struct RootView: View {
                         }
                         // Step past rests (and, separately, block-done banners) so the count
                         // means "sets logged" rather than "events".
-                        if arguments.contains("-uiSkipWaits"), case .resting = model.phase {
-                            await model.apply(.skipRest)
-                        }
+                        await skipWaitIfAsked()
                         if arguments.contains("-uiSkipDone"), model.blockDone != nil {
                             await model.apply(.dismissBlockDone)
                         }

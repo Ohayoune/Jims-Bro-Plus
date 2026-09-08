@@ -72,6 +72,7 @@
 		85155F8551B3400EBFE5AF16 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5951B5AA9CFB4BC9870DE884 /* Persistence.swift */; };
 		F3F2E407E6474AB9A9D9024A /* StoreMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAB911FCA164B2986F11CEC /* StoreMigrationTests.swift */; };
 		F88C0EE10EB846BAAE7E061F /* PromptPinningTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED983CB703654E2CA74D6614 /* PromptPinningTests.swift */; };
+		8B85B26EE72743A49B7DC371 /* WarmUpAndTransitionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB8616271F4349C09DCE11D0 /* WarmUpAndTransitionTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -154,6 +155,7 @@
 		5951B5AA9CFB4BC9870DE884 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		EEAB911FCA164B2986F11CEC /* StoreMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreMigrationTests.swift; sourceTree = "<group>"; };
 		ED983CB703654E2CA74D6614 /* PromptPinningTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptPinningTests.swift; sourceTree = "<group>"; };
+		BB8616271F4349C09DCE11D0 /* WarmUpAndTransitionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarmUpAndTransitionTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -274,6 +276,7 @@
 		8B7A6DECC0651D269EA794C7 /* JimmsBroTests */ = {
 			isa = PBXGroup;
 			children = (
+				BB8616271F4349C09DCE11D0 /* WarmUpAndTransitionTests.swift */,
 				ED983CB703654E2CA74D6614 /* PromptPinningTests.swift */,
 				EEAB911FCA164B2986F11CEC /* StoreMigrationTests.swift */,
 				B24F0216C1DA4FBBB0319F1D /* DefectFixesTests.swift */,
@@ -540,6 +543,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8B85B26EE72743A49B7DC371 /* WarmUpAndTransitionTests.swift in Sources */,
 				F88C0EE10EB846BAAE7E061F /* PromptPinningTests.swift in Sources */,
 				F3F2E407E6474AB9A9D9024A /* StoreMigrationTests.swift in Sources */,
 				CB1471644E3041D5B04400A5 /* DefectFixesTests.swift in Sources */,
