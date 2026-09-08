@@ -22,12 +22,18 @@ what the docs describe, with tests, in the milestone order given.
 `docs/ITERATION_2_PLAN.md` is the v1.1 plan (milestones **R0–R6**) and
 `docs/ITERATION_3_PLAN.md` is the v1.2 plan (milestones **V0–V8**), in order, with the SPEC
 amendments landing before the code that depends on them. Everything through V7 is built and
-green; what remains is the device checklist, which needs the owner's iPhone
+green (and v1.3 on top of it, below); what remains is the device checklist, which needs the owner's iPhone
 (`docs/DEVICE_CHECKLIST.md`). `docs/BUILD_STATUS.md` says what is done and what was actually run,
 and `docs/CODE_HEALTH_REVIEW.md` records the review that prompted half of v1.2.
 
 Read `docs/SPEC.md` as the contract, not the plan: where they disagree, SPEC wins, and the plans'
 proposed test-case ids were renumbered on landing (TEST_CASES notes the mapping).
+
+`docs/ITERATION_4_PLAN.md` is the v1.3 plan (milestones **X0–X6**): a narrower Dynamic Island
+(D41), changing an exercise mid-workout (D42), JSON edits at every size (D43), history as CSV in
+and out (D45), and **Progression** — the chatbot round-trip run the other way (D44,
+`docs/PROGRESSION_FORMAT.md`, `docs/PROMPT.md` §3). Everything through X6 is built and green;
+the v1.3 device rows (W3, W12, W21, W30, W40) join the checklist that still needs the phone.
 
 Three v1.2 rules are worth knowing before touching anything:
 

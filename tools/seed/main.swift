@@ -44,6 +44,26 @@ for (offset, dayIndex) in [(12, 0), (10, 1), (8, 2), (5, 0), (3, 1), (1, 2)] {
     PlanSchedule.advance(&plan, completedDayName: session.dayName, on: start)
 }
 
+// v1.3 (D44): `seed <container> <plan.json> --progression` attaches a four-week progression
+// to the seeded plan — 2.5 kg a week on every weighted exercise, a deload in week 3 — so the
+// Progression screen, Plan detail's row and Home's subtitle have something to show.
+if arguments.contains("--progression") {
+    let entries = plan.days.flatMap { day in
+        day.exercises.compactMap { exercise -> ProgressionEntry? in
+            guard !exercise.bodyweight, let base = exercise.sets.first?.weight else { return nil }
+            // Snapped as the import would snap them (D35): every weight the app shows is loadable.
+            func loadable(_ weight: Double) -> Double { WeightRounding.snap(max(0, weight), increment: 2.5) }
+            return ProgressionEntry(dayName: day.name, exerciseName: exercise.name, weeks: [
+                ProgressionWeek(weight: loadable(base)),
+                ProgressionWeek(weight: loadable(base + 2.5)),
+                ProgressionWeek(weight: loadable(base - 5)),
+                ProgressionWeek(weight: loadable(base + 5)),
+            ])
+        }
+    }
+    plan.progression = Progression(startDate: Calendar.current.startOfDay(for: now), weeks: 4, entries: entries)
+}
+
 try await store.save(settings: Settings())
 try await store.save(plans: [plan], activePlanId: plan.id)
 for session in sessions { try await store.save(session: session) }

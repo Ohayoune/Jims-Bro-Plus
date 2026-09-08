@@ -4,8 +4,8 @@ Every `manual` case from `TEST_CASES.md`, to run on the owner's iPhone. The simu
 notifications while locked, real haptics, the silent switch, or the free-account expiry, which is why
 these are here rather than automated.
 
-Everything else — 148 automated tests plus the simulator screen checks — is green; see
-`BUILD_STATUS.md`.
+Everything else — 246 automated tests plus the simulator screen checks — is green; see
+`BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
 
 **v1.1 (R6)**: the workout screen was rebuilt (SPEC §4.5, D22), so every row below that touches it
 is being run against a different layout than the one M8 described, and the **v1.1 rows** section at

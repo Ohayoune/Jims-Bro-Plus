@@ -1,7 +1,53 @@
 # Build status
 
-Updated 2026-09-07. **v1.2 (V0–V7) is built and green; the device checklist needs the phone.**
-v1.1 and v1 are below, unchanged except where a v1.2 milestone corrected them.
+Updated 2026-09-08. **v1.3 (X0–X6) is built and green; the device checklist needs the phone.**
+v1.2, v1.1 and v1 are below, unchanged except where a later milestone corrected them.
+
+## v1.3 (X0–X6): built and green
+
+`docs/ITERATION_4_PLAN.md` is the v1.3 plan — the owner's list after running v1.2, with
+"implement them seamlessly" attached to all of it. Every milestone ended with the whole suite
+green on all three routes and one commit, on the `v1.3-refinement` branch (off
+`v1.2-refinement`, which is not yet merged to main).
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'` | **246 tests, 3 skipped, 0 failures** |
+| `swift test` | **245 tests, 0 failures** |
+| `python3 tools/check_core.py` | **245 bodies, 4,055 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **111/111 fixtures match** |
+| `python3 tools/check_bundle.py` | **current** |
+
+The three skipped cases are the prompt pins (M9 and W37), which read `docs/PROMPT.md` from the
+checkout — outside the simulator's sandbox. They run on the other two routes.
+
+| Milestone | What it did | State |
+|---|---|---|
+| X0 | The plan, the branch | Done |
+| X1 | The Dynamic Island the width of its timer: `timerRange` in Core, never inverted, never an hour (D41) | Done |
+| X2 | Change exercise mid-workout: pending steps to a new name that keeps its own history; a split when something was logged (D42) | Done |
+| X3 | JSON edits at every size, spliced into the plan's own tree and re-imported; Edit JSON, Add day / Add exercise from JSON (D43). Fixed on the way: a plan edit and Replace both dropped `cycleAnchor` | Done |
+| X4 | History as CSV in Strong's column order, and a reader for its own, Strong's and Hevy's exports by header name; read-then-describe-then-Import (D45) | Done |
+| X5 | Progression: the prompt out, the reply in, the week applied to the day's snapshot, the chip's reason, Home's line (D44) | Done |
+| X6 | Docs, checklist rows, bundle | Done |
+| — | The v1.3 device rows (W3, W12, W21, W30, W40) | **Written, not run** — needs the owner's iPhone |
+
+### Checked on the simulator (v1.3)
+
+Every screenshot is from a real build on a booted simulator, seeded through the app's own `Store`.
+
+| File | Shows |
+|---|---|
+| `build/x2-change.png` | The Change exercise sheet over a running workout: the name field, the exercises done before, the optional weight, **Change** |
+| `build/x3-plan.png` | Plan detail with the Progression row and, in the menus, Edit JSON, Add day from JSON, Add exercise and Edit day as JSON |
+| `build/x5-home.png` | Home with a progression on the plan: the subtitle ends "week 1 of 4", and nothing else moved |
+| `build/x5-progression.png` | The Progression screen reading a saved progression back: the week, this week's targets first, every week in one line, **Plan the next one** |
+
+### Not run in v1.3
+
+The Island's width (W3) needs a phone with one. What the compact view is given is unit-tested
+(`timerRange`, W1–W2), but nothing here has measured it on a Dynamic Island.
+
 
 ## v1.2 (V0–V7): built and green
 

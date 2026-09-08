@@ -120,6 +120,14 @@ struct PlanDetailView: View {
                 .sheet(isPresented: $showProgression) {
                     ProgressionView(planId: planId).environment(model)
                 }
+                .task {
+                    #if DEBUG
+                    // Debug-only: open the Progression screen directly for screenshot runs.
+                    guard ProcessInfo.processInfo.arguments.contains("-uiProgression") else { return }
+                    try? await Task.sleep(for: .milliseconds(600))
+                    showProgression = true
+                    #endif
+                }
                 .alert("Rename day", isPresented: Binding(get: { renamingDay != nil },
                                                           set: { if !$0 { renamingDay = nil } })) {
                     TextField("Name", text: $draftDayName)

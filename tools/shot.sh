@@ -37,7 +37,8 @@ if [[ -n "$SEED" ]]; then
   CONTAINER=$(xcrun simctl get_app_container "$DEVICE" com.ohayoune.jimmsbro data)
   rm -rf "$CONTAINER/Library/Application Support/JimmsBro"
   mkdir -p "$CONTAINER/Library/Application Support/JimmsBro"
-  build/seed/seed "$CONTAINER" JimmsBro/Resources/SamplePlan.json >/dev/null
+  # v1.3: SEED_PROGRESSION=1 attaches a four-week progression to the seeded plan (D44).
+  build/seed/seed "$CONTAINER" JimmsBro/Resources/SamplePlan.json ${SEED_PROGRESSION:+--progression} >/dev/null
 fi
 
 xcrun simctl terminate "$DEVICE" com.ohayoune.jimmsbro 2>/dev/null || true
