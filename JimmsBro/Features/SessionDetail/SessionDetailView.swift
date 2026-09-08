@@ -27,13 +27,13 @@ struct SessionDetailView: View {
                         Text(ExerciseText.summary(session))
                             .font(.footnote).foregroundStyle(.secondary)
                     }
-                    ForEach(Array(blocks(session).enumerated()), id: \.offset) { _, indices in
+                    ForEach(Array(SessionBlocks.indices(session).enumerated()), id: \.offset) { _, indices in
                         Section {
                             ForEach(indices, id: \.self) { index in
                                 Button {
                                     editing = EditTarget(session: session, step: index)
                                 } label: {
-                                    row(session: session, index: index, named: named(session, indices))
+                                    row(session: session, index: index, named: SessionBlocks.namesRows(session, indices))
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -104,24 +104,12 @@ struct SessionDetailView: View {
         }
     }
 
-    /// D28 (v1.1): ordered by where a block's steps now sit, not by `blockIndex`. "Do later"
-    /// moves a block's steps without renumbering it, so sorting by the index would still show
-    /// the deferred exercise in its old place.
-    private func blocks(_ session: Session) -> [[Int]] {
-        Dictionary(grouping: session.steps.indices, by: { session.steps[$0].blockIndex })
-            .map { $0.value.sorted() }
-            .sorted { ($0.first ?? 0) < ($1.first ?? 0) }
-    }
-
-    private func named(_ session: Session, _ indices: [Int]) -> Bool {
-        Set(indices.map { session.steps[$0].exerciseIndex }).count > 1
-    }
 
     /// The block header names its exercises, and each name opens that exercise's history.
+    /// The names and the duration come from Core, so this header and the Overview's — which is
+    /// plain text — always say the same thing.
     private func header(session: Session, indices: [Int]) -> some View {
-        let names = indices.compactMap { session.exercises[safe: session.steps[$0].exerciseIndex]?.name }
-        var seen = Set<String>()
-        let unique = names.filter { seen.insert(normalized($0)).inserted }
+        let unique = SessionBlocks.names(session, indices)
         var duration = ""
         if let block = indices.first.map({ session.steps[$0].blockIndex }),
            let seconds = SessionStats.blockDuration(block, session: session) {

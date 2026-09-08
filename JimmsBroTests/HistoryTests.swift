@@ -7,11 +7,8 @@ import XCTest
 /// M6 — O14 grouping, O15 editing a past session, O16's reachable exercise names, and the
 /// best-set text of SPEC §6.7.
 final class HistoryTests: XCTestCase {
-    private func makeRoot() -> URL {
-        URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("JimmsBroM6Tests-\(UUID().uuidString)", isDirectory: true)
-    }
-    private func discard(_ root: URL) { try? FileManager.default.removeItem(at: root) }
+    private func makeRoot() -> URL { CoreTestSupport.makeRoot() }
+    private func discard(_ root: URL) { CoreTestSupport.discard(root) }
 
     private func session(day: Int, month: Int = 9, reps: [Int] = [10, 10, 8],
                          weights: [Double?]? = nil) -> Session {

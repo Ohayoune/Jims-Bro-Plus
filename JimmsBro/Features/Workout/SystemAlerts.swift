@@ -31,12 +31,13 @@ final class SystemNotificationScheduler: NotificationScheduling, @unchecked Send
             : .default
         content.interruptionLevel = .timeSensitive
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
-        try? await center.add(UNNotificationRequest(identifier: request.id, content: content, trigger: trigger))
+        try? await center.add(UNNotificationRequest(identifier: request.id.rawValue, content: content, trigger: trigger))
     }
 
-    func cancel(ids: [String]) async {
-        center.removePendingNotificationRequests(withIdentifiers: ids)
-        center.removeDeliveredNotifications(withIdentifiers: ids)
+    func cancel(ids: [AlertIdentifier]) async {
+        let names = ids.map(\.rawValue)
+        center.removePendingNotificationRequests(withIdentifiers: names)
+        center.removeDeliveredNotifications(withIdentifiers: names)
     }
 }
 

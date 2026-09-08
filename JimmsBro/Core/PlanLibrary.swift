@@ -80,7 +80,7 @@ struct PlanLibrary {
     }
     @discardableResult mutating func discardSession() -> [Effect] {
         engine = nil
-        return ["rest-timer","set-end","set-warning","set-minimum"].map { .cancelNotification(id:$0) } + [.persist]
+        return AlertIdentifier.all.map { .cancelNotification(id:$0) } + [.persist]
     }
     mutating func editSession(_ id: UUID, step: Int, result: SetResult, now: Date) {
         guard let i = sessions.firstIndex(where: { $0.id == id }) else { return }

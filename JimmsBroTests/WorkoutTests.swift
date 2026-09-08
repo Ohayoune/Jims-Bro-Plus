@@ -7,11 +7,8 @@ import XCTest
 /// M5 — N3–N7 input rules, H1/H2/H17 rest timing, and the session lifecycle behind the
 /// workout screens (start, run, switch day, finish, discard, resume).
 final class WorkoutTests: XCTestCase {
-    private func makeRoot() -> URL {
-        URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("JimmsBroM5Tests-\(UUID().uuidString)", isDirectory: true)
-    }
-    private func discard(_ root: URL) { try? FileManager.default.removeItem(at: root) }
+    private func makeRoot() -> URL { CoreTestSupport.makeRoot() }
+    private func discard(_ root: URL) { CoreTestSupport.discard(root) }
     private func sample() throws -> String { try FixtureLoader.text("valid/weekly-rotation.json") }
 
     // N3: both separators mean the same number.
@@ -557,8 +554,10 @@ final class WorkoutTests: XCTestCase {
         await model.cancelAllAlerts()
         XCTAssertTrue(recorder.pending.isEmpty)
         // And each id gets a title of its own, so a delivered notification reads sensibly.
-        XCTAssertEqual(AlertRouting.title(for: AlertIdentifier.rest), "Rest over")
-        XCTAssertEqual(AlertRouting.title(for: AlertIdentifier.setEnd), "Time!")
-        XCTAssertEqual(Set(AlertIdentifier.all.map(AlertRouting.title)).count, 4)
+        XCTAssertEqual(AlertIdentifier.rest.title, "Rest over")
+        XCTAssertEqual(AlertIdentifier.setEnd.title, "Time!")
+        XCTAssertEqual(Set(AlertIdentifier.all.map(\.title)).count, 4)
+        // Only the warning uses the short bundled sound.
+        XCTAssertEqual(AlertIdentifier.all.filter { $0.sound == .warning }, [.setWarning])
     }
 }

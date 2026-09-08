@@ -6,11 +6,8 @@ import XCTest
 
 /// M7 — the remaining Settings rows, export, delete-all, and the spoken step card behind O19.
 final class SettingsPolishTests: XCTestCase {
-    private func makeRoot() -> URL {
-        URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("JimmsBroM7Tests-\(UUID().uuidString)", isDirectory: true)
-    }
-    private func discard(_ root: URL) { try? FileManager.default.removeItem(at: root) }
+    private func makeRoot() -> URL { CoreTestSupport.makeRoot() }
+    private func discard(_ root: URL) { CoreTestSupport.discard(root) }
 
     // Every toggle and stepper persists, and none of them disturbs the others.
     @MainActor func testRemainingSettingsPersist() async throws {

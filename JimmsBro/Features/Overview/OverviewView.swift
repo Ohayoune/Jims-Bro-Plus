@@ -15,9 +15,9 @@ struct OverviewView: View {
             Group {
                 if let session = model.session {
                     List {
-                        ForEach(Array(blocks(session).enumerated()), id: \.offset) { _, indices in
+                        ForEach(Array(SessionBlocks.indices(session).enumerated()), id: \.offset) { _, indices in
                             Section {
-                                let mixed = Set(indices.map { session.steps[$0].exerciseIndex }).count > 1
+                                let mixed = SessionBlocks.namesRows(session, indices)
                                 ForEach(indices, id: \.self) { index in
                                     Button { tapped(index) } label: {
                                         row(session: session, index: index, nameRows: mixed)
@@ -55,23 +55,8 @@ struct OverviewView: View {
         }
     }
 
-    /// D28 (v1.1): ordered by where a block's steps now sit, not by `blockIndex`. "Do later"
-    /// moves a block's steps without renumbering it, so sorting by the index would still show
-    /// the deferred exercise in its old place.
-    private func blocks(_ session: Session) -> [[Int]] {
-        Dictionary(grouping: session.steps.indices, by: { session.steps[$0].blockIndex })
-            .map { $0.value.sorted() }
-            .sorted { ($0.first ?? 0) < ($1.first ?? 0) }
-    }
-
     private func header(session: Session, block indices: [Int]) -> some View {
-        let names = indices.compactMap { session.exercises[safe: session.steps[$0].exerciseIndex]?.name }
-        var text = Array(NSOrderedSet(array: names)).compactMap { $0 as? String }.joined(separator: " + ")
-        if let block = indices.first.map({ session.steps[$0].blockIndex }),
-           let seconds = SessionStats.blockDuration(block, session: session) {
-            text += " · \(TargetText.time(seconds))"
-        }
-        return Text(text)
+        Text(SessionBlocks.title(session, indices))
     }
 
     /// In a superset every row would otherwise read "A · Set 1 of 3", so when a block holds
@@ -110,14 +95,9 @@ struct OverviewView: View {
         switch step.status {
         case .pending:
             return StepCard.targetLine(session: session, step: index)
-        case .skipped:
-            return "skipped"
-        case .logged:
-            guard let result = step.result else { return "" }
-            var text = result.reps.map(String.init) ?? result.seconds.map(TargetText.time) ?? ""
-            if let weight = result.weight { text += " @ \(TargetText.number(weight))" }
-            if let seconds = step.setSeconds { text += " · \(TargetText.time(seconds))" }
-            return text
+        case .skipped, .logged:
+            // The same sentence Session detail prints, so the two screens cannot drift apart.
+            return ExerciseText.result(step)
         }
     }
 

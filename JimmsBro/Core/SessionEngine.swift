@@ -17,8 +17,8 @@ enum Event {
     case setWorkWeight(step: Int, weight: Double?)
 }
 enum Effect: Equatable {
-    case scheduleNotification(id: String, at: Date, body: String)
-    case cancelNotification(id: String)
+    case scheduleNotification(id: AlertIdentifier, at: Date, body: String)
+    case cancelNotification(id: AlertIdentifier)
     case playAlert(TimerBeep)
     /// v1.1 (D22/P6): the confirmation a logged set gets. An effect rather than a view-side
     /// call so "exactly once per logged set" is assertable in Core (O59).
@@ -64,7 +64,7 @@ struct SessionEngine {
     }
     private mutating func cancelWork() -> [Effect] {
         active.timerRunning = false; active.deliveredBeeps = []
-        return ["set-end","set-warning","set-minimum"].map { .cancelNotification(id: $0) }
+        return AlertIdentifier.work.map { .cancelNotification(id: $0) }
     }
     private mutating func reevaluateAdvice(_ e: Int) {
         guard session.exercises.indices.contains(e) else { return }
@@ -95,7 +95,7 @@ struct SessionEngine {
             if skipped || seconds == 0 { enterWorking(next, now: now); return [] }
             let endsAt = now.addingTimeInterval(Double(seconds))
             active.phase = .resting(RestState(startedAt: now, endsAt: endsAt, nextStep: next))
-            return [.cancelNotification(id: "rest-timer"), .scheduleNotification(id: "rest-timer", at: endsAt, body: nextBody(next))]
+            return [.cancelNotification(id: .rest), .scheduleNotification(id: .rest, at: endsAt, body: nextBody(next))]
         }
     }
     private func nextBody(_ index: Int) -> String {
@@ -188,9 +188,9 @@ struct SessionEngine {
         case let .adjustRest(seconds):
             guard case var .resting(rest) = phase else { return [] }
             rest.endsAt = rest.endsAt.addingTimeInterval(Double(seconds))
-            effects.append(.cancelNotification(id: "rest-timer"))
+            effects.append(.cancelNotification(id: .rest))
             if rest.endsAt <= now { active.lastRestEndedAt = rest.endsAt; enterWorking(rest.nextStep, now: now) }
-            else { active.phase = .resting(rest); effects.append(.scheduleNotification(id: "rest-timer", at: rest.endsAt, body: nextBody(rest.nextStep))) }
+            else { active.phase = .resting(rest); effects.append(.scheduleNotification(id: .rest, at: rest.endsAt, body: nextBody(rest.nextStep))) }
         case .skipRest, .restElapsed:
             guard case let .resting(rest) = phase else { return [] }
             if case .restElapsed = event {
@@ -210,13 +210,13 @@ struct SessionEngine {
             }
             guard case let .working(current) = phase, current == i, !active.timerRunning, let target = session.target(at: i), target.work.isTimed else { return [] }
             active.session.steps[i].startedAt = now; active.timerRunning = true; active.deliveredBeeps = []
-            effects += ["set-end","set-warning","set-minimum"].map { .cancelNotification(id: $0) }
+            effects += AlertIdentifier.work.map { .cancelNotification(id: $0) }
             switch target.work {
             case let .duration(n):
                 let end = now.addingTimeInterval(Double(n))
-                effects.append(.scheduleNotification(id: "set-end", at: end, body: "Time! " + nextBody(i).replacingOccurrences(of: "Next: ", with: "")))
-                if let w = target.warning { effects.append(.scheduleNotification(id: "set-warning", at: end.addingTimeInterval(-Double(w)), body: "\(w) s left")) }
-            case let .openDuration(minimum): if let minimum { effects.append(.scheduleNotification(id: "set-minimum", at: now.addingTimeInterval(Double(minimum)), body: "\(minimum) s reached")) }
+                effects.append(.scheduleNotification(id: .setEnd, at: end, body: "Time! " + nextBody(i).replacingOccurrences(of: "Next: ", with: "")))
+                if let w = target.warning { effects.append(.scheduleNotification(id: .setWarning, at: end.addingTimeInterval(-Double(w)), body: "\(w) s left")) }
+            case let .openDuration(minimum): if let minimum { effects.append(.scheduleNotification(id: .setMinimum, at: now.addingTimeInterval(Double(minimum)), body: "\(minimum) s reached")) }
             case .reps: break
             }
         case let .stopTimer(i), let .timerDone(i), let .timerElapsed(i):
@@ -249,7 +249,7 @@ struct SessionEngine {
             for i in session.steps.indices where session.steps[i].status == .pending { active.session.steps[i].status = .skipped; active.session.steps[i].loggedAt = now }
             effects += complete(now: now)
         }
-        if case .resting = oldPhase, phase != oldPhase, !effects.contains(.cancelNotification(id: "rest-timer")) { effects.insert(.cancelNotification(id: "rest-timer"), at: 0) }
+        if case .resting = oldPhase, phase != oldPhase, !effects.contains(.cancelNotification(id: .rest)) { effects.insert(.cancelNotification(id: .rest), at: 0) }
         if !Self.unpersisted(event) { effects.append(.persist) }
         return effects
     }

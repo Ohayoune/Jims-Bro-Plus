@@ -95,3 +95,45 @@ enum ExerciseText {
         return session.exercises.map(\.name).filter { seen.insert(normalized($0)).inserted }
     }
 }
+
+/// SPEC §4.8 and §4.10 (v1.2): a session's steps grouped into the blocks the screens draw.
+///
+/// The Overview and Session detail had each written this out — with different name matching —
+/// and a superset is exactly where those two disagreed. One definition, two callers, and the
+/// grouping rule becomes a unit test rather than a coincidence.
+enum SessionBlocks {
+    /// The step indices of each block, ordered by where a block's steps now sit rather than by
+    /// `blockIndex`: "Do later" (D28) moves a block's steps without renumbering it, so sorting
+    /// on the index would still draw the deferred exercise in its old place.
+    static func indices(_ session: Session) -> [[Int]] {
+        Dictionary(grouping: session.steps.indices, by: { session.steps[$0].blockIndex })
+            .map { $0.value.sorted() }
+            .sorted { ($0.first ?? 0) < ($1.first ?? 0) }
+    }
+
+    /// The exercises in a block, in order, de-duplicated the way exercise history matches
+    /// names (§6.9) — so "Bench press" and "Bench Press" are one exercise here too.
+    static func names(_ session: Session, _ indices: [Int]) -> [String] {
+        var seen = Set<String>()
+        return indices
+            .compactMap { session.exercises[safe: session.steps[$0].exerciseIndex]?.name }
+            .filter { seen.insert(normalized($0)).inserted }
+    }
+
+    /// "Lateral Raise + Tricep Pushdown · 4:12" — the block's exercises and how long it took,
+    /// the duration only once the block is finished.
+    static func title(_ session: Session, _ indices: [Int]) -> String {
+        var text = names(session, indices).joined(separator: " + ")
+        if let block = indices.first.map({ session.steps[$0].blockIndex }),
+           let seconds = SessionStats.blockDuration(block, session: session) {
+            text += " · \(TargetText.time(seconds))"
+        }
+        return text
+    }
+
+    /// Whether the rows must name their exercise: in a superset every row would otherwise read
+    /// "A · Set 1 of 3" and two rows of a round would be indistinguishable.
+    static func namesRows(_ session: Session, _ indices: [Int]) -> Bool {
+        Set(indices.map { session.steps[$0].exerciseIndex }).count > 1
+    }
+}

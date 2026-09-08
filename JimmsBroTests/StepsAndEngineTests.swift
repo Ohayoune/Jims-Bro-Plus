@@ -59,7 +59,9 @@ final class StepsAndEngineTests: XCTestCase {
         let start = Date()
         let steps = flatten(day:big)
         XCTAssertEqual(steps.count,2500)
-        XCTAssertLessThan(Date().timeIntervalSince(start),0.01)
+        // A ceiling, not a measurement — see PrefillAndStatsTests.
+        let elapsed = Date().timeIntervalSince(start)
+        XCTAssertLessThan(elapsed,0.5,"flattening 2500 steps took \(elapsed)s")
     }
     func testLoggingRestAdjustmentAndCompletion() {
         var e = CoreTestSupport.engine()
@@ -68,16 +70,16 @@ final class StepsAndEngineTests: XCTestCase {
         XCTAssertEqual(e.session.steps[0].setSeconds,34)
         let rest = RestState(startedAt:now.addingTimeInterval(34.9),endsAt:now.addingTimeInterval(124.9),nextStep:1)
         XCTAssertEqual(e.phase,.resting(rest))
-        XCTAssertTrue(log.contains { if case let .scheduleNotification(id,at,body) = $0 { return id == "rest-timer" && at == rest.endsAt && body.contains("set 2 of 3") }; return false })
+        XCTAssertTrue(log.contains { if case let .scheduleNotification(id,at,body) = $0 { return id == .rest && at == rest.endsAt && body.contains("set 2 of 3") }; return false })
         let adjust = e.apply(.adjustRest(seconds:30),now:now.addingTimeInterval(40))
-        XCTAssertEqual(adjust.first,.cancelNotification(id:"rest-timer")); XCTAssertEqual(adjust.last,.persist)
+        XCTAssertEqual(adjust.first,.cancelNotification(id:.rest)); XCTAssertEqual(adjust.last,.persist)
         e.apply(.adjustRest(seconds:-30),now:now.addingTimeInterval(40))
         XCTAssertEqual(e.phase,.resting(rest))
         let oldPhase = e.phase
         let edit = e.apply(.editSet(step:0,result:.reps(count:11,weight:62.5)),now:now.addingTimeInterval(50))
         XCTAssertEqual(e.phase,oldPhase); XCTAssertEqual(edit,[.persist]); XCTAssertEqual(e.session.steps[0].loggedAt,now.addingTimeInterval(34.9))
         let elapsed = e.apply(.restElapsed,now:rest.endsAt)
-        XCTAssertTrue(elapsed.contains(.playAlert(.end))); XCTAssertTrue(elapsed.contains(.cancelNotification(id:"rest-timer")))
+        XCTAssertTrue(elapsed.contains(.playAlert(.end))); XCTAssertTrue(elapsed.contains(.cancelNotification(id:.rest)))
         XCTAssertEqual(e.phase,.working(step:1)); XCTAssertEqual(e.active.lastRestEndedAt,rest.endsAt)
         XCTAssertEqual(e.session.steps[1].startedAt,rest.endsAt)
         e.apply(.logSet(step:1,result:.reps(count:10,weight:60)),now:now.addingTimeInterval(150))
@@ -121,7 +123,7 @@ final class StepsAndEngineTests: XCTestCase {
         XCTAssertEqual(e.session.steps[1].startedAt,now.addingTimeInterval(20))
         e.apply(.logSet(step:1,result:.reps(count:10,weight:60)),now:now.addingTimeInterval(40))
         let jump = e.apply(.jumpTo(step:0),now:now.addingTimeInterval(50))
-        XCTAssertTrue(jump.contains(.cancelNotification(id:"rest-timer"))); XCTAssertEqual(e.active.lastRestEndedAt,now.addingTimeInterval(50))
+        XCTAssertTrue(jump.contains(.cancelNotification(id:.rest))); XCTAssertEqual(e.active.lastRestEndedAt,now.addingTimeInterval(50))
         XCTAssertEqual(e.session.steps[0].startedAt,now.addingTimeInterval(50))
         e.apply(.logSet(step:0,result:.reps(count:12,weight:60)),now:now.addingTimeInterval(60))
         XCTAssertEqual(e.session.steps[0].setSeconds,10)
@@ -164,7 +166,7 @@ final class StepsAndEngineTests: XCTestCase {
         XCTAssertEqual(e.session.steps[0].result,.reps(count:11,weight:60))
         let effects = e.apply(.finish,now:now.addingTimeInterval(60))
         XCTAssertEqual(e.session.steps.map(\.status),[.logged,.skipped,.skipped]); XCTAssertEqual(e.phase,.completed)
-        XCTAssertTrue(effects.contains(.cancelNotification(id:"rest-timer"))); XCTAssertTrue(effects.contains(.sessionCompleted))
+        XCTAssertTrue(effects.contains(.cancelNotification(id:.rest))); XCTAssertTrue(effects.contains(.sessionCompleted))
         var empty = CoreTestSupport.engine(); empty.apply(.finish,now:now)
         XCTAssertEqual(empty.loggedCount,0); XCTAssertEqual(empty.nextStep(after:0),nil)
     }
@@ -173,14 +175,14 @@ final class StepsAndEngineTests: XCTestCase {
         XCTAssertNil(e.session.steps[0].startedAt)
         let effects = e.apply(.startTimer(step:0),now:now)
         XCTAssertEqual(e.session.steps[0].startedAt,now)
-        XCTAssertTrue(effects.contains { if case let .scheduleNotification(id,date,_) = $0 { return id == "set-end" && date == now.addingTimeInterval(45) }; return false })
-        XCTAssertTrue(effects.contains(.scheduleNotification(id:"set-warning",at:now.addingTimeInterval(40),body:"5 s left")))
+        XCTAssertTrue(effects.contains { if case let .scheduleNotification(id,date,_) = $0 { return id == .setEnd && date == now.addingTimeInterval(45) }; return false })
+        XCTAssertTrue(effects.contains(.scheduleNotification(id:.setWarning,at:now.addingTimeInterval(40),body:"5 s left")))
         XCTAssertTrue(e.beepDue(now:now.addingTimeInterval(39)).isEmpty)
         XCTAssertEqual(e.beepDue(now:now.addingTimeInterval(40)),[.warning]); XCTAssertTrue(e.beepDue(now:now.addingTimeInterval(40)).isEmpty)
         XCTAssertEqual(e.beepDue(now:now.addingTimeInterval(45)),[.end])
         let end = e.apply(.timerElapsed(step:0),now:now.addingTimeInterval(45))
         XCTAssertEqual(e.session.steps[0].result,.duration(seconds:45,weight:60))
-        for id in ["set-end","set-warning","set-minimum"] { XCTAssertTrue(end.contains(.cancelNotification(id:id))) }
+        for id in AlertIdentifier.work { XCTAssertTrue(end.contains(.cancelNotification(id:id))) }
         var early = CoreTestSupport.engine(CoreTestSupport.plan(work:.duration(seconds:45)))
         early.apply(.startTimer(step:0),now:now)
         early.apply(.timerDone(step:0),now:now.addingTimeInterval(30.9))
@@ -206,7 +208,7 @@ final class StepsAndEngineTests: XCTestCase {
         XCTAssertTrue(e.apply(.timerElapsed(step:0),now:now.addingTimeInterval(44)).isEmpty)
         XCTAssertTrue(e.apply(.stopTimer(step:0),now:now.addingTimeInterval(10)).isEmpty)
         let jump = e.apply(.jumpTo(step:1),now:now)
-        for id in ["set-end","set-warning","set-minimum"] { XCTAssertTrue(jump.contains(.cancelNotification(id:id))) }
+        for id in AlertIdentifier.work { XCTAssertTrue(jump.contains(.cancelNotification(id:id))) }
         XCTAssertFalse(e.active.timerRunning)
     }
     func testTimedWeightPrefillEditsAndRestore() throws {

@@ -9,11 +9,8 @@ import XCTest
 final class WorkoutScreenTests: XCTestCase {
     private let now = CoreTestSupport.now
 
-    private func makeRoot() -> URL {
-        URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("JimmsBroR2Tests-\(UUID().uuidString)", isDirectory: true)
-    }
-    private func discard(_ root: URL) { try? FileManager.default.removeItem(at: root) }
+    private func makeRoot() -> URL { CoreTestSupport.makeRoot() }
+    private func discard(_ root: URL) { CoreTestSupport.discard(root) }
 
     private func model(session: Session, phase: Phase, blockDone: BlockDone? = nil,
                        timerRunning: Bool = false, lastCompleted: Int? = nil,

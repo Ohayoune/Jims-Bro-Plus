@@ -10,10 +10,10 @@ struct JimmsBroApp: App {
 
     @MainActor private static func makeModel() -> AppModel {
         #if DEBUG
-        // Screenshot runs use the inert recorder, so no system permission prompt appears.
+        // Screenshot runs stay silent, so no system permission prompt appears.
         if ProcessInfo.processInfo.arguments.contains("-uiNoAlerts") {
-            let recorder = RecordingAlerts()
-            return AppModel(store: makeStore(), scheduler: recorder, alerts: recorder)
+            let silent = SilentAlerts()
+            return AppModel(store: makeStore(), scheduler: silent, alerts: silent)
         }
         #endif
         return AppModel(store: makeStore(),

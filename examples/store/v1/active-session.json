@@ -1,0 +1,340 @@
+{
+  "deliveredBeeps" : [
+
+  ],
+  "fileVersion" : 1,
+  "lastCompletedStep" : 3,
+  "lastRestEndedAt" : "2023-11-14T22:16:20.000Z",
+  "phase" : {
+    "resting" : {
+      "endsAt" : "2023-11-14T22:18:50.000Z",
+      "isWork" : false,
+      "nextStep" : 4,
+      "startedAt" : "2023-11-14T22:17:20.000Z"
+    }
+  },
+  "session" : {
+    "dayName" : "Circuit",
+    "exercises" : [
+      {
+        "bodyweight" : false,
+        "group" : "A",
+        "id" : "55555555-5555-5555-5555-555555555550",
+        "name" : "Goblet Squat",
+        "targets" : [
+          {
+            "drops" : [
+
+            ],
+            "groupRestSeconds" : 90,
+            "restSeconds" : 60,
+            "weight" : 20,
+            "work" : {
+              "reps" : {
+                "_0" : {
+                  "fixed" : {
+                    "_0" : 12
+                  }
+                }
+              }
+            }
+          },
+          {
+            "drops" : [
+
+            ],
+            "groupRestSeconds" : 90,
+            "restSeconds" : 60,
+            "weight" : 20,
+            "work" : {
+              "reps" : {
+                "_0" : {
+                  "fixed" : {
+                    "_0" : 12
+                  }
+                }
+              }
+            }
+          },
+          {
+            "drops" : [
+
+            ],
+            "groupRestSeconds" : 90,
+            "restSeconds" : 60,
+            "weight" : 20,
+            "work" : {
+              "reps" : {
+                "_0" : {
+                  "fixed" : {
+                    "_0" : 12
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "bodyweight" : false,
+        "group" : "A",
+        "id" : "55555555-5555-5555-5555-555555555551",
+        "name" : "Push-Up",
+        "targets" : [
+          {
+            "drops" : [
+
+            ],
+            "groupRestSeconds" : 90,
+            "restSeconds" : 60,
+            "work" : {
+              "reps" : {
+                "_0" : {
+                  "fixed" : {
+                    "_0" : 15
+                  }
+                }
+              }
+            }
+          },
+          {
+            "drops" : [
+
+            ],
+            "groupRestSeconds" : 90,
+            "restSeconds" : 60,
+            "work" : {
+              "reps" : {
+                "_0" : {
+                  "fixed" : {
+                    "_0" : 15
+                  }
+                }
+              }
+            }
+          },
+          {
+            "drops" : [
+
+            ],
+            "groupRestSeconds" : 90,
+            "restSeconds" : 60,
+            "work" : {
+              "reps" : {
+                "_0" : {
+                  "fixed" : {
+                    "_0" : 15
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "bodyweight" : false,
+        "group" : "A",
+        "id" : "55555555-5555-5555-5555-555555555552",
+        "name" : "Kettlebell Swing",
+        "targets" : [
+          {
+            "drops" : [
+
+            ],
+            "groupRestSeconds" : 90,
+            "restSeconds" : 90,
+            "weight" : 24,
+            "work" : {
+              "reps" : {
+                "_0" : {
+                  "fixed" : {
+                    "_0" : 20
+                  }
+                }
+              }
+            }
+          },
+          {
+            "drops" : [
+
+            ],
+            "groupRestSeconds" : 90,
+            "restSeconds" : 90,
+            "weight" : 24,
+            "work" : {
+              "reps" : {
+                "_0" : {
+                  "fixed" : {
+                    "_0" : 20
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "bodyweight" : false,
+        "id" : "55555555-5555-5555-5555-555555555553",
+        "name" : "Dead Hang",
+        "targets" : [
+          {
+            "drops" : [
+
+            ],
+            "restSeconds" : 45,
+            "warningBeepSeconds" : 3,
+            "work" : {
+              "duration" : {
+                "seconds" : 30
+              }
+            }
+          },
+          {
+            "drops" : [
+
+            ],
+            "restSeconds" : 45,
+            "warningBeepSeconds" : 3,
+            "work" : {
+              "duration" : {
+                "seconds" : 30
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "id" : "44444444-4444-4444-4444-444444444444",
+    "planId" : "11111111-1111-1111-1111-111111111111",
+    "planName" : "Circuit Day",
+    "startedAt" : "2023-11-14T22:13:20.000Z",
+    "steps" : [
+      {
+        "blockIndex" : 0,
+        "dropIndex" : 0,
+        "exerciseIndex" : 0,
+        "isLastInBlock" : false,
+        "isLastInRound" : false,
+        "loggedAt" : "2023-11-14T22:13:54.000Z",
+        "result" : {
+          "reps" : {
+            "count" : 10,
+            "weight" : 20
+          }
+        },
+        "setIndex" : 0,
+        "startedAt" : "2023-11-14T22:13:20.000Z",
+        "status" : "logged"
+      },
+      {
+        "blockIndex" : 0,
+        "dropIndex" : 0,
+        "exerciseIndex" : 1,
+        "isLastInBlock" : false,
+        "isLastInRound" : false,
+        "loggedAt" : "2023-11-14T22:14:54.000Z",
+        "result" : {
+          "reps" : {
+            "count" : 10,
+            "weight" : 20
+          }
+        },
+        "setIndex" : 0,
+        "startedAt" : "2023-11-14T22:14:20.000Z",
+        "status" : "logged"
+      },
+      {
+        "blockIndex" : 0,
+        "dropIndex" : 0,
+        "exerciseIndex" : 2,
+        "isLastInBlock" : false,
+        "isLastInRound" : true,
+        "loggedAt" : "2023-11-14T22:15:54.000Z",
+        "result" : {
+          "reps" : {
+            "count" : 10,
+            "weight" : 20
+          }
+        },
+        "setIndex" : 0,
+        "startedAt" : "2023-11-14T22:15:20.000Z",
+        "status" : "logged"
+      },
+      {
+        "blockIndex" : 0,
+        "dropIndex" : 0,
+        "exerciseIndex" : 0,
+        "isLastInBlock" : false,
+        "isLastInRound" : false,
+        "loggedAt" : "2023-11-14T22:16:54.000Z",
+        "result" : {
+          "reps" : {
+            "count" : 10,
+            "weight" : 20
+          }
+        },
+        "setIndex" : 1,
+        "startedAt" : "2023-11-14T22:16:20.000Z",
+        "status" : "logged"
+      },
+      {
+        "blockIndex" : 0,
+        "dropIndex" : 0,
+        "exerciseIndex" : 1,
+        "isLastInBlock" : false,
+        "isLastInRound" : false,
+        "setIndex" : 1,
+        "status" : "pending"
+      },
+      {
+        "blockIndex" : 0,
+        "dropIndex" : 0,
+        "exerciseIndex" : 2,
+        "isLastInBlock" : false,
+        "isLastInRound" : true,
+        "setIndex" : 1,
+        "status" : "pending"
+      },
+      {
+        "blockIndex" : 0,
+        "dropIndex" : 0,
+        "exerciseIndex" : 0,
+        "isLastInBlock" : false,
+        "isLastInRound" : false,
+        "setIndex" : 2,
+        "status" : "pending"
+      },
+      {
+        "blockIndex" : 0,
+        "dropIndex" : 0,
+        "exerciseIndex" : 1,
+        "isLastInBlock" : true,
+        "isLastInRound" : true,
+        "setIndex" : 2,
+        "status" : "pending"
+      },
+      {
+        "blockIndex" : 1,
+        "dropIndex" : 0,
+        "exerciseIndex" : 3,
+        "isLastInBlock" : false,
+        "isLastInRound" : true,
+        "setIndex" : 0,
+        "status" : "pending"
+      },
+      {
+        "blockIndex" : 1,
+        "dropIndex" : 0,
+        "exerciseIndex" : 3,
+        "isLastInBlock" : true,
+        "isLastInRound" : true,
+        "setIndex" : 1,
+        "status" : "pending"
+      }
+    ],
+    "units" : "kg"
+  },
+  "timerRunning" : false,
+  "workWeight" : 20
+}

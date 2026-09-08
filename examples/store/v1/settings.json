@@ -1,0 +1,10 @@
+{
+  "defaultRestSeconds" : 90,
+  "fileVersion" : 1,
+  "keepAwake" : true,
+  "sound" : true,
+  "units" : "kg",
+  "vibration" : true,
+  "weightStepKg" : 2.5,
+  "weightStepLb" : 5
+}

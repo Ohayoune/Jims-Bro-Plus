@@ -6,11 +6,8 @@ import XCTest
 
 /// M4 — N1, N2, N8, N9, N10, plus the Core state behind the Home, Plan detail and Import screens.
 final class SettingsAndHomeTests: XCTestCase {
-    private func makeRoot() -> URL {
-        URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("JimmsBroM4Tests-\(UUID().uuidString)", isDirectory: true)
-    }
-    private func discard(_ root: URL) { try? FileManager.default.removeItem(at: root) }
+    private func makeRoot() -> URL { CoreTestSupport.makeRoot() }
+    private func discard(_ root: URL) { CoreTestSupport.discard(root) }
     private func sample() throws -> String { try FixtureLoader.text("valid/weekly-rotation.json") }
 
     // N1: default units follow the locale's region, not its language.

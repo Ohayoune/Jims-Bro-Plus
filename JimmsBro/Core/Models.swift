@@ -24,12 +24,16 @@ struct Plan: Codable, Identifiable, Equatable {
     var warnings: [Issue] = []
     var cycle: [CycleEntry]
     var cyclePosition: Int?
+    enum CodingKeys: String, CodingKey {
+        case id, name, units, schedule, days, importedAt, sourceText, warnings, cycle, cyclePosition
+    }
 }
 struct Day: Codable, Identifiable, Equatable {
     var id = UUID()
     var name: String
     var weekday: Weekday?
     var exercises: [Exercise]
+    enum CodingKeys: String, CodingKey { case id, name, weekday, exercises }
 }
 struct Exercise: Codable, Identifiable, Equatable {
     var id = UUID()
@@ -39,6 +43,9 @@ struct Exercise: Codable, Identifiable, Equatable {
     var repRange: RepRange?
     var bodyweight = false
     var sets: [SetTarget]
+    enum CodingKeys: String, CodingKey {
+        case id, name, group, notes, repRange, bodyweight, sets
+    }
 }
 struct RepRange: Codable, Equatable { var min: Int; var max: Int }
 struct SetTarget: Codable, Equatable {
@@ -49,6 +56,9 @@ struct SetTarget: Codable, Equatable {
     var drops: [DropTarget] = []
     // A group's round rest is resolved at import, before explicit/default provenance is lost.
     var groupRestSeconds: Int?
+    enum CodingKeys: String, CodingKey {
+        case work, weight, restSeconds, warningBeepSeconds, drops, groupRestSeconds
+    }
 }
 struct DropTarget: Codable, Equatable { var work: WorkTarget; var weight: Double? }
 enum WorkTarget: Codable, Equatable {
@@ -75,6 +85,9 @@ struct Session: Codable, Identifiable, Equatable {
     var endedAt: Date?
     var exercises: [SessionExercise]
     var steps: [SessionStep]
+    enum CodingKeys: String, CodingKey {
+        case id, planId, planName, dayName, units, startedAt, endedAt, exercises, steps
+    }
 }
 struct SessionExercise: Codable, Identifiable, Equatable {
     var id = UUID()
@@ -85,6 +98,9 @@ struct SessionExercise: Codable, Identifiable, Equatable {
     var bodyweight = false
     var targets: [SetTarget]
     var advice: Advice?
+    enum CodingKeys: String, CodingKey {
+        case id, name, group, notes, repRange, bodyweight, targets, advice
+    }
 
     /// D11 (v1.1): true when the main-set target weights are not all equal (or all absent) — a
     /// deliberately programmed pyramid, say. Prefill (§6.5) never carries a weight forward
@@ -117,6 +133,10 @@ struct SessionStep: Codable, Equatable {
     var result: SetResult?
     var startedAt: Date?
     var loggedAt: Date?
+    enum CodingKeys: String, CodingKey {
+        case exerciseIndex, setIndex, dropIndex, blockIndex, isLastInRound, isLastInBlock,
+             status, result, startedAt, loggedAt
+    }
     var setSeconds: Int? {
         guard status == .logged, let start = startedAt, let end = loggedAt else { return nil }
         return wholeSeconds(end.timeIntervalSince(start))
@@ -261,6 +281,9 @@ struct Settings: Codable, Equatable {
     var keepAwake = true
     var weightStepKg = 2.5
     var weightStepLb = 5.0
+    enum CodingKeys: String, CodingKey {
+        case units, defaultRestSeconds, sound, vibration, keepAwake, weightStepKg, weightStepLb
+    }
     func weightStep(for units: WeightUnit) -> Double { units == .kg ? weightStepKg : weightStepLb }
     static func defaults(locale: Locale = .current) -> Settings {
         Settings(units: locale.region?.identifier == "US" ? .lb : .kg)

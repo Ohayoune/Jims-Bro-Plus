@@ -61,6 +61,16 @@ enum FixtureLoader {
             .deletingLastPathComponent()   // the checkout root
     }
 
+    /// A document from the repository itself, for the tests that pin code to the docs.
+    ///
+    /// Nil when the checkout is out of reach, which it is under XCTest on a simulator: the
+    /// test bundle runs inside the simulator's sandbox and the source tree is on the host.
+    /// The pinning tests therefore skip on that route and run on the other two (`swift test`
+    /// and `tools/check_core.py`, both of which execute on the host).
+    static func doc(_ path: String) -> String? {
+        try? String(contentsOf: sourceRoot.appendingPathComponent(path), encoding: .utf8)
+    }
+
     static func manifest() throws -> FixtureManifest {
         try JSONDecoder().decode(FixtureManifest.self, from: data("manifest.json"))
     }

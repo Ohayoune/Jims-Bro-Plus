@@ -9,11 +9,8 @@ import XCTest
 final class RestoreTests: XCTestCase {
     private let now = CoreTestSupport.now
 
-    private func makeRoot() -> URL {
-        URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("JimmsBroRestoreTests-\(UUID().uuidString)", isDirectory: true)
-    }
-    private func discard(_ root: URL) { try? FileManager.default.removeItem(at: root) }
+    private func makeRoot() -> URL { CoreTestSupport.makeRoot() }
+    private func discard(_ root: URL) { CoreTestSupport.discard(root) }
 
     private func session(_ name: String, daysAgo: Int) -> Session {
         var s = CoreTestSupport.completed([10, 10, 8],

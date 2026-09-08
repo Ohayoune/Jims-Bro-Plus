@@ -2,33 +2,16 @@ import Foundation
 
 enum Prompts {
     static let marker = PlanImport.promptMarker
-    static let planTemplate = #"""
+    /// The prompt's two halves, with `exampleTemplate` between them. One copy of the example
+    /// JSON: it used to be written out verbatim twice — here and in `exampleTemplate` — with
+    /// nothing to notice when they drifted apart. `M9` pins the whole thing to docs/PROMPT.md.
+    static let planHeader = #"""
 JIMMSBRO-PLAN-PROMPT-V1
 Convert my workout plan to JSON for a workout-tracking app. Reply with ONE complete JSON object in a single code block tagged json, with no other text.
 
 FORMAT (schemaVersion 1):
-{
-  "schemaVersion": 1,
-  "name": "Push Pull Legs",
-  "units": "{{units}}",
-  "defaultRestSeconds": {{defaultRest}},
-  "schedule": "rotation",
-  "cycle": ["Push", "rest"],
-  "days": [
-    {
-      "name": "Push",
-      "exercises": [
-        { "name": "Barbell Bench Press", "sets": 4, "reps": "6-8", "weight": 80, "restSeconds": 150, "notes": "Pause on chest" },
-        { "name": "Incline Dumbbell Press", "sets": [ { "reps": 12, "weight": 24 }, { "reps": 10, "weight": 26 }, { "reps": 8, "weight": 28 } ], "repRange": "8-12", "restSeconds": 90 },
-        { "name": "Lateral Raise", "group": "A", "sets": 3, "reps": 15, "repRange": "12-15", "weight": 10, "restSeconds": 60 },
-        { "name": "Tricep Pushdown", "group": "A", "sets": 3, "reps": 12, "repRange": "10-12", "weight": 25, "restSeconds": 60, "drops": [ { "weight": 20 }, { "weight": 15 } ] },
-        { "name": "Plank", "sets": 3, "durationSeconds": 45, "warningBeep": true, "bodyweight": true, "restSeconds": 45 },
-        { "name": "Dead Hang", "sets": 2, "durationSeconds": "max", "bodyweight": true, "restSeconds": 60 }
-      ]
-    }
-  ]
-}
-
+"""#
+    static let planRules = #"""
 RULES
 - days: training days in order; one workout = one day. Do not list rest days as days.
 - schedule: rotation = repeat days in order. Use weekday only for a fixed weekly schedule; give every day a weekday (monday…sunday) and omit cycle.
@@ -50,6 +33,10 @@ RULES
 
 My plan:
 """#
+    static var planTemplate: String {
+        // A blank line between the example and the rules, exactly as docs/PROMPT.md §1 has it.
+        planHeader + "\n" + exampleTemplate + "\n\n" + planRules + "\n"
+    }
     static let fixTemplate = #"""
 JIMMSBRO-PLAN-PROMPT-V1
 The workout app rejected the JSON with these errors:
@@ -81,6 +68,11 @@ Fix them and reply with the complete corrected JSON only, in one code block tagg
 }
 """#
     static var exampleJSON: String { substitute(exampleTemplate, settings: Settings()) }
+    /// The example with explicit placeholders filled in, for the test that checks it appears
+    /// in the prompt exactly once and is itself importable.
+    static func exampleJSONText(units: WeightUnit, defaultRest: Int) -> String {
+        substitute(exampleTemplate, settings: Settings(units: units, defaultRestSeconds: defaultRest))
+    }
     private static func substitute(_ template: String, settings: Settings) -> String {
         template.replacingOccurrences(of: "{{units}}", with: settings.units.rawValue)
             .replacingOccurrences(of: "{{defaultRest}}", with: String(settings.defaultRestSeconds))

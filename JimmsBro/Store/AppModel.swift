@@ -62,12 +62,12 @@ enum SaveFailure: Equatable {
     /// History and stats show the active plan's units, else the setting.
     var displayUnits: WeightUnit { activePlan?.units ?? settings.units }
 
-    /// `scheduler` and `alerts` default to the inert recorder used by tests and previews;
+    /// `scheduler` and `alerts` default to `SilentAlerts`, which does nothing;
     /// `JimmsBroApp` injects the system implementations, which live in Features because they
     /// need UserNotifications, AVFoundation and UIKit.
     init(store: Store,
-         scheduler: NotificationScheduling = RecordingAlerts(),
-         alerts: AlertPlaying = RecordingAlerts(),
+         scheduler: NotificationScheduling = SilentAlerts(),
+         alerts: AlertPlaying = SilentAlerts(),
          sampleJSON: @escaping () -> String? = AppModel.bundledSampleJSON,
          practiceJSON: @escaping () -> String? = AppModel.bundledPracticeJSON) {
         self.store = store

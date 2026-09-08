@@ -56,6 +56,14 @@ func XCTAssertEqual<T: FloatingPoint>(_ a: @autoclosure () throws -> T, _ b: @au
     catch { XCTFail("\(message()) threw \(error)",file:file,line:line) }
 }
 struct CoreUnwrapError: Error {}
+/// The portable runner's stand-in for XCTest's skip. It runs on the host, where every file a
+/// test might pin against is readable, so nothing here should ever throw it — but the type has
+/// to exist for the test bodies to compile.
+struct XCTSkip: Error, CustomStringConvertible {
+    let description: String
+    init(_ message: String = "") { description = message }
+}
+
 func XCTUnwrap<T>(_ value: @autoclosure () throws -> T?, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line) throws -> T {
     CoreChecks.assertions += 1
     guard let result = try value() else { XCTFail("\(message()) unexpected nil",file:file,line:line); throw CoreUnwrapError() }

@@ -38,7 +38,9 @@ struct VersionedFile<Payload: Codable>: Codable {
 
     init(from decoder: Decoder) throws {
         let version = try decoder.container(keyedBy: VersionKey.self).decode(Int.self, forKey: .fileVersion)
-        guard version == storeFileVersion else { throw StoreError.unsupportedFileVersion(version) }
+        // `<=`, not `==`: a v2 reader must still read a v1 file, which is the whole point of
+        // writing a version down. A *newer* file is the one it cannot know how to read.
+        guard version <= storeFileVersion else { throw StoreError.unsupportedFileVersion(version) }
         payload = try Payload(from: decoder)
     }
 

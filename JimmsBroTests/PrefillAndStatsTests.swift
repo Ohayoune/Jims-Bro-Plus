@@ -231,6 +231,10 @@ final class PrefillAndStatsTests: XCTestCase {
         s.steps[0].status = .skipped; XCTAssertNil(SessionStats.blockDuration(0,session:s))
         let sessions = (0..<1000).map { CoreTestSupport.completed(start:now.addingTimeInterval(-Double($0)*86400)) }
         let start = Date(); let points = ExerciseHistory(sessions:sessions).series(name:"Bench Press",units:.kg)
-        XCTAssertEqual(points.count,1000); XCTAssertLessThan(Date().timeIntervalSince(start),0.05)
+        XCTAssertEqual(points.count,1000)
+        // A ceiling, not a measurement: it is here to catch an accidental O(n^2), so it is far
+        // above anything a healthy machine takes and does not fail on a busy one or at -Onone.
+        let elapsed = Date().timeIntervalSince(start)
+        XCTAssertLessThan(elapsed,2.0,"1000 sessions of history took \(elapsed)s")
     }
 }

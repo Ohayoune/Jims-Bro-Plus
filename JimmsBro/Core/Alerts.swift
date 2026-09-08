@@ -5,7 +5,7 @@ enum AlertSound: String, Equatable, Sendable { case standard, warning }
 
 /// A request the engine's effects turned into something the system can schedule.
 struct NotificationRequest: Equatable, Sendable {
-    var id: String
+    var id: AlertIdentifier
     var date: Date
     var title: String
     var body: String
@@ -36,7 +36,7 @@ protocol NotificationScheduling: AnyObject, Sendable {
     func requestAuthorization() async -> Bool
     func authorizationState() async -> NotificationState
     func schedule(_ request: NotificationRequest) async
-    func cancel(ids: [String]) async
+    func cancel(ids: [AlertIdentifier]) async
 }
 
 /// Confirmation the app gives an action rather than a clock. Silent — vibration only — so it
@@ -52,77 +52,54 @@ protocol AlertPlaying: AnyObject, Sendable {
 }
 
 /// Every notification identifier the app uses, so cancelling "everything" is not a guess.
-enum AlertIdentifier {
-    static let rest = "rest-timer"
-    static let setEnd = "set-end"
-    static let setWarning = "set-warning"
-    static let setMinimum = "set-minimum"
-    static let all = [rest, setEnd, setWarning, setMinimum]
+/// An enum rather than four constants: the engine used to spell these out as string literals
+/// in ten places, where a typo would have scheduled an alert nothing ever cancelled (v1.2).
+enum AlertIdentifier: String, CaseIterable, Equatable, Sendable {
+    case rest = "rest-timer"
+    case setEnd = "set-end"
+    case setWarning = "set-warning"
+    case setMinimum = "set-minimum"
+
+    static var all: [AlertIdentifier] { allCases }
+    /// The three a running timed set may have scheduled, cancelled together when it ends.
+    static let work: [AlertIdentifier] = [.setEnd, .setWarning, .setMinimum]
+
+    /// What the notification's title says. The body comes from the engine, which knows the
+    /// workout; the title belongs to the identifier.
+    var title: String {
+        switch self {
+        case .rest: return "Rest over"
+        case .setEnd: return "Time!"
+        case .setWarning: return "Almost there"
+        case .setMinimum: return "Minimum reached"
+        }
+    }
+
+    /// Only the warning gets the short bundled sound; everything else uses the standard one.
+    var sound: AlertSound { self == .setWarning ? .warning : .standard }
 }
 
-/// Turns an engine effect into a system request: the title and sound live here rather than in
-/// the engine, which only knows ids, dates and bodies.
+/// Turns an engine effect into a system request. The identifier carries its own title and
+/// sound; the engine supplies only the moment and the body, which is all it knows.
 enum AlertRouting {
-    static func request(id: String, at date: Date, body: String) -> NotificationRequest {
-        NotificationRequest(id: id, date: date, title: title(for: id), body: body,
-                            sound: id == AlertIdentifier.setWarning ? .warning : .standard)
-    }
-
-    static func title(for id: String) -> String {
-        switch id {
-        case AlertIdentifier.rest: return "Rest over"
-        case AlertIdentifier.setEnd: return "Time!"
-        case AlertIdentifier.setWarning: return "Almost there"
-        case AlertIdentifier.setMinimum: return "Minimum reached"
-        default: return "Jimm's Bro+"
-        }
+    static func request(id: AlertIdentifier, at date: Date, body: String) -> NotificationRequest {
+        NotificationRequest(id: id, date: date, title: id.title, body: body, sound: id.sound)
     }
 }
 
-/// Records what would have been scheduled or played. Used by tests and by previews.
-final class RecordingAlerts: NotificationScheduling, AlertPlaying, @unchecked Sendable {
-    private let lock = NSLock()
-    private var _scheduled: [NotificationRequest] = []
-    private var _cancelled: [String] = []
-    private var _played: [TimerBeep] = []
-    private var _feedback: [Feedback] = []
-    var authorized = true
-
-    var scheduled: [NotificationRequest] { lock.withLock { _scheduled } }
-    var cancelled: [String] { lock.withLock { _cancelled } }
-    var played: [TimerBeep] { lock.withLock { _played } }
-    var feedback: [Feedback] { lock.withLock { _feedback } }
-    /// The requests that have not since been cancelled, in scheduling order.
-    var pending: [NotificationRequest] {
-        lock.withLock {
-            var live: [String: NotificationRequest] = [:]
-            var order: [String] = []
-            for request in _scheduled {
-                if live[request.id] == nil { order.append(request.id) }
-                live[request.id] = request
-            }
-            for id in _cancelled where live[id] != nil { live[id] = nil }
-            return order.compactMap { live[$0] }
-        }
-    }
-
-    var asked = false
-    func requestAuthorization() async -> Bool { asked = true; return authorized }
-    func authorizationState() async -> NotificationState {
-        guard asked else { return .notAsked }
-        return authorized ? .allowed : .denied
-    }
-    func schedule(_ request: NotificationRequest) async {
-        lock.withLock { _scheduled.append(request); _cancelled.removeAll { $0 == request.id } }
-    }
-    func cancel(ids: [String]) async { lock.withLock { _cancelled.append(contentsOf: ids) } }
-    func play(_ beep: TimerBeep, sound: Bool, vibration: Bool) {
-        lock.withLock { if sound || vibration { _played.append(beep) } }
-    }
-    func play(feedback: Feedback, vibration: Bool) {
-        lock.withLock { if vibration { _feedback.append(feedback) } }
-    }
-    func reset() { lock.withLock { _scheduled = []; _cancelled = []; _played = []; _feedback = [] } }
+/// The app's own do-nothing implementation, used as the default so `AppModel` can be built
+/// without either the system frameworks or a test double. Notifications and beeps are the two
+/// things the app asks the system for; a model that has neither simply stays quiet.
+///
+/// The recorder that *remembers* what was asked for is a test double and lives in the test
+/// target (`JimmsBroTests/CoreTestSupport.swift`); it used to ship inside the app.
+final class SilentAlerts: NotificationScheduling, AlertPlaying, @unchecked Sendable {
+    func requestAuthorization() async -> Bool { false }
+    func authorizationState() async -> NotificationState { .notAsked }
+    func schedule(_ request: NotificationRequest) async {}
+    func cancel(ids: [AlertIdentifier]) async {}
+    func play(_ beep: TimerBeep, sound: Bool, vibration: Bool) {}
+    func play(feedback: Feedback, vibration: Bool) {}
 }
 
 extension NSLock {

@@ -82,7 +82,7 @@ final class LibraryCalendarPromptTests: XCTestCase {
         XCTAssertThrowsError(try library.startDay(planId:p.id,dayIndex:1,now:now)) { XCTAssertEqual($0 as? LibraryError,.sessionInProgress) }
         library.apply(.logSet(step:0,result:.reps(count:12,weight:60)),now:now.addingTimeInterval(30))
         let switchEffects = try library.startDay(planId:p.id,dayIndex:1,now:now.addingTimeInterval(40),switching:.finish)
-        XCTAssertTrue(switchEffects.contains(.cancelNotification(id:"rest-timer")))
+        XCTAssertTrue(switchEffects.contains(.cancelNotification(id:.rest)))
         XCTAssertEqual(library.sessions.count,1); XCTAssertEqual(library.plans[0].cyclePosition,0)
         XCTAssertEqual(library.engine?.phase,.working(step:0)); XCTAssertEqual(library.engine?.session.dayName,"Pull")
         try library.startDay(planId:p.id,dayIndex:2,now:now.addingTimeInterval(50),switching:.discard)

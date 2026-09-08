@@ -174,6 +174,25 @@ final class DefectFixesTests: XCTestCase {
         XCTAssertNil(model.saveFailure)
     }
 
+    // Q20: one grouping rule, two screens. The Overview and Session detail had each written
+    // this out, and a superset is where the two disagreed.
+    func testSessionBlocksGroupsAndNamesTheSameWayForEveryScreen() throws {
+        let plan = try imported(Self.supersetJSON)
+        let session = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: now))
+        let blocks = SessionBlocks.indices(session)
+        XCTAssertEqual(blocks.count, 2, "the superset is one block, the curl another")
+        XCTAssertEqual(blocks.flatMap { $0 }.sorted(), Array(session.steps.indices))
+        // Ordered by where the steps sit, so a deferred block moves with them.
+        XCTAssertEqual(blocks.map { $0.first }, blocks.map { $0.first }.sorted { ($0 ?? 0) < ($1 ?? 0) })
+
+        XCTAssertEqual(SessionBlocks.names(session, blocks[0]), ["Bench Press", "Row"])
+        XCTAssertEqual(SessionBlocks.names(session, blocks[1]), ["Curl"])
+        XCTAssertTrue(SessionBlocks.namesRows(session, blocks[0]), "a superset must name its rows")
+        XCTAssertFalse(SessionBlocks.namesRows(session, blocks[1]))
+        XCTAssertEqual(SessionBlocks.title(session, blocks[0]), "Bench Press + Row",
+                       "no duration until the block is finished")
+    }
+
     // Q9: Replace all deletes before it writes, so its failure message must not claim that
     // nothing changed. Merge's may, because a merge only ever adds.
     func testRestoreFailureTellsTheTruthAboutEachMode() {

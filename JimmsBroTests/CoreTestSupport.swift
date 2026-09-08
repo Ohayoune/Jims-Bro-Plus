@@ -34,6 +34,59 @@ enum CoreTestSupport {
           "cycle": ["Push"], "days": [ { "name": "Push", "exercises": [ \(exercise) ] } ] }
         """
     }
+    /// A fresh, empty store directory, and the way to get rid of it. Every store-backed test
+    /// wants one; eight files had pasted their own copy.
+    static func makeRoot(_ label: String = "Tests") -> URL {
+        URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("JimmsBro\(label)-\(UUID().uuidString)", isDirectory: true)
+    }
+    static func discard(_ root: URL) { try? FileManager.default.removeItem(at: root) }
     static func utc() -> Calendar { var c = Calendar(identifier:.gregorian); c.timeZone = TimeZone(secondsFromGMT:0)!; return c }
     static func date(_ day: Int, hour: Int = 12) -> Date { utc().date(from:DateComponents(year:2026,month:9,day:day,hour:hour))! }
+}
+
+/// Records what would have been scheduled or played. Used by tests and by previews.
+final class RecordingAlerts: NotificationScheduling, AlertPlaying, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _scheduled: [NotificationRequest] = []
+    private var _cancelled: [AlertIdentifier] = []
+    private var _played: [TimerBeep] = []
+    private var _feedback: [Feedback] = []
+    var authorized = true
+
+    var scheduled: [NotificationRequest] { lock.withLock { _scheduled } }
+    var cancelled: [AlertIdentifier] { lock.withLock { _cancelled } }
+    var played: [TimerBeep] { lock.withLock { _played } }
+    var feedback: [Feedback] { lock.withLock { _feedback } }
+    /// The requests that have not since been cancelled, in scheduling order.
+    var pending: [NotificationRequest] {
+        lock.withLock {
+            var live: [AlertIdentifier: NotificationRequest] = [:]
+            var order: [AlertIdentifier] = []
+            for request in _scheduled {
+                if live[request.id] == nil { order.append(request.id) }
+                live[request.id] = request
+            }
+            for id in _cancelled where live[id] != nil { live[id] = nil }
+            return order.compactMap { live[$0] }
+        }
+    }
+
+    var asked = false
+    func requestAuthorization() async -> Bool { asked = true; return authorized }
+    func authorizationState() async -> NotificationState {
+        guard asked else { return .notAsked }
+        return authorized ? .allowed : .denied
+    }
+    func schedule(_ request: NotificationRequest) async {
+        lock.withLock { _scheduled.append(request); _cancelled.removeAll { $0 == request.id } }
+    }
+    func cancel(ids: [AlertIdentifier]) async { lock.withLock { _cancelled.append(contentsOf: ids) } }
+    func play(_ beep: TimerBeep, sound: Bool, vibration: Bool) {
+        lock.withLock { if sound || vibration { _played.append(beep) } }
+    }
+    func play(feedback: Feedback, vibration: Bool) {
+        lock.withLock { if vibration { _feedback.append(feedback) } }
+    }
+    func reset() { lock.withLock { _scheduled = []; _cancelled = []; _played = []; _feedback = [] } }
 }
