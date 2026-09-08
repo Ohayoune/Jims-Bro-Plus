@@ -163,8 +163,10 @@ Leads with "**Workout saved**", then one line of what happened — "Push · 48 m
 
 *(v1 printed both sessions' raw sets — "10, 8@60 · last 10, 9@60 · kg" — and left the reader to do the subtraction, with the block duration beside it as if it mattered as much.)*
 
+**v1.5 (D54, §6.30)**: a goal this workout was the first to reach is said under the headline — "Goal reached: Barbell Bench Press 100 kg × 5" — in the reserved green, like a record.
+
 ### 4.10 History
-Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly. Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1).
+Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly. Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1). **v1.5 (D54, §6.30)**: a **Goals** section at the top, under Metrics — each goal's exercise, its line ("100 kg × 5 · best 82.5 kg × 5 · by 1 Dec", or "reached 3 Sep" in green) and a bar of how far along it is; **Set a goal**; swipe to remove. An exercise's own screen has **Set a goal** too.
 
 ### 4.11 Settings
 Units, default rest, **warm-up length** (D32, v1.2), **between exercises** (D33, v1.2), sound, vibration, notifications state, keep awake, weight step, **smallest weight change** (D35, v1.2), Export backup, **Import backup** (D31, v1.1), **Export history (CSV)** and **Import history (CSV)** (D45, v1.3), Delete all data, About — the version, the counts, and **How the app works** (D47, v1.4, §6.24), which reopens the introduction with **Done** in place of Choose a plan. (The home-chart metric row went with the sparkline in v1.1's R3.)
@@ -505,6 +507,15 @@ A v1.2 defect fixed here, because the splice goes through the same `apply`: a pl
 - **The prompt** (PROMPT.md §3) plans *steps* and carries a cadence sentence by mode: *one step is one workout's targets; I move to the next step only when I hit the current one, so make each step a small, achievable increase* — or *one step is one calendar week, starting the day I save it*. **The reply** (PROGRESSION_FORMAT.md) says `steps`; `weeks` is read as the alias with a cleanup warning. Paths say `steps[…]` and the sentences say "step".
 - **Planning**: the screen asks how many steps (4 / 6 / 8 / 12) and how to advance — **When I hit the target** (default) or **Every week** — and the choice is the progression's mode; the reply never sets it.
 
+### 6.30 Goals (D54, v1.5)
+"Goals or milestones — also be a feature." A goal per exercise: a target you name — a weight for so many reps, a hold of so long, or a number of reps — with an optional date.
+
+- **`Goal`** (`Core/Goals.swift`): the exercise (matched by §6.9), its units (sessions in the other unit never count, D10), the target, an optional date (said, never enforced), and — once reached — the date and the workout that did it. Kept in `goals.json` (§8.1), all of them rewritten when one changes, and in the backup (§8.5). Independent of any plan: a goal outlives the plan and the progression it was reached under.
+- **Progress** (`Goals.progress`): the best logged set that counts, and the fraction of the target. For a weight goal only sets at or above its reps count — a heavier set for fewer reps is not the goal; for a hold the longest; for reps the most.
+- **Reached**: when a workout completes (`PlanLibrary.completeSession`, beside the rotation's advance and the progression's steps), every goal it is the first to meet is marked with that workout. Reached stays reached; a later workout is not credited. The Summary says "Goal reached: …" for that workout (§4.9).
+- **Where**: History's Goals section (§4.10) and the exercise's own screen. One sheet sets one: the exercise, spelt as in history (suggestions from history and the plans), the kind, the numbers, the date.
+- **The chatbot knows**: the progression prompt (PROMPT.md §3, `{{goals}}`) carries the plan's unreached goals in the plan's units as a MY GOALS block, so the steps it plans climb towards them. The app never sets weights from goals itself: the chatbot plans, the app runs (D12).
+
 ### 6.12 Calendar projection
 `Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.
 - Past and today: `.completed` for days with ≥ 1 completed session (any plan). Past days without a session are `.none`, never `.rest` — a day you didn't train is not a scheduled rest day.
@@ -623,6 +634,7 @@ struct Issue: Codable, Equatable { var severity: Severity; var code: String; var
   plans.json               { "fileVersion": 1, "activePlanId": UUID?, "plans": [Plan] }
   active-session.json      { "fileVersion": 1, ...ActiveSession }   present only during a workout
   draft.json               { "fileVersion": 1, ...PlanDraft }       present only while a plan is built day by day (D52, v1.5)
+  goals.json               { "fileVersion": 1, "goals": [Goal] }      present once a goal is set (D54, v1.5)
   sessions/<uuid>.json     { "fileVersion": 1, ...Session }          one file per completed session
 ```
 Application Support is included in iCloud/iTunes device backups by default. Set file protection to `.completeUntilFirstUserAuthentication` so background writes never fail on a locked phone.
@@ -637,7 +649,7 @@ On launch, load settings, plans, active session, and all session files into memo
 Every logged set carries `loggedAt`, reps or seconds, weight and the session's unit, and sessions are immutable snapshots. A per-exercise chart over time (D13) is `ExerciseHistory.series` over the in-memory session list. No index, no migration, no extra file.
 
 ### 8.5 Export and restore
-`{ "exportedAt", "appVersion", "fileVersion": 1, "settings", "plans", "sessions": [...], "activePlanId" }` written to a temp file and offered via ShareLink. `activePlanId` was added in v1.1 and is optional, so a v1 backup still restores — it just leaves the first plan active.
+`{ "exportedAt", "appVersion", "fileVersion": 1, "settings", "plans", "sessions": [...], "activePlanId", "goals" }` written to a temp file and offered via ShareLink. `activePlanId` was added in v1.1 and is optional, so a v1 backup still restores — it just leaves the first plan active. `goals` (D54, v1.5) is optional too: Replace all takes the backup's, Merge adds the ones not already here by id, and a backup without any restores with none.
 
 **Restoring** (D31, v1.1): Settings → Import backup reads the file and reports its date, its app version, how many plans and workouts it holds, and how many of each a Merge would actually add. Nothing is written until **Merge** or **Replace all** is chosen. Merge adds only ids not already on disk and leaves the current settings, the active plan and anything edited since the backup untouched; Replace all empties the store first and takes the backup's settings and active plan. A running workout is discarded before either. A file that isn't a backup, or whose `fileVersion` is newer than this app's, is refused with a message before anything is written.
 

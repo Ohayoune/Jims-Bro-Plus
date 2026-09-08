@@ -27,6 +27,14 @@ struct SummaryView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    // D54 (v1.5): a goal this workout was the first to reach, in the colour
+                    // reserved for "this happened" (§4.0), like a record.
+                    ForEach(model.goalsReached(by: session)) { goal in
+                        Text(Goals.reachedLine(goal))
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.done)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 .padding(.vertical, 2)
                 .accessibilityElement(children: .combine)

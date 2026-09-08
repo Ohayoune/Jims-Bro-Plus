@@ -54,6 +54,8 @@ struct HistoryView: View {
                                 Label("Metrics", systemImage: "chart.bar")
                             }
                         }
+                        // D54 (v1.5): the goals, and how close each is.
+                        GoalsSection()
                         ForEach(model.historyMonths) { month in
                             Section(month.title) {
                                 ForEach(month.sessions) { session in

@@ -208,7 +208,7 @@ RULES
 - Return ALL JSON, never abbreviate with "...".
 
 MY PLAN
-{{plan}}{{history}}
+{{plan}}{{goals}}{{history}}
 """#
 
     /// D53 (v1.5): the sentence that says what a step is, by mode.
@@ -225,14 +225,17 @@ MY PLAN
     /// and there is any — the last sessions of every exercise in it. Kept under the paste bound
     /// by shortening the history first, never the plan.
     static func progression(plan: Plan, history: [Session], weeks: Int, includeHistory: Bool,
-                            settings: Settings, now: Date = Date(), mode: ProgressionMode = .calendar) -> String {
+                            settings: Settings, now: Date = Date(), mode: ProgressionMode = .calendar,
+                            goals: [Goal] = []) -> String {
         let increment = TargetText.number(settings.weightIncrement(for: plan.units))
+        let goalsBlock = goalsListing(plan: plan, goals: goals)
         func render(sessionsPerExercise: Int) -> String {
             let listing = includeHistory && sessionsPerExercise > 0
                 ? historyListing(plan: plan, history: history, now: now, sessionsPerExercise: sessionsPerExercise) : ""
             return progressionTemplate
                 .replacingOccurrences(of: "{{steps}}", with: String(weeks))
                 .replacingOccurrences(of: "{{cadence}}", with: cadence(mode))
+                .replacingOccurrences(of: "{{goals}}", with: goalsBlock.isEmpty ? "" : "\n\nMY GOALS\n" + goalsBlock)
                 .replacingOccurrences(of: "{{units}}", with: plan.units.rawValue)
                 .replacingOccurrences(of: "{{increment}}", with: increment)
                 .replacingOccurrences(of: "{{plan}}", with: planListing(plan))
@@ -247,6 +250,15 @@ MY PLAN
 
     /// Chat apps turn very long pastes into attachments (COPY_PASTE_NOTES.md); stay well under.
     static let progressionBound = 9_000
+
+    /// D54 (v1.5): the plan's unreached goals, one line each, so the steps climb towards them.
+    static func goalsListing(plan: Plan, goals: [Goal]) -> String {
+        let names = Set(plan.days.flatMap { $0.exercises.map { normalized($0.name) } })
+        return goals
+            .filter { $0.reachedAt == nil && $0.units == plan.units && names.contains(normalized($0.exerciseName)) }
+            .map(Goals.promptLine)
+            .joined(separator: "\n")
+    }
 
     /// "Push:\n- Barbell Bench Press: 4 × 6–8 · 80 kg · rest 150 s" — what the chatbot needs to
     /// know about the plan, without the JSON's weight.

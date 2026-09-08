@@ -216,3 +216,7 @@
 - v1.5 Z4: A `{}` step is still a step in performance mode — the plan's own targets, still to be earned — where in calendar mode a `{}` week touches nothing, as in v1.3. The two modes share every type and differ in three functions.
 - v1.5 Z4: The on-disk and reply names stay `weeks` and `progressionWeek`; the words on screen are *step* and *week* by mode. Renaming the fields would have meant a migration for a word.
 - v1.5 Z4: The mode is chosen on the planning screen and never set by the reply: the chatbot plans targets, the app decides how they are earned.
+- v1.5 Z5 (D54): A goal is **per exercise and independent of any plan** — a weight for so many reps, a hold, or reps, with a date that is said and never enforced. It outlives the plan and the progression it was reached under, which is why it has its own file rather than a place on the plan.
+- v1.5 Z5: For a weight goal **only sets at or above its reps count**. A heavier set for fewer reps is a different achievement, and calling it progress towards this one would be the app flattering you.
+- v1.5 Z5: A goal is **reached by the first workout that meets it**, marked when that workout completes, and stays reached. The Summary names it once, in the reserved green, like a record; History says the date from then on.
+- v1.5 Z5: The progression prompt carries the plan's unreached goals so the chatbot plans towards them; the app never sets a weight from a goal itself (D12).

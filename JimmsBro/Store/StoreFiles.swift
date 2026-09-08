@@ -57,6 +57,11 @@ struct PlansPayload: Codable, Equatable {
     var plans: [Plan]
 }
 
+/// D54 (v1.5): the body of `goals.json`.
+struct GoalsPayload: Codable, Equatable {
+    var goals: [Goal]
+}
+
 /// The backup document of SPEC §8.5. Its shape is the on-disk shape, so restoring it later is trivial.
 struct ExportDocument: Codable, Equatable {
     var exportedAt: Date
@@ -68,6 +73,8 @@ struct ExportDocument: Codable, Equatable {
     /// v1.1 (D31): which plan was active. Optional, so a backup written by v1 still decodes;
     /// restoring one of those just leaves the first plan active.
     var activePlanId: UUID?
+    /// v1.5 (D54): the goals. Optional, so a backup written before them still restores.
+    var goals: [Goal]? = nil
 }
 
 /// D31 (v1.1): what a backup holds, so Settings can say so before anything is applied.

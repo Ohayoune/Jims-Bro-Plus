@@ -39,7 +39,8 @@ if [[ -n "$SEED" ]]; then
   mkdir -p "$CONTAINER/Library/Application Support/JimmsBro"
   # v1.3: SEED_PROGRESSION=1 attaches a four-week progression to the seeded plan (D44).
   # v1.5: SEED_STEPS=1 makes that progression one of steps you earn (D53).
-  build/seed/seed "$CONTAINER" JimmsBro/Resources/SamplePlan.json ${SEED_PROGRESSION:+--progression} ${SEED_STEPS:+--steps} >/dev/null
+  # v1.5: SEED_GOALS=1 sets two goals, one already reached (D54).
+  build/seed/seed "$CONTAINER" JimmsBro/Resources/SamplePlan.json ${SEED_PROGRESSION:+--progression} ${SEED_STEPS:+--steps} ${SEED_GOALS:+--goals} >/dev/null
 fi
 
 xcrun simctl terminate "$DEVICE" com.ohayoune.jimmsbro 2>/dev/null || true
