@@ -222,7 +222,26 @@ private struct CalendarView: View {
             }
 
             if let line = selectedLine(days) {
-                Text(line).font(.footnote).foregroundStyle(.secondary)
+                // A completed day's line is the way into it (D39, v1.2). v1.1 wanted a second
+                // tap on the cell, which nothing on the screen said you could do.
+                if let day = selectedDay(days), case let .completed(sessions) = day.entry,
+                   !sessions.isEmpty {
+                    Button {
+                        if sessions.count == 1 { openSessionId = sessions[0].id }
+                        else { choosingAmong = sessions }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(line)
+                            Image(systemName: "chevron.right").font(.caption2)
+                        }
+                        .font(.footnote)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+                    .accessibilityHint("Opens this workout")
+                } else {
+                    Text(line).font(.footnote).foregroundStyle(.secondary)
+                }
             }
         }
         .confirmationDialog("Which workout?", isPresented: Binding(
@@ -272,6 +291,11 @@ private struct CalendarView: View {
     private func step(_ delta: Int) {
         if let next = calendar.date(byAdding: .month, value: delta, to: month) { month = next }
         selected = nil
+    }
+
+    private func selectedDay(_ days: [CalendarDay]) -> CalendarDay? {
+        guard let selected else { return nil }
+        return days.first { calendar.isDate($0.date, inSameDayAs: selected) }
     }
 
     /// One line under the grid; rest days show nothing (SPEC §4.1).

@@ -34,10 +34,18 @@ struct HistoryView: View {
                         switch route {
                         case let .session(id): SessionDetailView(sessionId: id)
                         case let .exercise(name, units): ExerciseHistoryView(name: name, units: units)
+                        case .metrics: MetricsView()
                         }
                     }
                 } else {
                     List {
+                        // D39 (v1.2): the numbers over time, one tap from the list of workouts
+                        // that produced them.
+                        Section {
+                            NavigationLink(value: HistoryRoute.metrics) {
+                                Label("Metrics", systemImage: "chart.bar")
+                            }
+                        }
                         ForEach(model.historyMonths) { month in
                             Section(month.title) {
                                 ForEach(month.sessions) { session in
@@ -55,6 +63,7 @@ struct HistoryView: View {
                         switch route {
                         case let .session(id): SessionDetailView(sessionId: id)
                         case let .exercise(name, units): ExerciseHistoryView(name: name, units: units)
+                        case .metrics: MetricsView()
                         }
                     }
                 }
@@ -102,4 +111,6 @@ struct HistoryView: View {
 enum HistoryRoute: Hashable {
     case session(UUID)
     case exercise(name: String, units: WeightUnit)
+    /// D39 (v1.2): what a run of workouts adds up to.
+    case metrics
 }

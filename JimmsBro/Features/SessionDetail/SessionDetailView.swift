@@ -27,6 +27,14 @@ struct SessionDetailView: View {
                         Text(ExerciseText.summary(session))
                             .font(.footnote).foregroundStyle(.secondary)
                     }
+                    // D39 (v1.2): what the workout actually was. v1.1 opened a past session and
+                    // showed the sets back, and nothing else — not how long it took, how much of
+                    // that was rest, how much was lifted, or whether anything was a record.
+                    Section("Metrics") {
+                        ForEach(SessionMetrics.of(session, history: model.sessions)) { metric in
+                            MetricRow(metric: metric)
+                        }
+                    }
                     ForEach(Array(SessionBlocks.indices(session).enumerated()), id: \.offset) { _, indices in
                         Section {
                             ForEach(indices, id: \.self) { index in
@@ -225,5 +233,33 @@ struct EditResultSheet: View {
         guard let result else { return }
         save(result)
         dismiss()
+    }
+}
+
+
+/// D39 (v1.2): one metric, in the app's one list language (§4.0).
+struct MetricRow: View {
+    let metric: Metric
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(metric.label)
+                if let note = metric.note {
+                    Text(note)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 12)
+            Text(metric.value)
+                .font(.body.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(metric.label), \(metric.value)"
+                            + (metric.note.map { ", \($0)" } ?? ""))
     }
 }
