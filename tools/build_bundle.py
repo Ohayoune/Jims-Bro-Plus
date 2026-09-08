@@ -9,9 +9,13 @@ but they are in the zip.
 
 Both outputs are derived: edit the real files, then run this. The zip's `examples/` must stay
 byte-identical to what `generate_fixtures.py` produces, so this script refuses to write a zip
-whose fixtures differ from the ones on disk.
+whose fixtures differ from the published ones — unless `--regenerated` is passed, which lifts
+the guard only after proving the fixtures on disk are exactly what the generator makes (v1.5:
+a feature that adds fixtures does so through the generator, never by hand).
 """
 import hashlib
+import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
@@ -31,6 +35,7 @@ BUNDLED = [
     "docs/ITERATION_3_PLAN.md",
     "docs/ITERATION_4_PLAN.md",
     "docs/ITERATION_5_PLAN.md",
+    "docs/ITERATION_6_PLAN.md",
     "docs/PRIVACY.md",
     "docs/APP_STORE.md",
     "docs/CODE_HEALTH_REVIEW.md",
@@ -49,14 +54,14 @@ LANGUAGE = {".md": "markdown", ".json": "json", ".py": "python"}
 
 HEADER = """# Jimm's Bro+ — complete handoff bundle
 
-This single file contains the entire design package for a native iOS workout app, so it can be uploaded or pasted into a chat with a coding assistant. The folder version of this package (with 111 fixture files under `examples/`) is the same content; the fixtures are not inlined here because `tools/generate_fixtures.py` (included below) recreates all of them.
+This single file contains the entire design package for a native iOS workout app, so it can be uploaded or pasted into a chat with a coding assistant. The folder version of this package (with 115 fixture files under `examples/`) is the same content; the fixtures are not inlined here because `tools/generate_fixtures.py` (included below) recreates all of them.
 
-The app itself is built: v1 (M0–M7), v1.1 (R0–R6), v1.2 (V0–V7) and v1.3 (X0–X5) are implemented and green. `docs/BUILD_STATUS.md` says what was actually run, and `docs/DECISIONS_LOG.md` records every decision taken where the docs were silent. The Swift sources are not in this bundle — they are in the folder, under `JimmsBro/`, `JimmsBroActivity/` and `JimmsBroTests/`.
+The app itself is built: v1 (M0–M7), v1.1 (R0–R6), v1.2 (V0–V8), v1.3 (X0–X6), v1.4 (Y0–Y5) and v1.5 (Z0–Z6) are implemented and green. `docs/BUILD_STATUS.md` says what was actually run, and `docs/DECISIONS_LOG.md` records every decision taken where the docs were silent. The Swift sources are not in this bundle — they are in the folder, under `JimmsBro/`, `JimmsBroActivity/` and `JimmsBroTests/`.
 
 How to use this bundle:
 1. Read `AGENTS.md` first (immediately below). It says what to read next and the hard rules.
-2. Recreate the folder: save each `### FILE:` section below to its path, then run `python3 tools/generate_fixtures.py` and `python3 tools/reference_import.py` (expect "111/111 fixtures match the manifest").
-3. Read `docs/BUILD_STATUS.md` to see where the build has got to, then `docs/ITERATION_2_PLAN.md`, `docs/ITERATION_3_PLAN.md` and `docs/ITERATION_4_PLAN.md` for what v1.1, v1.2 and v1.3 were.
+2. Recreate the folder: save each `### FILE:` section below to its path, then run `python3 tools/generate_fixtures.py` and `python3 tools/reference_import.py` (expect "115/115 fixtures match the manifest").
+3. Read `docs/BUILD_STATUS.md` to see where the build has got to, then `docs/ITERATION_2_PLAN.md` through `docs/ITERATION_6_PLAN.md` for what v1.1 to v1.5 were.
 
 Each file below starts with a line `### FILE: <path>` followed by its full content inside a five-backtick fence, so the three- and four-backtick fences inside the documents nest correctly.
 
@@ -75,7 +80,12 @@ def build_markdown() -> str:
     return "".join(parts)
 
 
-def build_zip(target: Path) -> None:
+def fixture_digests() -> dict:
+    return {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted((ROOT / "examples").rglob("*")) if p.is_file()}
+
+
+def build_zip(target: Path, regenerated: bool = False) -> None:
     """The folder package: the bundled documents plus every fixture, byte for byte."""
     fixtures = sorted(p for p in (ROOT / "examples").rglob("*") if p.is_file())
     existing = {}
@@ -84,15 +94,20 @@ def build_zip(target: Path) -> None:
             existing = {n: hashlib.sha256(old.read(n)).hexdigest()
                         for n in old.namelist() if n.startswith("examples/")}
 
-    changed = []
-    for path in fixtures:
-        name = str(path.relative_to(ROOT))
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        if name in existing and existing[name] != digest:
-            changed.append(name)
-    if changed:
+    on_disk = fixture_digests()
+    changed = [name for name, digest in on_disk.items() if name in existing and existing[name] != digest]
+    if changed and not regenerated:
         raise SystemExit("refusing to write: these fixtures differ from the published package, "
-                         "which is never allowed:\n  " + "\n  ".join(changed))
+                         "which is never allowed by hand. If a feature added or changed them through "
+                         "tools/generate_fixtures.py, run this with --regenerated.\n  " + "\n  ".join(changed))
+    if changed:
+        # The proof: regenerating changes nothing, so what is on disk is the generator's output.
+        subprocess.run([sys.executable, str(ROOT / "tools" / "generate_fixtures.py")], check=True,
+                       capture_output=True)
+        if fixture_digests() != on_disk:
+            raise SystemExit("refusing to write: the fixtures on disk are not what "
+                             "tools/generate_fixtures.py produces. Regenerate them and run again.")
+        print("fixtures changed through the generator: " + ", ".join(changed))
 
     with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as out:
         for name in BUNDLED + ["HANDOFF_BUNDLE.md"]:
@@ -106,6 +121,6 @@ if __name__ == "__main__":
     bundle.write_text(build_markdown())
     print(f"wrote {bundle.name} ({bundle.stat().st_size:,} bytes, {len(BUNDLED)} files)")
     package = ROOT / "JimmsBro-design-package.zip"
-    build_zip(package)
+    build_zip(package, regenerated="--regenerated" in sys.argv)
     with zipfile.ZipFile(package) as z:
         print(f"wrote {package.name} ({package.stat().st_size:,} bytes, {len(z.namelist())} entries)")

@@ -1,13 +1,13 @@
 # Jimm's Bro+ — complete handoff bundle
 
-This single file contains the entire design package for a native iOS workout app, so it can be uploaded or pasted into a chat with a coding assistant. The folder version of this package (with 111 fixture files under `examples/`) is the same content; the fixtures are not inlined here because `tools/generate_fixtures.py` (included below) recreates all of them.
+This single file contains the entire design package for a native iOS workout app, so it can be uploaded or pasted into a chat with a coding assistant. The folder version of this package (with 115 fixture files under `examples/`) is the same content; the fixtures are not inlined here because `tools/generate_fixtures.py` (included below) recreates all of them.
 
-The app itself is built: v1 (M0–M7), v1.1 (R0–R6), v1.2 (V0–V7) and v1.3 (X0–X5) are implemented and green. `docs/BUILD_STATUS.md` says what was actually run, and `docs/DECISIONS_LOG.md` records every decision taken where the docs were silent. The Swift sources are not in this bundle — they are in the folder, under `JimmsBro/`, `JimmsBroActivity/` and `JimmsBroTests/`.
+The app itself is built: v1 (M0–M7), v1.1 (R0–R6), v1.2 (V0–V8), v1.3 (X0–X6), v1.4 (Y0–Y5) and v1.5 (Z0–Z6) are implemented and green. `docs/BUILD_STATUS.md` says what was actually run, and `docs/DECISIONS_LOG.md` records every decision taken where the docs were silent. The Swift sources are not in this bundle — they are in the folder, under `JimmsBro/`, `JimmsBroActivity/` and `JimmsBroTests/`.
 
 How to use this bundle:
 1. Read `AGENTS.md` first (immediately below). It says what to read next and the hard rules.
-2. Recreate the folder: save each `### FILE:` section below to its path, then run `python3 tools/generate_fixtures.py` and `python3 tools/reference_import.py` (expect "111/111 fixtures match the manifest").
-3. Read `docs/BUILD_STATUS.md` to see where the build has got to, then `docs/ITERATION_2_PLAN.md`, `docs/ITERATION_3_PLAN.md` and `docs/ITERATION_4_PLAN.md` for what v1.1, v1.2 and v1.3 were.
+2. Recreate the folder: save each `### FILE:` section below to its path, then run `python3 tools/generate_fixtures.py` and `python3 tools/reference_import.py` (expect "115/115 fixtures match the manifest").
+3. Read `docs/BUILD_STATUS.md` to see where the build has got to, then `docs/ITERATION_2_PLAN.md` through `docs/ITERATION_6_PLAN.md` for what v1.1 to v1.5 were.
 
 Each file below starts with a line `### FILE: <path>` followed by its full content inside a five-backtick fence, so the three- and four-backtick fences inside the documents nest correctly.
 
@@ -65,6 +65,18 @@ as part of every milestone's green). Everything through Y5 is built and green. W
 the owner's: the device checklist, the Developer Program, a release Xcode, the LICENSE and the
 submission (`docs/APP_STORE.md` §1 and §6).
 
+`docs/ITERATION_6_PLAN.md` is the v1.5 plan (milestones **Z0–Z6**), the owner's notes after
+living with the app, with four readings put to the owner and chosen: a clearer Progression row
+and Copy prompt with the mechanism explained once (D50, `PromptText`), an **effort target** in
+the plan format — `inReserve`, reps or seconds short of failure (D51, `SetTarget.inReserve`,
+four fixtures) — **a plan in several pastes** for free chatbot tiers: the outline first, then one
+day per paste, through the ordinary importer (D52, `Core/PlanDraft.swift`, `draft.json`,
+PROMPT.md §4–5), **progression as steps you earn** by performance with the calendar kept as a
+mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** (D54,
+`Core/Goals.swift`, `goals.json`). Everything through Z6 is built and green; the v1.5 device
+rows (Z4, Z10, Z17, Z25, Z31) join the checklist. The reading of "a history for each exercise"
+as typed current numbers is parked by the owner's decision (the plan's last section).
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
@@ -115,7 +127,7 @@ A personal iPhone app that runs your workout for you: import a plan a chatbot wr
 
 Everything below is the design and handoff material the app was built from.
 
-This folder contains the design package and the app, built through **v1 (M0–M7)**, **v1.1 (R0–R6)**, **v1.2 (V0–V8)**, **v1.3 (X0–X6)** and **v1.4 (Y0–Y5)**: the Core import pipeline and session engine, the JSON store, every screen, the workout's five fixed zones, plan editing, backup and restore, v1.2's warm-up, timed walk between exercises, loadable weight suggestions, anchored calendar, metrics and Lock Screen / Dynamic Island activity, and v1.3's narrower Island, changing an exercise mid-workout, JSON edits at every size, history as CSV in and out, and Progression — the chatbot round-trip run the other way; and v1.4's four built-in plans, the introduction, a workout that opens the moment it exists, and the store readiness (an opaque icon, version 1.4 on every target, the export-compliance answer, the privacy policy and the submission page). Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the device checklist, which needs the owner's iPhone, and the submission itself — the Developer Program, a release Xcode and the form — which is the owner's to do from `docs/APP_STORE.md`. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
+This folder contains the design package and the app, built through **v1 (M0–M7)**, **v1.1 (R0–R6)**, **v1.2 (V0–V8)**, **v1.3 (X0–X6)**, **v1.4 (Y0–Y5)** and **v1.5 (Z0–Z6)**: the Core import pipeline and session engine, the JSON store, every screen, the workout's five fixed zones, plan editing, backup and restore, v1.2's warm-up, timed walk between exercises, loadable weight suggestions, anchored calendar, metrics and Lock Screen / Dynamic Island activity, and v1.3's narrower Island, changing an exercise mid-workout, JSON edits at every size, history as CSV in and out, and Progression — the chatbot round-trip run the other way; and v1.4's four built-in plans, the introduction, a workout that opens the moment it exists, and the store readiness (an opaque icon, version 1.4 on every target, the export-compliance answer, the privacy policy and the submission page); and v1.5's clearer Progression row and Copy prompt, an effort target (reps or seconds in reserve) in the plan format, a plan built in several pastes for free chatbot tiers, progression as steps you earn by performance with the calendar kept as a mode, and a goal per exercise. Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the device checklist, which needs the owner's iPhone, and the submission itself — the Developer Program, a release Xcode and the form — which is the owner's to do from `docs/APP_STORE.md`. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
 
 Run the iOS tests from this folder:
 
@@ -123,7 +135,7 @@ Run the iOS tests from this folder:
 xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-That is **259 tests** (4 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity, v1.3's Island timer range, exercise substitution, JSON splices, history CSV and Progression, and v1.4's start-before-the-side-effects rule, the four built-in plans and the introduction. Imports use the original 111 fixtures and manifest verbatim. There are no third-party dependencies, and the signing team is already set for both targets.
+That is **287 tests** (7 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity, v1.3's Island timer range, exercise substitution, JSON splices, history CSV and Progression, v1.4's start-before-the-side-effects rule, the four built-in plans and the introduction, and v1.5's effort target, the outline-then-days draft, the progression's earned steps and the goals. Imports use the 115 fixtures and the manifest verbatim (the original 111, plus four for the effort target). There are no third-party dependencies, and the signing team is already set for both targets.
 
 Core can also be checked with the independently installed Command Line Tools:
 
@@ -138,7 +150,7 @@ This portable runner compiles the actual Core sources in Swift 5 language mode a
 swift test
 ```
 
-runs Core as an ordinary Swift Package. This route had not compiled since `AppModel` became `@Observable` — `Package.swift` declared macOS 13 and Observation needs 14 — and v1.2's V1 fixed it. It is also where the four cases the simulator skips actually run: three pin `Prompts.swift` to `docs/PROMPT.md` and one pins the introduction's copy to the views' own source, all outside the simulator's sandbox. See `docs/BUILD_STATUS.md` for results and remaining verification.
+runs Core as an ordinary Swift Package. This route had not compiled since `AppModel` became `@Observable` — `Package.swift` declared macOS 13 and Observation needs 14 — and v1.2's V1 fixed it. It is also where the seven cases the simulator skips actually run: five pin `Prompts.swift` to `docs/PROMPT.md`, one pins the introduction's copy to the views' own source, and one pins the sentences of D50 to theirs — all outside the simulator's sandbox. See `docs/BUILD_STATUS.md` for results and remaining verification.
 
 An iOS simulator runtime must be installed in Xcode; the commands above name the iPhone 17 simulator (the one Xcode 27 ships), and any installed iPhone works.
 
@@ -166,6 +178,7 @@ fails when `HANDOFF_BUNDLE.md` or the zip has drifted from the files it is built
 | `docs/ITERATION_3_PLAN.md` | The v1.2 plan: milestones V0–V8 | both |
 | `docs/ITERATION_4_PLAN.md` | The v1.3 plan: milestones X0–X6 | both |
 | `docs/ITERATION_5_PLAN.md` | The v1.4 plan: milestones Y0–Y5 | both |
+| `docs/ITERATION_6_PLAN.md` | The v1.5 plan: milestones Z0–Z6, and the owner's readings of the notes | both |
 | `docs/PRIVACY.md` | The privacy policy the App Store needs a URL for | you |
 | `docs/APP_STORE.md` | The App Store submission: the order of things, every field, the review notes, the screenshots, the choices only you can make | you |
 | `docs/PROGRESSION_FORMAT.md` | The progression reply format (D44): fields, leniency, codes | both |
@@ -285,7 +298,7 @@ Rewritten in v1.1's R2 milestone. The v1 text is kept underneath each rule that 
 
 ### 4.1 Home (D18, rewritten in v1.1's R3)
 Three things, top to bottom, nothing else:
-1. **Start card**, which leads with the workout rather than with the calendar: the day's name as the headline ("Push"), a subtitle of the fragments that have data ("Push Pull Legs · 5 exercises · 48 min last time"), the day's first five exercise names and "and N more", then one button that says what it does — **Start Push**, **Resume Push · 23 min**, or, on a rest day, a "Rest day" headline with "Lower is next, Thu" and **Start Lower early**. **Preview** opens the day in Plan detail; **Another day** offers the plan's other days. **v1.3 (D44)**: when the plan carries a progression, the subtitle also says where it is — "· week 3 of 8"; the day after its last week, one line says "Your progression has run its course" with **Plan the next one**, which opens the plan. Nothing else on Home moves. No plans yet → "No plan yet" with **Add plan**, plus "Choose a built-in plan" (D46, v1.4, §6.23) and "Try a short practice workout". *(v1: "Next up · Pull" and a bare Start, which never said what you were about to do. v1.1–v1.3 offered "Try the sample plan" here — the owner's own Push Pull Legs, weights included, which is exactly wrong for a stranger.)*
+1. **Start card**, which leads with the workout rather than with the calendar: the day's name as the headline ("Push"), a subtitle of the fragments that have data ("Push Pull Legs · 5 exercises · 48 min last time"), the day's first five exercise names and "and N more", then one button that says what it does — **Start Push**, **Resume Push · 23 min**, or, on a rest day, a "Rest day" headline with "Lower is next, Thu" and **Start Lower early**. **Preview** opens the day in Plan detail; **Another day** offers the plan's other days; **Plan a progression** (D50, v1.5, §6.26) joins them only while the plan has no progression and every exercise on the day has a logged session, and opens the Progression screen. **v1.3 (D44)**: when the plan carries a progression, the subtitle also says where it is — "· week 3 of 8", or since v1.5 (D53) "· step 3 of 8", the lowest step among the day's exercises still climbing; when it has run its course, one line says so with **Plan the next one**, which opens the plan. Nothing else on Home moves. No plans yet → "No plan yet" with **Add plan**, plus "Choose a built-in plan" (D46, v1.4, §6.23) and "Try a short practice workout". *(v1: "Next up · Pull" and a bare Start, which never said what you were about to do. v1.1–v1.3 offered "Try the sample plan" here — the owner's own Push Pull Legs, weights included, which is exactly wrong for a stranger.)*
 2. **Calendar**: a **7-day strip of the current week** by default, with **Month** disclosing the full grid (7 columns, weeks as rows, ‹ › to change month, today outlined) and **Week** collapsing it again. Cells are at least 44 pt in both (P6). A day with a completed session shows a filled accent dot; a future day with a projected workout (§6.12) shows a hollow accent dot; a scheduled rest day shows a filled grey dot; a day the plan says nothing about shows no dot at all. Tapping a day shows one line under the grid: "Wed 10 · Legs · 52 min" (tap again → session detail), "Sat 13 · Push · projected" with a small **Start this** if it's today, or "Sun 14 · Rest day". Days with no dot show no line.
 3. **One activity line**: "2 workouts this week · 1 h 32 min", or "No workouts yet this week". "This week" is the calendar week containing today, the same seven days the strip above shows. *(v1 had a 44 pt sparkline whose metric changed on an undocumented tap. Both v1.1 reviews called it undiscoverable rather than quiet; `Sparkline`, `HomeMetric` and the Settings row that picked the metric were removed with it. `ExerciseHistory.series` — the per-exercise data behind the chart of D13/§10 — is untouched.)*
 
@@ -294,7 +307,7 @@ List of plans (active one marked). Tap → Plan detail. Primary action: **Add pl
 
 ### 4.3 Plan detail
 - Name, units, schedule, and the **repeat block**: the cycle as a row of chips, `Push · Pull · Legs · Push · Pull · Legs · Rest`, with "repeats every 7 days" beneath and the current position highlighted. Weekday plans show Mon…Sun with the day name or "rest" under each.
-- **Progression** (D44, v1.3, §6.21): one row under the repeat block — "Plan it", "Week 3 of 8" or "Finished" — opening the Progression screen: the period (4 / 6 / 8 / 12 weeks), **Use my history** when there is any, the three chatbot steps, **Paste progression**, a review of every exercise's weeks with the material warnings in yellow, **Save progression**. With one saved, the same screen reads it back, week by week with this week's targets first, and offers **Plan the next one** and Remove.
+- **Progression** (D44, v1.3, §6.21): one row under the repeat block — "Plan it", "Week 3 of 8", "Step 3 of 8" (D53) or "Finished" — with, since v1.5 (D50), a second line saying what it is ("A chatbot plans your next steps from what you have lifted") and the accent chevron every row that opens a screen has, opening the Progression screen: the period (4 / 6 / 8 / 12 weeks), **Use my history** when there is any, the three chatbot steps, **Paste progression**, a review of every exercise's weeks with the material warnings in yellow, **Save progression**. With one saved, the same screen reads it back, week by week with this week's targets first, and offers **Plan the next one** and Remove.
 - Days: each expands to its exercises (sets, target, rest, drops, rep range).
 - **Editing** (D29, v1.1): tapping an exercise opens a sheet for its name, set count, reps, rep range, weight and rest. Edit mode reorders and deletes exercises within a day; the day header's menu renames the day and duplicates it. Every change goes back through the import pipeline, and one it would refuse says why rather than appearing to work.
 - **JSON edits** (D43, v1.3, §6.19): the exercise sheet's **Edit as JSON** opens the exercise's own JSON — for what the fields cannot say: one set unlike the others, drop sets, a warning beep. The day's menu has **Add exercise** (a template to fill in, or a pasted list) and **Edit day as JSON**. One sheet does all of them: monospace text, a Paste button, the friendly error sentence with the real path behind Details, Save. Every Save is a `PlanEdit.Operation` through the import pipeline.
@@ -306,7 +319,8 @@ The chatbot round-trip is this app's premise, and the v1 screen — a JSON text 
 
 - **Choose a built-in plan** (D46, v1.4, §6.23), first in the list: one screen with the four routines the app ships — the name, a line, "3 days a week · about 45 min · barbell, rack, bench…", who it is for — and, beneath them, the sentence that says to build your own. Tapping one opens the same **Review plan** sheet a pasted plan gets, with the routine's paragraph on top; **Save plan** saves it like any plan. Not offered when the sheet is editing one plan's JSON.
 - **Paste plan**, the one you use when the chatbot's reply is already on the clipboard. It imports immediately; the button does nothing when the clipboard holds no text (O3).
-- **Create with a chatbot**, three numbered steps: 1 **Copy prompt** (the button reads "Copied" and goes back on its own after about two seconds), 2 paste it into your chatbot and describe your training, 3 copy its reply and come back. The draft in the editor survives leaving the app.
+- **Create with a chatbot**, three numbered steps: 1 **Copy prompt** (the accent button since v1.5, D50; it reads "Copied" and goes back on its own after about two seconds) beside the sentence that explains the mechanism — "Copy the prompt. It tells the chatbot the exact format the app reads, so its reply pastes straight back in." — 2 paste it into your chatbot and describe your training, 3 copy its reply and come back. The section's footer says the other half: "The app never talks to the chatbot itself; you carry the text both ways." The draft in the editor survives leaving the app.
+- **Build it day by day** (D52, v1.5, §6.28), beneath the three steps: the same round-trip in several pastes. **Copy outline prompt** asks the chatbot for the plan's outline — name, units, schedule, the day names, the repeat block, no exercises — and **Paste outline** turns it into a draft with one empty slot per day; each slot has **Copy day prompt** and Paste; **Review plan** appears when every slot is filled and opens the ordinary review; Save plan saves it like any plan. The draft survives leaving the app and says "Continue · 2 of 4 days pasted" on the row; the menu can discard it.
 - **Import file**, for a `.json` on disk.
 
 **Errors** lead with a plain sentence naming where the problem is — "Day 1, exercise 2, set 2 needs either a rep target or a duration." — with the path, the code and the importer's own message behind **Details (n)**, and **Copy fix-it prompt** unchanged. `IssueText.friendly` has a sentence for every `E_` code in PLAN_FORMAT §4 and falls back to the importer's message for one it doesn't know.
@@ -352,8 +366,10 @@ Leads with "**Workout saved**", then one line of what happened — "Push · 48 m
 
 *(v1 printed both sessions' raw sets — "10, 8@60 · last 10, 9@60 · kg" — and left the reader to do the subtraction, with the block duration beside it as if it mattered as much.)*
 
+**v1.5 (D54, §6.30)**: a goal this workout was the first to reach is said under the headline — "Goal reached: Barbell Bench Press 100 kg × 5" — in the reserved green, like a record.
+
 ### 4.10 History
-Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly. Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1).
+Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly. Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1). **v1.5 (D54, §6.30)**: a **Goals** section at the top, under Metrics — each goal's exercise, its line ("100 kg × 5 · best 82.5 kg × 5 · by 1 Dec", or "reached 3 Sep" in green) and a bar of how far along it is; **Set a goal**; swipe to remove. An exercise's own screen has **Set a goal** too.
 
 ### 4.11 Settings
 Units, default rest, **warm-up length** (D32, v1.2), **between exercises** (D33, v1.2), sound, vibration, notifications state, keep awake, weight step, **smallest weight change** (D35, v1.2), Export backup, **Import backup** (D31, v1.1), **Export history (CSV)** and **Import history (CSV)** (D45, v1.3), Delete all data, About — the version, the counts, and **How the app works** (D47, v1.4, §6.24), which reopens the introduction with **Done** in place of Choose a plan. (The home-chart metric row went with the sparkline in v1.1's R3.)
@@ -606,6 +622,8 @@ A v1.2 defect fixed here, because the splice goes through the same `apply`: a pl
 - The same flow is offered from an empty History tab ("Import from another app"), the one place an empty History can say what fills it.
 
 ### 6.21 Progression (D44, v1.3)
+**v1.5 (D53, §6.29)**: a progression is a ladder of *steps* per exercise, earned by performance; what follows describes the calendar mode, kept as a choice.
+
 "A feature called progression: based on the current workout plan, give the chatbot a JSON and have it calculate your progression over a certain period. When there is history, use it as context." The app's premise is the chatbot round-trip, and until now it ran one way. Progression runs it the other way: the app writes out what the plan is and what you have actually done, the chatbot plans the next N weeks, and the plan carries the answer week by week.
 
 - **The model.** `Plan.progression: Progression?` — a start date, a number of weeks (1–52), and per (day, exercise) one `ProgressionWeek` per week: a weight and/or a work target for every set, or per-set overrides. Optional in `Persistence.swift`; a plan without one is exactly a v1.2 plan. `Session.progressionWeek` / `progressionWeeks` and `SessionExercise.progressionWeek` record which week a workout was.
@@ -654,6 +672,52 @@ A v1.2 defect fixed here, because the splice goes through the same `apply`: a pl
 - **`docs/PRIVACY.md`** is the privacy policy the store requires a URL for: nothing leaves the phone unless you export it; no account, no analytics, no network; what you paste into a chatbot is that chatbot's business. The public repository's copy of the file is the URL.
 - **`docs/APP_STORE.md`** is the submission: the order of things (the paid program, a release Xcode, Archive, the record, TestFlight for the device checklist, Submit, and how an update goes), every field of the record, the description and keywords, the review notes (a reviewer is in a workout in three taps through the built-in picker), the privacy questionnaire's answer and why it is true, the screenshot list with the `tools/shot.sh` line for each, and the choices only the owner can make: the LICENSE, the support URL, the name, the icon's design.
 - **No privacy manifest** is needed: the app uses none of Apple's required-reason APIs — no `UserDefaults`, no file timestamps, no boot time, no disk space (checked in v1.4).
+
+### 6.26 Clearer, not louder (D50, v1.5)
+"Should make the progression button clearer, currently hidden, but don't make the button too obvious." and "Copy prompt button should be a bit clearer. Maybe a short explanation of the mechanism." Two controls the owner could not find, and one mechanism the app never explained.
+
+- **The sentences are Core** (`PromptText`): the step beside Copy prompt, the footer under the chatbot section, the line under the Progression row, and the name of Home's link. The views that show them are pinned to them (Z1), so a rewording is one edit and a rename cannot leave a screen behind.
+- **Copy prompt**, in Add plan (§4.4) and in Progression (§4.3), is the accent-filled small button its step deserves. The step's own text explains the mechanism once; the section's footer says the app never talks to the chatbot itself. No new screen.
+- **The Progression row** stays a row — no badge, no button — with a second line saying what it is and the accent chevron. **Home's link** (`HomeStart.offersProgression`) appears in the footnote row beside Preview and Another day only while the plan has no progression, the card is not a running workout, and every exercise on the card's day has a logged session (`ExerciseHistory.last`) — the same history the prompt would send. It goes away the moment a progression is attached, and never appears for a plan with nothing to plan from. That is the whole of "not too obvious".
+
+### 6.27 The effort target (D51, v1.5)
+"Also should add an effort target feature in the plan, showing how many reps/seconds to be away from failure." PLAN_FORMAT §5 kept RPE and RIR out of the format on purpose — "put them in notes" — and the owner has now asked for exactly this one, because it changes how a set is done rather than describing it.
+
+- **The field**: `inReserve`, a whole number 0–20, at exercise or set level with the usual exercise-level default; `rir` accepted as an alias. It means *reps* in reserve on a rep set and *seconds* in reserve on a hold, which is why there is one field and not two. Anything else → `E_IN_RESERVE_INVALID`, with a sentence. Missing → none, and nothing is shown. `SetTarget.inReserve`, optional in `Persistence.swift`, so every plan and session already written still decodes; the session snapshot carries it (D7), and `Session.target(at:)` resolves it per step (a drop has none).
+- **Where it shows**: the workout card's target line, after the numbers you act on, as body text — "6–8 · 80 kg · 2 in reserve" — and in the card's spoken form; `TargetText.summary` in Plan detail and the review says it once for the exercise when every set agrees ("3 × 6–8 · 80 kg · 2 in reserve"), and leaves it to the JSON when sets differ; the exercise edit sheet (D29) gets an **In reserve** field and `PlanEdit.Operation.setInReserve`; the JSON renderer writes it per set, so a JSON edit round-trips it.
+- **The prompt** gains one rule — *inReserve: how many reps (or seconds, for holds) short of failure each set should stop, e.g. 2. Omit when I do not say.* — and "RPE" leaves the notes rule. `PROMPT.md` and the pin (M9) follow. The reference implementation, the schema and `generate_fixtures.py` gain the field, with four fixtures (exercise and set level, the alias, on a hold; a word; over 20) and a manifest check, `inReservePerSet`.
+- **Advice does not read it** (§6.11): reps in reserve is for the person, not the algorithm. The Progression prompt's history lines carry it ("10,10,8 @ 60 kg · 2 in reserve"), so the chatbot knows the sets were not to failure.
+
+### 6.28 A plan in several pastes (D52, v1.5)
+"Main concerns include making the JSON too big. If the JSON is too big, it might be hard for people on free plans to use. Maybe include several different JSON entrances and a master JSON." A six-day plan is 4–5,000 characters of JSON, over what a free chatbot tier writes in one reply. X3's Add day from JSON already accepts one day at a time; this is the flow that starts that way on purpose, and the prompts that ask for it.
+
+- **The outline** (`PlanDrafting.outline`): the plan prompt's shape without exercises — name, units, `defaultRestSeconds`, schedule, `cycle`, and days with names (and weekdays) only — read by the ordinary importer with `allowEmptyDays`, which skips exactly one check, `E_NO_EXERCISES`. Everything else is refused as for a plan: the prompt pasted, not JSON, no days, a cycle naming a day that is not there. A chatbot that writes the whole plan anyway is not refused: its days arrive already filled.
+- **A day into its slot** (`PlanDrafting.day`): the fragment is read as generously as any (D43) — a day, a plan holding it (the day named like the slot is taken), a list of exercises — and **the slot names the day**: the outline decided the names and the repeat block refers to them, so a day the chatbot renamed takes the slot's name, and lends its weekday when the fragment has none. It is then checked alone, under the outline's header and without the repeat block (which names days not here yet), through the ordinary import; errors come back with the slot's real path, so the sentence says "Day 3, exercise 1". A refused paste changes nothing.
+- **The assembly** (`PlanDrafting.assemble`): the outline's own JSON tree with every slot's day in place of its empty one, rendered with sorted keys and put through the ordinary import once, so the app holds nothing it would refuse. The plan's text is the canonical rendering, as after any edit. Incomplete → `E_DRAFT_INCOMPLETE` with "2 of 4 days still to paste."
+- **`PlanDraft`** — the outline's text as pasted, the outline as a plan, one fragment per slot as pasted, the date — lives in `draft.json` (§8.1), written after every paste and removed when the plan is saved or the draft discarded; optional in the decoder's sense (a slot list defaults to empty), set aside when corrupt like any file, not part of the backup (a draft is not data worth carrying), gone with Delete all data. `AppModel.draft`; `startDraft`, `pasteDraftDay`, `assembleDraft`, `saveDraftPlan` (which saves like any plan, name conflicts included, and lets the draft go only when the save went through), `discardDraft`.
+- **The prompts** (PROMPT.md §4, §5): the outline prompt asks for the outline only, under the plan prompt's marker so it cannot be pasted back as a plan; the day prompt names the day, restates the outline as a listing (`Prompts.outlineListing`: "Push Pull Legs · kg · rotation / Days: … / Repeat block: …"), shows a four-exercise example, and gives the plan prompt's rules minus the three the outline settled — computed from the same text (`Prompts.dayRules`), so the two cannot drift (Z16). A seven-day outline's day prompt is under 4,000 characters.
+- **Where**: Add plan → Create with a chatbot → **Build it day by day** (§4.4), a screen of its own inside the sheet; saving there closes the sheet. The whole-plan prompt stays the default way. Add day from JSON stays where it is, for a plan already saved with one day cut short.
+
+### 6.29 Progression by performance (D53, v1.5)
+"The progression should be by performance instead of by calendar. Maybe a legacy calendar increase, but should include the progression steps." v1.3's progression was a list of weeks and the calendar turned the page; a week you missed was a week the plan skipped.
+
+- **A ladder of steps.** `Progression.weeks` is the number of steps (the on-disk and reply name is kept), `ProgressionEntry.weeks` an exercise's steps in order, and each entry has its own `step` (0-based, the one it is on now) and `tries` (workouts at that step without achieving it). `Progression.mode` is `performance` (the default when planning) or `calendar` (v1.3's behaviour, the owner's "legacy" case). All three are optional in `Persistence.swift`: a progression written by v1.3 reads as calendar at step 0.
+- **What advances a step** (`ProgressionSteps.achieved`): every main set of the exercise logged; the reps at or above the target — the top of a range, the minimum of an AMRAP — within the one-rep tolerance the advice already uses (§6.11), summed across the exercise; every logged weight at or above the set's; every hold held for its seconds (or an open hold's minimum). The targets judged are the session's own snapshot, which in a step *is* the step.
+- **When**: only when the workout completes (`PlanLibrary.completeSession`, next to the rotation's advance). Each exercise the session stamped with the entry's *current* step moves on (`step + 1`, `tries = 0`) or tries again (`tries + 1`). A session started before the step moved, or a substitute (D42) with no entry, changes nothing; editing history later never moves a step.
+- **Which step a workout gets** (`Progression.apply(to:on:)`): each entry's own step in performance mode — including a `{}` step, which keeps the plan's own targets but is still counted, because the workout still has to earn it — and the calendar week for all in calendar mode, where a `{}` week touches nothing (v1.3, W33). Each exercise is stamped with its step (`SessionExercise.progressionWeek`); the session's own number is the lowest of its exercises', which is what Home says, and `Session.progressionMode` records which kind it was.
+- **Finished** when every entry is past its last step (performance) or the day after the last week (calendar). Home then offers **Plan the next one**, as before.
+- **The words**: "Step 3 of 8" in performance mode, "Week 3 of 8" in calendar mode — on the Progression row, in Home's subtitle, the chip's reason ("Step 3 of 8 of your progression"), the Summary and Session detail ("step 3 of 8"). The Progression screen shows each exercise's ladder with its current step marked (▸) and "Step 3 of 8 · 2 tries" when a step has repeated; the review says "8 steps, each earned".
+- **The prompt** (PROMPT.md §3) plans *steps* and carries a cadence sentence by mode: *one step is one workout's targets; I move to the next step only when I hit the current one, so make each step a small, achievable increase* — or *one step is one calendar week, starting the day I save it*. **The reply** (PROGRESSION_FORMAT.md) says `steps`; `weeks` is read as the alias with a cleanup warning. Paths say `steps[…]` and the sentences say "step".
+- **Planning**: the screen asks how many steps (4 / 6 / 8 / 12) and how to advance — **When I hit the target** (default) or **Every week** — and the choice is the progression's mode; the reply never sets it.
+
+### 6.30 Goals (D54, v1.5)
+"Goals or milestones — also be a feature." A goal per exercise: a target you name — a weight for so many reps, a hold of so long, or a number of reps — with an optional date.
+
+- **`Goal`** (`Core/Goals.swift`): the exercise (matched by §6.9), its units (sessions in the other unit never count, D10), the target, an optional date (said, never enforced), and — once reached — the date and the workout that did it. Kept in `goals.json` (§8.1), all of them rewritten when one changes, and in the backup (§8.5). Independent of any plan: a goal outlives the plan and the progression it was reached under.
+- **Progress** (`Goals.progress`): the best logged set that counts, and the fraction of the target. For a weight goal only sets at or above its reps count — a heavier set for fewer reps is not the goal; for a hold the longest; for reps the most.
+- **Reached**: when a workout completes (`PlanLibrary.completeSession`, beside the rotation's advance and the progression's steps), every goal it is the first to meet is marked with that workout. Reached stays reached; a later workout is not credited. The Summary says "Goal reached: …" for that workout (§4.9).
+- **Where**: History's Goals section (§4.10) and the exercise's own screen. One sheet sets one: the exercise, spelt as in history (suggestions from history and the plans), the kind, the numbers, the date.
+- **The chatbot knows**: the progression prompt (PROMPT.md §3, `{{goals}}`) carries the plan's unreached goals in the plan's units as a MY GOALS block, so the steps it plans climb towards them. The app never sets weights from goals itself: the chatbot plans, the app runs (D12).
 
 ### 6.12 Calendar projection
 `Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.
@@ -724,7 +788,7 @@ struct Plan: Codable, Identifiable {
 struct Day: Codable, Identifiable { var id: UUID; var name: String; var weekday: Weekday?; var exercises: [Exercise] }
 struct Exercise: Codable, Identifiable { var id: UUID; var name: String; var group: String?; var notes: String?; var repRange: RepRange?; var bodyweight: Bool; var sets: [SetTarget] }
 struct RepRange: Codable, Equatable { var min: Int; var max: Int }   // 1 ≤ min ≤ max ≤ 1000
-struct SetTarget: Codable { var work: WorkTarget; var weight: Double?; var restSeconds: Int; var warningBeepSeconds: Int?; var drops: [DropTarget] }   // rest and warning offset already resolved; warning only on fixed durations
+struct SetTarget: Codable { var work: WorkTarget; var weight: Double?; var restSeconds: Int; var warningBeepSeconds: Int?; var drops: [DropTarget]; var inReserve: Int? }   // rest and warning offset already resolved; warning only on fixed durations; inReserve is v1.5's effort target (D51), optional on disk
 struct DropTarget: Codable, Equatable { var work: WorkTarget; var weight: Double? }   // work defaults to .reps(.amrap(min: nil))
 enum WorkTarget: Codable { case reps(RepTarget); case duration(seconds: Int); case openDuration(minSeconds: Int?) }
 enum RepTarget: Codable { case fixed(Int); case range(min: Int, max: Int); case amrap(min: Int?) }
@@ -772,6 +836,8 @@ struct Issue: Codable, Equatable { var severity: Severity; var code: String; var
   settings.json            Settings
   plans.json               { "fileVersion": 1, "activePlanId": UUID?, "plans": [Plan] }
   active-session.json      { "fileVersion": 1, ...ActiveSession }   present only during a workout
+  draft.json               { "fileVersion": 1, ...PlanDraft }       present only while a plan is built day by day (D52, v1.5)
+  goals.json               { "fileVersion": 1, "goals": [Goal] }      present once a goal is set (D54, v1.5)
   sessions/<uuid>.json     { "fileVersion": 1, ...Session }          one file per completed session
 ```
 Application Support is included in iCloud/iTunes device backups by default. Set file protection to `.completeUntilFirstUserAuthentication` so background writes never fail on a locked phone.
@@ -786,7 +852,7 @@ On launch, load settings, plans, active session, and all session files into memo
 Every logged set carries `loggedAt`, reps or seconds, weight and the session's unit, and sessions are immutable snapshots. A per-exercise chart over time (D13) is `ExerciseHistory.series` over the in-memory session list. No index, no migration, no extra file.
 
 ### 8.5 Export and restore
-`{ "exportedAt", "appVersion", "fileVersion": 1, "settings", "plans", "sessions": [...], "activePlanId" }` written to a temp file and offered via ShareLink. `activePlanId` was added in v1.1 and is optional, so a v1 backup still restores — it just leaves the first plan active.
+`{ "exportedAt", "appVersion", "fileVersion": 1, "settings", "plans", "sessions": [...], "activePlanId", "goals" }` written to a temp file and offered via ShareLink. `activePlanId` was added in v1.1 and is optional, so a v1 backup still restores — it just leaves the first plan active. `goals` (D54, v1.5) is optional too: Replace all takes the backup's, Merge adds the ones not already here by id, and a backup without any restores with none.
 
 **Restoring** (D31, v1.1): Settings → Import backup reads the file and reports its date, its app version, how many plans and workouts it holds, and how many of each a Merge would actually add. Nothing is written until **Merge** or **Replace all** is chosen. Merge adds only ids not already on disk and leaves the current settings, the active plan and anything edited since the backup untouched; Replace all empties the store first and takes the backup's settings and active plan. A running workout is discarded before either. A file that isn't a backup, or whose `fileVersion` is newer than this app's, is refused with a message before anything is written.
 
@@ -891,6 +957,7 @@ This is the JSON the app imports. A chatbot writes it from the prompt in `docs/P
 | `weight` | number or string | no | Exercise-level default for sets. |
 | `restSeconds` | int ≥ 0 | no | Rest after each set of this exercise. |
 | `repRange` | string or int | no | The rep range the working weight should stay in, e.g. `"8-12"`; drives progression advice (SPEC §6.11). See §3.9 for defaults and leniency. |
+| `inReserve` | int 0–20 | no | **v1.5 (D51)**: the effort target — reps (or seconds, on a hold) to stop short of failure. `rir` is accepted as an alias. Exercise-level default for sets. Anything else → `E_IN_RESERVE_INVALID`. Missing → none, and nothing is shown. |
 | `drops` | array of Drop | no | Drop sets applied to every set of this exercise that doesn't define its own. See §3.11. |
 | `notes` | string | no | Max 500 chars (truncate + `W_NOTES_TRUNCATED`). Shown on the step card. |
 
@@ -902,6 +969,7 @@ This is the JSON the app imports. A chatbot writes it from the prompt in `docs/P
 | `warningBeep` | bool or int | no | Overrides the exercise. Only meaningful on fixed-duration sets (§3.12). |
 | `weight` | number ≥ 0 or string | no | See §3.3. Over 10000 → `E_WEIGHT_INVALID`. |
 | `restSeconds` | int 0–3600 | no | Overrides the exercise. Negative or over 3600 → `E_REST_INVALID`. Non-integer (90.5) → `E_REST_INVALID`; `90.0` accepted. |
+| `inReserve` | int 0–20 | no | Overrides the exercise (v1.5, D51). `rir` accepted. |
 | `drops` | array of Drop | no | Overrides the exercise-level drops for this set. See §3.11. |
 
 ### Drop
@@ -1034,6 +1102,7 @@ Errors block import. Warnings are shown in Preview and saved on the plan. `path`
 | `E_DURATION_INVALID` | error | `durationSeconds` ≤ 0, > 86400, non-integer, or an unrecognized string (§3.12) |
 | `E_WARNING_BEEP_INVALID` | error | `warningBeep` not a boolean or a whole number 1–86399 |
 | `E_BODYWEIGHT_INVALID` | error | `bodyweight` not a boolean |
+| `E_IN_RESERVE_INVALID` | error | `inReserve` / `rir` not a whole number from 0 to 20 (v1.5, D51) |
 | `E_TARGET_MISSING` | error | A set has neither reps nor duration |
 | `E_TARGET_CONFLICT` | error | A set has both reps and duration |
 | `E_WEIGHT_INVALID` | error | §3.3 rejected forms |
@@ -1070,7 +1139,7 @@ Every error message is a full sentence a non-programmer can act on, and names th
 
 ## 5. Things the format deliberately does not have
 - Rest days as Day entries (rest days live in `cycle` for rotation plans, and are the unlisted weekdays for weekday plans).
-- Tempo, RPE, RIR, equipment fields (put them in `notes`).
+- Tempo, RPE, equipment fields (put them in `notes`). *Reps in reserve joined the format in v1.5 as `inReserve` (D51), because it changes how a set is done rather than describing it.*
 - Warm-up flags (list warm-ups as their own exercises if wanted).
 - Per-set notes.
 `````
@@ -1129,7 +1198,8 @@ RULES
 - Supersets/circuits: same group letter, consecutive exercises, equal set counts. Rest after each round.
 - Names: specific and consistent ("Barbell Back Squat", not "Squats"); reuse spelling across days for history matching.
 - Keep execution order. If I supply exercises, use exactly those: no additions, removals, or reordering. If I request a plan, design a sensible one.
-- Put tempo, RPE, cues and "each side" in notes.
+- inReserve: how many reps (or seconds, for holds) short of failure each set should stop, e.g. 2. Omit when I do not say.
+- Put tempo, cues and "each side" in notes.
 - Return ALL JSON, never abbreviate with "...".
 
 My plan:
@@ -1153,37 +1223,109 @@ Fix them and reply with the complete corrected JSON only, in one code block tagg
 
 ## 3. Progression prompt (Plan → Progression → Copy prompt)
 
+**v1.5 (D53).** The progression is a ladder of *steps*; `{{cadence}}` says what a step is — in performance mode (the default) one workout's targets, earned by hitting them; in calendar mode one calendar week, as in v1.3. `{{steps}}` is the number chosen on the screen. The reply's `weeks` key is still read, as an alias. `{{goals}}` (D54) is the plan's unreached goals as a MY GOALS block, or nothing.
+
 The line `JIMMSBRO-PROGRESSION-PROMPT-V1` is this prompt's marker, with the same rule as §1: the marker and no fenced code block means the prompt itself was pasted (`E_PROMPT_PASTED`). `{{weeks}}` is the period the owner picked (4, 6, 8 or 12), `{{units}}` and `{{increment}}` come from the plan and Settings, `{{plan}}` is the plan as a compact listing — one line per exercise, not its JSON — and `{{history}}` is empty or a block headed `MY HISTORY (most recent last)` with one line per exercise: its last sessions (up to six, within 90 days) and the advice the most recent one earned. The history is shortened first, never the plan, to stay under 9,000 characters (`COPY_PASTE_NOTES.md`).
 
 ```
 JIMMSBRO-PROGRESSION-PROMPT-V1
-Plan my progression for the next {{weeks}} weeks for the workout plan below. Reply with ONE complete JSON object in a single code block tagged json, with no other text.
+Plan my progression as {{steps}} steps for the workout plan below. {{cadence}} Reply with ONE complete JSON object in a single code block tagged json, with no other text.
 
 FORMAT:
 {
-  "weeks": {{weeks}},
+  "steps": {{steps}},
   "exercises": [
-    { "day": "Push", "name": "Barbell Bench Press", "weeks": [ { "weight": 80, "reps": "6-8" }, { "weight": 82.5, "reps": "6-8" }, {} ] }
+    { "day": "Push", "name": "Barbell Bench Press", "steps": [ { "weight": 80, "reps": "6-8" }, { "weight": 82.5, "reps": "6-8" }, {} ] }
   ]
 }
 
 RULES
 - One entry per exercise in the plan, with its day and its exact name as written below. Leave an exercise out only if nothing about it should change.
-- weeks: exactly {{weeks}} objects per exercise, week 1 first. An object gives the weight (in {{units}}, no unit text) and/or the reps for every set that week; {} means no change from the plan that week.
+- steps: exactly {{steps}} objects per exercise, step 1 first. An object gives the weight (in {{units}}, no unit text) and/or the reps for every set at that step; {} means no change from the plan at that step.
 - reps: a whole number, a range like "8-12", "AMRAP", or "10+". For timed exercises give durationSeconds instead of reps. For bodyweight exercises give reps only.
-- To vary the sets within a week, give "sets": [ { "weight": 60, "reps": 10 }, { "weight": 65, "reps": 8 } ] instead of weight and reps.
+- To vary the sets within a step, give "sets": [ { "weight": 60, "reps": 10 }, { "weight": 65, "reps": 8 } ] instead of weight and reps.
 - Every weight must be loadable: a multiple of {{increment}} {{units}}.
-- Progress conservatively from the plan and from my history below. If the period is 6 weeks or more, make one week a deload.
+- Progress conservatively from the plan and from my history below. If there are 6 steps or more, make one of them easier.
 - Return ALL JSON, never abbreviate with "...".
 
 MY PLAN
-{{plan}}{{history}}
+{{plan}}{{goals}}{{history}}
+
 ```
 
 The reply format is `docs/PROGRESSION_FORMAT.md`.
 
-## 4. Behavior notes for the app
-- All three prompts are plain strings in `Core/Prompts.swift` with a `render(settings:)` / `render(errors:)` function, unit-tested (placeholders substituted, marker present, length bound).
+## 4. Outline prompt (Add plan → Build it day by day → Copy outline prompt)
+
+**v1.5 (D52).** A plan built in several pastes, for long plans and free chatbot tiers. The outline first: the header, the day names and the repeat block, no exercises. It carries the plan prompt's marker, so pasting it into the app is refused the same way.
+
+```
+JIMMSBRO-PLAN-PROMPT-V1
+I am building my workout plan for a workout-tracking app one day at a time. First, reply with ONE JSON object holding only the plan's OUTLINE, in a single code block tagged json, with no other text.
+
+FORMAT (schemaVersion 1):
+{
+  "schemaVersion": 1,
+  "name": "Push Pull Legs",
+  "units": "{{units}}",
+  "defaultRestSeconds": {{defaultRest}},
+  "schedule": "rotation",
+  "cycle": ["Push", "Pull", "Legs", "Push", "Pull", "Legs", "rest"],
+  "days": [ { "name": "Push" }, { "name": "Pull" }, { "name": "Legs" } ]
+}
+
+RULES
+- days: training days in order, each with a name only — NO exercises yet. Do not list rest days as days.
+- schedule: rotation = repeat days in order. Use weekday only for a fixed weekly schedule; give every day a weekday (monday…sunday) and omit cycle.
+- cycle: rotation's full repeating block, using day names and "rest", including rest days. This drives the calendar.
+- Keep the day names short and distinct; I will ask for each day's exercises separately, one per message.
+- Return ALL JSON, never abbreviate with "...".
+
+My plan:
+```
+
+## 5. Day prompt (Add plan → Build it day by day → Copy day prompt)
+
+**v1.5 (D52).** One per day of the outline. `{{day}}` is the day's name, `{{outline}}` the outline as a listing (`Prompts.outlineListing`), `{{units}}` the outline's units. The rules are the plan prompt's minus the three the outline settled (days, schedule, cycle), computed from the same text in the app so they cannot drift.
+
+```
+JIMMSBRO-PLAN-PROMPT-V1
+Now write ONLY the day "{{day}}" of my plan for the workout-tracking app. Reply with ONE JSON object in a single code block tagged json, with no other text.
+
+FORMAT:
+{
+  "name": "{{day}}",
+  "exercises": [
+    { "name": "Barbell Bench Press", "sets": 4, "reps": "6-8", "weight": 80, "restSeconds": 150, "notes": "Pause on chest" },
+    { "name": "Lateral Raise", "group": "A", "sets": 3, "reps": 15, "repRange": "12-15", "weight": 10, "restSeconds": 60 },
+    { "name": "Tricep Pushdown", "group": "A", "sets": 3, "reps": 12, "repRange": "10-12", "weight": 25, "restSeconds": 60 },
+    { "name": "Plank", "sets": 3, "durationSeconds": 45, "warningBeep": true, "bodyweight": true, "restSeconds": 45 }
+  ]
+}
+
+THE OUTLINE (already agreed)
+{{outline}}
+
+RULES
+- sets: a count for identical sets; otherwise an array of set objects. Exercise-level fields default each set. Prefer the count form.
+- Each set needs exactly one of reps or durationSeconds. Duration is seconds for holds/cardio; "max" = stopwatch until stopped, "30+" = at least 30 seconds.
+- Fixed durations beep at the end. warningBeep: true or omitted = warning at 10% remaining, false = off, or a number of seconds before the end (e.g. 5). Fixed durations only.
+- bodyweight: true when no weight applies (push-ups, planks, hangs); omit weight. For weighted calisthenics use added load as weight and omit the flag.
+- reps: whole number, "8-12", "AMRAP" (as many as possible), or "10+" (at least 10). Nothing else.
+- repRange: give every rep exercise a working range for weight progression, e.g. "8-12". Omit if reps already is a range. For fixed targets choose a range containing it (10 → "8-12", 5 → "4-6"). No repRange for timed exercises.
+- weight: number in {{units}}, without unit text. Omit for bodyweight or unspecified weight.
+- restSeconds: always include whole seconds. If unspecified: 120-180 for heavy compounds, 60-90 for isolation, 30-60 for circuits/core.
+- drops: list on exercise or individual set, e.g. [{"weight":20},{"weight":15}], done immediately after the main set with no rest. Reps default to AMRAP.
+- Supersets/circuits: same group letter, consecutive exercises, equal set counts. Rest after each round.
+- Names: specific and consistent ("Barbell Back Squat", not "Squats"); reuse spelling across days for history matching.
+- Keep execution order. If I supply exercises, use exactly those: no additions, removals, or reordering. If I request a plan, design a sensible one.
+- inReserve: how many reps (or seconds, for holds) short of failure each set should stop, e.g. 2. Omit when I do not say.
+- Put tempo, cues and "each side" in notes.
+- Return ALL JSON, never abbreviate with "...".
+```
+
+## 6. Behavior notes for the app
+- All five prompts are plain strings in `Core/Prompts.swift` with a `render(settings:)` / `render(errors:)` function, unit-tested (placeholders substituted, marker present, length bound).
 - After **Copy prompt**, show a toast for 3 s. Don't navigate away.
 - The prompt marker line must never appear in the JSON example, or a chatbot might echo it inside the plan.
 - The example JSON inside the plan prompt is also exposed as `Prompts.exampleJSON` so a test can import it (TEST_CASES M4). `examples/valid/prompt-example.txt` is that same text; `examples/invalid/prompt-pasted-full.txt` preserves the original full prompt as an unchanged regression fixture; the shortened prompt has its own automated marker test.
@@ -1195,24 +1337,30 @@ The reply format is `docs/PROGRESSION_FORMAT.md`.
 ### FILE: docs/PROGRESSION_FORMAT.md
 
 `````markdown
-# Jimm's Bro+ — the progression reply (D44, v1.3)
+# Jimm's Bro+ — the progression reply (D44, v1.3; steps since D53, v1.5)
 
 What the chatbot sends back to the prompt in `PROMPT.md` §3, and how the app reads it. It is
 deliberately small: the plan's structure never changes, a progression is *attached* to the
-plan you have, and only the week-by-week targets travel.
+plan you have, and only the step-by-step targets travel.
+
+**v1.5 (D53).** A progression is a ladder of **steps** per exercise. In **performance mode**
+(the default) an exercise moves to its next step when a workout achieves the current one, and
+the calendar plays no part; in **calendar mode** (v1.3's behaviour, kept) one step is one
+calendar week from the day the progression is saved. The mode is chosen on the screen, not in
+the reply. The reply's word is `steps`; `weeks`, v1.3's word, is read as the same thing.
 
 ## 1. Canonical example
 
 ```json
 {
-  "weeks": 4,
+  "steps": 4,
   "exercises": [
     { "day": "Push", "name": "Barbell Bench Press",
-      "weeks": [ { "weight": 80, "reps": "6-8" }, { "weight": 82.5 }, {}, { "weight": 85, "reps": "5-7" } ] },
+      "steps": [ { "weight": 80, "reps": "6-8" }, { "weight": 82.5 }, {}, { "weight": 85, "reps": "5-7" } ] },
     { "day": "Push", "name": "Plank",
-      "weeks": [ { "durationSeconds": 45 }, { "durationSeconds": 50 }, {}, { "durationSeconds": 60 } ] },
+      "steps": [ { "durationSeconds": 45 }, { "durationSeconds": 50 }, {}, { "durationSeconds": 60 } ] },
     { "day": "Pull", "name": "Barbell Row",
-      "weeks": [ { "sets": [ { "weight": 60, "reps": 10 }, { "weight": 65, "reps": 8 } ] }, {}, {}, {} ] }
+      "steps": [ { "sets": [ { "weight": 60, "reps": 10 }, { "weight": 65, "reps": 8 } ] }, {}, {}, {} ] }
   ]
 }
 ```
@@ -1221,27 +1369,28 @@ plan you have, and only the week-by-week targets travel.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `weeks` | int 1–52 | no | The period. Missing → the longest entry's length. Anything else → `E_PROGRESSION_WEEKS_INVALID`. |
+| `steps` | int 1–52 | no | The number of steps. Missing → the longest entry's length. Anything else → `E_PROGRESSION_WEEKS_INVALID`. `weeks` is accepted as an alias (`W_PROGRESSION_WEEKS_ALIAS`, cleanup). |
 | `exercises` | array of Entry | yes | Empty or missing → `E_PROGRESSION_INVALID`. A bare top-level array is read as this list. The whole object may also sit under a `progression` key. |
 
 ### Entry
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `day` | string | no | Matched to a plan day by name (SPEC §6.9). Missing → every day that has the exercise gets the same weeks (`W_PROGRESSION_DAY_ASSUMED` when that is more than one). |
+| `day` | string | no | Matched to a plan day by name (SPEC §6.9). Missing → every day that has the exercise gets the same steps (`W_PROGRESSION_DAY_ASSUMED` when that is more than one). |
 | `name` | string | yes | Matched to a plan exercise by name. Blank or missing → `E_PROGRESSION_EXERCISE_INVALID`. Not in the plan (on that day) → `W_PROGRESSION_UNMATCHED`, the entry is left out. |
-| `weeks` | array of Week | yes | Week 1 first. Missing → `E_PROGRESSION_WEEKS_INVALID`. Longer than `weeks` → truncated (`W_PROGRESSION_LONG`); shorter → `W_PROGRESSION_SHORT`, and the plan's own targets apply after the last one. |
+| `steps` | array of Step | yes | Step 1 first. Missing → `E_PROGRESSION_WEEKS_INVALID`. Longer than `steps` → truncated (`W_PROGRESSION_LONG`); shorter → `W_PROGRESSION_SHORT`, and the plan's own targets apply after the last one. `weeks` is accepted as an alias. |
 
-### Week
-`null` or `{}` is "no change from the plan that week".
+### Step
+`null` or `{}` is "no change from the plan at this step". In performance mode such a step is
+still a step: the workout has to achieve the plan's own targets to move on.
 
 | Field | Type | Notes |
 |---|---|---|
-| `weight` | number or string | For every set that week, in the plan's units. `"62.5 kg"` is accepted; `"bw"` / `"bodyweight"` / `"none"` mean no weight. Snapped to the smallest loadable change (D35, `W_PROGRESSION_ROUNDED`). Ignored on a bodyweight exercise (`W_PROGRESSION_WEIGHT_IGNORED`). Over 10000 or negative → `E_WEIGHT_INVALID`. |
-| `reps` | int or string | For every set that week: `8`, `"8-12"`, `"8 to 12"`, `"AMRAP"`, `"10+"`, `"max"`. A range also becomes the rep range advice judges by. Else `E_REPS_INVALID`. |
+| `weight` | number or string | For every set at this step, in the plan's units. `"62.5 kg"` is accepted; `"bw"` / `"bodyweight"` / `"none"` mean no weight. Snapped to the smallest loadable change (D35, `W_PROGRESSION_ROUNDED`). Ignored on a bodyweight exercise (`W_PROGRESSION_WEIGHT_IGNORED`). Over 10000 or negative → `E_WEIGHT_INVALID`. |
+| `reps` | int or string | For every set at this step: `8`, `"8-12"`, `"8 to 12"`, `"AMRAP"`, `"10+"`, `"max"`. A range also becomes the rep range advice judges by. Else `E_REPS_INVALID`. |
 | `durationSeconds` | int or string | For timed exercises: seconds, `"max"`, `"30+"`. With `reps` as well → `E_TARGET_CONFLICT`. |
 | `sets` | array of { `weight`, `reps` / `durationSeconds` } | Per-set values instead of `weight`/`reps`; set *n* of the plan's exercise takes entry *n*; extra entries are ignored. 1–50 objects, else `E_SETS_INVALID`. |
 
-Any other field, at any level, is ignored with `W_UNKNOWN_FIELD`. Anything that is not an object where a Week is expected → `E_PROGRESSION_WEEK_INVALID`; where an Entry is expected → `E_PROGRESSION_EXERCISE_INVALID`. A reply in which no entry matched the plan → `E_PROGRESSION_EMPTY`.
+Any other field, at any level, is ignored with `W_UNKNOWN_FIELD`. Anything that is not an object where a Step is expected → `E_PROGRESSION_WEEK_INVALID`; where an Entry is expected → `E_PROGRESSION_EXERCISE_INVALID`. A reply in which no entry matched the plan → `E_PROGRESSION_EMPTY`.
 
 ## 3. Leniency
 
@@ -1249,16 +1398,16 @@ The reply goes through the same extract and decode stages as a plan (PLAN_FORMAT
 
 ## 4. How the app uses it
 
-- **Week 1 starts the day the progression is saved** (`Progression.startDate`, midnight local), and weeks are calendar weeks from there. On the day after the last week the plan's own targets and advice are back, and Home offers to plan the next one.
-- **Starting a day** in one of its weeks writes that week's targets into the session's snapshot (D7): every set's weight and/or work from the entry, per set when `sets` was given. An exercise, week or set the progression says nothing about keeps the plan's own target. The exercise and the session record the week.
-- **Prefill** shows the week's weight and reps even when last time was different (SPEC §6.5, rule 0); the suggestion chip's reason reads "Week 3 of 8 of your progression".
+- **Performance mode** (D53): every entry starts at step 1. **Starting a day** writes each entry's *current* step into the session's snapshot (D7) — an entry on a `{}` step keeps the plan's own targets but is still counted — and stamps each exercise with its step; the session's own number is the lowest of its exercises', which is what Home says ("step 3 of 8"). **Finishing the workout** moves every exercise that **achieved** its step to the next one — every main set logged, the reps at or above the target (the top of a range, the minimum of an AMRAP) within one rep across the exercise, every weight at or above the set's, every hold held for its seconds — and counts a try against every exercise that did not. Only the workout that completes moves a step; editing history later never does, and a session started before the step moved, or a substitute (D42), changes nothing. The progression is finished when every entry is past its last step; the day after, Home offers to plan the next one.
+- **Calendar mode**: step 1 starts the day the progression is saved (`Progression.startDate`, midnight local), and steps are calendar weeks from there, exactly as v1.3's weeks. On the day after the last week the plan's own targets and advice are back.
+- **Prefill** shows the step's weight and reps even when last time was different (SPEC §6.5, rule 0); the suggestion chip's reason reads "Step 3 of 8 of your progression" — or "Week 3 of 8" in calendar mode.
 - **Plan edits** (D29, D43) keep the progression; entries match by name, so a renamed exercise simply stops matching. **Edit JSON** / Replace of the whole plan drops it — that is a new plan.
 
 ## 5. Codes
 
-Errors: `E_PROMPT_PASTED`, `E_NOT_JSON`, `E_MULTIPLE_OBJECTS`, `E_EMPTY`, `E_TOO_LARGE` (as for a plan); `E_PROGRESSION_INVALID`, `E_PROGRESSION_WEEKS_INVALID`, `E_PROGRESSION_EXERCISE_INVALID`, `E_PROGRESSION_WEEK_INVALID`, `E_PROGRESSION_EMPTY`, `E_REPS_INVALID`, `E_DURATION_INVALID`, `E_TARGET_CONFLICT`, `E_WEIGHT_INVALID`, `E_SETS_INVALID`.
+Errors: `E_PROMPT_PASTED`, `E_NOT_JSON`, `E_MULTIPLE_OBJECTS`, `E_EMPTY`, `E_TOO_LARGE` (as for a plan); `E_PROGRESSION_INVALID`, `E_PROGRESSION_WEEKS_INVALID` (the steps count or list — the code keeps v1.3's name), `E_PROGRESSION_EXERCISE_INVALID`, `E_PROGRESSION_WEEK_INVALID` (a step that is not an object), `E_PROGRESSION_EMPTY`, `E_REPS_INVALID`, `E_DURATION_INVALID`, `E_TARGET_CONFLICT`, `E_WEIGHT_INVALID`, `E_SETS_INVALID`.
 
-Warnings, **material** (shown on the review): `W_PROGRESSION_UNMATCHED`, `W_PROGRESSION_SHORT`, `W_PROGRESSION_WEIGHT_IGNORED`. **Cleanup** (behind Details): `W_PROGRESSION_ROUNDED`, `W_PROGRESSION_LONG`, `W_PROGRESSION_DAY_ASSUMED`, `W_UNKNOWN_FIELD`, `W_SURROUNDING_TEXT`, `W_CURLY_QUOTES_FIXED`.
+Warnings, **material** (shown on the review): `W_PROGRESSION_UNMATCHED`, `W_PROGRESSION_SHORT`, `W_PROGRESSION_WEIGHT_IGNORED`. **Cleanup** (behind Details): `W_PROGRESSION_ROUNDED`, `W_PROGRESSION_LONG`, `W_PROGRESSION_DAY_ASSUMED`, `W_PROGRESSION_WEEKS_ALIAS`, `W_UNKNOWN_FIELD`, `W_SURROUNDING_TEXT`, `W_CURLY_QUOTES_FIXED`.
 `````
 
 ---
@@ -2032,6 +2181,76 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | Y17 | check | (D49, v1.4) `python3 tools/check_release.py` | Exit 0: the icon is a 1024 × 1024 PNG of colour type 2 (no alpha); every `MARKETING_VERSION` is 1.4 and every `CURRENT_PROJECT_VERSION` is 1, and `docs/APP_STORE.md` says the same; `ITSAppUsesNonExemptEncryption = NO` is on both app configurations; the extension's Info.plist hard-codes no version; `docs/PRIVACY.md` carries an effective date and `docs/APP_STORE.md` exists; every catalogue id has `JimmsBro/Resources/<id>.json` and the project copies it |
 | Y18 | check | (D49, v1.4) `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | Builds: nothing outside `#if DEBUG` refers to the screenshot hooks, the read-only store or the seeded launch arguments |
 | Y19 | manual | (D49, v1.4) The TestFlight build on the phone | Installs from TestFlight; the icon is the barbell; Settings → About reads 1.4 (1); the device checklist is run against this build rather than a cable install |
+
+## Z. v1.5 — clearer buttons, an effort target, a plan in several pastes, steps you earn, goals
+
+`docs/ITERATION_6_PLAN.md` is the plan; one subsection per milestone, added as it lands.
+
+### Z1 — clearer, not louder (D50)
+
+`JimmsBroTests/ClarityTests.swift`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Z1 | unit | (D50, v1.5) `PromptText` | Four sentences, none empty; the step names the prompt and the reply, the footer says the app never talks to the chatbot, the row line names the chatbot and lifting, the link reads "Plan a progression" |
+| Z2 | unit | (D50, v1.5) `HomeStart.offersProgression` | False with no plan, with a plan whose day has an exercise never logged, with a progression attached, and while a workout is running; true once every exercise on the day has a logged session; a second day's history does not count for the first |
+| Z3 | unit | (D50, v1.5) The views that show the sentences | Add plan, Progression and Plan detail's source reference `PromptText.copyStep`, `.mechanism` and `.progressionRow`, Home's references `.planProgression` — read from the checkout on the host routes, skipped on the simulator |
+| Z4 | manual | (D50, v1.5) Add plan and Plan detail on the phone | Copy prompt is the filled accent button beside the sentence; the footer is under the steps; the Progression row has its line and an accent chevron; Home shows **Plan a progression** only on a day whose every exercise has history, and not once one is attached |
+
+### Z2 — the effort target (D51)
+
+`JimmsBroTests/InReserveTests.swift`; the four fixtures `valid/in-reserve.json`, `valid/in-reserve-alias.json`, `invalid/in-reserve-word.json` and `invalid/in-reserve-too-many.json` run through the manifest in `ImportTests`, with the `inReservePerSet` check.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Z5 | unit | (D51, v1.5) `inReserve` at exercise level, overridden on one set; `rir`; on a hold; a word; 25 | Sets carry 2, 2, 1; the alias reads; a hold takes seconds; the word and the number over 20 are `E_IN_RESERVE_INVALID` at the field's own path, with a sentence that says 0 to 20; a plan that says nothing has nil everywhere and shows nothing |
+| Z6 | unit | (D51, v1.5) The card, its spoken form, the next line and the summary | "6–8 · 80 kg · 2 in reserve"; the spoken card says "2 in reserve"; "Next: … · 2 in reserve"; the summary says it once when every set agrees and not at all when they differ; a drop's target has none |
+| Z7 | unit | (D51, v1.5) On disk | A set with `inReserve` round-trips through the store's coder; the frozen v1 plans and session decode with nil; a session started from the plan carries it in its snapshot |
+| Z8 | unit | (D51, v1.5) `PlanEdit.setInReserve` | Every set takes the value and the plan re-imports; nil clears it; 21 is refused with `E_EDIT_INVALID`; the rendered JSON carries `"inReserve"` per set and imports back identically |
+| Z9 | unit | (D51, v1.5) The prompts | The plan prompt carries the `inReserve` rule and no longer sends RPE to notes; the progression prompt's history line ends "· 2 in reserve" when every logged set of the exercise had it, and says nothing when the plan did not |
+| Z10 | manual | (D51, v1.5) A plan with `"inReserve": 2` on the phone | The card reads "… · 2 in reserve" under the exercise, the review and Plan detail say it once per exercise, and the edit sheet's In reserve field changes it |
+
+### Z3 — a plan in several pastes (D52)
+
+`JimmsBroTests/DraftPlanTests.swift`, and the two new pins in `PromptPinningTests`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Z11 | unit | (D52, v1.5) `PlanDrafting.outline` on an outline, a whole plan, the prompt, not JSON, no days, an unknown cycle day | Three empty slots with the outline's name, days and block; a whole plan arrives with every slot filled; `E_PROMPT_PASTED`, `E_NOT_JSON`, `E_NO_DAYS`, `E_CYCLE_UNKNOWN_DAY`; and the ordinary importer still refuses an empty day |
+| Z12 | unit | (D52, v1.5) `PlanDrafting.day` with a day, a renamed day, a whole plan, a list of exercises, an invalid exercise, two days, an index off the end, nothing | The slot fills; the slot's name wins; the day named like the slot is taken from the plan; the list becomes the day; the error carries `days[2].exercises[0].reps` and "Day 3, exercise 1", and the draft is unchanged; `E_EDIT_INVALID` at `days[2]`; `E_EDIT_INVALID`; `E_EMPTY` |
+| Z13 | unit | (D52, v1.5) `PlanDrafting.assemble` | Incomplete is `E_DRAFT_INCOMPLETE` saying how many are left; complete gives the outline's name, units, block and days with every exercise, no issues, the canonical text, and a plan the importer takes again; a weekday outline lends its weekdays |
+| Z14 | unit | (D52, v1.5) `draft.json` | Written on the outline and after each paste; read back on relaunch with the fragments as pasted; a file without slots decodes with empty ones; a corrupt one is set aside and named; Discard and Delete all data remove it |
+| Z15 | unit | (D52, v1.5) The model end to end | No draft refuses a paste and an assembly; outline, three pastes (one refused), assemble without saving, `saveDraftPlan` saves it active and the draft goes; a cancelled name conflict keeps the draft and Keep both resolves it; Home's card is the saved plan's |
+| Z16 | unit | (D52, v1.5) The prompts | Both carry the marker and no placeholder; the outline prompt says NO exercises; the day prompt names the day, lists the outline, uses the outline's units and drops the days/schedule/cycle rules; every rule line of the day prompt is a line of the plan prompt; both refused if pasted back; a seven-day outline's day prompt is under 4,000 characters; §4 and §5 of PROMPT.md match the code |
+| Z17 | manual | (D52, v1.5) Add plan → Create with a chatbot → **Build it day by day**, with a free ChatGPT tab | The outline pastes into slots; each day prompt fits one reply; a slot refused says which day and why; leave the app and come back to "Continue · 2 of 3 days pasted"; Review plan, Save plan; the plan is on Home and the draft is gone |
+
+### Z4 — progression by performance (D53)
+
+`JimmsBroTests/StepProgressionTests.swift`; W31–W39 keep passing for the calendar mode.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Z18 | unit | (D53, v1.5) `stepIndex`, `currentStep`, `isFinished`, `status` in performance mode | The same on any date; a day's step is the lowest among its exercises still climbing; an entry past its last step is nil; finished only when every entry is; "Step 1 of 4" / "Finished"; the calendar mode answers as in v1.3 |
+| Z19 | unit | (D53, v1.5) `apply(to:on:)` and `Session.start` | Each entry's own step applied; a `{}` step keeps the plan's targets and still counts; each exercise stamped with its step, the session with the lowest and the mode; in calendar mode a `{}` week touches nothing; past the last step nothing is stamped |
+| Z20 | unit | (D53, v1.5) `ProgressionSteps.achieved` | All sets at the top: yes; one rep short across the exercise: yes; two: no; a lighter weight: no; a heavier one: yes; a skipped set: no; a hold short of its seconds: no; an AMRAP's minimum met: yes; nothing done: no |
+| Z21 | unit | (D53, v1.5) A workout completed through the model | The exercise that hit its step moves on with tries reset; the one that missed stays with a try counted; an untrained day's entry is untouched; the plan is on disk with the new steps; a session stamped at a step already left, or of a substitute, changes nothing; the calendar mode never moves by performance |
+| Z22 | unit | (D53, v1.5) The reply and the words | `steps` read with the mode from the screen; `weeks` read as the alias with a cleanup warning; paths say `steps[…]` and locations "step 1"; "Step 2 of 4 of your progression"; "Step 1 of 4 · 2 tries" and "Done"; the ladder with ▸ on the current step; the chip's reason; Home's "step 1 of 4" and the offer when every exercise is done |
+| Z23 | unit | (D53, v1.5) On disk | A v1.3 progression (no mode, step or tries) reads as calendar at step 0; the performance fields round-trip; a session's mode round-trips and a frozen v1 session has none |
+| Z24 | unit | (D53, v1.5) The prompt | "as 8 steps", `"steps": 8`, the performance cadence sentence, the calendar one in calendar mode, no placeholder left, under the bound; §3 of PROMPT.md matches the code (W37) |
+| Z25 | manual | (D53, v1.5) Plan a progression with **When I hit the target**, run a day hitting one exercise and missing another | The chip reads "Step 1 of 4 of your progression"; after Finish, the Progression screen shows the first exercise at step 2 and the other at "Step 1 of 4 · 1 try" with ▸ on its ladder; Home reads "step 1 of 4" until every exercise of the day moves |
+
+### Z5 — goals (D54)
+
+`JimmsBroTests/GoalTests.swift`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Z26 | unit | (D54, v1.5) `Goals.progress` and `meets` | Nothing logged is nil at 0; the best set at or above the goal's reps counts and a heavier set for fewer reps does not; the fraction and reached; other units and other exercises never count; a hold's longest and reps' most |
+| Z27 | unit | (D54, v1.5) A workout that meets a goal, through the model | The goal is marked with that workout and the Summary can name it; a far goal and a goal in the other unit are untouched; reached stays reached and a later workout is not credited; the file is written, read back, a goal removed, and Delete all data removes the file |
+| Z28 | unit | (D54, v1.5) The decoder and the backup | A file with only the identity decodes with defaults; a full goal round-trips; the backup carries the goals; Merge adds only what is new and the same backup twice adds nothing; Replace all takes the backup's; a backup without goals restores with none |
+| Z29 | unit | (D54, v1.5) The progression prompt | Carries the plan's unreached goals as MY GOALS after the plan, in the plan's units; not a reached one, not another exercise's; nothing when there are none |
+| Z30 | unit | (D54, v1.5) The words | "100 kg × 5", "1:30", "1 rep"; the line with best and by, with nothing logged yet, and with reached; the prompt's line with and without a date |
+| Z31 | manual | (D54, v1.5) History → **Set a goal** for an exercise you do, then a workout that meets it | The Goals section shows the line and the bar climbing; the Summary says "Goal reached: …" in green; the goal reads "reached" with the date; Progression's prompt has MY GOALS |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -3170,6 +3389,217 @@ submission is a form-filling afternoon rather than a research project.
 
 ---
 
+### FILE: docs/ITERATION_6_PLAN.md
+
+`````markdown
+# Jimm's Bro+ — v1.5 plan (iteration 6)
+
+The owner's notes after living with the app on the phone, in their words:
+
+1. *"Should make the progression button clearer, currently hidden, but don't make the button
+   too obvious."*
+2. *"Copy prompt button should be a bit clearer. Maybe a short explanation of the mechanism."*
+3. *"The progression should be by performance instead of by calendar. Maybe a legacy calendar
+   increase, but should include the progression steps."*
+4. *"Goals or milestones — also be a feature."*
+5. *"Before progression is made there should be a history for each exercise. The first time
+   using the app should also include a history."* — **not now**, by the owner's decision on
+   2026-09-08 (the reading offered was a sheet of current numbers per exercise, typed, never
+   counted as a workout; it is kept at the end of this file for when it is wanted).
+6. *"When people first use the app there should be a welcome screen explaining how to use the
+   app."* — built in v1.4 as the introduction (D47, SPEC §6.24).
+7. *"Also should add an effort target feature in the plan, showing how many reps/seconds to be
+   away from failure."*
+8. *"Main concerns include making the JSON too big. If the JSON is too big, it might be hard
+   for people on free plans to use. Realistically, people should already have a plan ready
+   before pasting the JSON. Maybe include several different JSON entrances and a master
+   JSON."*
+
+Milestones **Z0–Z6, in order**. Each ends with the full suite green on the three routes, a
+Release build and `tools/check_release.py` (v1.4's rule), and one commit on
+`v1.5-refinement`, off `main`. SPEC amendments land before the code that depends on them.
+Each feature is one decision, D50–D54, and one Core type that a view only renders.
+
+Four of the notes read more than one way, and the readings lead to different builds. Each was
+written up under **the reading**, with the alternative it was chosen over, and the owner chose
+on 2026-09-08: achievement-based steps, a goal per exercise, the outline-then-days flow, and
+no current-numbers feature for now. The milestones below are the chosen readings.
+
+---
+
+## Z0 — This plan, the branch, and the decisions
+
+- Branch `v1.5-refinement` off `main` (v1.4 is merged and pushed).
+- D50–D54 are written into SPEC §6 and `DECISIONS_LOG.md` by the milestone that lands them.
+- No app code.
+
+## Z1 — Clearer, not louder (notes 1 and 2, D50)
+
+Two controls the owner could not find, and one mechanism the app never explains.
+
+- **The Progression row** in Plan detail stays a row — no badge, no button — but says what it
+  is: a second line under "Progression", *"A chatbot plans your next steps from what you have
+  lifted"*, and the accent chevron that every other row that opens a screen has. Home's start
+  card gains one quiet footnote link, **Plan a progression**, in the row that already holds
+  Preview and Another day, shown only when the plan has no progression and every exercise on
+  the card's day has a logged session to plan from. It goes away the moment a progression is
+  attached. That is the whole of "not too obvious".
+- **Copy prompt**, in Add plan and in Progression, becomes the accent-filled small button its
+  step deserves, and the step's own text explains the mechanism once: *"Copy the prompt. It
+  tells the chatbot the exact format the app reads, so its reply pastes straight back in."*
+  The section's footer says the other half: *"The app never talks to the chatbot itself; you
+  carry the text both ways."* No new screen; two sentences where the buttons are.
+- Tests: the sentences are Core strings (`PromptText`), so the intro's pin (Y13) can name them
+  and a rename cannot leave the intro behind; Home's link is a `HomeStart` field with a rule.
+
+## Z2 — An effort target (note 7, D51)
+
+"How many reps or seconds to be away from failure." `PLAN_FORMAT.md` §5 kept RPE and RIR out
+of the format on purpose — "put them in notes" — and the owner has now asked for exactly this
+one, because it changes how a set is done rather than describing it.
+
+- **The field**: `inReserve`, a whole number 0–20, at exercise or set level with the usual
+  exercise-level default; `rir` accepted as an alias. It means *reps* in reserve on a rep set
+  and *seconds* in reserve on a timed set, which is why one field and not two. Anything else →
+  `E_IN_RESERVE_INVALID`. Missing → none, and nothing is shown. `SetTarget.inReserve`,
+  optional in `Persistence.swift`; the session snapshot carries it (D7).
+- **Where it shows**: the workout card, under the target, as *"2 in reserve"* — body text,
+  not a number you act on (§4.0); `TargetText.summary` in Plan detail and the review adds
+  "· 2 in reserve"; the exercise edit sheet (D29) gets a stepper for it; the JSON template
+  (D43) includes it blank.
+- **The prompt** gains one rule: *"inReserve: how many reps (or seconds, for holds) short of
+  failure each set should stop, e.g. 2. Omit when I do not say."* `PROMPT.md` and the pin
+  (M9) follow. The reference implementation and `generate_fixtures.py` gain the field and
+  four fixtures (valid, alias, invalid, on a timed set); the manifest grows by four.
+- Advice (§6.11) does not read it — reps in reserve is for the person, not the algorithm — but
+  the Progression prompt's history lines carry it, so the chatbot knows the sets were not to
+  failure.
+
+## Z3 — A plan in several pastes (note 8, D52)
+
+The owner's main concern. Today's prompt asks for the whole plan in one reply, and a six-day
+plan is 4–5,000 characters of JSON — over what a free chatbot tier will write in one message,
+and a long paste to carry. X3's **Add day from JSON** already accepts one day at a time; what
+is missing is a flow that starts that way on purpose, and a prompt that asks for it.
+
+**The reading** — *a master and its days*: Add plan's chatbot section gains a second way,
+**Build it day by day**, for long plans and free chatbots. 1 **Copy the outline prompt**: the
+chatbot answers with the plan's *outline* only — name, units, schedule, the day names and the
+repeat block, no exercises — which the app reads as a draft with empty days. 2 For each day,
+**Copy day prompt** (it carries the outline and the day's name, so the chatbot writes just that
+day) and paste the reply into its slot. 3 **Save plan** when every slot is filled; the whole
+thing then goes through the ordinary import once, so the app holds nothing it would refuse. The
+draft survives leaving the app, as the editor's text does. *Chosen over* a prompt line asking
+the chatbot to split long replies itself (it will not, reliably) and over trimming the example
+in the prompt (it is the format).
+
+- `PlanOutline` (Core): the master's importer — the plan's header fields and its days' names
+  and weekdays, through the same normalise rules, with `E_NO_EXERCISES` deliberately not
+  raised. `Prompts.outline` and `Prompts.day(outline:dayName:)`, both under the marker rule.
+- `PlanDraft` (Core): the outline plus a day fragment per slot, assembled into one plan for
+  the ordinary import; stored as `draft.json` in the store, optional, removed on save.
+- The whole-plan prompt stays the default; the day-by-day way sits beneath it in the same
+  section. **Add day from JSON** stays where it is for the case where a plan is already
+  saved and one day was cut short.
+
+## Z4 — Progression by performance (note 3, D53)
+
+"The progression should be by performance instead of by calendar. Maybe a legacy calendar
+increase, but should include the progression steps." v1.3's progression (D44) is a list of
+weeks and the calendar turns the page; a week you miss is a week the plan skips.
+
+**The reading** — *steps you earn*: a progression is a ladder of **steps** per exercise (what
+the weeks were), and an exercise moves to its next step when a workout **achieves** the current
+one — every logged set at or above the step's reps, within the one-rep tolerance the advice
+already uses (§6.11); a hold held for its seconds. Miss it and the step repeats next time, and
+the card says so ("Step 3 again"). The calendar stops mattering. **By calendar** stays as the
+per-progression choice at planning time, for the owner's "legacy" case, and both modes show
+the ladder. *Chosen over* advancing one step per completed workout whatever happened (that is
+the calendar with extra steps) and over keeping calendar weeks with only a steps view added.
+
+- `Progression.mode` (`performance` | `calendar`), optional on disk — absent reads as calendar,
+  which is what every existing progression is — and `ProgressionEntry.step`, the current step
+  in performance mode, advanced when a session completes (`library.apply(.finish)`), never by
+  editing history later (recorded as a decision). The on-disk names `weeks` and
+  `progressionWeek` are kept for the files already written; the words on screen are *step*.
+- **The reply** (`PROGRESSION_FORMAT.md`): `steps` in place of `weeks`, with `weeks` read as an
+  alias (`W_PROGRESSION_WEEKS_ALIAS`, cleanup) so a reply to the old prompt still imports.
+  **The prompt** (`Prompts.progression`) asks for steps and says the rule: *"one step is one
+  workout's targets; I move to the next step when I hit the current one."* PROMPT.md §3 and
+  the pin (W37) follow.
+- **The ladder on screen**: Progression's screen shows every exercise's steps in one line with
+  the current one bold, and "Step 3 of 8 · 2 tries" where a step has repeated; Home's subtitle
+  reads "step 3 of 8" (the lowest current step among the day's exercises); the chip's reason
+  reads "Step 3 of 8 of your progression". Finished when every exercise is past its last step;
+  Home offers **Plan the next one**, as now.
+- Prefill (§6.5 rule 0), the Summary's line and Session detail's first line keep working with
+  the word changed.
+
+## Z5 — Goals and milestones (note 4, D54)
+
+**The reading** — *a goal per exercise*: a target you name — a weight × reps, seconds, or reps
+on a bodyweight exercise — with an optional date. *Chosen over* milestones that live only
+inside a progression (a goal outlives any one progression) — though a progression's last step
+that meets a goal is shown as reaching it, so both readings meet in the middle.
+
+- `Goal` (Core): exercise name (matched by §6.9, independent of plan), the target, the date,
+  and `reachedAt`. Stored in `goals.json`, a new file in the store (§8.1), optional in the
+  backup document (§8.5) so a v1.4 backup still restores.
+- **Where**: History → an exercise → **Set a goal**; Plan detail's exercise sheet → Goal; and a
+  **Goals** section at the top of History listing each with its progress — *"Barbell Bench
+  Press 100 kg × 5 · best 82.5 × 5 · by 1 Dec"* — progress being the best logged set that
+  meets the reps, against the target weight (or seconds, or reps).
+- **Reached**: the first logged set that meets it. The Summary says *"Goal reached: Bench Press
+  100 kg × 5"* in the reserved green, like a PR (D30); the goal stays listed as reached, with
+  the date, until you remove it.
+- **The chatbot knows**: the Progression prompt includes the goals for the plan's exercises
+  (*"Goal: Barbell Bench Press 100 kg × 5 by 1 Dec"*), so the steps it plans climb towards
+  them. The one thing the app does not do is set weights from goals itself: the chatbot plans,
+  the app runs (D12).
+
+## Z6 — Docs, checklist, bundle
+
+- SPEC §4, §5, §6.26–6.30 and §8 reconciled; `PLAN_FORMAT.md` §2, §4 and §5 for `inReserve`;
+  `PROGRESSION_FORMAT.md` for steps; `PROMPT.md` for the three prompts and the rule.
+- `TEST_CASES.md` gains section **Z** (v1.5), per milestone as they land.
+- `DEVICE_CHECKLIST.md` gains v1.5 rows; `BUILD_STATUS.md`, `DECISIONS_LOG.md`, README,
+  `CLAUDE.md`/`AGENTS.md` and `HANDOFF_BUNDLE.md` regenerated; `tools/check_bundle.py` and
+  `tools/check_release.py` pass; a Release build compiles.
+
+---
+
+## Parked — your numbers, before there is history (note 5)
+
+"Before progression is made there should be a history for each exercise. The first time using
+the app should also include a history." The built-in plans have no weights (D46), so the first
+session asks for them; Progression's prompt sends the last six sessions of each exercise and
+has nothing to send for an exercise never done.
+
+The reading offered, not built. *Current numbers*: a **baseline** per exercise — the weight and reps (or
+seconds, or reps on a bodyweight exercise) you can do now — entered by you, never counted as
+a workout. *Chosen over* requiring an import from another app (most people have none) and over
+writing a fake session into History (a lie the chart would draw).
+
+- `Baseline` on the plan, keyed by normalised exercise name (§6.9), optional in
+  `Persistence.swift`: weight, work, and the date entered.
+- **Where it is entered**: the review sheet — for a built-in plan or a pasted one — gains
+  **Enter your current numbers**, optional, a list of the plan's exercises with a weight and a
+  reps field each (reps only when bodyweight; seconds when timed); Plan detail's menu has the
+  same as **Current numbers**; and Progression's planning screen lists the exercises that have
+  neither a session nor a number and offers the same sheet. The intro's **Choose a plan** path
+  reaches the review sheet, which is where the note's "first time" lands.
+- **What it does**: prefill rule 2½ (§6.5) — after last time, before the plan's target — so the
+  first card is not empty; the suggestion chip's reason reads "Your current numbers"; the
+  Progression prompt sends *"Current: 60 kg × 8 (entered, not logged)"* for an exercise with
+  no session. Never in History, PRs, the chart or Metrics.
+- **The rule for Progression**: Copy prompt is enabled only when every exercise the prompt
+  would plan has a logged session or a number; until then the screen names the ones that have
+  neither and offers the sheet. That is the note's "before progression is made there should
+  be a history for each exercise", made literal.
+`````
+
+---
+
 ### FILE: docs/PRIVACY.md
 
 `````markdown
@@ -3476,9 +3906,68 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 `````markdown
 # Build status
 
-Updated 2026-09-08. **v1.4 (Y0–Y5) is built and green; the device checklist, the Developer
-Program, a release Xcode and the submission itself are the owner's.** v1.3, v1.2, v1.1 and v1 are
-below, unchanged except where a later milestone corrected them.
+Updated 2026-09-08. **v1.5 (Z0–Z6) is built and green; the device checklist, the Developer
+Program, a release Xcode and the submission itself are the owner's.** v1.4, v1.3, v1.2, v1.1
+and v1 are below, unchanged except where a later milestone corrected them.
+
+## v1.5 (Z0–Z6): built and green
+
+`docs/ITERATION_6_PLAN.md` is the v1.5 plan — the owner's notes after living with the app, with
+the four readings that led to different builds put to the owner and chosen the same day. Every
+milestone ended with the whole suite green on all three routes, a Release build and
+`tools/check_release.py`, and one commit on `v1.5-refinement` (off `main`, which holds v1.4).
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **287 tests, 7 skipped, 0 failures** |
+| `swift test` | **286 tests, 0 failures** |
+| `python3 tools/check_core.py` | **286 bodies, 5,797 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (the original 111, plus four for `inReserve`) |
+| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** |
+| `python3 tools/check_bundle.py` | **current** |
+
+The seven skipped cases read the checkout — the five prompt pins (plan, fix-it, progression,
+outline, day), the introduction's source pin (Y13) and the D50 sentences' pin (Z3) — outside the
+simulator's sandbox. They run on the other two routes.
+
+| Milestone | What it did | State |
+|---|---|---|
+| Z0 | The plan, the branch, the owner's readings | Done |
+| Z1 | Clearer, not louder: the Progression row's line and chevron, Home's quiet link, the accent Copy prompt beside its sentence, the mechanism footer; `PromptText` pinned to the views (D50) | Done |
+| Z2 | The effort target: `inReserve` (alias `rir`) at exercise and set level, on the card, in summaries, in the edit sheet and the JSON, in the prompt, in the reference implementation, schema and four fixtures (D51) | Done |
+| Z3 | A plan in several pastes: the outline prompt and draft, one day per paste named by its slot, the assembly through the importer, `draft.json`, PROMPT.md §4–5 pinned (D52) | Done |
+| Z4 | Steps you earn: `Progression.mode`, per-entry `step` and `tries`, achievement by the advice's arithmetic, the advance on completion, the ladder on screen, the prompt's cadence, `steps` in the reply with `weeks` as the alias (D53) | Done |
+| Z5 | A goal per exercise: `goals.json`, progress and reached, the History section and sheet, the Summary line, the backup, MY GOALS in the prompt (D54) | Done |
+| Z6 | Docs, checklist rows, bundle | Done |
+| — | The v1.5 device rows (Z4, Z10, Z17, Z25, Z31) | **Written, not run** — need the phone |
+| — | "A history for each exercise" as typed current numbers | **Parked** by the owner (the plan's last section) |
+
+### Checked on the simulator (v1.5)
+
+Every screenshot is from a real build on a booted iPhone 17 simulator; the seeded ones through
+the app's own `Store` (`tools/seed`, which can now attach a stepped progression and two goals).
+
+| File | Shows |
+|---|---|
+| `build/z1-home.png` | Home with history on every exercise of the day: Preview · Another day · **Plan a progression** |
+| `build/z1-plan.png` | Plan detail's Progression row with its line and the accent chevron |
+| `build/z1-addplan.png` | Add plan's step 1 with the sentence, the accent Copy prompt, and the mechanism footer |
+| `build/z2-review.png` | A pasted plan's review: "3 × 6–8 · 80 kg · 2 in reserve", the alias read, seconds on the hold, nothing where the plan said nothing |
+| `build/z3-draft-empty.png` | Build it day by day before an outline: the outline step and Paste outline |
+| `build/z3-draft-outline.png` | The outline pasted: the header, the repeat block, three empty slots |
+| `build/z3-draft-day.png` | A day pasted with prose and a fence around it: "1 of 3 days pasted", the slot at "3 exercises" |
+| `build/z4-plan.png` | Plan detail's row reading "Step 1 of 4" for a stepped progression |
+| `build/z4-progression.png` | The Progression screen: one exercise on step 2 with ▸ moved, one at "Step 1 of 4 · 1 try", the ladders |
+| `build/z4-planning.png` | Planning: How many steps, **Advance** (When I hit the target / Every week) with its explanation, the accent Copy prompt |
+| `build/z5-history.png` | History's Goals section: one reached in green with its date, one climbing with its bar and date, Set a goal |
+
+### Not run in v1.5
+
+The three flows that need a chatbot's reply (Z17's day prompts, Z25's steps, Z31's MY GOALS
+block) were exercised with pasted JSON, not with a live chatbot; the prompts are pinned to their
+documents and the readers to their fixtures, and the owner's phone is where a real reply gets
+tried. Nothing in v1.5 changed the workout screen's zones, the timers or the notifications.
 
 ## v1.4 (Y0–Y5): built and green
 
@@ -4066,6 +4555,25 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.4 Y4: Export compliance is answered in the binary (`ITSAppUsesNonExemptEncryption = NO`) so no upload stops at the question; the privacy policy is a file in the repository, whose public URL is the policy URL; the submission is a document (`docs/APP_STORE.md`) because the form is filled from it, once, by the owner.
 - v1.4 Y4: A **Release build** is now part of a milestone's green, alongside the three test routes. The DEBUG-only hooks had never been compiled out before, and the store ships Release.
 - v1.4 Y4: The choices the plan leaves to the owner are stated as choices, not defaulted: the LICENSE of a public repository, the support URL, the name if the store has it taken, the icon's design.
+- v1.5 Z1 (D50): "Clearer, not louder." The Progression row stays a row with one explaining line and the accent chevron; Home gets one footnote link, shown only when there is history for every exercise on the day and no progression yet, and gone the moment one is attached. Copy prompt becomes the accent button beside one sentence that explains the mechanism, and the section's footer says the app never talks to the chatbot itself. No new screen anywhere.
+- v1.5 Z1: The sentences live in Core (`PromptText`) and the views are pinned to them by a source test, the same way the introduction is pinned to its controls (Y13): a rewording is one edit, and a screen cannot quietly keep an old sentence.
+- v1.5 Z2 (D51): **One field, `inReserve`**, meaning reps on a rep set and seconds on a hold — not two fields — with `rir` as the alias people actually write. PLAN_FORMAT §5 had kept RIR out on purpose; the owner asked for it because it changes how a set is done rather than describing it, which is the line between a field and a note.
+- v1.5 Z2: The effort target is **body text after the numbers you act on** on the card and said **once per exercise** in summaries, only when every set agrees; sets that differ are the JSON's business. Advice (§6.11) does not read it — reps in reserve is for the person, not the algorithm — but the progression prompt's history lines carry it so the chatbot knows the sets were not to failure.
+- v1.5 Z2: The prompt's example JSON is unchanged; the new rule is enough, and the example is pinned to two fixtures and a doc.
+- v1.5 Z3 (D52): A long plan comes in as **an outline and then one day per paste**, each through the same importer, and the whole thing through it once more at the end — never a parser of its own. The outline is the plan format with one check waived (`E_NO_EXERCISES`); a day is a D43 fragment named by its slot, checked alone under the outline's header.
+- v1.5 Z3: **The slot names the day.** The outline decided the names and the repeat block refers to them, so a day the chatbot renamed takes the slot's name rather than breaking the block. A whole plan pasted into a slot gives up the day named like the slot.
+- v1.5 Z3: The day prompt's rules are **computed from the plan prompt's** (minus days, schedule and cycle), not copied, and a test walks every line. Two copies of the rules would have drifted by v1.7.
+- v1.5 Z3: The draft is a file of its own (`draft.json`), not part of the backup: a half-built plan is not data worth carrying to another phone, and a corrupt one is set aside like any file rather than taking `plans.json` with it.
+- v1.5 Z4 (D53): A progression is **a ladder of steps per exercise, earned by performance**: an exercise moves on when a workout achieves its current step — every main set logged, the reps at or above the target within the one-rep tolerance the advice already uses, the weight not below the set's, a hold held for its seconds — and repeats it otherwise. The calendar stays as a mode, the owner's "legacy" case, and is what every progression written before v1.5 reads as.
+- v1.5 Z4: The step moves **only when the workout completes**, never when history is edited later, and only for an exercise the session stamped with the entry's current step. A session started before the step moved is history; a substitute has no entry.
+- v1.5 Z4: A `{}` step is still a step in performance mode — the plan's own targets, still to be earned — where in calendar mode a `{}` week touches nothing, as in v1.3. The two modes share every type and differ in three functions.
+- v1.5 Z4: The on-disk and reply names stay `weeks` and `progressionWeek`; the words on screen are *step* and *week* by mode. Renaming the fields would have meant a migration for a word.
+- v1.5 Z4: The mode is chosen on the planning screen and never set by the reply: the chatbot plans targets, the app decides how they are earned.
+- v1.5 Z5 (D54): A goal is **per exercise and independent of any plan** — a weight for so many reps, a hold, or reps, with a date that is said and never enforced. It outlives the plan and the progression it was reached under, which is why it has its own file rather than a place on the plan.
+- v1.5 Z5: For a weight goal **only sets at or above its reps count**. A heavier set for fewer reps is a different achievement, and calling it progress towards this one would be the app flattering you.
+- v1.5 Z5: A goal is **reached by the first workout that meets it**, marked when that workout completes, and stays reached. The Summary names it once, in the reserved green, like a record; History says the date from then on.
+- v1.5 Z5: The progression prompt carries the plan's unreached goals so the chatbot plans towards them; the app never sets a weight from a goal itself (D12).
+- v1.5 Z6: The bundle builder's guard against fixture drift stays, and gains one lawful exception — `--regenerated`, which lifts it only after proving that running `tools/generate_fixtures.py` changes nothing on disk. A feature that adds fixtures does so through the generator; a fixture edited by hand still cannot reach the published package.
 `````
 
 ---
@@ -4079,9 +4587,9 @@ Every `manual` case from `TEST_CASES.md`, to run on the owner's iPhone. The simu
 notifications while locked, real haptics, the silent switch, or the free-account expiry, which is why
 these are here rather than automated.
 
-Everything else — 259 automated tests plus the simulator screen checks — is green; see
+Everything else — 287 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
-**v1.4** added Y3, Y11, Y16 and Y19 after them. Y19 needs a TestFlight build, which needs the paid
+**v1.4** added Y3, Y11, Y16 and Y19 after them, and **v1.5** Z4, Z10, Z17, Z25 and Z31. Y19 needs a TestFlight build, which needs the paid
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
@@ -4208,6 +4716,16 @@ Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Note
 | **Y16** | Delete the app, install, launch; then Settings → About → **How the app works** | The intro covers the tabs on the clean install; four pages; **Choose a plan** lands on the built-in picker; after Cancel, Home is the empty card and the intro does not return on relaunch; the Settings row reopens it, ending on **Done** |  |  |
 | **Y19** | Install from TestFlight | The icon is the barbell on blue; Settings → About reads 1.4 (1); the rest of this checklist is run against this build |  |  |
 
+## v1.5 rows (new or changed in Z1–Z5)
+
+| Case | What to do | Expected | Result | Notes |
+|---|---|---|---|---|
+| **Z4** | Add plan, then Plans → a plan | Copy prompt is the filled accent button beside the sentence that explains it; the footer under the steps says the app never talks to the chatbot; the Progression row has its line and an accent chevron; Home shows **Plan a progression** only on a day whose every exercise has history, and not once one is attached |  |  |
+| **Z10** | Paste a plan with `"inReserve": 2` on an exercise (or add it in the exercise's edit sheet), then start it | The review and Plan detail read "… · 2 in reserve" once for the exercise; the card reads "6–8 · 80 kg · 2 in reserve" under the target; VoiceOver says it |  |  |
+| **Z17** | Add plan → Create with a chatbot → **Build it day by day**, with a free ChatGPT tab | Copy outline prompt; paste the reply into Paste outline — one slot per day; Copy day prompt per slot, paste each reply; a slot refused says which day and why; leave the app and come back to "Continue · 2 of 3 days pasted"; Review plan, Save plan; the plan is on Home and the draft is gone |  |  |
+| **Z25** | Plan → Progression → **When I hit the target**, paste the reply, Save; run a day hitting one exercise and missing another | The chip reads "Step 1 of N of your progression"; after Finish, the Progression screen shows the hit exercise at step 2 with ▸ moved and the other at "Step 1 of N · 1 try"; Home's subtitle reads "step 1 of N" until every exercise of the day moves |  |  |
+| **Z31** | History → **Set a goal** for an exercise you do (a weight you can lift for the reps), then run a workout that meets it | The Goals section shows the line and the bar; the Summary says "Goal reached: …" in green; the goal reads "reached" with the date; Plan → Progression → Copy prompt has a MY GOALS block |  |  |
+
 ## When you are done
 
 Anything that fails is a bug to bring back here with the row and what actually happened. A `fail` on
@@ -4225,6 +4743,11 @@ For the v1.4 rows: a `fail` on Y3 points at `RootView`'s `onChange(of: model.sta
 at a view that still sets the cover after awaiting `startDay` (D48); on Y11 at `BuiltInPlansView`
 or `AppModel.loadBuiltInPlan`; on Y16 at `AppModel.introDue` and the cover's binding, or at
 `Settings.introSeen` in `Persistence.swift`; on Y19 at signing, or at `tools/check_release.py`.
+
+For the v1.5 rows: a `fail` on Z4 points at `PromptText` and the views pinned to it; on Z10 at
+`PlanImport`'s `reserve` and `TargetText`; on Z17 at `PlanDrafting` or `DraftPlanView`; on Z25 at
+`ProgressionSteps.achieved` / `advance` and `PlanLibrary.completeSession`; on Z31 at
+`Goals.markReached` and `GoalsSection`.
 `````
 
 ---
@@ -4652,12 +5175,24 @@ For implementation, revise the conflicting sections of SPEC and TEST_CASES first
         },
         "warningBeep": {
           "$ref": "#/$defs/warningBeep"
+        },
+        "inReserve": {
+          "$ref": "#/$defs/inReserve"
+        },
+        "rir": {
+          "$ref": "#/$defs/inReserve"
         }
       }
     },
     "set": {
       "type": "object",
       "properties": {
+        "inReserve": {
+          "$ref": "#/$defs/inReserve"
+        },
+        "rir": {
+          "$ref": "#/$defs/inReserve"
+        },
         "reps": {
           "$ref": "#/$defs/reps"
         },
@@ -4728,6 +5263,11 @@ For implementation, revise the conflicting sections of SPEC and TEST_CASES first
           "pattern": "^\\s*(\\d{1,5}\\s*\\+?|(?i:max|open|amsap|as long as possible|to failure))\\s*$"
         }
       ]
+    },
+    "inReserve": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 20
     },
     "warningBeep": {
       "oneOf": [
@@ -4989,8 +5529,15 @@ def normalize_name(s): return re.sub(r"\s+", " ", s.strip()).lower()
 
 KNOWN_PLAN = {"schemaVersion", "name", "units", "defaultRestSeconds", "schedule", "cycle", "days"}
 KNOWN_DAY = {"name", "weekday", "defaultRestSeconds", "exercises"}
-KNOWN_EX = {"name", "group", "notes", "sets", "reps", "repRange", "durationSeconds", "warningBeep", "bodyweight", "weight", "restSeconds", "drops"}
-KNOWN_SET = {"reps", "durationSeconds", "warningBeep", "weight", "restSeconds", "drops"}
+KNOWN_EX = {"name", "group", "notes", "sets", "reps", "repRange", "durationSeconds", "warningBeep", "bodyweight", "weight", "restSeconds", "drops", "inReserve", "rir"}
+KNOWN_SET = {"reps", "durationSeconds", "warningBeep", "weight", "restSeconds", "drops", "inReserve", "rir"}
+
+
+def _parse_reserve(obj, path, issues):
+    """D51 (v1.5): the effort target — inReserve, or its alias rir. Returns (value, present)."""
+    key = "inReserve" if obj.get("inReserve") is not None else ("rir" if obj.get("rir") is not None else None)
+    if key is None: return None, False
+    return _parse_int_field(obj[key], f"{path}.{key}", "E_IN_RESERVE_INVALID", 0, 20, issues, "inReserve"), True
 OPEN_WORDS = {"max", "open", "amsap", "as long as possible", "to failure"}
 KNOWN_DROP = {"reps", "weight"}
 
@@ -5118,6 +5665,7 @@ def normalize(obj, settings=DEFAULT_SETTINGS, today=None):
                 if isinstance(e["bodyweight"], bool): bodyweight = bodyweight or e["bodyweight"]
                 else: issues.append(err("E_BODYWEIGHT_INVALID", f"{ep}.bodyweight", "bodyweight must be true or false."))
             ex_warn = parse_warning(e["warningBeep"], f"{ep}.warningBeep", issues) if e.get("warningBeep") is not None else None
+            ex_res, _ = _parse_reserve(e, ep, issues)
             if bodyweight and ex_w is not None:
                 issues.append(warn("W_BODYWEIGHT_WEIGHT_IGNORED", f"{ep}.weight", "Weight ignored on a bodyweight exercise.")); ex_w = None
             has_ex_reps = "reps" in e and e["reps"] is not None
@@ -5190,10 +5738,11 @@ def normalize(obj, settings=DEFAULT_SETTINGS, today=None):
                         if wspec is None and s.get("warningBeep") is not None: beep = None
                         else: beep = resolve_warning(wspec, work, wpath, issues)
                         r = _parse_int_field(s.get("restSeconds"), f"{sp}.restSeconds", "E_REST_INVALID", 0, LIMITS["rest"], issues, "restSeconds")
+                        s_res, s_res_present = _parse_reserve(s, sp, issues)
                         drops = parse_drops(s["drops"], f"{sp}.drops", units, issues) if s.get("drops") is not None else ex_drops
                         if drops and work[0] != "reps":
                             issues.append(warn("W_DROPS_IGNORED", f"{sp}.drops", "Drops are ignored on a timed set.")); drops = None
-                        set_specs.append({"work": work, "weight": w, "rest": r, "beep": beep, "drops": drops or []})
+                        set_specs.append({"work": work, "weight": w, "rest": r, "beep": beep, "drops": drops or [], "reserve": s_res if s_res_present else ex_res})
             elif _is_int_like(sets_raw) and 1 <= _as_int(sets_raw) <= LIMITS["sets"]:
                 n = _as_int(sets_raw)
                 if has_ex_reps and has_ex_dur:
@@ -5208,7 +5757,7 @@ def normalize(obj, settings=DEFAULT_SETTINGS, today=None):
                         if drops and work[0] != "reps":
                             issues.append(warn("W_DROPS_IGNORED", f"{ep}.drops", "Drops are ignored on a timed exercise.")); drops = []
                         beep = resolve_warning(ex_warn, work, f"{ep}.warningBeep", issues)
-                        set_specs = [{"work": work, "weight": ex_w, "rest": None, "beep": beep, "drops": list(drops)} for _ in range(n)]
+                        set_specs = [{"work": work, "weight": ex_w, "rest": None, "beep": beep, "drops": list(drops), "reserve": ex_res} for _ in range(n)]
             elif _is_int_like(sets_raw) and _as_int(sets_raw) > LIMITS["sets"]:
                 issues.append(err("E_LIMIT_EXCEEDED", f"{ep}.sets", f"Too many sets ({_as_int(sets_raw)}); the limit is {LIMITS['sets']}."))
                 if has_ex_reps and has_ex_dur: issues.append(err("E_TARGET_CONFLICT", ep, "An exercise can't have both reps and durationSeconds."))
@@ -5317,7 +5866,7 @@ def normalize(obj, settings=DEFAULT_SETTINGS, today=None):
                         issues.append(warn("W_BODYWEIGHT_WEIGHT_IGNORED", "", f'Drop weights ignored on bodyweight exercise "{e["name"]}".'))
                         warned_drop_weights = True
                     drops = [{"work": dr["work"], "weight": None} for dr in drops]
-                sets.append({"work": s["work"], "weight": s["weight"], "restSeconds": rest, "warningBeepSeconds": s.get("beep"), "drops": drops})
+                sets.append({"work": s["work"], "weight": s["weight"], "restSeconds": rest, "warningBeepSeconds": s.get("beep"), "drops": drops, "inReserve": s.get("reserve")})
             e["sets"] = sets; e["explicitRest"] = e.pop("rest"); e.pop("set_specs")
         d.pop("rest", None)
 
@@ -5415,6 +5964,7 @@ def check_manifest(root):
                     elif key == "cycle": got = plan["cycle"]
                     elif key == "bodyweight": got = {k: plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["bodyweight"] for k in exp}
                     elif key == "warningPerSet": got = {k: [s["warningBeepSeconds"] for s in plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["sets"]] for k in exp}
+                    elif key == "inReservePerSet": got = {k: [s["inReserve"] for s in plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["sets"]] for k in exp}
                     elif key == "dropsPerSet": got = {k: [len(s["drops"]) for s in plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["sets"]] for k in exp}
                     elif key == "dropTargets":
                         got = {}
@@ -5544,6 +6094,14 @@ wj(V, "bodyweight.json", {"name": "Calisthenics", "days": [{"name": "A", "exerci
     {"name": "Pistol Squat", "sets": 2, "reps": 6, "bodyweight": True, "weight": 5, "restSeconds": 60},
     {"name": "Bodyweight Row", "sets": 2, "reps": 12, "bodyweight": False, "warningBeep": True, "restSeconds": 60},
     {"name": "Nordic Curl", "sets": 2, "reps": 5, "bodyweight": True, "drops": [{"weight": 5}]}]}]})
+# v1.5 (D51): the effort target — inReserve at exercise and set level, its alias, on a hold.
+wj(V, "in-reserve.json", {"name": "Effort", "days": [{"name": "A", "exercises": [
+    {"name": "Barbell Bench Press", "reps": "6-8", "weight": 80, "restSeconds": 150, "inReserve": 2, "sets": [{}, {}, {"inReserve": 1}]},
+    {"name": "Barbell Row", "sets": 2, "reps": "8-10", "weight": 70, "restSeconds": 90, "rir": 3},
+    {"name": "Plank", "sets": 2, "durationSeconds": 45, "bodyweight": True, "restSeconds": 45, "inReserve": 5},
+    {"name": "Dumbbell Curl", "sets": 1, "reps": 12, "weight": 12, "restSeconds": 60}]}]})
+wj(V, "in-reserve-alias.json", {"name": "Effort alias", "days": [{"name": "A", "exercises": [
+    {"name": "Lat Pulldown", "reps": "10-12", "weight": 50, "restSeconds": 90, "sets": [{"rir": "2"}, {"inReserve": 0}]}]}]})
 wj(V, "rest-precedence.json", {"name": "Rest chain", "defaultRestSeconds": 100, "days": [
     {"name": "Day A", "defaultRestSeconds": 80, "exercises": [
         {"name": "Ex 1", "sets": 2, "reps": 10},
@@ -5661,6 +6219,8 @@ wj(I, "drops-bad-weight.json", {"name": "X", "days": [{"name": "A", "exercises":
 wj(I, "cycle-unknown-day.json", {"name": "X", "cycle": ["A", "Legs"], "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10}]}]})
 wj(I, "cycle-empty.json", {"name": "X", "cycle": [], "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10}]}]})
 wj(I, "cycle-not-list.json", {"name": "X", "cycle": "A, rest", "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10}]}]})
+wj(I, "in-reserve-word.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Curl", "sets": 2, "reps": 10, "inReserve": "two"}]}]})
+wj(I, "in-reserve-too-many.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Curl", "reps": 10, "sets": [{}, {"inReserve": 25}]}]}]})
 wj(I, "warning-beep-zero.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Plank", "sets": 3, "durationSeconds": 30, "warningBeep": 0}]}]})
 wj(I, "warning-beep-too-long.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Plank", "sets": 3, "durationSeconds": 30, "warningBeep": 86400}]}]})
 wj(I, "warning-beep-word.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Plank", "sets": 3, "durationSeconds": 30, "warningBeep": "soon"}]}]})
@@ -5777,6 +6337,8 @@ fixtures = [
     restPerSet={"0.0":[90]*4}),
   V("unknown-fields.json", ["W_UNKNOWN_FIELD"]*4),
   V("lb-plan.json", units="lb"),
+  V("in-reserve.json", inReservePerSet={"0.0":[2,2,1], "0.1":[3,3], "0.2":[5,5], "0.3":[None]}),
+  V("in-reserve-alias.json", inReservePerSet={"0.0":[2,0]}),
   V("duplicate-day-names.json", ["W_DAY_RENAMED","W_DAY_RENAMED"], dayNames=["Push","push (2)","Push (3)"]),
   V("group-edge-cases.json", ["W_GROUP_SINGLE","W_GROUP_SINGLE","W_GROUP_SPLIT"], groups={"0":["A","A",None,None,None]},
     stepOrder={"0":["0.0","1.0","0.1","1.1","0.2","1.2","2.0","2.1","2.2","3.0","3.1","3.2","4.0","4.1"]}),
@@ -5840,6 +6402,8 @@ fixtures = [
   I("cycle-unknown-day.json", ("E_CYCLE_UNKNOWN_DAY", "cycle[1]")),
   I("cycle-empty.json", ("E_CYCLE_INVALID", "cycle")),
   I("cycle-not-list.json", ("E_CYCLE_INVALID", "cycle")),
+  I("in-reserve-word.json", ("E_IN_RESERVE_INVALID", f"{E0}.inReserve")),
+  I("in-reserve-too-many.json", ("E_IN_RESERVE_INVALID", f"{E0}.sets[1].inReserve")),
   I("warning-beep-zero.json", ("E_WARNING_BEEP_INVALID", f"{E0}.warningBeep")),
   I("warning-beep-too-long.json", ("E_WARNING_BEEP_INVALID", f"{E0}.warningBeep")),
   I("warning-beep-word.json", ("E_WARNING_BEEP_INVALID", f"{E0}.warningBeep")),
@@ -5937,6 +6501,18 @@ answer, `docs/PRIVACY.md`, `docs/APP_STORE.md`, `tools/check_release.py`, and a 
 as part of every milestone's green). Everything through Y5 is built and green. What remains is
 the owner's: the device checklist, the Developer Program, a release Xcode, the LICENSE and the
 submission (`docs/APP_STORE.md` §1 and §6).
+
+`docs/ITERATION_6_PLAN.md` is the v1.5 plan (milestones **Z0–Z6**), the owner's notes after
+living with the app, with four readings put to the owner and chosen: a clearer Progression row
+and Copy prompt with the mechanism explained once (D50, `PromptText`), an **effort target** in
+the plan format — `inReserve`, reps or seconds short of failure (D51, `SetTarget.inReserve`,
+four fixtures) — **a plan in several pastes** for free chatbot tiers: the outline first, then one
+day per paste, through the ordinary importer (D52, `Core/PlanDraft.swift`, `draft.json`,
+PROMPT.md §4–5), **progression as steps you earn** by performance with the calendar kept as a
+mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** (D54,
+`Core/Goals.swift`, `goals.json`). Everything through Z6 is built and green; the v1.5 device
+rows (Z4, Z10, Z17, Z25, Z31) join the checklist. The reading of "a history for each exercise"
+as typed current numbers is parked by the owner's decision (the plan's last section).
 
 Three v1.2 rules are worth knowing before touching anything:
 

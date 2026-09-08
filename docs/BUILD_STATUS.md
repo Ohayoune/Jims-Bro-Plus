@@ -1,8 +1,67 @@
 # Build status
 
-Updated 2026-09-08. **v1.4 (Y0–Y5) is built and green; the device checklist, the Developer
-Program, a release Xcode and the submission itself are the owner's.** v1.3, v1.2, v1.1 and v1 are
-below, unchanged except where a later milestone corrected them.
+Updated 2026-09-08. **v1.5 (Z0–Z6) is built and green; the device checklist, the Developer
+Program, a release Xcode and the submission itself are the owner's.** v1.4, v1.3, v1.2, v1.1
+and v1 are below, unchanged except where a later milestone corrected them.
+
+## v1.5 (Z0–Z6): built and green
+
+`docs/ITERATION_6_PLAN.md` is the v1.5 plan — the owner's notes after living with the app, with
+the four readings that led to different builds put to the owner and chosen the same day. Every
+milestone ended with the whole suite green on all three routes, a Release build and
+`tools/check_release.py`, and one commit on `v1.5-refinement` (off `main`, which holds v1.4).
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **287 tests, 7 skipped, 0 failures** |
+| `swift test` | **286 tests, 0 failures** |
+| `python3 tools/check_core.py` | **286 bodies, 5,797 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (the original 111, plus four for `inReserve`) |
+| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** |
+| `python3 tools/check_bundle.py` | **current** |
+
+The seven skipped cases read the checkout — the five prompt pins (plan, fix-it, progression,
+outline, day), the introduction's source pin (Y13) and the D50 sentences' pin (Z3) — outside the
+simulator's sandbox. They run on the other two routes.
+
+| Milestone | What it did | State |
+|---|---|---|
+| Z0 | The plan, the branch, the owner's readings | Done |
+| Z1 | Clearer, not louder: the Progression row's line and chevron, Home's quiet link, the accent Copy prompt beside its sentence, the mechanism footer; `PromptText` pinned to the views (D50) | Done |
+| Z2 | The effort target: `inReserve` (alias `rir`) at exercise and set level, on the card, in summaries, in the edit sheet and the JSON, in the prompt, in the reference implementation, schema and four fixtures (D51) | Done |
+| Z3 | A plan in several pastes: the outline prompt and draft, one day per paste named by its slot, the assembly through the importer, `draft.json`, PROMPT.md §4–5 pinned (D52) | Done |
+| Z4 | Steps you earn: `Progression.mode`, per-entry `step` and `tries`, achievement by the advice's arithmetic, the advance on completion, the ladder on screen, the prompt's cadence, `steps` in the reply with `weeks` as the alias (D53) | Done |
+| Z5 | A goal per exercise: `goals.json`, progress and reached, the History section and sheet, the Summary line, the backup, MY GOALS in the prompt (D54) | Done |
+| Z6 | Docs, checklist rows, bundle | Done |
+| — | The v1.5 device rows (Z4, Z10, Z17, Z25, Z31) | **Written, not run** — need the phone |
+| — | "A history for each exercise" as typed current numbers | **Parked** by the owner (the plan's last section) |
+
+### Checked on the simulator (v1.5)
+
+Every screenshot is from a real build on a booted iPhone 17 simulator; the seeded ones through
+the app's own `Store` (`tools/seed`, which can now attach a stepped progression and two goals).
+
+| File | Shows |
+|---|---|
+| `build/z1-home.png` | Home with history on every exercise of the day: Preview · Another day · **Plan a progression** |
+| `build/z1-plan.png` | Plan detail's Progression row with its line and the accent chevron |
+| `build/z1-addplan.png` | Add plan's step 1 with the sentence, the accent Copy prompt, and the mechanism footer |
+| `build/z2-review.png` | A pasted plan's review: "3 × 6–8 · 80 kg · 2 in reserve", the alias read, seconds on the hold, nothing where the plan said nothing |
+| `build/z3-draft-empty.png` | Build it day by day before an outline: the outline step and Paste outline |
+| `build/z3-draft-outline.png` | The outline pasted: the header, the repeat block, three empty slots |
+| `build/z3-draft-day.png` | A day pasted with prose and a fence around it: "1 of 3 days pasted", the slot at "3 exercises" |
+| `build/z4-plan.png` | Plan detail's row reading "Step 1 of 4" for a stepped progression |
+| `build/z4-progression.png` | The Progression screen: one exercise on step 2 with ▸ moved, one at "Step 1 of 4 · 1 try", the ladders |
+| `build/z4-planning.png` | Planning: How many steps, **Advance** (When I hit the target / Every week) with its explanation, the accent Copy prompt |
+| `build/z5-history.png` | History's Goals section: one reached in green with its date, one climbing with its bar and date, Set a goal |
+
+### Not run in v1.5
+
+The three flows that need a chatbot's reply (Z17's day prompts, Z25's steps, Z31's MY GOALS
+block) were exercised with pasted JSON, not with a live chatbot; the prompts are pinned to their
+documents and the readers to their fixtures, and the owner's phone is where a real reply gets
+tried. Nothing in v1.5 changed the workout screen's zones, the timers or the notifications.
 
 ## v1.4 (Y0–Y5): built and green
 

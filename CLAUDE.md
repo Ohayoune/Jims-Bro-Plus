@@ -47,6 +47,18 @@ as part of every milestone's green). Everything through Y5 is built and green. W
 the owner's: the device checklist, the Developer Program, a release Xcode, the LICENSE and the
 submission (`docs/APP_STORE.md` §1 and §6).
 
+`docs/ITERATION_6_PLAN.md` is the v1.5 plan (milestones **Z0–Z6**), the owner's notes after
+living with the app, with four readings put to the owner and chosen: a clearer Progression row
+and Copy prompt with the mechanism explained once (D50, `PromptText`), an **effort target** in
+the plan format — `inReserve`, reps or seconds short of failure (D51, `SetTarget.inReserve`,
+four fixtures) — **a plan in several pastes** for free chatbot tiers: the outline first, then one
+day per paste, through the ordinary importer (D52, `Core/PlanDraft.swift`, `draft.json`,
+PROMPT.md §4–5), **progression as steps you earn** by performance with the calendar kept as a
+mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** (D54,
+`Core/Goals.swift`, `goals.json`). Everything through Z6 is built and green; the v1.5 device
+rows (Z4, Z10, Z17, Z25, Z31) join the checklist. The reading of "a history for each exercise"
+as typed current numbers is parked by the owner's decision (the plan's last section).
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a

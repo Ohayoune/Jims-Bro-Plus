@@ -220,3 +220,4 @@
 - v1.5 Z5: For a weight goal **only sets at or above its reps count**. A heavier set for fewer reps is a different achievement, and calling it progress towards this one would be the app flattering you.
 - v1.5 Z5: A goal is **reached by the first workout that meets it**, marked when that workout completes, and stays reached. The Summary names it once, in the reserved green, like a record; History says the date from then on.
 - v1.5 Z5: The progression prompt carries the plan's unreached goals so the chatbot plans towards them; the app never sets a weight from a goal itself (D12).
+- v1.5 Z6: The bundle builder's guard against fixture drift stays, and gains one lawful exception — `--regenerated`, which lifts it only after proving that running `tools/generate_fixtures.py` changes nothing on disk. A feature that adds fixtures does so through the generator; a fixture edited by hand still cannot reach the published package.
