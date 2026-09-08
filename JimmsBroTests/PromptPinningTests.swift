@@ -51,6 +51,21 @@ final class PromptPinningTests: XCTestCase {
                        "docs/PROMPT.md §3 and Prompts.progressionTemplate have drifted apart")
     }
 
+    // Z16 (v1.5): the outline prompt (docs/PROMPT.md §4) and the day prompt (§5) of D52.
+    func testOutlinePromptMatchesTheDocument() throws {
+        let published = try fenced(try document(), 3)
+        XCTAssertEqual(Prompts.outlineTemplate.trimmedTrailingNewlines,
+                       published.trimmedTrailingNewlines,
+                       "docs/PROMPT.md §4 and Prompts.outlineTemplate have drifted apart")
+    }
+
+    func testDayPromptMatchesTheDocument() throws {
+        let published = try fenced(try document(), 4)
+        XCTAssertEqual(Prompts.dayTemplate.trimmedTrailingNewlines,
+                       published.trimmedTrailingNewlines,
+                       "docs/PROMPT.md §5 and Prompts.dayTemplate have drifted apart")
+    }
+
     // The example JSON is now written once. It must still be a plan the app imports, and it
     // must still be inside the prompt the chatbot is given.
     func testTheExampleIsWrittenOnceAndStillImports() {

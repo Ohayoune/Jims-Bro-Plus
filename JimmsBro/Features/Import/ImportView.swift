@@ -13,7 +13,7 @@ struct ImportView: View {
     var replacingPlanId: UUID? = nil
     var prefillText: String = ""
 
-    private enum Route: Hashable { case builtIns }
+    private enum Route: Hashable { case builtIns, draft }
     /// D46 (v1.4): the picker is pushed inside this sheet's own stack. Home's link and the
     /// intro's button open the sheet with the picker already on it, as the stack's initial
     /// path. `RootView` presents this sheet from an `AddPlanRequest` item rather than a Bool
@@ -21,10 +21,16 @@ struct ImportView: View {
     /// tap that presented it, so a flag set in the same tap arrived here as false.
     @State private var path: [Route]
 
-    init(replacingPlanId: UUID? = nil, prefillText: String = "", openBuiltIns: Bool = false) {
+    init(replacingPlanId: UUID? = nil, prefillText: String = "", opening: AddPlanRequest = .plan) {
         self.replacingPlanId = replacingPlanId
         self.prefillText = prefillText
-        _path = State(initialValue: openBuiltIns && replacingPlanId == nil ? [.builtIns] : [])
+        let route: [Route]
+        switch opening {
+        case .plan: route = []
+        case .builtIns: route = [.builtIns]
+        case .draft: route = [.draft]
+        }
+        _path = State(initialValue: replacingPlanId == nil ? route : [])
     }
 
     @State private var text = ""
@@ -56,8 +62,12 @@ struct ImportView: View {
             .navigationTitle(replacingPlanId == nil ? "Add plan" : "Edit JSON")
             .navigationBarTitleDisplayMode(.inline)
             // D46 (v1.4): saving a built-in plan in the picker closes this sheet with it.
-            .navigationDestination(for: Route.self) { _ in
-                BuiltInPlansView { dismiss() }
+            .navigationDestination(for: Route.self) { route in
+                switch route {
+                case .builtIns: BuiltInPlansView { dismiss() }
+                // D52 (v1.5): a plan in several pastes; saving there closes this sheet too.
+                case .draft: DraftPlanView { dismiss() }
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
@@ -174,6 +184,23 @@ struct ImportView: View {
             }
             step(2, "Paste it into ChatGPT, Claude or another chatbot, and describe your training.")
             step(3, "Copy its reply, come back, and tap Paste plan.")
+            // D52 (v1.5): the same round-trip in several pastes, for long plans and free
+            // chatbot tiers. A draft in progress says how far it got.
+            if replacingPlanId == nil {
+                Button {
+                    path.append(.draft)
+                } label: {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Build it day by day")
+                        Text(model.draft.map { "Continue · " + $0.progress }
+                             ?? "For long plans, or a chatbot that cuts replies short: the outline first, then one day at a time.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .buttonStyle(PressableRow())
+            }
         } header: {
             Text("Create with a chatbot")
         } footer: {

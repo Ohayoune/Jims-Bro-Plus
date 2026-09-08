@@ -101,8 +101,77 @@ MY PLAN
 
 The reply format is `docs/PROGRESSION_FORMAT.md`.
 
-## 4. Behavior notes for the app
-- All three prompts are plain strings in `Core/Prompts.swift` with a `render(settings:)` / `render(errors:)` function, unit-tested (placeholders substituted, marker present, length bound).
+## 4. Outline prompt (Add plan → Build it day by day → Copy outline prompt)
+
+**v1.5 (D52).** A plan built in several pastes, for long plans and free chatbot tiers. The outline first: the header, the day names and the repeat block, no exercises. It carries the plan prompt's marker, so pasting it into the app is refused the same way.
+
+```
+JIMMSBRO-PLAN-PROMPT-V1
+I am building my workout plan for a workout-tracking app one day at a time. First, reply with ONE JSON object holding only the plan's OUTLINE, in a single code block tagged json, with no other text.
+
+FORMAT (schemaVersion 1):
+{
+  "schemaVersion": 1,
+  "name": "Push Pull Legs",
+  "units": "{{units}}",
+  "defaultRestSeconds": {{defaultRest}},
+  "schedule": "rotation",
+  "cycle": ["Push", "Pull", "Legs", "Push", "Pull", "Legs", "rest"],
+  "days": [ { "name": "Push" }, { "name": "Pull" }, { "name": "Legs" } ]
+}
+
+RULES
+- days: training days in order, each with a name only — NO exercises yet. Do not list rest days as days.
+- schedule: rotation = repeat days in order. Use weekday only for a fixed weekly schedule; give every day a weekday (monday…sunday) and omit cycle.
+- cycle: rotation's full repeating block, using day names and "rest", including rest days. This drives the calendar.
+- Keep the day names short and distinct; I will ask for each day's exercises separately, one per message.
+- Return ALL JSON, never abbreviate with "...".
+
+My plan:
+```
+
+## 5. Day prompt (Add plan → Build it day by day → Copy day prompt)
+
+**v1.5 (D52).** One per day of the outline. `{{day}}` is the day's name, `{{outline}}` the outline as a listing (`Prompts.outlineListing`), `{{units}}` the outline's units. The rules are the plan prompt's minus the three the outline settled (days, schedule, cycle), computed from the same text in the app so they cannot drift.
+
+```
+JIMMSBRO-PLAN-PROMPT-V1
+Now write ONLY the day "{{day}}" of my plan for the workout-tracking app. Reply with ONE JSON object in a single code block tagged json, with no other text.
+
+FORMAT:
+{
+  "name": "{{day}}",
+  "exercises": [
+    { "name": "Barbell Bench Press", "sets": 4, "reps": "6-8", "weight": 80, "restSeconds": 150, "notes": "Pause on chest" },
+    { "name": "Lateral Raise", "group": "A", "sets": 3, "reps": 15, "repRange": "12-15", "weight": 10, "restSeconds": 60 },
+    { "name": "Tricep Pushdown", "group": "A", "sets": 3, "reps": 12, "repRange": "10-12", "weight": 25, "restSeconds": 60 },
+    { "name": "Plank", "sets": 3, "durationSeconds": 45, "warningBeep": true, "bodyweight": true, "restSeconds": 45 }
+  ]
+}
+
+THE OUTLINE (already agreed)
+{{outline}}
+
+RULES
+- sets: a count for identical sets; otherwise an array of set objects. Exercise-level fields default each set. Prefer the count form.
+- Each set needs exactly one of reps or durationSeconds. Duration is seconds for holds/cardio; "max" = stopwatch until stopped, "30+" = at least 30 seconds.
+- Fixed durations beep at the end. warningBeep: true or omitted = warning at 10% remaining, false = off, or a number of seconds before the end (e.g. 5). Fixed durations only.
+- bodyweight: true when no weight applies (push-ups, planks, hangs); omit weight. For weighted calisthenics use added load as weight and omit the flag.
+- reps: whole number, "8-12", "AMRAP" (as many as possible), or "10+" (at least 10). Nothing else.
+- repRange: give every rep exercise a working range for weight progression, e.g. "8-12". Omit if reps already is a range. For fixed targets choose a range containing it (10 → "8-12", 5 → "4-6"). No repRange for timed exercises.
+- weight: number in {{units}}, without unit text. Omit for bodyweight or unspecified weight.
+- restSeconds: always include whole seconds. If unspecified: 120-180 for heavy compounds, 60-90 for isolation, 30-60 for circuits/core.
+- drops: list on exercise or individual set, e.g. [{"weight":20},{"weight":15}], done immediately after the main set with no rest. Reps default to AMRAP.
+- Supersets/circuits: same group letter, consecutive exercises, equal set counts. Rest after each round.
+- Names: specific and consistent ("Barbell Back Squat", not "Squats"); reuse spelling across days for history matching.
+- Keep execution order. If I supply exercises, use exactly those: no additions, removals, or reordering. If I request a plan, design a sensible one.
+- inReserve: how many reps (or seconds, for holds) short of failure each set should stop, e.g. 2. Omit when I do not say.
+- Put tempo, cues and "each side" in notes.
+- Return ALL JSON, never abbreviate with "...".
+```
+
+## 6. Behavior notes for the app
+- All five prompts are plain strings in `Core/Prompts.swift` with a `render(settings:)` / `render(errors:)` function, unit-tested (placeholders substituted, marker present, length bound).
 - After **Copy prompt**, show a toast for 3 s. Don't navigate away.
 - The prompt marker line must never appear in the JSON example, or a chatbot might echo it inside the plan.
 - The example JSON inside the plan prompt is also exposed as `Prompts.exampleJSON` so a test can import it (TEST_CASES M4). `examples/valid/prompt-example.txt` is that same text; `examples/invalid/prompt-pasted-full.txt` preserves the original full prompt as an unchanged regression fixture; the shortened prompt has its own automated marker test.

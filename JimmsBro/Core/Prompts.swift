@@ -96,6 +96,92 @@ Fix them and reply with the complete corrected JSON only, in one code block tagg
     }
     static func render(settings: Settings) -> String { substitute(planTemplate, settings: settings) }
 
+    // MARK: - D52 (v1.5): a plan in several pastes
+
+    /// Pinned to docs/PROMPT.md §4 by `PromptPinningTests`.
+    static let outlineTemplate = #"""
+JIMMSBRO-PLAN-PROMPT-V1
+I am building my workout plan for a workout-tracking app one day at a time. First, reply with ONE JSON object holding only the plan's OUTLINE, in a single code block tagged json, with no other text.
+
+FORMAT (schemaVersion 1):
+{
+  "schemaVersion": 1,
+  "name": "Push Pull Legs",
+  "units": "{{units}}",
+  "defaultRestSeconds": {{defaultRest}},
+  "schedule": "rotation",
+  "cycle": ["Push", "Pull", "Legs", "Push", "Pull", "Legs", "rest"],
+  "days": [ { "name": "Push" }, { "name": "Pull" }, { "name": "Legs" } ]
+}
+
+RULES
+- days: training days in order, each with a name only — NO exercises yet. Do not list rest days as days.
+- schedule: rotation = repeat days in order. Use weekday only for a fixed weekly schedule; give every day a weekday (monday…sunday) and omit cycle.
+- cycle: rotation's full repeating block, using day names and "rest", including rest days. This drives the calendar.
+- Keep the day names short and distinct; I will ask for each day's exercises separately, one per message.
+- Return ALL JSON, never abbreviate with "...".
+
+My plan:
+"""#
+
+    /// The day prompt's head; the rules follow, shared with the plan prompt.
+    static let dayHeader = #"""
+JIMMSBRO-PLAN-PROMPT-V1
+Now write ONLY the day "{{day}}" of my plan for the workout-tracking app. Reply with ONE JSON object in a single code block tagged json, with no other text.
+
+FORMAT:
+{
+  "name": "{{day}}",
+  "exercises": [
+    { "name": "Barbell Bench Press", "sets": 4, "reps": "6-8", "weight": 80, "restSeconds": 150, "notes": "Pause on chest" },
+    { "name": "Lateral Raise", "group": "A", "sets": 3, "reps": 15, "repRange": "12-15", "weight": 10, "restSeconds": 60 },
+    { "name": "Tricep Pushdown", "group": "A", "sets": 3, "reps": 12, "repRange": "10-12", "weight": 25, "restSeconds": 60 },
+    { "name": "Plank", "sets": 3, "durationSeconds": 45, "warningBeep": true, "bodyweight": true, "restSeconds": 45 }
+  ]
+}
+
+THE OUTLINE (already agreed)
+{{outline}}
+
+RULES
+"""#
+
+    /// The plan prompt's rules minus the three the outline settled — days, schedule, cycle —
+    /// computed from `planRules` so the two cannot drift (Z16).
+    static var dayRules: String {
+        planRules.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+            .filter { !$0.isEmpty && $0 != "RULES" && $0 != "My plan:"
+                && !$0.hasPrefix("- days:") && !$0.hasPrefix("- schedule:") && !$0.hasPrefix("- cycle:") }
+            .joined(separator: "\n")
+    }
+
+    /// Pinned to docs/PROMPT.md §5 by `PromptPinningTests`.
+    static var dayTemplate: String { dayHeader + "\n" + dayRules + "\n" }
+
+    static func outline(settings: Settings) -> String { substitute(outlineTemplate, settings: settings) }
+
+    /// The prompt for one day of an outline: the day by name, the outline as a listing, and
+    /// the rules in the outline's own units.
+    static func day(outline plan: Plan, dayIndex: Int, settings: Settings) -> String {
+        let name = plan.days[safe: dayIndex]?.name ?? "Day \(dayIndex + 1)"
+        return dayTemplate
+            .replacingOccurrences(of: "{{day}}", with: name)
+            .replacingOccurrences(of: "{{outline}}", with: outlineListing(plan))
+            .replacingOccurrences(of: "{{units}}", with: plan.units.rawValue)
+            .replacingOccurrences(of: "{{defaultRest}}", with: String(settings.defaultRestSeconds))
+    }
+
+    /// "Push Pull Legs · kg · rotation", the days, and a rotation's repeat block.
+    static func outlineListing(_ plan: Plan) -> String {
+        var lines = ["\(plan.name) · \(plan.units.rawValue) · \(plan.schedule.rawValue)"]
+        let days = plan.days.map { day in day.weekday.map { "\(day.name) (\($0.rawValue))" } ?? day.name }
+        lines.append("Days: " + days.joined(separator: ", "))
+        if plan.schedule == .rotation {
+            lines.append("Repeat block: " + RepeatBlock.chips(plan).map { $0 == "Rest" ? "rest" : $0 }.joined(separator: ", "))
+        }
+        return lines.joined(separator: "\n")
+    }
+
     // MARK: - D44 (v1.3): the progression prompt
 
     static let progressionMarker = ProgressionImport.promptMarker

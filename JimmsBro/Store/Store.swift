@@ -7,6 +7,8 @@ struct StoreSnapshot: Equatable {
     var activePlanId: UUID?
     var sessions: [Session] = []
     var active: ActiveSession?
+    /// D52 (v1.5): the plan being built day by day, if one was left mid-way.
+    var draft: PlanDraft?
     var corruptFiles: [String] = []
     /// False on a first launch, so the caller knows to write the defaults it just used (N10).
     var hasSettingsFile = false
@@ -34,6 +36,8 @@ actor Store {
     var settingsURL: URL { root.appendingPathComponent("settings.json") }
     var plansURL: URL { root.appendingPathComponent("plans.json") }
     var activeSessionURL: URL { root.appendingPathComponent("active-session.json") }
+    /// D52 (v1.5): present only while a plan is being built day by day.
+    var draftURL: URL { root.appendingPathComponent("draft.json") }
     var sessionsDirectory: URL { root.appendingPathComponent("sessions", isDirectory: true) }
     func sessionURL(_ id: UUID) -> URL {
         sessionsDirectory.appendingPathComponent("\(id.uuidString).json")
@@ -64,6 +68,9 @@ actor Store {
         }
         if let active: ActiveSession = read(activeSessionURL, into: &snapshot) {
             snapshot.active = active
+        }
+        if let draft: PlanDraft = read(draftURL, into: &snapshot) {
+            snapshot.draft = draft
         }
         let files = (try? manager.contentsOfDirectory(at: sessionsDirectory, includingPropertiesForKeys: nil)) ?? []
         for file in files where file.pathExtension == "json" {
@@ -130,6 +137,10 @@ actor Store {
     }
 
     func clearActiveSession() throws { try remove(activeSessionURL) }
+
+    /// D52 (v1.5): the draft, written after every paste and removed when the plan is saved.
+    func save(draft: PlanDraft) throws { try write(StoreCoder.encode(draft), to: draftURL) }
+    func clearDraft() throws { try remove(draftURL) }
 
     func save(session: Session) throws {
         try write(StoreCoder.encode(session), to: sessionURL(session.id))

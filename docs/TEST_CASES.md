@@ -793,6 +793,20 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | Z9 | unit | (D51, v1.5) The prompts | The plan prompt carries the `inReserve` rule and no longer sends RPE to notes; the progression prompt's history line ends "· 2 in reserve" when every logged set of the exercise had it, and says nothing when the plan did not |
 | Z10 | manual | (D51, v1.5) A plan with `"inReserve": 2` on the phone | The card reads "… · 2 in reserve" under the exercise, the review and Plan detail say it once per exercise, and the edit sheet's In reserve field changes it |
 
+### Z3 — a plan in several pastes (D52)
+
+`JimmsBroTests/DraftPlanTests.swift`, and the two new pins in `PromptPinningTests`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Z11 | unit | (D52, v1.5) `PlanDrafting.outline` on an outline, a whole plan, the prompt, not JSON, no days, an unknown cycle day | Three empty slots with the outline's name, days and block; a whole plan arrives with every slot filled; `E_PROMPT_PASTED`, `E_NOT_JSON`, `E_NO_DAYS`, `E_CYCLE_UNKNOWN_DAY`; and the ordinary importer still refuses an empty day |
+| Z12 | unit | (D52, v1.5) `PlanDrafting.day` with a day, a renamed day, a whole plan, a list of exercises, an invalid exercise, two days, an index off the end, nothing | The slot fills; the slot's name wins; the day named like the slot is taken from the plan; the list becomes the day; the error carries `days[2].exercises[0].reps` and "Day 3, exercise 1", and the draft is unchanged; `E_EDIT_INVALID` at `days[2]`; `E_EDIT_INVALID`; `E_EMPTY` |
+| Z13 | unit | (D52, v1.5) `PlanDrafting.assemble` | Incomplete is `E_DRAFT_INCOMPLETE` saying how many are left; complete gives the outline's name, units, block and days with every exercise, no issues, the canonical text, and a plan the importer takes again; a weekday outline lends its weekdays |
+| Z14 | unit | (D52, v1.5) `draft.json` | Written on the outline and after each paste; read back on relaunch with the fragments as pasted; a file without slots decodes with empty ones; a corrupt one is set aside and named; Discard and Delete all data remove it |
+| Z15 | unit | (D52, v1.5) The model end to end | No draft refuses a paste and an assembly; outline, three pastes (one refused), assemble without saving, `saveDraftPlan` saves it active and the draft goes; a cancelled name conflict keeps the draft and Keep both resolves it; Home's card is the saved plan's |
+| Z16 | unit | (D52, v1.5) The prompts | Both carry the marker and no placeholder; the outline prompt says NO exercises; the day prompt names the day, lists the outline, uses the outline's units and drops the days/schedule/cycle rules; every rule line of the day prompt is a line of the plan prompt; both refused if pasted back; a seven-day outline's day prompt is under 4,000 characters; §4 and §5 of PROMPT.md match the code |
+| Z17 | manual | (D52, v1.5) Add plan → Create with a chatbot → **Build it day by day**, with a free ChatGPT tab | The outline pastes into slots; each day prompt fits one reply; a slot refused says which day and why; leave the app and come back to "Continue · 2 of 3 days pasted"; Review plan, Save plan; the plan is on Home and the draft is gone |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

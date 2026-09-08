@@ -10,10 +10,13 @@ enum SaveFailure: Equatable {
     case plans
     case settings(Settings)
     case deleteSession(UUID)
+    /// D52 (v1.5): the draft's file.
+    case draft
 
     var message: String {
         switch self {
         case .session: return "Couldn't save the workout. It's still here — try again."
+        case .draft: return "Couldn't save the draft. It's still here — try again."
         case .activeSessionWrite: return "Couldn't save your progress. The workout keeps running; try again."
         case .activeSessionClear, .plans: return "Couldn't finish saving. Nothing was lost; try again."
         case .settings: return "Couldn't save that setting. Try again."
@@ -62,6 +65,8 @@ enum SaveFailure: Equatable {
     /// phone that was about a second of nothing after the tap. `load` never touches it, so a
     /// session restored at launch is offered as Resume (SPEC §5.4) rather than opened.
     var startedWorkouts = 0
+    /// D52 (v1.5): the plan being built day by day, between the outline and Save plan.
+    var draft: PlanDraft?
     /// D23 (v1.1): what the undone set held, handed back so the inputs come back filled with
     /// the values that were just taken away rather than with a fresh prefill (O52).
     var restoredInputs: SetResult?
@@ -117,6 +122,7 @@ enum SaveFailure: Equatable {
         library.activePlanId = snapshot.activePlanId
         library.sessions = snapshot.sessions
         persistedSessionIds = Set(snapshot.sessions.map(\.id))
+        draft = snapshot.draft
         corruptFiles = snapshot.corruptFiles
         showCorruptAlert = !snapshot.corruptFiles.isEmpty
 
@@ -388,6 +394,8 @@ enum SaveFailure: Equatable {
             do { try await store.save(settings: settings) } catch { saveFailure = .settings(settings) }
         case let .deleteSession(id):
             do { try await store.deleteSession(id: id) } catch { saveFailure = .deleteSession(id) }
+        case .draft:
+            await persistDraft()
         }
     }
 
@@ -401,6 +409,7 @@ enum SaveFailure: Equatable {
         library.settings = .defaults(locale: locale)
         persistedSessionIds = []
         justCompleted = nil
+        draft = nil
         corruptFiles = []
         showCorruptAlert = false
         try? await store.save(settings: library.settings)

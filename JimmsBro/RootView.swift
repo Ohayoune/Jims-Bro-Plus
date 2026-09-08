@@ -8,6 +8,8 @@ import UIKit
 /// tap arrived at the sheet as false — while an item is handed to the closure as it is.
 enum AddPlanRequest: Identifiable, Equatable {
     case plan, builtIns
+    /// D52 (v1.5): the day-by-day screen, for the screenshot hook.
+    case draft
     var id: Self { self }
 }
 
@@ -59,7 +61,7 @@ struct RootView: View {
         .environment(model)
         .task { if !model.loaded { await model.load() } }
         .sheet(item: $addPlan) { request in
-            ImportView(openBuiltIns: request == .builtIns).environment(model)
+            ImportView(opening: request).environment(model)
         }
         .fullScreenCover(isPresented: $showWorkout) {
             NavigationStack { WorkoutView() }
@@ -102,8 +104,10 @@ struct RootView: View {
         guard let index = arguments.firstIndex(of: "-uiScreen"),
               let name = arguments[safe: index + 1] else { return }
         if name == "import" {
-            // v1.4: `-uiBuiltIns` opens Add plan on the built-in picker (D46).
-            addPlan = arguments.contains("-uiBuiltIns") ? .builtIns : .plan
+            // v1.4: `-uiBuiltIns` opens Add plan on the built-in picker (D46); v1.5:
+            // `-uiDraft` on the day-by-day screen (D52).
+            addPlan = arguments.contains("-uiBuiltIns") ? .builtIns
+                : arguments.contains("-uiDraft") ? .draft : .plan
         } else if name == "workout" {
             // The screenshot run starts the card's day, optionally logs some sets to reach a
             // later phase, and opens the workout.

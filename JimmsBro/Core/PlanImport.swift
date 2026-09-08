@@ -9,14 +9,16 @@ struct ImportResult {
 enum PlanImport {
     static let promptMarker = "JIMMSBRO-PLAN-PROMPT-V1"
     static let maxBytes = 1_048_576
-    static func run(_ text: String, settings: Settings = Settings(), now: Date = Date(), calendar: Calendar = .current) -> ImportResult {
+    /// `allowEmptyDays` is D52's outline (v1.5): a plan whose days have names and no exercises
+    /// yet. Everything else is refused exactly as for a plan.
+    static func run(_ text: String, settings: Settings = Settings(), now: Date = Date(), calendar: Calendar = .current, allowEmptyDays: Bool = false) -> ImportResult {
         let extracted = extract(text)
         guard let body = extracted.value else { return ImportResult(plan: nil, issues: extracted.issues) }
         let decoded = decode(body)
         guard let raw = decoded.value else { return ImportResult(plan: nil, issues: extracted.issues + decoded.issues) }
-        var normalized = normalize(raw, settings: settings, now: now, calendar: calendar)
+        var normalized = normalize(raw, settings: settings, now: now, calendar: calendar, allowEmptyDays: allowEmptyDays)
         var issues = extracted.issues + decoded.issues + normalized.issues
-        if let plan = normalized.value { issues += validate(plan) }
+        if let plan = normalized.value { issues += validate(plan, allowEmptyDays: allowEmptyDays) }
         issues = issues.enumerated().sorted { a, b in a.element.path == b.element.path ? a.offset < b.offset : a.element.path < b.element.path }.map(\.element)
         if issues.contains(where: { $0.severity == .error }) { normalized.value = nil }
         normalized.value?.sourceText = text
@@ -82,19 +84,19 @@ enum PlanImport {
             return ImportStage(value: nil, issues: [Issue(severity: .error, code: "E_NOT_JSON", path: "", message: "This isn't valid JSON: \(firstError) Ask the chatbot for strict JSON, or use Copy fix-it prompt.")])
         }
     }
-    static func normalize(_ raw: RawPlan, settings: Settings = Settings(), now: Date = Date(), calendar: Calendar = .current) -> ImportStage<Plan> {
-        var normalizer = PlanNormalizer(settings: settings, now: now, calendar: calendar)
+    static func normalize(_ raw: RawPlan, settings: Settings = Settings(), now: Date = Date(), calendar: Calendar = .current, allowEmptyDays: Bool = false) -> ImportStage<Plan> {
+        var normalizer = PlanNormalizer(settings: settings, now: now, calendar: calendar, allowEmptyDays: allowEmptyDays)
         let plan = normalizer.plan(raw)
         return ImportStage(value: normalizer.issues.contains(where: { $0.severity == .error }) ? nil : plan, issues: normalizer.issues)
     }
-    static func validate(_ plan: Plan) -> [Issue] {
+    static func validate(_ plan: Plan, allowEmptyDays: Bool = false) -> [Issue] {
         var issues: [Issue] = []
         func error(_ code: String, _ path: String, _ message: String) { issues.append(Issue(severity: .error, code: code, path: path, message: message)) }
         if plan.days.isEmpty { error("E_NO_DAYS", "days", "Add at least one day with exercises.") }
         if plan.days.count > 31 { error("E_LIMIT_EXCEEDED", "days", "Use no more than 31 days.") }
         for (di, day) in plan.days.enumerated() {
             let dp = "days[\(di)].exercises"
-            if day.exercises.isEmpty { error("E_NO_EXERCISES", dp, "Add at least one exercise to this day.") }
+            if day.exercises.isEmpty && !allowEmptyDays { error("E_NO_EXERCISES", dp, "Add at least one exercise to this day.") }
             if day.exercises.count > 50 { error("E_LIMIT_EXCEEDED", dp, "Use no more than 50 exercises per day.") }
             for (ei, exercise) in day.exercises.enumerated() {
                 let ep = "\(dp)[\(ei)]"
@@ -111,6 +113,8 @@ private struct PlanNormalizer {
     let settings: Settings
     let now: Date
     let calendar: Calendar
+    /// D52 (v1.5): an outline's days have names and no exercises yet.
+    var allowEmptyDays = false
     var issues: [Issue] = []
     mutating func issue(_ code: String, _ path: String, _ message: String) { issues.append(Issue(severity: code.hasPrefix("E_") ? .error : .warning, code: code, path: path, message: message)) }
     mutating func unknown(_ raw: RawJSON, _ known: Set<String>, _ path: String) {
@@ -363,7 +367,7 @@ private struct PlanNormalizer {
                         exercises.append(parsed.exercise); explicitRests.append(parsed.explicitRest)
                     }
                 }
-            } else { issue("E_NO_EXERCISES", dp + ".exercises", "Day \"\(dname)\" has no exercises.") }
+            } else if !allowEmptyDays { issue("E_NO_EXERCISES", dp + ".exercises", "Day \"\(dname)\" has no exercises.") }
             var i = 0, groupCounts: [String: Int] = [:]
             var usedGroups = Set(exercises.compactMap(\.group))
             while i < exercises.count {
