@@ -153,10 +153,12 @@ struct ImportView: View {
         }
     }
 
-    /// The three numbered steps of the round-trip the app is built around.
+    /// The three numbered steps of the round-trip the app is built around. D50 (v1.5): step 1
+    /// explains the mechanism once, its button is the accent one, and the footer says the
+    /// other half — the app never talks to the chatbot itself.
     private var chatbotSection: some View {
-        Section("Create with a chatbot") {
-            step(1, "Copy the prompt.") {
+        Section {
+            step(1, PromptText.copyStep) {
                 Button(copiedPrompt ? "Copied" : "Copy prompt") {
                     Clipboard.write(Prompts.render(settings: model.settings))
                     copiedPrompt = true
@@ -166,12 +168,16 @@ struct ImportView: View {
                         copiedPrompt = false
                     }
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.capsule)
                 .controlSize(.small)
             }
             step(2, "Paste it into ChatGPT, Claude or another chatbot, and describe your training.")
             step(3, "Copy its reply, come back, and tap Paste plan.")
+        } header: {
+            Text("Create with a chatbot")
+        } footer: {
+            Text(PromptText.mechanism)
         }
     }
 

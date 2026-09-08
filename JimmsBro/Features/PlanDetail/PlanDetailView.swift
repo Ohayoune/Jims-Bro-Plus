@@ -37,14 +37,22 @@ struct PlanDetailView: View {
                     // D44 (v1.3): where the progression is, or the offer to plan one.
                     Section {
                         Button { showProgression = true } label: {
-                            HStack {
-                                Text("Progression")
+                            HStack(alignment: .firstTextBaseline) {
+                                // D50 (v1.5): a row that says what it is, and the accent
+                                // chevron every row that opens a screen has — no badge.
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("Progression")
+                                    Text(PromptText.progressionRow)
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                                 Spacer()
                                 Text(plan.progression.map { ProgressionText.status($0, on: Date()) } ?? "Plan it")
                                     .foregroundStyle(.secondary)
                                 Image(systemName: "chevron.right")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.tertiary)
+                                    .foregroundStyle(Color.accentColor)
                             }
                         }
                         .buttonStyle(PressableRow())

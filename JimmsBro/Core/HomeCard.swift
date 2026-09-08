@@ -140,6 +140,9 @@ struct HomeStart: Equatable {
     var missed: MissedWorkout?
     /// D44 (v1.3): the plan's progression has run its course, so Home offers the next one.
     var progressionFinished = false
+    /// D50 (v1.5): the quiet link to plan one — only when the plan has no progression and
+    /// every exercise on this day has a logged session to plan from. "Not too obvious".
+    var offersProgression = false
 
     static let previewLimit = 5
 
@@ -226,6 +229,12 @@ struct HomeStart: Equatable {
                 fragments.append("week \(index + 1) of \(progression.weeks)")
             } else if progression.isFinished(on: now, calendar: calendar) {
                 start.progressionFinished = true
+            }
+        } else if !start.isInProgress, !day.exercises.isEmpty {
+            // D50 (v1.5): the link appears only once there is something to plan from — a
+            // logged session of every exercise on the day — and never shouts.
+            start.offersProgression = day.exercises.allSatisfy { exercise in
+                ExerciseHistory.last(name: exercise.name, units: plan.units, sessions: library.sessions) != nil
             }
         }
         // A rest day already used the subtitle to say what is next; the rest hangs off that.

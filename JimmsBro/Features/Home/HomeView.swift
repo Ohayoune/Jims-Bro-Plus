@@ -31,6 +31,8 @@ private struct StartCardView: View {
     @State private var showDiscardConfirm = false
     @State private var previewing: PlanRoute?
     @State private var choosingDay = false
+    /// D50 (v1.5): the plan whose progression the quiet link opens.
+    @State private var planningProgression: PlanRoute?
     /// D37 (v1.2): the missed-workout notice is dismissible for this run of the app. It is not
     /// persisted: it costs one tap to clear and re-earning it means missing another day.
     @State private var dismissedMissed = false
@@ -128,6 +130,13 @@ private struct StartCardView: View {
                 } else if let planId = card.planId, let dayIndex = card.dayIndex {
                     Button("Preview") { previewing = PlanRoute(id: planId, dayIndex: dayIndex) }
                     Button("Another day") { choosingDay = true }
+                    // D50 (v1.5): one more quiet link, only when there is history to plan
+                    // from and no progression yet. It goes the moment one is attached.
+                    if card.offersProgression {
+                        Button(PromptText.planProgression) {
+                            planningProgression = PlanRoute(id: planId, dayIndex: dayIndex)
+                        }
+                    }
                 }
             }
             .font(.footnote)
@@ -155,6 +164,9 @@ private struct StartCardView: View {
         .sheet(item: $previewing) { route in
             NavigationStack { PlanDetailView(planId: route.id, showWorkout: $showWorkout) }
                 .environment(model)
+        }
+        .sheet(item: $planningProgression) { route in
+            ProgressionView(planId: route.id).environment(model)
         }
     }
 

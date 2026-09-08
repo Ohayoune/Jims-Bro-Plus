@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6AF74EC479B54190A353B001 /* ClarityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E635E7EA3F746999CDF7B7A /* ClarityTests.swift */; };
 		BFDFD10AB57F40E89D105DF3 /* IntroductionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A4FF34348CD4A5A9817D5DF /* IntroductionTests.swift */; };
 		198D82D2E4624379BB30206C /* IntroductionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1611CF2EBEDC4B84BB786C9E /* IntroductionView.swift */; };
 		584C20992B1740DAB06C4356 /* Introduction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 296E62D52FE147DC91EFCE6F /* Introduction.swift */; };
@@ -146,6 +147,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1E635E7EA3F746999CDF7B7A /* ClarityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClarityTests.swift; sourceTree = "<group>"; };
 		7A4FF34348CD4A5A9817D5DF /* IntroductionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroductionTests.swift; sourceTree = "<group>"; };
 		1611CF2EBEDC4B84BB786C9E /* IntroductionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroductionView.swift; sourceTree = "<group>"; };
 		296E62D52FE147DC91EFCE6F /* Introduction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Introduction.swift; sourceTree = "<group>"; };
@@ -391,6 +393,7 @@
 		8B7A6DECC0651D269EA794C7 /* JimmsBroTests */ = {
 			isa = PBXGroup;
 			children = (
+				1E635E7EA3F746999CDF7B7A /* ClarityTests.swift */,
 				7A4FF34348CD4A5A9817D5DF /* IntroductionTests.swift */,
 				CC3062DA399F4FC0ADD64D9E /* BuiltInPlanTests.swift */,
 				2103E9EAD9FA4C7C9E983661 /* ResponsivenessTests.swift */,
@@ -745,6 +748,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6AF74EC479B54190A353B001 /* ClarityTests.swift in Sources */,
 				BFDFD10AB57F40E89D105DF3 /* IntroductionTests.swift in Sources */,
 				53B49EEC35564F51B63EACB5 /* BuiltInPlanTests.swift in Sources */,
 				A6425EB9BC3B41C9998C1B11 /* ResponsivenessTests.swift in Sources */,

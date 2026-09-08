@@ -765,6 +765,21 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | Y18 | check | (D49, v1.4) `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | Builds: nothing outside `#if DEBUG` refers to the screenshot hooks, the read-only store or the seeded launch arguments |
 | Y19 | manual | (D49, v1.4) The TestFlight build on the phone | Installs from TestFlight; the icon is the barbell; Settings → About reads 1.4 (1); the device checklist is run against this build rather than a cable install |
 
+## Z. v1.5 — clearer buttons, an effort target, a plan in several pastes, steps you earn, goals
+
+`docs/ITERATION_6_PLAN.md` is the plan; one subsection per milestone, added as it lands.
+
+### Z1 — clearer, not louder (D50)
+
+`JimmsBroTests/ClarityTests.swift`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Z1 | unit | (D50, v1.5) `PromptText` | Four sentences, none empty; the step names the prompt and the reply, the footer says the app never talks to the chatbot, the row line names the chatbot and lifting, the link reads "Plan a progression" |
+| Z2 | unit | (D50, v1.5) `HomeStart.offersProgression` | False with no plan, with a plan whose day has an exercise never logged, with a progression attached, and while a workout is running; true once every exercise on the day has a logged session; a second day's history does not count for the first |
+| Z3 | unit | (D50, v1.5) The views that show the sentences | Add plan, Progression and Plan detail's source reference `PromptText.copyStep`, `.mechanism` and `.progressionRow`, Home's references `.planProgression` — read from the checkout on the host routes, skipped on the simulator |
+| Z4 | manual | (D50, v1.5) Add plan and Plan detail on the phone | Copy prompt is the filled accent button beside the sentence; the footer is under the steps; the Progression row has its line and an accent chevron; Home shows **Plan a progression** only on a day whose every exercise has history, and not once one is attached |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

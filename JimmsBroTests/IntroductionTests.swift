@@ -45,7 +45,7 @@ final class IntroductionTests: XCTestCase {
         XCTAssertEqual(screen.primary.title, "Log set")
 
         let literals: [(control: String, file: String, literal: String)] = [
-            ("Create with a chatbot", "JimmsBro/Features/Import/ImportView.swift", "Section(\"Create with a chatbot\")"),
+            ("Create with a chatbot", "JimmsBro/Features/Import/ImportView.swift", "Text(\"Create with a chatbot\")"),
             ("History", "JimmsBro/RootView.swift", "Label(\"History\""),
             ("Progression", "JimmsBro/Features/PlanDetail/PlanDetailView.swift", "Text(\"Progression\")"),
             ("built-in plan", "JimmsBro/Features/Import/ImportView.swift", "Label(\"Choose a built-in plan\""),

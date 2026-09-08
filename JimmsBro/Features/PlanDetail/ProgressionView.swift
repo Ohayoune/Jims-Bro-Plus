@@ -150,8 +150,10 @@ struct ProgressionView: View {
                     Text("The prompt includes your last sessions of each exercise, so the chatbot progresses from what you actually did.")
                 }
             }
-            Section("Plan it with a chatbot") {
-                step(1, "Copy the prompt.") {
+            // D50 (v1.5): the step explains the mechanism, the button is the accent one, and
+            // the footer says the app never talks to the chatbot itself.
+            Section {
+                step(1, PromptText.copyStep) {
                     Button(copied ? "Copied" : "Copy prompt") {
                         if let prompt = model.progressionPrompt(for: planId, weeks: weeks, includeHistory: useHistory) {
                             Clipboard.write(prompt)
@@ -162,12 +164,16 @@ struct ProgressionView: View {
                             copied = false
                         }
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
                     .buttonBorderShape(.capsule)
                     .controlSize(.small)
                 }
                 step(2, "Paste it into ChatGPT, Claude or another chatbot.")
                 step(3, "Copy its reply, come back, and tap Paste progression.")
+            } header: {
+                Text("Plan it with a chatbot")
+            } footer: {
+                Text(PromptText.mechanism)
             }
             Section {
                 HStack {
