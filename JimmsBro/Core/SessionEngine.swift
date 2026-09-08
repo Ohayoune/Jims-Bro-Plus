@@ -110,6 +110,14 @@ struct SessionEngine {
         guard let s = session.steps[safe: step], session.exercises[safe: s.exerciseIndex]?.bodyweight == true else { return result }
         switch result { case let .reps(n,_): return .reps(count:n,weight:nil); case let .duration(n,_): return .duration(seconds:n,weight:nil) }
     }
+    /// Events that are not worth a disk write of their own. `setWorkWeight` is the displayed
+    /// weight while it is still being typed — one keystroke is not a fact about the workout —
+    /// and it is carried to disk by the next event that is (a log, a skip, a tick).
+    private static let unpersisted: (Event) -> Bool = { event in
+        if case .setWorkWeight = event { return true }
+        return false
+    }
+
     @discardableResult mutating func apply(_ event: Event, now: Date) -> [Effect] {
         var effects: [Effect] = []
         let oldPhase = phase
@@ -242,7 +250,7 @@ struct SessionEngine {
             effects += complete(now: now)
         }
         if case .resting = oldPhase, phase != oldPhase, !effects.contains(.cancelNotification(id: "rest-timer")) { effects.insert(.cancelNotification(id: "rest-timer"), at: 0) }
-        effects.append(.persist)
+        if !Self.unpersisted(event) { effects.append(.persist) }
         return effects
     }
     /// D28 (v1.1): moves the whole block containing `e` — a superset moves together, since its

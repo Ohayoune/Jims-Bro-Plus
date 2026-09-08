@@ -214,7 +214,11 @@ final class StepsAndEngineTests: XCTestCase {
         let last = CoreTestSupport.completed([1,1,1],weights:[70,70,70],plan:p)
         var e = SessionEngine(session:CoreTestSupport.session(p),history:[last],now:now)
         XCTAssertEqual(e.active.workWeight,70)
-        XCTAssertEqual(e.apply(.setWorkWeight(step:0,weight:72.5),now:now),[.persist])
+        // v1.2 (Q5): the displayed weight is not worth a write of its own — one keystroke is
+        // not a fact about the workout — so this emits nothing. It still takes effect, and the
+        // set that logs it below carries it to disk.
+        XCTAssertEqual(e.apply(.setWorkWeight(step:0,weight:72.5),now:now),[])
+        XCTAssertEqual(e.active.workWeight,72.5)
         e.apply(.startTimer(step:0),now:now)
         let encoded = try JSONEncoder().encode(e.active)
         var restored = SessionEngine(active:try JSONDecoder().decode(ActiveSession.self,from:encoded))

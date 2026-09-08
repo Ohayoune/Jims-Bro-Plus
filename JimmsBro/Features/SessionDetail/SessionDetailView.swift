@@ -27,7 +27,7 @@ struct SessionDetailView: View {
                         Text(ExerciseText.summary(session))
                             .font(.footnote).foregroundStyle(.secondary)
                     }
-                    ForEach(blocks(session), id: \.first!) { indices in
+                    ForEach(Array(blocks(session).enumerated()), id: \.offset) { _, indices in
                         Section {
                             ForEach(indices, id: \.self) { index in
                                 Button {

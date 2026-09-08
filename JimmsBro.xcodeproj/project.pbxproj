@@ -68,6 +68,7 @@
 		C7C1FC41DF9D4B738CB4218E /* PlanEditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50898AF7E3D34D6FA79A029D /* PlanEditTests.swift */; };
 		D51B17DD12CF41E1B60CACE9 /* RecordsAndChartTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A42DD0821E6469E98D2DD2B /* RecordsAndChartTests.swift */; };
 		A31F2A1D1F21423DA0F5C2C8 /* RestoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504D0ADE7AE6443AAA6B7E67 /* RestoreTests.swift */; };
+		CB1471644E3041D5B04400A5 /* DefectFixesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24F0216C1DA4FBBB0319F1D /* DefectFixesTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -146,6 +147,7 @@
 		50898AF7E3D34D6FA79A029D /* PlanEditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanEditTests.swift; sourceTree = "<group>"; };
 		3A42DD0821E6469E98D2DD2B /* RecordsAndChartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordsAndChartTests.swift; sourceTree = "<group>"; };
 		504D0ADE7AE6443AAA6B7E67 /* RestoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreTests.swift; sourceTree = "<group>"; };
+		B24F0216C1DA4FBBB0319F1D /* DefectFixesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefectFixesTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -266,6 +268,7 @@
 		8B7A6DECC0651D269EA794C7 /* JimmsBroTests */ = {
 			isa = PBXGroup;
 			children = (
+				B24F0216C1DA4FBBB0319F1D /* DefectFixesTests.swift */,
 				504D0ADE7AE6443AAA6B7E67 /* RestoreTests.swift */,
 				3A42DD0821E6469E98D2DD2B /* RecordsAndChartTests.swift */,
 				50898AF7E3D34D6FA79A029D /* PlanEditTests.swift */,
@@ -527,6 +530,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CB1471644E3041D5B04400A5 /* DefectFixesTests.swift in Sources */,
 				A31F2A1D1F21423DA0F5C2C8 /* RestoreTests.swift in Sources */,
 				D51B17DD12CF41E1B60CACE9 /* RecordsAndChartTests.swift in Sources */,
 				C7C1FC41DF9D4B738CB4218E /* PlanEditTests.swift in Sources */,

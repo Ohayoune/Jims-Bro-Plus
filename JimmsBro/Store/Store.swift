@@ -42,8 +42,16 @@ actor Store {
     // MARK: - Loading
 
     /// Reads every file. Anything that fails to decode is renamed aside and treated as absent.
-    func load(defaultSettings: Settings = .defaults()) -> StoreSnapshot {
+    ///
+    /// `settingAsideCorruptFiles` is false for the read-only callers (export, backup inspection,
+    /// restore): setting a file aside is a change the user is told about through the launch
+    /// alert, and doing it as a side effect of exporting would move a file with nothing on
+    /// screen to say so.
+    func load(defaultSettings: Settings = .defaults(),
+              settingAsideCorruptFiles: Bool = true) -> StoreSnapshot {
         var snapshot = StoreSnapshot(settings: defaultSettings)
+        setsAsideCorruptFiles = settingAsideCorruptFiles
+        defer { setsAsideCorruptFiles = true }
         try? manager.createDirectory(at: sessionsDirectory, withIntermediateDirectories: true)
 
         if let settings: Settings = read(settingsURL, into: &snapshot) {
@@ -66,12 +74,19 @@ actor Store {
         return snapshot
     }
 
+    /// Whether the current `load` may rename unreadable files. See `load(defaultSettings:_:)`.
+    private var setsAsideCorruptFiles = true
+
     /// Returns nil when the file is absent, and sets it aside when it is present but unreadable.
     private func read<T: Codable>(_ url: URL, into snapshot: inout StoreSnapshot) -> T? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         do {
             return try StoreCoder.decode(T.self, from: data)
         } catch {
+            guard setsAsideCorruptFiles else {
+                snapshot.corruptFiles.append(relativeName(url))
+                return nil
+            }
             if let name = setAside(url) { snapshot.corruptFiles.append(name) }
             return nil
         }
@@ -179,7 +194,7 @@ actor Store {
     // MARK: - Export
 
     func exportData(appVersion: String, now: Date = Date()) -> Data? {
-        let snapshot = load(defaultSettings: Settings())
+        let snapshot = load(defaultSettings: Settings(), settingAsideCorruptFiles: false)
         let document = ExportDocument(exportedAt: now, appVersion: appVersion,
                                       settings: snapshot.settings, plans: snapshot.plans,
                                       sessions: snapshot.sessions,
@@ -201,7 +216,7 @@ actor Store {
         guard document.fileVersion <= storeFileVersion else {
             throw StoreError.unsupportedFileVersion(document.fileVersion)
         }
-        let snapshot = load(defaultSettings: Settings())
+        let snapshot = load(defaultSettings: Settings(), settingAsideCorruptFiles: false)
         let knownSessions = Set(snapshot.sessions.map(\.id))
         let knownPlans = Set(snapshot.plans.map(\.id))
         return (document, BackupSummary(
@@ -213,11 +228,15 @@ actor Store {
             newSessions: document.sessions.filter { !knownSessions.contains($0.id) }.count))
     }
 
+    /// Whether a failure of `mode` can leave the store part-way through the restore.
+    /// `replaceAll` deletes before it writes, so it can; `merge` only ever adds.
+    static func isDestructive(_ mode: RestoreMode) -> Bool { mode == .replaceAll }
+
     /// Applies a backup. `replaceAll` empties the store first and takes the backup's settings;
     /// `merge` adds only what isn't already here by id and leaves the current settings alone —
     /// a merge must never quietly overwrite a workout you edited since the backup was made.
     func restore(_ document: ExportDocument, mode: RestoreMode) throws {
-        let snapshot = load(defaultSettings: Settings())
+        let snapshot = load(defaultSettings: Settings(), settingAsideCorruptFiles: false)
         switch mode {
         case .replaceAll:
             try deleteAll()

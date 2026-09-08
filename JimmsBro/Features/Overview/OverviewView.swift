@@ -15,7 +15,7 @@ struct OverviewView: View {
             Group {
                 if let session = model.session {
                     List {
-                        ForEach(blocks(session), id: \.first!) { indices in
+                        ForEach(Array(blocks(session).enumerated()), id: \.offset) { _, indices in
                             Section {
                                 let mixed = Set(indices.map { session.steps[$0].exerciseIndex }).count > 1
                                 ForEach(indices, id: \.self) { index in

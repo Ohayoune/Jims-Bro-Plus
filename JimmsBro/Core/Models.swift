@@ -225,6 +225,11 @@ enum Phase: Codable, Equatable {
             let legacy = try inner.decode(LegacyTransition.self, forKey: ._0)
             self = .working(step: legacy.nextStep); return
         }
+        guard container.contains(.completed) else {
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: container.codingPath,
+                debugDescription: "Not a phase this version understands."))
+        }
         self = .completed
     }
 

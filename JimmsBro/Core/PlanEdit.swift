@@ -46,6 +46,15 @@ enum PlanJSON {
             fields.append("          \"repRange\": \"\(range.min)-\(range.max)\"")
         }
         if exercise.bodyweight { fields.append("          \"bodyweight\": true") }
+        // A superset's between-round rest lives in `groupRestSeconds`, which the importer
+        // resolves from the first member's *exercise-level* `restSeconds` — a field the
+        // explicit array-of-sets form does not otherwise need. Without writing it back, a
+        // re-import (which is what every edit is) would find no exercise-level rest, set
+        // `groupRestSeconds` to nil, and quietly fall back to the last member's own rest.
+        if exercise.group != nil,
+           let round = exercise.sets.compactMap(\.groupRestSeconds).first {
+            fields.append("          \"restSeconds\": \(round)")
+        }
         fields.append("          \"sets\": [\n"
                       + exercise.sets.map { set(_: $0) }.joined(separator: ",\n")
                       + "\n          ]")
@@ -197,6 +206,15 @@ enum PlanEdit {
             for index in plan.days[target.day].exercises[target.exercise].sets.indices {
                 plan.days[target.day].exercises[target.exercise].sets[index].restSeconds = seconds
             }
+            // Rest resolution reads `groupRestSeconds`, not the per-set value, for anything in
+            // a superset (§6.3). Editing one member's rest is therefore an edit to the round
+            // rest the whole group shares — changing only the per-set value would have looked
+            // like it worked and changed nothing.
+            for member in groupMembers(plan, target) {
+                for index in plan.days[target.day].exercises[member].sets.indices {
+                    plan.days[target.day].exercises[member].sets[index].groupRestSeconds = seconds
+                }
+            }
 
         case let .moveExercise(day, from, to):
             guard plan.days.indices.contains(day) else { return nil }
@@ -229,6 +247,17 @@ enum PlanEdit {
             plan.days[day].name = String(name.trimmed.prefix(100))
         }
         return plan
+    }
+
+    /// The contiguous run of exercises sharing `target`'s group tag, or nothing when it has none.
+    /// The importer only ever groups a contiguous run, so this is the same span it grouped.
+    private static func groupMembers(_ plan: Plan, _ target: (day: Int, exercise: Int)) -> [Int] {
+        let exercises = plan.days[target.day].exercises
+        guard let group = exercises[target.exercise].group else { return [] }
+        var first = target.exercise, last = target.exercise
+        while first > 0, exercises[first - 1].group == group { first -= 1 }
+        while last + 1 < exercises.count, exercises[last + 1].group == group { last += 1 }
+        return Array(first...last)
     }
 
     private static func exerciseIndex(_ plan: Plan, _ day: Int, _ exercise: Int) -> (day: Int, exercise: Int)? {

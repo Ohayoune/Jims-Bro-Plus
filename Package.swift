@@ -4,7 +4,10 @@ import PackageDescription
 // The same Core sources and tests run on macOS without an iOS Simulator.
 let package = Package(
     name: "JimmsBroCore",
-    platforms: [.macOS(.v13), .iOS(.v17)],
+    // macOS 14, not 13: `AppModel` is `@Observable`, and the Observation module is only
+    // available from macOS 14. Declaring 13 made `swift test` fail to compile from the day
+    // AppModel landed, while README went on claiming the route worked.
+    platforms: [.macOS(.v14), .iOS(.v17)],
     products: [.library(name: "JimmsBroCore", targets: ["JimmsBro"])],
     targets: [
         .target(name: "JimmsBro", path: "JimmsBro", sources: ["Core", "Store"]),
@@ -23,7 +26,8 @@ let package = Package(
                       "JimmsBroTests/DeferExerciseTests.swift",
                       "JimmsBroTests/PlanEditTests.swift",
                       "JimmsBroTests/RecordsAndChartTests.swift",
-                      "JimmsBroTests/RestoreTests.swift"],
+                      "JimmsBroTests/RestoreTests.swift",
+                      "JimmsBroTests/DefectFixesTests.swift"],
             resources: [.copy("examples")]
         )
     ]

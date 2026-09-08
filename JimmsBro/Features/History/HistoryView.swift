@@ -74,7 +74,7 @@ struct HistoryView: View {
                 #if DEBUG
                 // Debug-only: open the newest session, or one exercise, for screenshot runs.
                 let arguments = ProcessInfo.processInfo.arguments
-                while !model.loaded { try? await Task.sleep(for: .milliseconds(50)) }
+                await model.waitUntilLoaded()
                 if arguments.contains("-uiSessionDetail"),
                    let newest = model.historyMonths.first?.sessions.first {
                     path = [.session(newest.id)]

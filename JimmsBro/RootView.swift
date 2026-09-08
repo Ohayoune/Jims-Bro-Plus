@@ -73,7 +73,7 @@ struct RootView: View {
             // The screenshot run starts the card's day, optionally logs some sets to reach a
             // later phase, and opens the workout.
             Task {
-                while !model.loaded { try? await Task.sleep(for: .milliseconds(50)) }
+                await model.waitUntilLoaded()
                 if !model.hasActiveSession { try? await model.startFromCard() }
                 showWorkout = true
                 if let index = arguments.firstIndex(of: "-uiAdvance"),
@@ -115,13 +115,18 @@ extension View {
     /// Saves fail most often mid-workout, which is exactly when the workout cover is over
     /// `RootView`, so the alert has to be presented from whichever view is on top.
     func saveFailureAlert(model: AppModel, enabled: Bool) -> some View {
-        alert(model.saveFailure?.message ?? "",
-              isPresented: Binding(
-                get: { enabled && model.saveFailure != nil },
-                // Only a dismissal clears the failure. Without the `enabled` guard here, the
-                // copy that is switched off would clear it the moment the other one took over.
-                set: { if !$0 && enabled { model.saveFailure = nil } })) {
-            Button("Retry") { Task { await model.retrySaveFailure() } }
+        // Captured here, synchronously, while the alert is still up. Presenting the alert
+        // clears `saveFailure` on dismissal, and Retry's own `Task` runs after that — so a
+        // Retry that read the property from inside the Task always found nil (v1.2).
+        let failure = model.saveFailure
+        return alert(failure?.message ?? "",
+                     isPresented: Binding(
+                        get: { enabled && model.saveFailure != nil },
+                        // Only a dismissal clears the failure. Without the `enabled` guard here,
+                        // the copy that is switched off would clear it the moment the other one
+                        // took over.
+                        set: { if !$0 && enabled { model.saveFailure = nil } })) {
+            Button("Retry") { Task { await model.retrySaveFailure(failure) } }
             Button("Later", role: .cancel) {}
         }
     }

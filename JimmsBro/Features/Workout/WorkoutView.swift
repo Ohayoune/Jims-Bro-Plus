@@ -139,6 +139,7 @@ private struct WorkoutScreenView: View {
         }
         .task(id: screen.step) { load() }
         .onChange(of: screen.inputs) { _, _ in load(force: true) }
+        .onChange(of: focused) { previous, _ in if previous == .weight { pushWeight() } }
     }
 
     // MARK: - Zone 1
@@ -281,7 +282,10 @@ private struct WorkoutScreenView: View {
                        minus: { set(weight: InputRules.stepped(weight: current, by: stepSize, up: false)) },
                        plus: { set(weight: InputRules.stepped(weight: current, by: stepSize, up: true)) },
                        filter: { InputRules.weight($0, previous: $1) },
-                       committed: { pushWeight() })
+                       // Not on every keystroke: typing "62.5" was four engine events and,
+                       // before v1.2, four writes of active-session.json. The steppers, the
+                       // suggestion chip, losing focus and the primary button all push it.
+                       committed: {})
             if let chip = screen.inputs.suggestion, let suggested = screen.inputs.suggestedWeight {
                 Button(chip) { set(weight: suggested) }
                     .font(.caption)
@@ -304,6 +308,11 @@ private struct WorkoutScreenView: View {
     private func primaryTapped() {
         focused = nil
         Task {
+            // The engine logs a timed set with the weight it is holding, so make sure that is
+            // what the field shows before finishing one. Reps sets pass `current` directly.
+            if screen.inputs.showsWeight, screen.primary.kind != .log {
+                await model.apply(.setWorkWeight(step: screen.step, weight: current))
+            }
             switch screen.primary.kind {
             case .log:
                 guard let reps = InputRules.repsValue(repsText) else { return }
@@ -539,7 +548,10 @@ private struct StepButton: View {
             .animation(.easeOut(duration: 0.12), value: pressed)
             .contentShape(Circle())
             .onTapGesture(perform: action)
-            .onLongPressGesture(minimumDuration: 0.4, pressing: { pressing in
+            // `.infinity` so the gesture never "recognises": `pressing(false)` then means only
+            // "the finger came off", instead of firing at 0.4 s and cancelling the repeater at
+            // the very moment its own 400 ms delay ended (v1.2).
+            .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
                 pressed = pressing
                 repeater?.cancel()
                 guard pressing else { return }

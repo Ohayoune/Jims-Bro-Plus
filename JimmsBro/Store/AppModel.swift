@@ -289,10 +289,14 @@ enum SaveFailure: Equatable {
         do { try await store.clearActiveSession() } catch { saveFailure = .activeSessionClear }
     }
 
-    /// Retries whatever `saveFailure` describes. The data itself was never discarded, so this
-    /// is always safe to call again, including automatically on the next successful write.
-    func retrySaveFailure() async {
-        guard let failure = saveFailure else { return }
+    /// Retries a failed write. The data itself was never discarded, so this is always safe to
+    /// call again, including automatically on the next successful write.
+    ///
+    /// `failure` is passed in by the alert's Retry button, which captures it synchronously:
+    /// dismissing the alert clears `saveFailure` first, so a Retry that read the property
+    /// inside its own `Task` would always find nil and do nothing (D24, v1.2).
+    func retrySaveFailure(_ failure: SaveFailure? = nil) async {
+        guard let failure = failure ?? saveFailure else { return }
         saveFailure = nil
         switch failure {
         case let .session(session):
@@ -371,7 +375,14 @@ enum SaveFailure: Equatable {
         do {
             try await store.restore(pending.document, mode: mode)
         } catch {
-            return "The backup couldn't be restored. Nothing was changed that wasn't already written."
+            // Replace all empties the store before it writes, so a failure part-way through
+            // has already changed things. Saying otherwise would be a comforting lie about
+            // the one mode where it matters.
+            let message = RestoreText.failure(mode)
+            loaded = false
+            justCompleted = nil
+            await load(locale: locale)
+            return message
         }
         loaded = false
         justCompleted = nil
@@ -392,4 +403,14 @@ enum SaveFailure: Equatable {
     }
 
     func refreshNotificationState() async { notificationState = await scheduler.authorizationState() }
+
+    /// Waits for the launch read to finish, for the DEBUG screenshot hooks that need a loaded
+    /// model before they navigate. Bounded and cancellation-aware: an unbounded `while !loaded`
+    /// spins the main actor for ever if its task is cancelled before the load lands.
+    func waitUntilLoaded(timeout: Duration = .seconds(10)) async {
+        let deadline = ContinuousClock.now.advanced(by: timeout)
+        while !loaded, ContinuousClock.now < deadline {
+            do { try await Task.sleep(for: .milliseconds(50)) } catch { return }
+        }
+    }
 }

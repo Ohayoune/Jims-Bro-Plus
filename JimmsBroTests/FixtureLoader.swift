@@ -34,10 +34,11 @@ enum FixtureLoader {
     /// Read from the app bundle under XCTest and from the source tree under the portable
     /// runner, so both check the file that actually ships rather than a copy of it.
     static func appResource(_ name: String, extension ext: String) throws -> String {
-        #if CORE_CHECKS
-        let root = URL(fileURLWithPath: ProcessInfo.processInfo.environment["JIMMSBRO_FIXTURE_ROOT"]
-                       ?? FileManager.default.currentDirectoryPath)
-        return try String(contentsOf: root.appendingPathComponent("JimmsBro/Resources")
+        #if CORE_CHECKS || SWIFT_PACKAGE
+        // Neither route builds an app bundle: the portable runner has no bundle at all, and
+        // SwiftPM builds Core as a library, so `JimmsBro/Resources` only exists in the source
+        // tree. Read it from there.
+        return try String(contentsOf: sourceRoot.appendingPathComponent("JimmsBro/Resources")
             .appendingPathComponent("\(name).\(ext)"), encoding: .utf8)
         #else
         guard let url = Bundle.main.url(forResource: name, withExtension: ext)
@@ -46,6 +47,18 @@ enum FixtureLoader {
         }
         return try String(contentsOf: url, encoding: .utf8)
         #endif
+    }
+
+    /// The checkout root. `JIMMSBRO_FIXTURE_ROOT` wins when set (the portable runner sets it);
+    /// otherwise it is derived from this file's own path, which is right under SwiftPM
+    /// whatever the working directory happens to be.
+    static var sourceRoot: URL {
+        if let root = ProcessInfo.processInfo.environment["JIMMSBRO_FIXTURE_ROOT"] {
+            return URL(fileURLWithPath: root)
+        }
+        return URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()   // JimmsBroTests/
+            .deletingLastPathComponent()   // the checkout root
     }
 
     static func manifest() throws -> FixtureManifest {

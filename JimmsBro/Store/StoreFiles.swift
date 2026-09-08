@@ -81,6 +81,22 @@ struct BackupSummary: Equatable {
 
 enum RestoreMode: Equatable { case replaceAll, merge }
 
+/// What the app says when a restore fails. In Core rather than in the view, so the one thing
+/// that must be true of it — that it never claims nothing changed after **Replace all**, which
+/// empties the store before it writes — is a unit test (v1.2).
+enum RestoreText {
+    static func failure(_ mode: RestoreMode) -> String {
+        switch mode {
+        case .replaceAll:
+            return "The backup couldn't be fully restored, and Replace all had already cleared "
+                + "what was here. Try again with the same file — restoring it twice is safe."
+        case .merge:
+            return "The backup couldn't be restored. A merge only ever adds, so nothing you "
+                + "already had was changed."
+        }
+    }
+}
+
 /// ISO-8601 with fractional seconds, and sorted keys so identical values produce identical bytes.
 enum StoreCoder {
     private static let formatter: ISO8601DateFormatter = {
