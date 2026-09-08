@@ -5,11 +5,16 @@ import UniformTypeIdentifiers
 
 // Draws the 1024×1024 app icon: a barbell on a deep blue ground. No text — it has to read
 // at 40 pt on a home screen.
+//
+// v1.4 (D49): drawn **without an alpha channel**. App Store Connect rejects a 1024-pixel icon
+// that carries one, even when every pixel is opaque, and `premultipliedLast` wrote one. The
+// ground covers the whole square, so nothing is lost; `tools/check_release.py` reads the PNG's
+// colour type to make sure it stays this way.
 let size = 1024
 let space = CGColorSpaceCreateDeviceRGB()
 guard let context = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8,
                               bytesPerRow: 0, space: space,
-                              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+                              bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else {
     fatalError("no context")
 }
 

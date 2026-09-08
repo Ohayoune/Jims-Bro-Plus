@@ -755,6 +755,16 @@ is testable without a phone; Q71–Q73 need the device and live in `DEVICE_CHECK
 | Y15 | unit | (D47, v1.4) `introSeen` on disk | Written and read back; the frozen v1.1 settings file decodes with it false and everything else intact; a file that says true reads true |
 | Y16 | manual | (D47, v1.4) Delete the app, install, launch; then Settings → About → **How the app works** | The intro covers the tabs; swiping reaches four pages; **Choose a plan** lands on the built-in picker; after Cancel, Home is the empty card and the intro does not return on relaunch; the Settings row reopens it with **Done** |
 
+### Y4 — ready for the store (D49)
+
+Type **check** = a script in `tools/` that must exit 0; it runs on the host with no Xcode.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| Y17 | check | (D49, v1.4) `python3 tools/check_release.py` | Exit 0: the icon is a 1024 × 1024 PNG of colour type 2 (no alpha); every `MARKETING_VERSION` is 1.4 and every `CURRENT_PROJECT_VERSION` is 1, and `docs/APP_STORE.md` says the same; `ITSAppUsesNonExemptEncryption = NO` is on both app configurations; the extension's Info.plist hard-codes no version; `docs/PRIVACY.md` carries an effective date and `docs/APP_STORE.md` exists; every catalogue id has `JimmsBro/Resources/<id>.json` and the project copies it |
+| Y18 | check | (D49, v1.4) `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | Builds: nothing outside `#if DEBUG` refers to the screenshot hooks, the read-only store or the seeded launch arguments |
+| Y19 | manual | (D49, v1.4) The TestFlight build on the phone | Installs from TestFlight; the icon is the barbell; Settings → About reads 1.4 (1); the device checklist is run against this build rather than a cable install |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

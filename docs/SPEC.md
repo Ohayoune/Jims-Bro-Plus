@@ -57,6 +57,7 @@ What it costs:
 |-------|------------------|-------|-------|
 | Free Apple ID in Xcode | 7 days, then re-run from Xcode (data survives) | $0 | Max 3 sideloaded apps at once. Fine for personal use. |
 | Apple Developer Program | 1 year, plus TestFlight | $99/yr | Only needed if the 7-day re-install annoys you or you want friends on it. |
+| App Store (v1.4, D49) | until the membership lapses | the same $99/yr | The paid program, a release Xcode (a beta build is refused), an opaque icon, the export-compliance answer in the binary, a privacy policy URL. `docs/APP_STORE.md` is the submission; `tools/check_release.py` checks what a script can. |
 
 What you do vs. what the implementing agent does: the agent writes all code and tests and can run the app in the iOS Simulator. Installing on your physical iPhone is a one-time 5-minute manual step (plug in, trust, enable Developer Mode, choose your Team in Xcode). Steps are in `docs/BUILD_PLAN.md`.
 
@@ -451,6 +452,18 @@ A v1.2 defect fixed here, because the splice goes through the same `apply`: a pl
 - **`Settings.introSeen`**, optional in `Persistence.swift` (absent → false, so the frozen v1 settings file still decodes), set by `markIntroSeen()` on either dismissal. In Settings rather than a flag on the side, so Delete all data brings the intro back and a backup carries it. The setting changes synchronously and the cover follows it; the write lands behind (D48).
 - **The screen** (`IntroductionView`): pages you swipe with the system's page dots; one primary action — **Choose a plan**, which dismisses the intro and, once the cover is down, opens Add plan on the built-in picker (§4.4) — and one quiet **Not now**. Four screens is the ceiling; a page is one symbol, one line, one paragraph. Nothing on Home changes.
 - **Reachable later** from Settings → About → **How the app works**, as a sheet with **Done** in place of Choose a plan.
+
+### 6.25 Ready for the store (D49, v1.4)
+"v4 should be getting the app ready for publishing." What actually stops an upload, fixed in the build; what the store asks for, written down once.
+
+- **The icon is opaque.** App Store Connect rejects a 1024-pixel icon with an alpha channel, even one whose every pixel is opaque, and `tools/icon` wrote one (`premultipliedLast`). It now draws with `noneSkipLast`, the PNG's colour type is 2 (RGB), and `tools/check_release.py` reads the byte so it cannot come back.
+- **Export compliance is answered in the binary**: `ITSAppUsesNonExemptEncryption = NO` on the app target, because the app uses no encryption beyond what iOS applies to its files. Without it every upload stops at a question.
+- **Version 1.4, build 1**, the same on the app, the `JimmsBroActivity` extension and the tests — the extension's version must match the app's or validation fails. The number the store shows is the number the docs use.
+- **A Release build compiles** (`xcodebuild build -configuration Release`), which proves that nothing outside `#if DEBUG` refers to the screenshot hooks, the read-only store or the seeded launch arguments. Run for every milestone from Y4 on; recorded in BUILD_STATUS.
+- **`tools/check_release.py`** checks the static facts: the icon's colour type and size, the three versions agreeing and matching `docs/APP_STORE.md`, the compliance key on both app configurations, the extension's Info.plist not hard-coding a version of its own, the privacy policy and the submission page existing, and every catalogue id (§6.23) having its file in the bundle and in the project.
+- **`docs/PRIVACY.md`** is the privacy policy the store requires a URL for: nothing leaves the phone unless you export it; no account, no analytics, no network; what you paste into a chatbot is that chatbot's business. The public repository's copy of the file is the URL.
+- **`docs/APP_STORE.md`** is the submission: the order of things (the paid program, a release Xcode, Archive, the record, TestFlight for the device checklist, Submit, and how an update goes), every field of the record, the description and keywords, the review notes (a reviewer is in a workout in three taps through the built-in picker), the privacy questionnaire's answer and why it is true, the screenshot list with the `tools/shot.sh` line for each, and the choices only the owner can make: the LICENSE, the support URL, the name, the icon's design.
+- **No privacy manifest** is needed: the app uses none of Apple's required-reason APIs — no `UserDefaults`, no file timestamps, no boot time, no disk space (checked in v1.4).
 
 ### 6.12 Calendar projection
 `Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.

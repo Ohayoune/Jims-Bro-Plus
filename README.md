@@ -2,6 +2,15 @@
 
 A personal iPhone app that runs your workout for you: import a plan a chatbot wrote from your own description, then log each set while the app times your rest and remembers what you lifted last time.
 
+## If you just want the app
+
+- **What it is.** Pick a plan and tap Start. The app walks you through the day one set at a time, times your rest — on the Lock Screen and in the Dynamic Island, with a notification when the phone is in your pocket — and remembers what you lifted, so next time the weight is already filled in and it tells you when to add. Four built-in routines (Full Body, Upper Lower, Push Pull Legs, At Home), or a chatbot writes yours from a prompt the app copies for you.
+- **Getting it.** It is being submitted to the App Store; `docs/APP_STORE.md` is the submission. Until it is there, build it yourself: open `JimmsBro.xcodeproj` in Xcode, choose your team under Signing & Capabilities, plug in an iPhone, press Run.
+- **Privacy.** Nothing leaves the phone unless you export it. No account, no analytics, no network connection. `docs/PRIVACY.md` is the policy.
+- **License.** None has been chosen yet, so the code is published to read; ask before reusing it.
+
+Everything below is the design and handoff material the app was built from.
+
 This folder contains the design package and the app, built through **v1 (M0–M7)**, **v1.1 (R0–R6)**, **v1.2 (V0–V7)** and **v1.3 (X0–X5)**: the Core import pipeline and session engine, the JSON store, every screen, the workout's five fixed zones, plan editing, backup and restore, v1.2's warm-up, timed walk between exercises, loadable weight suggestions, anchored calendar, metrics and Lock Screen / Dynamic Island activity, and v1.3's narrower Island, changing an exercise mid-workout, JSON edits at every size, history as CSV in and out, and Progression — the chatbot round-trip run the other way. Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the device checklist, which needs the owner's iPhone. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
 
 Run the iOS tests from this folder:
