@@ -94,7 +94,9 @@ struct OverviewView: View {
         let step = session.steps[index]
         switch step.status {
         case .pending:
-            return StepCard.targetLine(session: session, step: index)
+            // D55 (v1.6): the set's own target. The note belongs to the exercise, said once on
+            // the card; printed here it repeated forty words on every row.
+            return StepCard.targetLine(session: session, step: index, notes: false)
         case .skipped, .logged:
             // The same sentence Session detail prints, so the two screens cannot drift apart.
             return ExerciseText.result(step)

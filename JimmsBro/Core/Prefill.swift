@@ -122,6 +122,15 @@ enum Prefill {
                                           progression: step.dropIndex == 0
                                               ? e.progressionWeek.map { (week: $0, weeks: session.progressionWeeks,
                                                                          mode: session.progressionMode ?? .calendar) } : nil)
+        // D55 (v1.6): a chip that says exactly what the fields already show is not a
+        // suggestion — "Try 4 reps · The plan's target" under a reps field reading 4. A
+        // progression's chip stays: its reason, which step this is, is the point of it. A
+        // timed chip has neither reps nor weight and is judged by its seconds, not here.
+        if let chip = values.suggestion, !chip.isProgression,
+           chip.reps != nil || chip.weight != nil,
+           chip.reps == values.reps, chip.weight == values.weight {
+            values.suggestion = nil
+        }
         return values
     }
     /// D36 (v1.2): the suggestion for one set, in order of how much it knows.
@@ -174,15 +183,19 @@ enum Prefill {
             return SetSuggestion(reps: reps, weight: advice, text: line(reps, advice),
                                  reason: adviceReason, isProgression: true)
         }
+        // D55 (v1.6): "do that again" is what was done — last time's reps at last time's weight
+        // — never the plan's reps at last time's weight, which read "Try 5 × 100 kg" under
+        // "Last time 10 × 100 kg". The plan's reps stand in only when last time has none for
+        // this set.
         if let lastWeight, !exercise.bodyweight {
             let lastReps = last?.reps
-            return SetSuggestion(reps: reps ?? lastReps, weight: lastWeight,
-                                 text: line(reps ?? lastReps, lastWeight),
+            return SetSuggestion(reps: lastReps ?? reps, weight: lastWeight,
+                                 text: line(lastReps ?? reps, lastWeight),
                                  reason: "Last time \(line(lastReps, lastWeight))",
                                  isProgression: false)
         }
         if let lastReps = last?.reps, exercise.bodyweight {
-            return SetSuggestion(reps: reps ?? lastReps, weight: nil, text: line(reps ?? lastReps, nil),
+            return SetSuggestion(reps: lastReps, weight: nil, text: line(lastReps, nil),
                                  reason: "Last time \(lastReps) rep\(lastReps == 1 ? "" : "s")",
                                  isProgression: false)
         }

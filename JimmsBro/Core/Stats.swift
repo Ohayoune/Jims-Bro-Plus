@@ -113,12 +113,16 @@ enum SessionStats {
     /// The set-by-set table only appears when no single sentence is true of the whole exercise.
     static func comparison(for name: String, session: Session, history: [Session]) -> ExerciseComparison {
         let current = ExerciseHistory.steps(name: name, session: session).filter { $0.status == .logged }
+        // D55 (v1.6): an exercise nothing was logged for today says so whether or not it has a
+        // past. "First time" is for a first time that happened; a first workout's Summary said
+        // it for four exercises the person never touched.
+        guard !current.isEmpty else { return ExerciseComparison(headline: "Nothing logged", rows: []) }
         guard let last = previousSession(for: name, units: session.units, before: session.startedAt,
                                          sessions: history) else {
             return ExerciseComparison(headline: "First time", rows: [])
         }
         let previous = ExerciseHistory.steps(name: name, session: last).filter { $0.status == .logged }
-        guard !current.isEmpty, !previous.isEmpty else {
+        guard !previous.isEmpty else {
             return ExerciseComparison(headline: "Nothing logged", rows: [])
         }
 
