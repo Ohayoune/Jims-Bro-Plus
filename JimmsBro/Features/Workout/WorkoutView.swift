@@ -64,12 +64,15 @@ struct WorkoutView: View {
             }
             #endif
         }
-        .confirmationDialog(finishPrompt, isPresented: $showFinishConfirm, titleVisibility: .visible) {
-            Button("Finish workout", role: .destructive) { Task { await model.finish() } }
+        // D56 (v1.6): alerts, not confirmation dialogs. Presented from the ··· menu, a dialog
+        // draws as a popover on iOS 26 and drops its cancel-role button, so "14 sets not done.
+        // Finish anyway?" showed one red button and no visible way to say no. An alert always
+        // shows both — and Finish is not destructive: it saves. Only Discard is.
+        .alert(finishPrompt, isPresented: $showFinishConfirm) {
+            Button("Finish workout") { Task { await model.finish() } }
             Button("Keep going", role: .cancel) {}
         }
-        .confirmationDialog("Nothing was logged. Discard this workout?",
-                            isPresented: $showDiscardConfirm, titleVisibility: .visible) {
+        .alert("Nothing was logged. Discard this workout?", isPresented: $showDiscardConfirm) {
             Button("Discard", role: .destructive) { Task { await model.discardSession(); dismiss() } }
             Button("Keep going", role: .cancel) {}
         }
@@ -159,15 +162,12 @@ private struct WorkoutScreenView: View {
         .background(Color(.systemGroupedBackground))
         .bottomAction {
             VStack(spacing: 12) {
-                StatusStripView(strip: screen.strip)         // zone 4
+                // D56 (v1.6): while a field is focused the strip's trailing slot holds Done. The
+                // system keyboard toolbar drew it as a floating pill over the lower half of
+                // Log set on iOS 26, and a tap there did nothing.
+                StatusStripView(strip: screen.strip,          // zone 4
+                                done: focused != nil ? { focused = nil } : nil)
                 PrimaryButton(title: screen.primary.title, enabled: primaryEnabled) { primaryTapped() }
-            }
-        }
-        .toolbar {
-            // P6: the keyboard always offers a way out that isn't a guess at where to tap.
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") { focused = nil }
             }
         }
         .task(id: screen.step) { load() }
@@ -206,11 +206,14 @@ private struct WorkoutScreenView: View {
                         .font(.footnote.monospacedDigit())
                         .foregroundStyle(.secondary)
                         .accessibilityLabel("Elapsed \(screen.elapsed)")
-                    Text(screen.progress)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    // D56 (v1.6): nil while working, when the stage above already says it.
+                    if let progress = screen.progressLine {
+                        Text(progress)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
                 }
                 Spacer(minLength: 4)
                 // P2: reachable in every state, rest included — this row never changes.
@@ -237,20 +240,17 @@ private struct WorkoutScreenView: View {
                             changeExercise(screen.exerciseIndex, screen.exerciseName)
                         }
                     }
-                    Button("Finish workout", role: .destructive) { finish() }
+                    // D56 (v1.6): not destructive — it saves the workout. Red read as "delete".
+                    Button("Finish workout") { finish() }
                 } label: {
                     Image(systemName: "ellipsis")
                 }
                 .accessibilityLabel("More")
             }
             .frame(minHeight: 44)
-            if typeSize.isAccessibilitySize {
-                Text("\(screen.elapsed) · \(screen.progress)")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel("\(screen.stage.title). Elapsed \(screen.elapsed), \(screen.progress)")
-            }
+            // D56 (v1.6): at accessibility sizes the elapsed and progress line goes too — two
+            // wrapped lines that pushed the inputs below the strip. The stage above stays, and
+            // VoiceOver still hears the position through the exercise block.
         }
         .font(.footnote)
         .padding(.horizontal, 20)
@@ -272,7 +272,7 @@ private struct WorkoutScreenView: View {
                 Text(screen.targetLine)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    .lineLimit(typeSize.isAccessibilitySize ? 1 : 2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityElement(children: .ignore)
@@ -281,7 +281,10 @@ private struct WorkoutScreenView: View {
             .accessibilityAddTraits(.isButton)
 
             InsetGroup {
-                ForEach(screen.rows, id: \.stepIndex) { row in
+                // D56 (v1.6): at accessibility sizes only the current row, so the inputs and
+                // the button are on screen together; the rest are one tap away in Exercises.
+                ForEach(typeSize.isAccessibilitySize ? screen.rows.filter(\.isCurrent) : screen.rows,
+                        id: \.stepIndex) { row in
                     Button { tapped(row) } label: { SetRowView(row: row) }
                         .buttonStyle(PressableRow())
                         .disabled(row.isCurrent)
@@ -342,6 +345,7 @@ private struct WorkoutScreenView: View {
                        plus: { set(weight: InputRules.stepped(weight: current, by: stepSize,
                                                               up: true, increment: increment)) },
                        filter: { InputRules.weight($0, previous: $1) },
+                       placeholder: "tap to type",
                        // Not on every keystroke: typing "62.5" was four engine events and,
                        // before v1.2, four writes of active-session.json. The steppers, the
                        // suggestion chip, losing focus and the primary button all push it.
@@ -438,6 +442,8 @@ private struct StatusStripView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dynamicTypeSize) private var typeSize
     let strip: StatusStrip
+    /// D56 (v1.6): set while a field is focused; the trailing slot then holds Done.
+    var done: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -461,13 +467,22 @@ private struct StatusStripView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
-                if strip.showsRestControls, !typeSize.isAccessibilitySize { restControls }
+                if let done {
+                    Button("Done", action: done)
+                        .font(.footnote.weight(.semibold))
+                        .buttonStyle(.bordered)
+                        .buttonBorderShape(.capsule)
+                        .controlSize(.small)
+                        .accessibilityHint("Closes the keyboard")
+                } else if strip.showsRestControls, !typeSize.isAccessibilitySize { restControls }
             }
             // At accessibility sizes three capsules will not share a row with the countdown
             // without breaking their own labels in half (O60), so they take a row of their own.
-            if strip.showsRestControls, typeSize.isAccessibilitySize { restControls }
+            if strip.showsRestControls, typeSize.isAccessibilitySize, done == nil { restControls }
             HStack(spacing: 12) {
-                if let next = strip.next {
+                // D56 (v1.6): at accessibility sizes the next-set line goes, so the inputs stay
+                // on screen with the button; the card above already names the exercise.
+                if let next = strip.next, !typeSize.isAccessibilitySize {
                     // Two lines: between exercises this row carries the finished block's
                     // sentence, advice and all, which does not fit in one.
                     Text(next)
@@ -476,7 +491,7 @@ private struct StatusStripView: View {
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                if let detail = strip.detail {
+                if let detail = strip.detail, !typeSize.isAccessibilitySize {
                     // D19: a set's duration is small text, never the hero of the screen.
                     Text(detail).font(.caption).foregroundStyle(.secondary)
                 }
@@ -588,6 +603,9 @@ private struct StepperRow<Field: Hashable>: View {
     let minus: () -> Void
     let plus: () -> Void
     let filter: (String, String) -> String
+    /// D56 (v1.6): what an empty field says about itself. A built-in plan's first set has no
+    /// weight, and a blank gap between − and + said nothing about being a field.
+    var placeholder: String? = nil
     let committed: () -> Void
 
     var body: some View {
@@ -610,8 +628,25 @@ private struct StepperRow<Field: Hashable>: View {
                 }
             }
             .frame(maxWidth: .infinity)
+            .overlay {
+                // Not while typing: the caret would sit in the middle of the words.
+                if text.isEmpty, let placeholder, focus != field {
+                    Text(placeholder)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .allowsHitTesting(false)
+                }
+            }
+            .padding(.vertical, 4)
+            .background {
+                if text.isEmpty, placeholder != nil {
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Color.secondary.opacity(0.35), lineWidth: 1)
+                }
+            }
             .accessibilityLabel(label)
             .accessibilityValue(text.isEmpty ? "empty" : text)
+            .accessibilityHint(text.isEmpty && placeholder != nil ? "Double tap to type a weight" : "")
             StepButton(system: "plus", action: plus)
         }
         .accessibilityElement(children: .contain)

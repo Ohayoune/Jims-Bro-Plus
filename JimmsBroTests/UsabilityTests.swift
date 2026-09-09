@@ -145,6 +145,15 @@ final class UsabilityTests: XCTestCase {
                                    step: 0, history: [])
         XCTAssertEqual(first.reps, 8); XCTAssertNil(first.weight)
         XCTAssertNil(first.suggestion, "\"Try 8 reps · The plan's target\" under a field reading 8 said nothing")
+        // The second set carries the typed weight forward; the plan's chip, which has no
+        // opinion on the weight, is still only repeating the reps field.
+        var weightless = CoreTestSupport.session(CoreTestSupport.plan(weight: nil))
+        weightless.steps[0].status = .logged
+        weightless.steps[0].result = .reps(count: 8, weight: 135)
+        weightless.steps[0].loggedAt = CoreTestSupport.now
+        let second = Prefill.values(session: weightless, step: 1, history: [])
+        XCTAssertEqual(second.reps, 8); XCTAssertEqual(second.weight, 135)
+        XCTAssertNil(second.suggestion)
 
         // A held set keeps its chip: it is judged by its seconds, which the fields do not show.
         let held = CoreTestSupport.plan(work: .duration(seconds: 45), weight: nil)
@@ -179,5 +188,30 @@ final class UsabilityTests: XCTestCase {
         XCTAssertEqual(StepCard.targetLine(session: session, step: 0, notes: false), "8–12 · 60 kg")
         XCTAssertEqual(StepCard.targetLine(session: session, step: 0),
                        "8–12 · 60 kg · Bar on the upper back, big breath, sit down between the knees.")
+    }
+
+    // MARK: - U2 (D56): nothing unreachable
+
+    // U8: the stage is said once — the small line is nil when it would only repeat it.
+    func testTheProgressLineIsNilWhenItWouldRepeatTheStage() throws {
+        let now = CoreTestSupport.now
+        var engine = CoreTestSupport.engine(CoreTestSupport.plan(sets: 3))   // no warm-up: working
+        let working = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [], now: now))
+        XCTAssertEqual(working.stage.title, "Exercise 1 of 1 · Set 1 of 3")
+        XCTAssertEqual(working.progress, working.stage.title, "the audit saw this printed twice")
+        XCTAssertNil(working.progressLine)
+
+        engine.apply(.logSet(step: 0, result: .reps(count: 10, weight: 60)), now: now)
+        let resting = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [],
+                                                        now: now.addingTimeInterval(1)))
+        XCTAssertEqual(resting.stage.title, "Resting")
+        XCTAssertEqual(resting.progressLine, "Exercise 1 of 1 · Set 2 of 3")
+
+        // A superset member's line names the round and the exercise, which the stage does not.
+        let grouped = CoreTestSupport.engine(CoreTestSupport.plan(sets: 3, secondExercise: true, group: "A"))
+        let member = try XCTUnwrap(WorkoutScreen.model(active: grouped.active, history: [], now: now))
+        let line = try XCTUnwrap(member.progressLine)
+        XCTAssertNotEqual(line, member.stage.title)
+        XCTAssertTrue(line.contains("round"), line)
     }
 }

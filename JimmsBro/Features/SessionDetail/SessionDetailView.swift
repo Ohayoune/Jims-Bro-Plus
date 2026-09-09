@@ -65,8 +65,8 @@ struct SessionDetailView: View {
                         .accessibilityLabel("More")
                     }
                 }
-                .confirmationDialog("Delete this workout?", isPresented: $confirmDelete,
-                                    titleVisibility: .visible) {
+                // D56 (v1.6): an alert — from a menu, a dialog's Cancel is not drawn on iOS 26.
+                .alert("Delete this workout?", isPresented: $confirmDelete) {
                     Button("Delete", role: .destructive) {
                         Task { await model.deleteHistorySession(sessionId); dismiss() }
                     }

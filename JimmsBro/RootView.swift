@@ -209,13 +209,19 @@ extension View {
     /// SPEC §4.0 (v1.1): the bottom-anchored primary action, with a bar behind it so scrolling
     /// content passes under it instead of showing through it. One definition, so the button sits
     /// at the same height with the same padding on every screen that has one.
-    func bottomAction<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+    /// D56 (v1.6): `if shown` is false → no inset at all. The padding and the bar used to be
+    /// applied even when the content was empty, which drew a small white rectangle at the
+    /// bottom of Add plan and Progression before anything had been pasted.
+    func bottomAction<Content: View>(if shown: Bool = true,
+                                     @ViewBuilder _ content: () -> Content) -> some View {
         safeAreaInset(edge: .bottom, spacing: 0) {
-            content()
-                .padding(.horizontal, 20)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
-                .background(.bar)
+            if shown {
+                content()
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    .padding(.bottom, 8)
+                    .background(.bar)
+            }
         }
     }
 }

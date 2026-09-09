@@ -72,8 +72,8 @@ struct ImportView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
             }
-            .bottomAction {
-                if hasDraft { PrimaryButton(title: "Review plan") { runImport() } }
+            .bottomAction(if: hasDraft) {
+                PrimaryButton(title: "Review plan") { runImport() }
             }
             .sheet(item: $preview, onDismiss: resolvePending) { plan in
                 // Replace already targets a specific plan, so the toggle would be redundant.

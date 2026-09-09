@@ -92,6 +92,7 @@ Rewritten in v1.1's R2 milestone. The v1 text is kept underneath each rule that 
 - Show a line only when it has content (no "Notes: none", no empty "Last time").
 - Tab bar with four tabs: **Home · Plans · History · Settings**. No other navigation chrome on Home.
 - **Zones do not move.** Within one task, a control keeps its position across every state of that task: nothing appears, disappears or shifts under the thumb between working, resting and timed work (§4.5, D22, P1).
+- **Every confirmation shows its way out** (v1.6, D56). A confirmation presented from a menu is an alert with two named buttons, never a `confirmationDialog`: from a menu anchor a dialog draws as a popover on iOS 26 and drops its cancel-role button. Finish is never red — it saves; only Discard and Delete are.
 
 ### 4.1 Home (D18, rewritten in v1.1's R3)
 Three things, top to bottom, nothing else:
@@ -129,10 +130,10 @@ One screen, five fixed zones, top to bottom, identical across every state below.
 
 > **Build status**: built in R2. `WorkoutScreen.model(active:history:now:)` resolves the whole screen — zones, set rows, prefilled inputs, strip and primary action — as a `WorkoutScreenModel`, and the view only renders it, which is what makes "the zones never move" a unit test (O50) rather than a convention.
 
-1. **Header** (v1.2, D34): the **stage** the workout is in, said in words, above a progress bar of the whole day — **Warm-up**, **Exercise 2 of 5 · Set 2 of 3**, **Resting**, **Between exercises**. Then elapsed time · progress ("Exercise 2 of 5 · Set 2 of 3", or "· drop 1 of 2", or "A · round 2 of 3" for a superset member) · **Exercises** (opens the Overview sheet, §4.8, reachable in every state including rest) · minimize (returns to the tabs; the session and its timers keep running; Home shows "<Day> in progress · <elapsed>" with **Resume**) · "···" (Skip set, Skip exercise, Do later, **Change exercise** — v1.3, D42 — Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one).
+1. **Header** (v1.2, D34): the **stage** the workout is in, said in words, above a progress bar of the whole day — **Warm-up**, **Exercise 2 of 5 · Set 2 of 3**, **Resting**, **Between exercises**. Then elapsed time · progress ("Exercise 2 of 5 · Set 2 of 3", or "· drop 1 of 2", or "A · round 2 of 3" for a superset member; **v1.6 (D56)**: omitted when it would only repeat the stage, which while working it did) · **Exercises** (opens the Overview sheet, §4.8, reachable in every state including rest) · minimize (returns to the tabs; the session and its timers keep running; Home shows "<Day> in progress · <elapsed>" with **Resume**) · "···" (Skip set, Skip exercise, Do later, **Change exercise** — v1.3, D42 — Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one).
 2. **Exercise block**: the exercise's name (opens its history) and target line (with notes, truncated to one line), then the current exercise's set rows: finished rows show what was logged ("✓ 10 @ 80") and never how long it took (D19), the current row is highlighted with its target and last-time value, upcoming rows show their targets. A row carries the set's own target only — the exercise's notes appear once, on the target line above, rather than repeating on every row. In a block holding more than one exercise (a superset round) each row names its exercise instead of repeating the shared group tag, which would otherwise make two rows read identically. A superset shows the current round's members. Tapping a finished row opens the edit sheet; tapping an upcoming row jumps to it (§6.6 `jumpTo`).
-3. **Inputs**: small-caps labels **REPS** and the unit (**KG**/**LB**) above the − value + rows; the weight row is omitted for bodyweight exercises (D21); a "72.5 suggested" chip appears under the weight when §6.11 produced one. Timed sets replace the reps row with the timer block described below; the weight row stays unless bodyweight.
-4. **Status strip** (always present; its content depends on phase, per §4.6/§4.7 below).
+3. **Inputs**: small-caps labels **REPS** and the unit (**KG**/**LB**) above the − value + rows; the weight row is omitted for bodyweight exercises (D21); an empty weight field reads *tap to type* in the secondary colour inside a soft outline, so a plan without weights (D46) does not show a blank gap between − and + (v1.6, D56); a "72.5 suggested" chip appears under the weight when §6.11 produced one. Timed sets replace the reps row with the timer block described below; the weight row stays unless bodyweight.
+4. **Status strip** (always present; its content depends on phase, per §4.6/§4.7 below). **v1.6 (D56)**: while a field is focused its trailing slot holds **Done**, which closes the keyboard — the system keyboard toolbar drew Done as a floating pill over the lower half of the primary button on iOS 26. At accessibility text sizes the strip drops its next-set line and the set list shows the current row only, so the inputs and the button are on screen together.
 5. **Primary action**, bottom-anchored above the keyboard, full width: **Log set** while working or resting (logging during rest ends the rest early); **Start timer** / **Done** / **Stop** for a timed set, per D20. When the step waiting on the far side of a rest is a timed one, **Start timer** ends that rest and starts the work in the same tap, exactly as logging out of a rest does — the one button in the one slot is never inert.
 
 After logging, a step's seconds (D19) remain editable in the Overview like any other value.
@@ -526,6 +527,17 @@ The 2026-09-09 usability audit (`docs/UX_REVIEW_2026-09-09.md`) walked v1.5 as a
 - **A paste that is not JSON gets the right sentence** (§4.4): a plan in words is told to send it to a chatbot, not that a reply looks cut off.
 
 And two things that were simply wrong: the overview repeated each exercise's note on every set row (§4.8), and About said 1.4 for a repository tagged v1.5.
+
+### 6.32 Nothing unreachable (D56, v1.6)
+Six places the audit found where the way forward, or the way out, was hidden or under something — mostly for the great-grandparent, who does not guess.
+
+- **Every confirmation shows its way out** (§4.0): Finish workout, Discard workout, Delete plan, Delete workout, Discard draft and Remove progression are presented from a ··· menu, and a `confirmationDialog` presented from a menu anchor draws as a popover on iOS 26 that omits the cancel-role button. All six are alerts with two named buttons. The list swipes keep their dialogs, which present as sheets with a Cancel.
+- **Nothing sits on Log set** (§4.5): the system keyboard toolbar goes; while a field is focused the status strip's trailing slot holds Done, and the primary button commits what is typed.
+- **An empty bottom action draws nothing**: `bottomAction(if:)` adds the inset only when there is a button. The padded, bar-backed inset used to be drawn around empty content, a small white rectangle at the bottom of Add plan, Build it day by day and Progression.
+- **The empty weight field looks like a field** (§4.5): a placeholder and an outline while it is empty.
+- **Finish is not red** (§4.0): it saves. Discard and Delete are.
+- **At accessibility text sizes the inputs come first** (§4.5): the set list shows the current row, the strip drops its next-set line.
+- **The stage is said once** (§4.5): `WorkoutScreenModel.progressLine` is nil while working, when the stage title already reads "Exercise 1 of 5 · Set 1 of 4".
 
 ### 6.12 Calendar projection
 `Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.

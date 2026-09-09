@@ -126,9 +126,12 @@ enum Prefill {
         // suggestion — "Try 4 reps · The plan's target" under a reps field reading 4. A
         // progression's chip stays: its reason, which step this is, is the point of it. A
         // timed chip has neither reps nor weight and is judged by its seconds, not here.
+        // A chip with no opinion on one axis (the plan's "8 reps" on a plan without weights)
+        // is judged on the axis it has.
         if let chip = values.suggestion, !chip.isProgression,
            chip.reps != nil || chip.weight != nil,
-           chip.reps == values.reps, chip.weight == values.weight {
+           chip.reps == nil || chip.reps == values.reps,
+           chip.weight == nil || chip.weight == values.weight {
             values.suggestion = nil
         }
         return values

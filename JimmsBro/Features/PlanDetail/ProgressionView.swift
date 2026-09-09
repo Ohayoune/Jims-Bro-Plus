@@ -57,7 +57,8 @@ struct ProgressionView: View {
                     }
                 }
             }
-            .confirmationDialog("Remove this progression?", isPresented: $confirmRemove, titleVisibility: .visible) {
+            // D56 (v1.6): an alert — from a menu, a dialog's Cancel is not drawn on iOS 26.
+            .alert("Remove this progression?", isPresented: $confirmRemove) {
                 Button("Remove", role: .destructive) {
                     Task { await model.setProgression(nil, for: planId); planning = false }
                 }
@@ -235,8 +236,8 @@ struct ProgressionView: View {
                               : "The reply goes here.")
             }
         }
-        .bottomAction {
-            if hasDraft { PrimaryButton(title: "Review progression") { runImport() } }
+        .bottomAction(if: hasDraft) {
+            PrimaryButton(title: "Review progression") { runImport() }
         }
     }
 

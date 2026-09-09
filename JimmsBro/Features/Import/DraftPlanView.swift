@@ -44,12 +44,11 @@ struct DraftPlanView: View {
                 }
             }
         }
-        .bottomAction {
-            if let draft = model.draft, draft.isComplete {
-                PrimaryButton(title: "Review plan") { review() }
-            }
+        .bottomAction(if: model.draft?.isComplete == true) {
+            PrimaryButton(title: "Review plan") { review() }
         }
-        .confirmationDialog("Discard this draft?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+        // D56 (v1.6): an alert — from a menu, a dialog's Cancel is not drawn on iOS 26.
+        .alert("Discard this draft?", isPresented: $confirmDiscard) {
             Button("Discard", role: .destructive) { Task { await model.discardDraft() }; issues = [] }
             Button("Keep it", role: .cancel) {}
         } message: {

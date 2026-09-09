@@ -147,6 +147,12 @@ struct WorkoutScreenModel: Equatable {
     var primary: PrimaryAction
     /// The one VoiceOver string for the exercise block (SPEC §9).
     var spoken: String
+
+    /// D56 (v1.6): the small line under the stage, or nil when it would only repeat it. While
+    /// working, the stage already reads "Exercise 1 of 5 · Set 1 of 4"; the audit found it
+    /// printed twice, one above the other. Resting, and a superset member's "A · round 2 of 3",
+    /// still have something of their own to say.
+    var progressLine: String? { progress == stage.title ? nil : progress }
 }
 
 enum WorkoutScreen {

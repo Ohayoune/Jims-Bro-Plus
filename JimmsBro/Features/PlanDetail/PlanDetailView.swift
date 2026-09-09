@@ -164,8 +164,9 @@ struct PlanDetailView: View {
                     Button("Cancel", role: .cancel) {}
                     Button("Rename") { Task { await model.renamePlan(planId, to: draftName) } }
                 }
-                .confirmationDialog("Delete \(plan.name)?", isPresented: $confirmDelete,
-                                    titleVisibility: .visible) {
+                // D56 (v1.6): an alert, because a dialog presented from the ··· menu draws as a
+                // popover on iOS 26 and drops its Cancel.
+                .alert("Delete \(plan.name)?", isPresented: $confirmDelete) {
                     Button("Delete", role: .destructive) { Task { await model.deletePlan(planId); dismiss() } }
                     Button("Cancel", role: .cancel) {}
                 }
