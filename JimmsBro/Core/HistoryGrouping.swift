@@ -64,11 +64,14 @@ enum ExerciseText {
     }
 
     /// The one-line subtitle of a History row.
+    /// "28 min · 16 sets · 13,920 kg lifted" (D59, v1.6: "28:08 · 16 sets · 13,920 kg" read as a
+    /// clock time and an unlabelled weight — Metrics labels its numbers, and so does the row).
     static func summary(_ session: Session) -> String {
-        var parts = [TargetText.time(wholeSeconds(SessionStats.duration(session)))]
-        parts.append("\(SessionStats.loggedCount(session)) sets")
+        var parts = [HomeActivity.duration(SessionStats.duration(session))]
+        let sets = SessionStats.loggedCount(session)
+        parts.append("\(sets) set\(sets == 1 ? "" : "s")")
         let volume = SessionStats.volume(session.steps)
-        if volume > 0 { parts.append("\(TargetText.grouped(volume)) \(session.units.rawValue)") }
+        if volume > 0 { parts.append("\(TargetText.grouped(volume)) \(session.units.rawValue) lifted") }
         // D44 (v1.3): which week of the progression it was, when it was one.
         if let week = ProgressionText.weekLine(session) { parts.append(week) }
         return parts.joined(separator: " · ")

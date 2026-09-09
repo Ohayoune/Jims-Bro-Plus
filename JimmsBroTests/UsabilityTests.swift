@@ -370,4 +370,46 @@ final class UsabilityTests: XCTestCase {
         imported.planId = nil
         XCTAssertNil(SummaryText.next(after: imported, library: library, now: self.day(9), calendar: calendar))
     }
+
+    // MARK: - U5 (D59): hierarchy
+
+    // U24: the row that carries Undo is the step just logged, while the undo is still valid.
+    func testTheUndoRowIsTheStepJustLogged() throws {
+        let now = CoreTestSupport.now
+        var engine = CoreTestSupport.engine(CoreTestSupport.plan(sets: 3))
+        XCTAssertNil(try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [], now: now)).undoStep)
+        engine.apply(.logSet(step: 0, result: .reps(count: 10, weight: 60)), now: now)
+        XCTAssertEqual(try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [],
+                                                         now: now.addingTimeInterval(1))).undoStep, 0)
+        engine.apply(.undoLog(step: 0), now: now.addingTimeInterval(2))
+        XCTAssertNil(try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [],
+                                                       now: now.addingTimeInterval(2))).undoStep)
+    }
+
+    // U25: the idle strip says what the button will start.
+    func testTheIdleStripSaysWhatFollows() throws {
+        let now = CoreTestSupport.now
+        // A straight exercise with 90 s of rest: the first set's card says so.
+        let plan = CoreTestSupport.plan(sets: 2, secondExercise: true)
+        let session = CoreTestSupport.session(plan)
+        XCTAssertEqual(WorkoutScreen.idleLine(session: session, step: 0), "Rest 1:30 starts when you log")
+        // The block's last set names what comes after it.
+        let last = try XCTUnwrap(session.steps.lastIndex { $0.exerciseIndex == 0 })
+        XCTAssertEqual(WorkoutScreen.idleLine(session: session, step: last),
+                       "Then on to \(session.exercises[1].name)")
+        // The day's last set has nothing to announce.
+        XCTAssertNil(WorkoutScreen.idleLine(session: session, step: session.steps.count - 1))
+        // And the strip carries it while working, never while resting.
+        let engine = CoreTestSupport.engine(plan)
+        let screen = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [], now: now))
+        XCTAssertEqual(screen.strip.kind, .empty)
+        XCTAssertEqual(screen.strip.title, "Rest 1:30 starts when you log")
+    }
+
+    // U26: a History row reads in words a stranger knows.
+    func testTheHistoryRowIsLabelled() {
+        let summary = ExerciseText.summary(CoreTestSupport.completed([10, 10, 8], weights: [60, 60, 60]))
+        XCTAssertTrue(summary.hasSuffix(" min · 3 sets · 1,680 kg lifted"), summary)
+        XCTAssertFalse(summary.contains(":"), "a duration is minutes, not a clock time: \(summary)")
+    }
 }

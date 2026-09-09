@@ -387,14 +387,13 @@ struct PlanReviewSheet: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("\(shownUnits.rawValue) · \(plan.schedule.rawValue) · \(plan.days.count) day\(plan.days.count == 1 ? "" : "s")")
                             .font(.footnote).foregroundStyle(.secondary)
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 6) {
-                                ForEach(Array(RepeatBlock.chips(plan).enumerated()), id: \.offset) { _, name in
-                                    Text(name)
-                                        .font(.caption)
-                                        .padding(.horizontal, 10).padding(.vertical, 5)
-                                        .background(Color.secondary.opacity(0.15), in: Capsule())
-                                }
+                        // D59 (v1.6): the chips wrap; "Full Body…" used to be cut at the edge.
+                        WrapLayout(spacing: 6) {
+                            ForEach(Array(RepeatBlock.chips(plan).enumerated()), id: \.offset) { _, name in
+                                Text(name)
+                                    .font(.caption)
+                                    .padding(.horizontal, 10).padding(.vertical, 5)
+                                    .background(Color.secondary.opacity(0.15), in: Capsule())
                             }
                         }
                     }
@@ -403,7 +402,8 @@ struct PlanReviewSheet: View {
                 daysSection
                 if let makeActive {
                     Section {
-                        Toggle("Set as current plan", isOn: makeActive)
+                        // D59 (v1.6): "Set as current plan" was a database sentence.
+                        Toggle("Use this plan", isOn: makeActive)
                     }
                 }
                 if !split.cleanup.isEmpty { cleanupWarnings }

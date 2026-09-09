@@ -68,17 +68,25 @@ struct PlansView: View {
     }
 
     private func row(_ plan: Plan) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(plan.name)
-            Text(subtitle(plan))
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+        HStack(spacing: 10) {
+            // D59 (v1.6): the plan in use is marked, not described by a grey word.
+            if plan.id == model.activePlanId {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(Color.accentColor)
+                    .accessibilityLabel("In use")
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(plan.name)
+                Text(subtitle(plan))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
     private func subtitle(_ plan: Plan) -> String {
         var parts = ["\(plan.days.count) day\(plan.days.count == 1 ? "" : "s")", plan.units.rawValue]
-        if plan.id == model.activePlanId { parts.insert("Active", at: 0) }
+        if plan.id == model.activePlanId { parts.insert("In use", at: 0) }
         return parts.joined(separator: " · ")
     }
 }

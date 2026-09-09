@@ -285,9 +285,23 @@ private struct WorkoutScreenView: View {
                 // the button are on screen together; the rest are one tap away in Exercises.
                 ForEach(typeSize.isAccessibilitySize ? screen.rows.filter(\.isCurrent) : screen.rows,
                         id: \.stepIndex) { row in
-                    Button { tapped(row) } label: { SetRowView(row: row) }
-                        .buttonStyle(PressableRow())
-                        .disabled(row.isCurrent)
+                    HStack(spacing: 0) {
+                        Button { tapped(row) } label: { SetRowView(row: row) }
+                            .buttonStyle(PressableRow())
+                            .disabled(row.isCurrent)
+                        // D59 (v1.6): Undo on the row that was just logged, where the eye is,
+                        // rather than at the far end of a wrapping line in the strip.
+                        if row.stepIndex == screen.undoStep {
+                            Button { Task { await model.undoLast() } } label: {
+                                Image(systemName: "arrow.uturn.backward.circle")
+                                    .font(.title3)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Color.accentColor)
+                            .padding(.leading, 6)
+                            .accessibilityLabel("Undo the last set")
+                        }
+                    }
                 }
             }
         }
@@ -506,7 +520,9 @@ private struct StatusStripView: View {
                     Text(detail).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
-                if strip.undo != nil {
+                // D59 (v1.6): the row carries Undo now; the strip keeps it only at accessibility
+                // sizes, where the list shows the current row alone.
+                if strip.undo != nil, typeSize.isAccessibilitySize {
                     Button("Undo") { Task { await model.undoLast() } }
                         .font(.footnote.weight(.medium))
                         .accessibilityLabel("Undo the last set")

@@ -124,7 +124,7 @@ struct GoalSheet: View {
                         DatePicker("Date", selection: $by, in: Date()..., displayedComponents: .date)
                     }
                 } footer: {
-                    Text("The date is said, never enforced.")
+                    Text("The app shows the date and never nags about it.")
                 }
             }
             .navigationTitle("Set a goal")

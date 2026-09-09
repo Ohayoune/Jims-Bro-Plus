@@ -9,6 +9,7 @@ struct HomeView: View {
     @Binding var showWorkout: Bool
 
     var body: some View {
+        let card = HomeStart.current(library: model.library)
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
                 StartCardView(addPlan: $addPlan, showWorkout: $showWorkout)
@@ -20,6 +21,19 @@ struct HomeView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 28)
         }
+        // D59 (v1.6): Start in the slot every other screen keeps for its primary button —
+        // under the thumb, above the tab bar — rather than a third of the way down the card.
+        .bottomAction(if: card.buttonTitle != nil) {
+            PrimaryButton(title: card.buttonTitle ?? "") { act(card) }
+        }
+    }
+
+    private func act(_ card: HomeStart) {
+        if card.isEmpty { addPlan = .plan; return }
+        if card.isInProgress { showWorkout = true; return }
+        guard let planId = card.planId, let dayIndex = card.dayIndex else { return }
+        // D48 (v1.4): the cover opens on `startedWorkouts`; this task tells the system behind it.
+        Task { try? await model.startDay(planId: planId, dayIndex: dayIndex) }
     }
 }
 
@@ -118,10 +132,9 @@ private struct StartCardView: View {
                 .foregroundStyle(Color.accentColor)
             }
 
-            if let title = card.buttonTitle {
-                PrimaryButton(title: title) { act(card) }
-            }
-            HStack(spacing: 18) {
+            // D59 (v1.6): the small actions are buttons, so only tappable text is blue, and
+            // they wrap rather than run off the edge.
+            WrapLayout(spacing: 10, lineSpacing: 8) {
                 if card.isEmpty {
                     // D46 (v1.4): the picker took the sample's place — the sample was the
                     // owner's own plan with the owner's weights in it.
@@ -140,8 +153,9 @@ private struct StartCardView: View {
                 }
             }
             .font(.footnote)
-            .buttonStyle(.plain)
-            .foregroundStyle(Color.accentColor)
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .controlSize(.small)
 
             if model.showNotificationBanner {
                 Text("Notifications are off, so alerts only sound while the app is open.")
@@ -168,13 +182,6 @@ private struct StartCardView: View {
         .sheet(item: $planningProgression) { route in
             ProgressionView(planId: route.id).environment(model)
         }
-    }
-
-    private func act(_ card: HomeStart) {
-        if card.isEmpty { addPlan = .plan; return }
-        if card.isInProgress { showWorkout = true; return }
-        guard let planId = card.planId, let dayIndex = card.dayIndex else { return }
-        start(planId: planId, dayIndex: dayIndex)
     }
 
     /// D48 (v1.4): the cover opens on `startedWorkouts`, the moment the engine exists; this
@@ -212,9 +219,11 @@ private struct CalendarView: View {
                                       sessions: model.sessions, today: Date())
         VStack(alignment: .leading, spacing: 10) {
             HStack {
+                // D59 (v1.6): ink, not accent — `.primary` inside an accent-styled row resolved
+                // to blue, and a header that looks like a link gets tapped.
                 Text(expanded ? month.formatted(.dateTime.month(.wide).year()) : "This week")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.primary)
                 Spacer()
                 if expanded {
                     Button { step(-1) } label: { Image(systemName: "chevron.left") }
@@ -390,20 +399,18 @@ private struct DayCell: View {
         .background {
             // A finished day is filled in the colour reserved for "this happened" (§4.0);
             // a planned one is outlined. Both read at a glance; a dot did not.
+            // D59 (v1.6): a planned day is its label in the accent, no box — twenty outlined
+            // boxes in a six-day month shouted as loudly as the two done days and Start.
             if case .completed = day.entry {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
                     .fill(Color.done.opacity(0.18))
-                    .frame(width: 38, height: 40)
-            } else if case .projected = day.entry {
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .stroke(Color.accentColor.opacity(0.45), lineWidth: 1)
                     .frame(width: 38, height: 40)
             }
         }
         .overlay {
             if isToday || isSelected {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .stroke(isSelected ? Color.accentColor : .secondary, lineWidth: isSelected ? 2 : 1)
+                    .stroke(isSelected ? Color.accentColor : Color.primary, lineWidth: isSelected ? 2 : 1.5)
                     .frame(width: 38, height: 40)
             }
         }

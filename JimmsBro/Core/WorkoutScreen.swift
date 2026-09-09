@@ -157,6 +157,11 @@ struct WorkoutScreenModel: Equatable {
     /// The one VoiceOver string for the exercise block (SPEC §9).
     var spoken: String
 
+    /// D59 (v1.6): the step whose row carries Undo — the last logged or skipped step, while
+    /// D23's undo is still valid. The strip's own Undo stays only at accessibility sizes,
+    /// where the list shows the current row alone.
+    var undoStep: Int?
+
     /// D56 (v1.6): the small line under the stage, or nil when it would only repeat it. While
     /// working, the stage already reads "Exercise 1 of 5 · Set 1 of 4"; the audit found it
     /// printed twice, one above the other. Resting, and a superset member's "A · round 2 of 3",
@@ -202,7 +207,8 @@ enum WorkoutScreen {
             strip: strip(active: active, step: index, work: target.work, warning: target.warning,
                          history: history, now: now),
             primary: primary(work: target.work, running: active.timerRunning, resting: restKind),
-            spoken: StepCard.spoken(session: session, step: index))
+            spoken: StepCard.spoken(session: session, step: index),
+            undoStep: active.canUndo ? active.lastCompletedStep : nil)
     }
 
     static func primary(work: WorkTarget, running: Bool, resting: RestKind? = nil) -> PrimaryAction {
@@ -323,9 +329,26 @@ enum WorkoutScreen {
             return strip
         }
 
-        // Working with nothing to report: the zone stays, empty, so nothing below it moves.
+        // Working with nothing to report: the zone stays, so nothing below it moves — and
+        // since v1.6 (D59) it says what the button will start, rather than sitting blank.
+        strip.title = idleLine(session: session, step: step)
         strip.detail = lastSetLine(session)
         return strip
+    }
+
+    /// D59 (v1.6): what follows the set on the card — "Rest 1:30 starts when you log", or,
+    /// on a block's last set, "Then on to Barbell Row". Nil for the last set of the day.
+    static func idleLine(session: Session, step index: Int) -> String? {
+        guard let step = session.steps[safe: index] else { return nil }
+        if !step.isLastInBlock {
+            guard step.isLastInRound,
+                  let target = session.exercises[safe: step.exerciseIndex]?.targets[safe: step.setIndex],
+                  (target.groupRestSeconds ?? target.restSeconds) > 0 else { return nil }
+            return "Rest \(TargetText.time(target.groupRestSeconds ?? target.restSeconds)) starts when you log"
+        }
+        guard let next = session.steps.dropFirst(index + 1).first(where: { $0.blockIndex != step.blockIndex && $0.status == .pending }),
+              let exercise = session.exercises[safe: next.exerciseIndex] else { return nil }
+        return "Then on to \(exercise.name)"
     }
 
     /// "Next: Bench Press · set 2 of 3 · 8–12 · 60 kg".

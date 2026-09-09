@@ -883,6 +883,20 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | U22 | ui | (D57, v1.6) A clean install, through the first workout | The picker shows **Start here** on Full Body; the review asks kg / lb above the days; Home titles the day and offers **Start Full Body A**; Start opens the first card with no warm-up and no permission alert; the empty weight reads *tap to type* with the hint under it; the first Log set raises the permission alert over a counting rest; the Summary ends with "Next: Full Body B, …" (`build/u3-*.png`) |
 | U23 | ui | (D57, v1.6) A phone with the warm-up on | The card opens in the warm-up with **Start first set**; tapping it shows the first set with **Log set** |
 
+### U5 — hierarchy (D59)
+
+`JimmsBroTests/UsabilityTests.swift` for the Core rules; the rest are the simulator screens in `build/u5-*.png`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| U24 | unit | (D59, v1.6) `WorkoutScreenModel.undoStep` | Nil before anything is logged; the step just logged afterwards; nil again after `undoLast` |
+| U25 | unit | (D59, v1.6) `WorkoutScreen.idleLine` and the idle strip | "Rest 1:30 starts when you log" on a set with rest after it; "Then on to <exercise>" on a block's last set; nil on the day's last set; the working strip's title carries it |
+| U26 | unit | (D59, v1.6) `ExerciseText.summary` | Minutes, sets, and "… kg lifted"; no clock-time duration |
+| U27 | ui | (D59, v1.6) Home | Start above the tab bar; "This week" in ink; Preview / Another day as small bordered buttons; planned days as labels without boxes, today outlined |
+| U28 | ui | (D59, v1.6) The workout | ↺ on the row just logged; the strip's Undo only at accessibility sizes; the idle strip reads "Rest … starts when you log" |
+| U29 | ui | (D59, v1.6) Plan detail and the review | "kg · repeats every 7 days"; chips wrapping onto a second line; an Add exercise row and a bordered Start per day; **Use this plan** in the menu and on the review's toggle; a check on the plan in use in the list |
+| U30 | ui | (D59, v1.6) History and Settings | "28 min · 16 sets · 13,920 kg lifted" rows; a Find an exercise row that lists every exercise; preset buttons under the three duration rows, the current one tinted; the rewritten footers |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|
