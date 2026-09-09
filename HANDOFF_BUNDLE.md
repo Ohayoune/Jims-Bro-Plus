@@ -2,7 +2,7 @@
 
 This single file contains the entire design package for a native iOS workout app, so it can be uploaded or pasted into a chat with a coding assistant. The folder version of this package (with 115 fixture files under `examples/`) is the same content; the fixtures are not inlined here because `tools/generate_fixtures.py` (included below) recreates all of them.
 
-The app itself is built: v1 (M0–M7), v1.1 (R0–R6), v1.2 (V0–V8), v1.3 (X0–X6), v1.4 (Y0–Y5) and v1.5 (Z0–Z6) are implemented and green. `docs/BUILD_STATUS.md` says what was actually run, and `docs/DECISIONS_LOG.md` records every decision taken where the docs were silent. The Swift sources are not in this bundle — they are in the folder, under `JimmsBro/`, `JimmsBroActivity/` and `JimmsBroTests/`.
+The app itself is built: v1 (M0–M7), v1.1 (R0–R6), v1.2 (V0–V8), v1.3 (X0–X6), v1.4 (Y0–Y5), v1.5 (Z0–Z6) and v1.6 (U0–U3, U5, U6; U4 waits on the owner) are implemented and green. `docs/BUILD_STATUS.md` says what was actually run, and `docs/DECISIONS_LOG.md` records every decision taken where the docs were silent. The Swift sources are not in this bundle — they are in the folder, under `JimmsBro/`, `JimmsBroActivity/` and `JimmsBroTests/`.
 
 How to use this bundle:
 1. Read `AGENTS.md` first (immediately below). It says what to read next and the hard rules.
@@ -77,6 +77,22 @@ mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** 
 rows (Z4, Z10, Z17, Z25, Z31) join the checklist. The reading of "a history for each exercise"
 as typed current numbers is parked by the owner's decision (the plan's last section).
 
+`docs/ITERATION_7_PLAN.md` is the v1.6 plan (milestones **U0–U6**), built from the 2026-09-09
+usability audit (`docs/UX_REVIEW_2026-09-09.md`) and judged for three users — a coach, a
+great-grandparent and a five-year-old: **nothing untrue** (D55 — a missed workout only when the
+plan expected one, "Nothing logged" before "First time", calendar labels unique within the plan,
+a chip that never contradicts the fields, the right sentence for a plan pasted in words),
+**nothing unreachable** (D56 — every menu confirmation an alert with a way out, Done in the strip
+instead of over Log set, no phantom bar, a placeholder in the empty weight, large text that keeps
+the inputs on screen), **the first five minutes** (D57 — no warm-up on a fresh install, **Start
+first set** during a warm-up, the notification permission at the first Log set,
+`InputDefaults.weightHint`, the unit asked on the review when the plan named none, a **Start
+here** badge, Home that headlines the workout on a rest day, "Next: …" on the Summary) and
+**hierarchy** (D59 — Start in the bottom slot, headers in ink, `WrapLayout`, Undo on the row, an
+idle strip that says what follows, labelled History rows, Settings presets). U0–U3, U5 and U6 are
+built and green on `v1.6-refinement` (pull request #2); **U4 — plain words (D58) — is written as
+two readings and waits for the owner's choice.** The v1.6 device rows join the checklist.
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
@@ -101,7 +117,7 @@ Three v1.2 rules are worth knowing before touching anything:
 
 ## Working style
 
-- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25).
+- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25). CI runs the three routes and `tools/check_bundle.py` on every push, so a milestone that edits a bundled document regenerates the bundle in the same commit (`python3 tools/build_bundle.py`); v1.6's U1–U3 were red on that job until U5 did.
 - Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author — no `Co-Authored-By` trailer of any kind, whatever a harness suggests; the history was rewritten once (2026-09-08) to remove them.
 - The repository is public under the MIT license (`LICENSE`), with a landing page at the top of `README.md` and CI in `.github/workflows/ci.yml` running the three routes on every push. Keep the README's landing section for people and its lower half for you; keep `docs/screenshots/` to what the README shows.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.
@@ -140,7 +156,7 @@ An iPhone app that runs your workout for you. Pick a plan and tap Start; it walk
 
 ## Status
 
-**v1.5**, built and green on every route ([docs/BUILD_STATUS.md](docs/BUILD_STATUS.md)). Not yet on the App Store: the submission is prepared in [docs/APP_STORE.md](docs/APP_STORE.md) and waits on the paid Developer Program and a release Xcode. Until then, build it yourself.
+**v1.6**, built and green on every route ([docs/BUILD_STATUS.md](docs/BUILD_STATUS.md)); one milestone, plain words, waits for a choice between two readings in [docs/ITERATION_7_PLAN.md](docs/ITERATION_7_PLAN.md). Not yet on the App Store: the submission is prepared in [docs/APP_STORE.md](docs/APP_STORE.md) and waits on the paid Developer Program and a release Xcode. Until then, build it yourself.
 
 ## Build it
 
@@ -160,7 +176,7 @@ The tests run on three routes — the simulator, `swift test` on the host, and a
 
 ## For the implementing agent
 
-This folder contains the design package and the app, built through **v1 (M0–M7)**, **v1.1 (R0–R6)**, **v1.2 (V0–V8)**, **v1.3 (X0–X6)**, **v1.4 (Y0–Y5)** and **v1.5 (Z0–Z6)**: the Core import pipeline and session engine, the JSON store, every screen, the workout's five fixed zones, plan editing, backup and restore, v1.2's warm-up, timed walk between exercises, loadable weight suggestions, anchored calendar, metrics and Lock Screen / Dynamic Island activity, and v1.3's narrower Island, changing an exercise mid-workout, JSON edits at every size, history as CSV in and out, and Progression — the chatbot round-trip run the other way; and v1.4's four built-in plans, the introduction, a workout that opens the moment it exists, and the store readiness (an opaque icon, version 1.4 on every target, the export-compliance answer, the privacy policy and the submission page); and v1.5's clearer Progression row and Copy prompt, an effort target (reps or seconds in reserve) in the plan format, a plan built in several pastes for free chatbot tiers, progression as steps you earn by performance with the calendar kept as a mode, and a goal per exercise. Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the device checklist, which needs the owner's iPhone, and the submission itself — the Developer Program, a release Xcode and the form — which is the owner's to do from `docs/APP_STORE.md`. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
+This folder contains the design package and the app, built through **v1 (M0–M7)**, **v1.1 (R0–R6)**, **v1.2 (V0–V8)**, **v1.3 (X0–X6)**, **v1.4 (Y0–Y5)** and **v1.5 (Z0–Z6)**: the Core import pipeline and session engine, the JSON store, every screen, the workout's five fixed zones, plan editing, backup and restore, v1.2's warm-up, timed walk between exercises, loadable weight suggestions, anchored calendar, metrics and Lock Screen / Dynamic Island activity, and v1.3's narrower Island, changing an exercise mid-workout, JSON edits at every size, history as CSV in and out, and Progression — the chatbot round-trip run the other way; and v1.4's four built-in plans, the introduction, a workout that opens the moment it exists, and the store readiness (an opaque icon, version 1.4 on every target, the export-compliance answer, the privacy policy and the submission page); and v1.5's clearer Progression row and Copy prompt, an effort target (reps or seconds in reserve) in the plan format, a plan built in several pastes for free chatbot tiers, progression as steps you earn by performance with the calendar kept as a mode, and a goal per exercise; and v1.6's answer to the usability audit (`docs/UX_REVIEW_2026-09-09.md`): no false missed workouts, every menu confirmation an alert with a way out, the first five minutes made to ask for nothing unexplained (no warm-up on a fresh install, Start first set, the permission at the first log, a weight field that explains itself, the unit asked), and a hierarchy pass (Start under the thumb, Undo on the row, a strip that says what follows, presets) — with plain words (U4) written as two readings for the owner. Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the device checklist, which needs the owner's iPhone, and the submission itself — the Developer Program, a release Xcode and the form — which is the owner's to do from `docs/APP_STORE.md`. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
 
 Run the iOS tests from this folder:
 
@@ -168,7 +184,7 @@ Run the iOS tests from this folder:
 xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-That is **287 tests** (7 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity, v1.3's Island timer range, exercise substitution, JSON splices, history CSV and Progression, v1.4's start-before-the-side-effects rule, the four built-in plans and the introduction, and v1.5's effort target, the outline-then-days draft, the progression's earned steps and the goals. Imports use the 115 fixtures and the manifest verbatim (the original 111, plus four for the effort target). There are no third-party dependencies, and the signing team is already set for both targets.
+That is **304 tests** (7 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity, v1.3's Island timer range, exercise substitution, JSON splices, history CSV and Progression, v1.4's start-before-the-side-effects rule, the four built-in plans and the introduction, v1.5's effort target, the outline-then-days draft, the progression's earned steps and the goals, and v1.6's usability rules — the missed-workout guard, the chip and calendar-label rules, the first-five-minutes defaults and the Summary's next line. Imports use the 115 fixtures and the manifest verbatim (the original 111, plus four for the effort target). There are no third-party dependencies, and the signing team is already set for both targets.
 
 Core can also be checked with the independently installed Command Line Tools:
 
@@ -212,10 +228,12 @@ fails when `HANDOFF_BUNDLE.md` or the zip has drifted from the files it is built
 | `docs/ITERATION_4_PLAN.md` | The v1.3 plan: milestones X0–X6 | both |
 | `docs/ITERATION_5_PLAN.md` | The v1.4 plan: milestones Y0–Y5 | both |
 | `docs/ITERATION_6_PLAN.md` | The v1.5 plan: milestones Z0–Z6, and the owner's readings of the notes | both |
+| `docs/ITERATION_7_PLAN.md` | The v1.6 plan: milestones U0–U6 from the usability audit, with plain words (U4) as two readings for the owner | both |
 | `docs/PRIVACY.md` | The privacy policy the App Store needs a URL for | you |
 | `docs/APP_STORE.md` | The App Store submission: the order of things, every field, the review notes, the screenshots, the choices only you can make | you |
 | `docs/PROGRESSION_FORMAT.md` | The progression reply format (D44): fields, leniency, codes | both |
 | `docs/CODE_HEALTH_REVIEW.md` | The 2026-09-07 review that prompted half of v1.2, and what became of each finding | you |
+| `docs/UX_REVIEW_2026-09-09.md` | The 2026-09-09 usability audit v1.6 answers: friction points, twelve defects and ideas, judged for a coach, a great-grandparent and a five-year-old | you |
 | `docs/DEVICE_CHECKLIST.md` | The 32 manual cases to run on your iPhone, with a place to record results | you |
 | `docs/BUILD_STATUS.md` | What is built, what was verified and how to reproduce it | you |
 | `schema/plan.schema.json` | JSON Schema of the strict plan shape | the agent |
@@ -3741,6 +3759,233 @@ writing a fake session into History (a lie the chart would draw).
 
 ---
 
+### FILE: docs/ITERATION_7_PLAN.md
+
+`````markdown
+# Jimm's Bro+ — v1.6 plan (iteration 7)
+
+The owner's note, in their words: *"Something about it feels clunky, hard to understand, hard
+to get started. I want my app to be useful for a professional and usable for a 5 year old and
+his great grandparent."*
+
+The evidence is `docs/UX_REVIEW_2026-09-09.md`: v1.5 walked on the simulators as a stranger
+(a clean install, the intro, a built-in plan, a first workout) and as a returning user (three
+weeks of history, every tab and sheet, accessibility-XL text, a plain-text paste). It found four
+habits that compound — the app speaks gym-programmer, everything is text of one weight, the first
+five minutes are a gauntlet, and the schedule model says things the person knows are false — and
+twelve outright defects. This plan is the audit's ranked backlog turned into milestones.
+
+The bar is the owner's three users. **The coach** wants density, speed and correctness and is
+mostly served. **The great-grandparent** needs big targets, plain words, one thing at a time and
+a visible way out of everything. **The five-year-old** needs pictures, colour and one giant button,
+and is served today by exactly one screen: the timed set. Each milestone says which of the three
+it moves.
+
+Milestones **U0–U6, in order**. Each ends with the full suite green on the three routes, a
+Release build and `tools/check_release.py` (v1.4's rule), and one commit on `v1.6-refinement`,
+off `main`. SPEC amendments land before the code that depends on them. Each milestone is one
+decision, D55–D59, recorded in SPEC §6 and `DECISIONS_LOG.md` by the milestone that lands it.
+Test cases take the prefix **U** in `TEST_CASES.md`.
+
+One milestone, **U4 — plain words**, changes the app's voice rather than its behaviour, and is
+written up as two readings for the owner to choose between. It is not built until chosen; the
+milestones after it do not depend on it.
+
+---
+
+## U0 — This plan, the branch, the review
+
+- Branch `v1.6-refinement` off `main` (v1.5 is merged, tagged and pushed).
+- `docs/UX_REVIEW_2026-09-09.md` committed as the review this plan answers, the way
+  `CODE_HEALTH_REVIEW.md` was for v1.2. Its screenshots stay in the ignored `build/` folder,
+  as the v1.1 review's did.
+- No app code.
+
+## U1 — Nothing untrue (D55)
+
+Every sentence the app volunteers must be one the person could not contradict. Five places said
+something false in the audit; all five are Core rules, so all five become unit tests
+(`JimmsBroTests/UsabilityTests.swift`). Moves all three users: a false sentence costs the coach
+trust and the other two their confidence.
+
+- **A missed workout is one the plan actually expected.** `PlanSchedule.missed` walked up to
+  seven days back through the projection and never asked whether the plan existed then, or
+  whether a later completion had re-anchored the pattern over those days. It reported "Full
+  Body B was due Sunday" three minutes after a fresh install, and "Pull was due Tuesday" after
+  a day run out of order. The rule: a day is missed only if it is **after the plan's import
+  day** and **after the plan's most recent completed session**, within the week. A plan with no
+  completed workout has missed nothing.
+- **"Nothing logged" outranks "First time".** `SessionStats.comparison` answered "First time"
+  for an exercise with no history even when nothing was logged for it today; the Summary of a
+  first workout said "First time" five times for four exercises the person never touched.
+- **A calendar cell can tell the plan's days apart.** `CalendarText.short` cut every name to
+  its first word, so Full Body A and Full Body B were both "Full…" and Upper A and Upper B both
+  "Uppe…". Labels are now chosen **within the plan**: the first word when it is unique among the
+  plan's days, else the initials of every word ("FBA" / "FBB", "UA" / "LB", "D1" / "D2"), else
+  a number. The spoken cell still says the whole name.
+- **The suggestion chip never contradicts the fields.** Two rules in `Prefill`: the "do that
+  again" suggestion proposes what was done last time — last time's reps at last time's weight —
+  never the plan's reps at last time's weight, which read "Try 5 × 100 kg" under "Last time
+  10 × 100 kg"; and a chip that says exactly what the fields already show is not shown at all
+  ("Try 4 reps · The plan's target" under a reps field reading 4). A progression's chip keeps
+  showing, because its reason — which step this is — is the point of it.
+- **The right sentence for a paste that is not JSON.** `IssueText` gave every `E_NOT_JSON` the
+  same sentence, "the chatbot's reply looks cut off", including for a plan pasted in plain
+  words, which is the most natural first paste there is. Two sentences now: no JSON at all →
+  *"This is a plan in words. Send it to a chatbot with the prompt and paste back what it
+  writes."*; JSON that will not parse → the cut-off sentence, unchanged.
+- **The overview says a note once.** `OverviewView` printed each exercise's whole note on every
+  set row; it now renders `StepCard.targetLine(notes: false)`, which already existed for the
+  purpose, and the note stays on the exercise. (A view fix, landed here because it is one word.)
+- **1.5 is 1.5.** `MARKETING_VERSION` and `docs/APP_STORE.md` said 1.4 for a repository tagged
+  v1.5; both read 1.5, as `APP_STORE.md` step 8 describes, and `check_release.py` agrees.
+
+## U2 — Nothing unreachable (D56)
+
+Six places where the way forward, or the way out, was hidden or under something. Views, checked
+on the simulator (`build/u2-*.png`), with a Core rule and a test wherever the view was deciding
+something. Moves the great-grandparent most.
+
+- **Every confirmation shows its way out.** Finish workout, Discard workout and Delete plan are
+  presented from a menu, and on iOS 26 and later a `confirmationDialog` presented from a menu
+  anchor draws as a popover that drops the cancel-role button: "14 sets not done. Finish
+  anyway?" offered one red button and no visible way to say no. All three become **alerts** with
+  two named buttons ("Finish workout" / "Keep going", "Discard" / "Keep going", "Delete" /
+  "Cancel"). The list swipes keep their dialogs, which present as sheets.
+- **Nothing sits on Log set.** The system keyboard toolbar's Done drew as a floating pill over
+  the primary button's lower half, and a tap there did nothing. The toolbar goes; while a field
+  is focused the **status strip** carries a Done button in its trailing slot (the same slot the
+  rest controls use), and Log set commits whatever is typed. Zones do not move (D22).
+- **An empty bottom action draws nothing.** `bottomAction` padded and painted its bar even
+  when its content was empty, leaving a small white rectangle at the bottom of Add plan and
+  Progression before anything was pasted. The inset is only added when there is a button.
+- **The empty weight field looks like a field.** A placeholder, *"tap to type"*, in the
+  secondary colour, and a soft outline while the field is empty. (The one-time explanation of
+  *why* it is empty is U3's.)
+- **Finish is not red.** "Finish workout" saves; only "Discard" destroys, and only it is red.
+- **At accessibility text sizes the inputs come first.** At AX sizes the strip took forty
+  percent of the screen and the reps and weight rows sat below the fold of a zone with no
+  scroll indicator. At those sizes the set list shows the current row only and the strip drops
+  its second line, so the inputs are on screen with the button.
+- **The stage is said once.** While working, the header's stage title and the small line beneath
+  it both read "Exercise 1 of 5 · Set 1 of 4". `WorkoutScreenModel.progressLine` is nil when it
+  would repeat the stage, and the small line then carries only the elapsed time.
+
+## U3 — The first five minutes (D57)
+
+The path a stranger takes, made to ask for nothing it has not explained. Core rules with tests;
+the screens checked on a clean simulator (`build/u3-*.png`). Moves the great-grandparent and
+the five-year-old, and costs the coach nothing they will notice.
+
+- **The warm-up is off until you turn it on.** A fresh install's `Settings()` has
+  `warmUpSeconds = 0`; a settings file that predates the setting still reads 300, which is
+  D32's behaviour for the phones that have it. The Settings footer already says what the row
+  does. The owner's phone, which wrote the value in v1.2, is unchanged.
+- **During a warm-up the primary button starts the set, it does not log one.** The button reads
+  **Start first set** and ends the warm-up (`skipRest`); **Log set** appears once the set is
+  under way. Between-set and between-exercise rests keep Log set, because by then a set has
+  been done and logging straight out of the rest is the coach's flow. `WorkoutScreen.primary`
+  gains the rest kind and a `.startSet` kind.
+- **Notifications are asked for when they are about to matter.** Not at Start, over the first
+  card, but at the first **Log set** or **Start timer** of the app's life — the moment the
+  first rest, whose end the alert announces, is about to begin. The intro's rest page says the
+  app will ask. The banner for a refusal is unchanged.
+- **The first empty weight explains itself.** `InputDefaults.weightHint` — *"Type the weight you
+  lift. The app remembers it from then on."* — under the weight row while the field is empty
+  and the exercise has no history; gone the moment it has a value. The built-in plans' first
+  note no longer has to carry that sentence in a line that truncates.
+- **The unit is asked, not assumed.** `ImportResult.unitsStated` says whether the plan named its
+  unit. When it did not — every built-in plan, and any pasted plan without `units` — the
+  review sheet asks with a full-width **kg / lb** control above the days, defaulted from
+  Settings; the choice is written into the plan and its JSON before it is saved.
+- **The picker recommends.** Full Body carries a **Start here** badge while History is empty,
+  and the sentence under the routines points at a control on the screen the reader is on.
+- **Home leads with the workout on every day.** The headline is the day's name even on a rest
+  day, the button is **Start Full Body B** (never "early"), and the schedule is one quiet
+  subtitle: *"Planned for Fri · Full Body · 5 exercises"*. The calendar still shows the rest day.
+  `HomeStart` changes; `StartCard`, the resolver, does not.
+- **The Summary says what happens next.** One line under the headline: *"Next: Full Body B,
+  Friday"*, from the same schedule the calendar draws, now that the rotation has advanced.
+
+## U4 — Plain words (D58) — the owner's reading
+
+The audit's largest finding is not a defect: the app's notation — "5 (4–6) · 100 kg · last
+10 @ 100", "12 (8–12) · 24 kg", "AMRAP · 20 kg", "drop 1 of 2", the A / B badges, "kg ·
+rotation", "Set as current plan" — is correct and is what a coach reads at a glance, and it is
+also the single biggest reason the other two users cannot. This changes the app's voice, so it is
+the owner's call. Two readings, and the second is recommended:
+
+- **Reading A — compact stays, words are a tap away.** Notation unchanged; the first time a
+  screen shows a group badge, a drop or an AMRAP, a one-line explanation appears beneath it, once
+  per install. Smallest change; the numbers stay exactly as the owner reads them.
+- **Reading B — words by default, compact as a setting.** `TargetText` grows a plain grammar
+  used everywhere a stranger reads: the card's target line *"Aim 4–6 reps · 100 kg"*, the set
+  row *"Last time 10 × 100 kg"* on its own line and never "@", *"paired with Tricep Pushdown"*
+  for a group, *"then lighter, as many as you can"* for a drop, *"Use this plan"* for "Set as
+  current plan", *"repeats every 7 days"* for "rotation". A **Compact notation** switch in
+  Settings restores today's forms for the coach. The engine, the format, the prompts and the
+  fixtures do not change; the strings the views render do, and the tests that pin them.
+
+Whichever is chosen lands as its own milestone with the SPEC §4.0 rule rewritten to say which
+words the app uses, and a pin test that the views use them.
+
+## U5 — Hierarchy (D59)
+
+Where the eye lands, and what looks tappable. Mostly views, checked on the simulator
+(`build/u5-*.png`); the Core strings that change are tested. Moves the great-grandparent and
+gives the coach two things they asked for in the audit.
+
+- **Home**: Start moves to the bottom slot every other screen uses for its primary button;
+  section headers are ink, not accent, so only tappable text is blue; the three footnote links
+  become small bordered buttons; projected days on the month grid are a label in the secondary
+  colour rather than an outlined box, so done days and today stand out.
+- **The workout**: Undo sits on the row that was just logged (↺ beside the tick) rather than at
+  the end of a wrapping line; the idle strip earns its space with the next set's rest — *"Rest
+  2:30 starts when you log"* — instead of a blank band; Plan detail's **Start Legs** is a
+  bordered button rather than a text link.
+- **History**: rows read *"28 min · 16 sets · 13,920 kg lifted"*; a visible **Find an exercise**
+  row under Metrics, because the search field is not shown on every iOS.
+- **Settings**: duration presets (Off · 1 · 2 · 3 · 5 min) beside the steppers for the warm-up
+  and the walk, and (60 · 90 · 120 · 180 s) for the default rest; the developer sentences
+  rewritten for a stranger ("Re-running from Xcode…", "the prompt and future imports…", "said,
+  never enforced").
+- **Plans**: the repeat block's chips wrap instead of scrolling off the edge; an **Add exercise**
+  row at the end of each day; Plan detail's subtitle says *"kg · repeats every 7 days"*.
+
+## U6 — Docs, checklist, bundle
+
+- SPEC §4.1, §4.4, §4.5, §4.9, §5.1, §5.3, §6.12 and §6.14 reconciled; §6.31–6.34 for
+  D55–D57 and D59 (and D58 when chosen).
+- `TEST_CASES.md` section **U**, per milestone as it lands; `DEVICE_CHECKLIST.md` gains the
+  v1.6 rows; `BUILD_STATUS.md`, `DECISIONS_LOG.md`, README, `CLAUDE.md`/`AGENTS.md` updated;
+  `ITERATION_7_PLAN.md` and `UX_REVIEW_2026-09-09.md` added to the bundle and
+  `HANDOFF_BUNDLE.md` regenerated; `tools/check_bundle.py` and `tools/check_release.py` pass; a
+  Release build compiles.
+
+---
+
+## Parked for v1.7 — the bigger bets
+
+The audit's ideas that need design the owner should see first, not code:
+
+- **A pictogram per exercise and a colour per day.** The system's figure symbols (strength
+  training, core, rowing, running) next to every exercise name, and one colour per plan day
+  used on Home, the calendar and the workout header. Recognition without reading — the
+  five-year-old's whole request, and it helps everyone else find their place.
+- **An in-app number pad** under the inputs, with plate arithmetic behind the weight (tap 100:
+  "20 + 2 × 20 + 2 × 10"). Bigger keys than the system keyboard, nothing hides the exercise, and
+  the keyboard collision cannot come back.
+- **One big Done for a rep set** modelled on the timed-set screen: when the prefill is right, the
+  whole set is one giant "Done · 10 × 100 kg" button with the steppers a tap away.
+- **Opening the chatbot directly** with the prompt (URL scheme when the app is installed, the web
+  page otherwise), and a *"Looks like a plan. Add it?"* banner when the app returns with the
+  marker or a JSON fence on the clipboard.
+- **An introduction made of real screens** — the intro's pages as live miniatures of the card,
+  the rest and the summary, with one caption each — instead of four paragraphs.
+`````
+
+---
+
 ### FILE: docs/PRIVACY.md
 
 `````markdown
@@ -4047,9 +4292,72 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 `````markdown
 # Build status
 
-Updated 2026-09-08. **v1.5 (Z0–Z6) is built and green; the device checklist, the Developer
-Program, a release Xcode and the submission itself are the owner's.** v1.4, v1.3, v1.2, v1.1
-and v1 are below, unchanged except where a later milestone corrected them.
+Updated 2026-09-09. **v1.6 (U0–U3, U5, U6) is built and green on branch `v1.6-refinement`
+(pull request #2); U4 — plain words — waits for the owner's reading; the device checklist, the
+Developer Program, a release Xcode and the submission itself are the owner's.** v1.5 and
+everything before it are below, unchanged except where a later milestone corrected them.
+
+## v1.6 (U0–U6): built and green, one milestone waiting on the owner
+
+`docs/ITERATION_7_PLAN.md` is the v1.6 plan, built from the 2026-09-09 usability audit
+(`docs/UX_REVIEW_2026-09-09.md`): v1.5 walked on the simulators as a stranger (a clean install
+through the first workout) and as a returning user, judged for the owner's three users — a
+coach, a great-grandparent and a five-year-old. Every milestone ended with the whole suite green
+on all three routes, a Release build and `tools/check_release.py`, and one commit on
+`v1.6-refinement` (off `main`, which holds v1.5).
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **304 tests, 7 skipped, 0 failures** |
+| `swift test` | **303 tests, 0 failures** |
+| `python3 tools/check_core.py` | **303 bodies, 5,932 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged) |
+| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.5 (1) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in U5 and U6; CI's bundle job was red for U1–U3's pushes until then) |
+
+| Milestone | What it did | State |
+|---|---|---|
+| U0 | The plan, and the audit it answers, committed | Done |
+| U1 | Nothing untrue (D55): a missed workout only when the plan expected one; "Nothing logged" before "First time"; calendar labels unique within the plan; a chip that never contradicts the fields; the right sentence for a plan pasted in words; the overview says a note once; version 1.5 | Done |
+| U2 | Nothing unreachable (D56): every menu confirmation an alert with two buttons; Done in the strip, off Log set; no phantom bar under empty sheets; the empty weight field looks like one; Finish not red; large text keeps the inputs and the button on one screen; the stage said once | Done |
+| U3 | The first five minutes (D57): no warm-up on a fresh install (old files keep theirs); **Start first set** during a warm-up; the notification permission at the first Log set; the weight hint; the unit asked on the review; **Start here** in the picker; Home headlines the workout on a rest day; "Next: …" on the Summary | Done |
+| U4 | Plain words (D58) | **Waiting on the owner** — two readings in the plan; not built |
+| U5 | Hierarchy (D59): Start in the bottom slot; headers in ink; small actions as buttons; a quieter grid; Undo on the row; an idle strip that says what follows; chips that wrap; Add exercise and Start per day; labelled History rows and a Find an exercise row; Settings presets; sentences for a stranger; "Use this plan" | Done |
+| U6 | Docs, checklist rows, bundle | Done |
+| — | The v1.6 device rows (U9, U10, U13, U22, U23, U28) | **Written, not run** — need the phone |
+
+### Checked on the simulator (v1.6)
+
+Every screenshot is from a real build; the `u3-*` ones from a clean install on the iPhone 16
+simulator, the rest from the iPhone 16 or 17 with data the walkthrough itself produced.
+
+| File | Shows |
+|---|---|
+| `build/u2-home.png` | A three-minute-old plan with no "was due Sunday"; calendar cells FBA / FBB |
+| `build/u2-warmup.png`, `build/u2-working.png` | The empty weight reading *tap to type* in its outline; the stage said once |
+| `build/u2-keyboard.png` | The keyboard up with Done in the strip and nothing over Log set |
+| `build/u2-finish-alert.png`, `build/u2-finish-alert-2.png` | Discard and Finish as alerts with a visible way out; Finish not red |
+| `build/u2-ax-2.png` | Accessibility-XL text with the reps, the weight and Log set on one screen |
+| `build/u2-addplan-empty.png` | Add plan with no white rectangle at the bottom |
+| `build/u3-02-intro-2.png` | The intro's rest page saying the app will ask to send the alert |
+| `build/u3-03-picker.png` | **Start here** on Full Body; the sentence that names Copy prompt |
+| `build/u3-04-review.png`, `build/u3-05-review-lb.png`, `build/u3-13-review-kg.png` | The review asking kg / lb, the line beneath following the choice |
+| `build/u3-06-home.png`, `build/u3-10-home-after.png` | Home before and after the first workout: "Start Full Body A", then "Full Body B · Planned for Fri" |
+| `build/u3-07-card.png` | The first card with no warm-up, the hint under the empty weight |
+| `build/u3-08-permission.png` | The permission alert over a counting rest, at the first Log set |
+| `build/u3-09-summary.png` | The Summary with "Next: Full Body B, Friday" and "Nothing logged" |
+| `build/u5-01-home.png` | Start above the tab bar, headers in ink, bordered links, a planned day without a box |
+| `build/u5-02-workout-idle.png`, `build/u5-03-undo-row.png` | "Rest 3:00 starts when you log"; ↺ on the logged row |
+| `build/u5-04-plan-detail.png`, `build/u5-04b-plan-detail-end.png` | "lb · repeats every 14 days", chips on three lines, Add exercise and a bordered Start |
+| `build/u5-05-history.png`, `build/u5-06-settings.png` | "2 min · 1 set · 540 lb lifted", Find an exercise; the preset rows |
+
+### Not run in v1.6
+
+- The device rows above. Three findings depend on system presentation — the popover dialogs,
+  the keyboard's Done pill and the search field — and were seen on the iOS 27.0 simulator; the
+  phone should confirm them.
+- U4, by design: the plan's two readings are the owner's to choose between.
 
 ## v1.5 (Z0–Z6): built and green
 
@@ -4742,6 +5050,7 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.6 U5 (D59): **A planned calendar day is its label, not a box**; today is outlined in ink; the section header is `Color.primary`, because `.primary` inside an accent-styled row resolves to the accent.
 - v1.6 U5 (D59): **`ExerciseText.summary` reads "28 min · 16 sets · 13,920 kg lifted"** (`HomeActivity.duration`, the word *lifted*); **History gains a Find an exercise row** (`HistoryRoute.exercises`) because `.searchable` is not drawn on every iOS.
 - v1.6 U5 (D59): **Settings presets** (`PresetRow`) for the three durations; the units and data footers rewritten for a stranger (no "prompt", "imports" or "Xcode"); the goal sheet's "said, never enforced" becomes "shows the date and never nags"; "Set as current plan" / "Set as active" become **Use this plan**, and the Plans list marks the plan in use with a check.
+- v1.6 U6: `ITERATION_7_PLAN.md` and `UX_REVIEW_2026-09-09.md` join the bundle. Since CI checks the bundle on every push, a milestone that edits a bundled document regenerates it in the same commit; U1–U3's pushes were red on that job until U5 regenerated it, which is now a rule in `CLAUDE.md`/`AGENTS.md`.
 `````
 
 ---
@@ -4755,9 +5064,9 @@ Every `manual` case from `TEST_CASES.md`, to run on the owner's iPhone. The simu
 notifications while locked, real haptics, the silent switch, or the free-account expiry, which is why
 these are here rather than automated.
 
-Everything else — 287 automated tests plus the simulator screen checks — is green; see
+Everything else — 304 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
-**v1.4** added Y3, Y11, Y16 and Y19 after them, and **v1.5** Z4, Z10, Z17, Z25 and Z31. Y19 needs a TestFlight build, which needs the paid
+**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, and **v1.6** U9, U10, U13, U22, U23 and U28. Y19 needs a TestFlight build, which needs the paid
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
@@ -4899,6 +5208,24 @@ Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Note
 | **Z17** | Add plan → Create with a chatbot → **Build it day by day**, with a free ChatGPT tab | Copy outline prompt; paste the reply into Paste outline — one slot per day; Copy day prompt per slot, paste each reply; a slot refused says which day and why; leave the app and come back to "Continue · 2 of 3 days pasted"; Review plan, Save plan; the plan is on Home and the draft is gone |  |  |
 | **Z25** | Plan → Progression → **When I hit the target**, paste the reply, Save; run a day hitting one exercise and missing another | The chip reads "Step 1 of N of your progression"; after Finish, the Progression screen shows the hit exercise at step 2 with ▸ moved and the other at "Step 1 of N · 1 try"; Home's subtitle reads "step 1 of N" until every exercise of the day moves |  |  |
 | **Z31** | History → **Set a goal** for an exercise you do (a weight you can lift for the reps), then run a workout that meets it | The Goals section shows the line and the bar; the Summary says "Goal reached: …" in green; the goal reads "reached" with the date; Plan → Progression → Copy prompt has a MY GOALS block |  |  |
+
+## v1.6 rows (new or changed in U1–U5)
+
+| Case | What to do | Expected | Result | Notes |
+|---|---|---|---|---|
+| **U9** | In a workout, ··· → Finish workout (with sets left, and again with nothing logged); Plans → a plan → ··· → Delete; History → a workout → ··· → Delete workout | Each is an alert with two named buttons — Finish workout / Keep going, Discard / Keep going, Delete / Cancel — and Finish is not red |  |  |
+| **U10** | In a workout, tap the weight field | The keyboard rises with no system toolbar; the strip's trailing slot reads **Done**; nothing sits over Log set; Log set commits what is typed; Done closes the keyboard |  |  |
+| **U13** | Settings → Accessibility → Larger Text at the largest size, then a workout | The current set row only, the strip without its next-set and set-time lines, the reps and weight rows and Log set on screen without scrolling; Exercises still lists every set |  |  |
+| **U22** | Delete the app, install, and go through the intro to a first workout with Full Body | The picker shows **Start here**; the review asks kg / lb; Home reads "Full Body A" with **Start Full Body A**; Start opens the first card with no warm-up and no permission alert; the empty weight reads *tap to type* with the hint under it; the first Log set raises the permission alert over a counting rest; the Summary ends with "Next: Full Body B, …"; Home never says a day was missed |  |  |
+| **U23** | Settings → Warm-up → 5 min, then Start | The card opens in the warm-up with **Start first set**; tapping it shows the first set with **Log set** |  |  |
+| **U28** | Log a set, then look at the row and the strip | ↺ beside the logged row's tick undoes it; the strip shows no Undo at the normal text size; before logging, the strip read "Rest … starts when you log" |  |  |
+
+For the v1.6 rows: a `fail` on U9 points at the `.alert` modifiers in `WorkoutView`, `PlanDetailView`
+and `SessionDetailView`; on U10 at `StatusStripView`'s `done` slot and the removed keyboard toolbar;
+on U13 at the `isAccessibilitySize` branches in `WorkoutView`; on U22 at `Settings()`'s warm-up,
+`SessionRunner.apply`'s permission request, `InputDefaults.weightHint`, `ImportResult.unitsStated`
+and `PlanSchedule.missed`; on U23 at `WorkoutScreen.primary(resting:)`; on U28 at
+`WorkoutScreenModel.undoStep` and `WorkoutScreen.idleLine`.
 
 ## When you are done
 
@@ -5167,6 +5494,272 @@ Suggested acceptance criteria, not results already achieved:
 Ask a few people unfamiliar with the app to perform the same tasks without coaching. Record hesitation, wrong turns, and failed recovery as well as taps. Treat a small round as directional feedback, not a statistically representative verdict.
 
 For implementation, revise the conflicting sections of SPEC and TEST_CASES first, then preserve the Core/view separation and finish each scoped milestone with appropriate automated and simulator checks. Existing tests establish conformance to previous rules; they do not establish that those rules produce an intuitive product.
+`````
+
+---
+
+### FILE: docs/UX_REVIEW_2026-09-09.md
+
+`````markdown
+# Jimm's Bro+ usability audit — v1.5, 9 September 2026
+
+Recommendations, not accepted specification changes. The 5 September review (`docs/UX_REVIEW.md`)
+covered v1.1 from source and old captures; this one walks the built v1.5 (commit 054f88d) on the
+iOS 27.0 simulators, twice: a fresh install on an iPhone 16 (intro → built-in plan → first workout
+→ summary) and a phone with three weeks of seeded history on an iPhone 17 (every tab and sheet,
+a workout, accessibility-XL text, a plain-text paste). The screenshots referenced below are in
+`build/ux-review-2026-09-09/` (ignored by git). The same findings, with the screenshots inline,
+are published as the "Jimm's Bro+ UX Audit" artifact.
+
+The bar the owner set: useful for a professional, usable for a five-year-old and their
+great-grandparent. Each finding is tagged with who it hurts: **Pro**, **GG** (great-grandparent),
+**Kid**, or **All**.
+
+## Why it feels clunky
+
+1. **It speaks gym-programmer, not English.** "kg · rotation", "4 × 5 (4–6) · 100 kg · rest 180 s",
+   "12 (8–12) · 24 kg", "AMRAP · 20 kg", "drop 1 of 2", the A/B badges, "Set as current plan",
+   "Plan a progression", "step 3 of 8", "prompt", "JSON". There is no plain-words layer underneath.
+2. **Everything is text of the same weight.** No pictures, no exercise icons, no colour except one
+   blue, which is used both for links (Preview, Start Legs) and for labels that are not tappable
+   ("This week", "September 2026").
+3. **The first five minutes are a gauntlet.** Four paragraphs of intro, sixteen lines of picker,
+   a silent units decision, then Home says you missed a workout on Sunday (before the app existed).
+   Start opens a permission alert over a five-minute warm-up, an empty weight field with no hint
+   it is a field, and a button that says Log set before anything has been done.
+4. **The machine's model leaks to the surface.** "set 4:16" after a first set, "First time" for an
+   exercise nothing was logged for, "30 fewer reps at the same weight" after an abandoned workout,
+   "Full Body B was due Sunday" on day one.
+
+## Limits
+
+One expert walkthrough, no participants. The simulator runs the iOS 27 beta, so three findings
+that depend on system presentation (popover dialogs, the keyboard's Done pill, the floating tab
+bar) need a check on the owner's phone. The seeded history logs 10 reps everywhere, which makes
+some suggestion chips look odd; only wording rules that would misbehave with real data are flagged.
+
+## Defects (wrong, not debatable)
+
+| ID | What the user sees | Where | Fix |
+|---|---|---|---|
+| F4 | "Full Body B was due Sunday" on a three-minute-old install (`f07-home-first.jpg`); "Pull was due Tuesday" after a day run out of order (`35-home-final.jpg`) | `Core/PlanLibrary.swift` `PlanSchedule.missed` | Never report a day before `importedAt` / the current anchor; never re-read the past after a re-anchor; require at least one completed workout of the plan |
+| F11 | Finish and Discard dialogs render with no visible Cancel (`f17-finish-confirm.jpg`, `f22-discard-dialog.jpg`); the "Keep going" cancel-role button is dropped by the popover presentation from the ··· menu | `Features/Workout/WorkoutView.swift:67–74` | Present as `.alert` with two buttons, or add "Keep going" as a non-cancel-role button; audit every confirmation dialog |
+| F9 | The keyboard's Done pill sits on top of Log set; a tap on the lower half of the button did nothing (`f11-typing-weight.jpg`) | `WorkoutView.swift:168` keyboard toolbar | Remove the toolbar and let Log set commit the field, or draw an in-app number pad |
+| W5 | The Exercises overview prints the exercise's full note on every set row (`f13-overview.jpg`, `32-push-overview.jpg`) | `Features/Overview/OverviewView.swift:97` uses `StepCard.targetLine` per row | Notes once under the exercise header; rows carry only the target |
+| P1 | Plain text pasted into Add plan → "The plan isn't complete — the chatbot's reply looks cut off" (`29-paste-error-details.jpg`) | `Core/IssueText.swift:49` maps every `E_NOT_JSON` to the "cut off" sentence | Two sentences: no JSON at all → "This is a plan in words; send it to a chatbot with the prompt" plus a button that copies the prompt with the pasted text appended; unparsable JSON → the current sentence |
+| P3 | A small white rectangle at the bottom centre of Add plan and Progression (`27-add-plan.jpg`, `07-progression-bottom.jpg`) | `RootView.swift:212` `bottomAction` pads and paints `.bar` even when its content is empty | No inset when there is no button |
+| F7 | The empty weight field on a built-in plan's first set is a blank gap between − and + (`f09-warmup.jpg`); the instruction lives in a truncated note | `WorkoutView.swift` `StepperRow`, `TextField("")` | Placeholder ("tap to type"), soft outline, a one-time coach mark on the first empty weight |
+| F12 | Summary says "First time" for exercises nothing was logged for (`f18-summary.jpg`) | `Core/Stats.swift:118` checks history before logged sets | "Nothing logged" wins over "First time" |
+| F5 | Calendar cells read "Full" for both Full Body A and B (Upper Lower has the same problem) (`f07-home-first.jpg`) | `Core/CalendarProjection.swift:31` (`prefix(4)` + …) | Use the distinguishing token ("A"/"B", "Upper"/"Lower"), or a colour per day plus the initial |
+| W2 | The suggestion chip reads "Try 5 × 100 kg" under "Last time 10 × 100 kg" (`19-workout-seeded-warmup.jpg`) — fewer reps at the same weight, because the chip falls back to the plan's target when the last session stored no advice (any CSV-imported history reproduces it) | `Core/Prefill.swift`, `InputRules.suggestionChip` | A suggestion must beat last time on one axis or stay silent; compute advice from the last session when none is stored |
+| W8 | At accessibility-XL text the reps/weight inputs sit below the fold behind the strip, in a zone that shows no scroll indicator (`f21-workout-ax.jpg`) | `WorkoutView.swift` layout | At accessibility sizes collapse the set list to the current row and shorten the strip, or place the strip above the inputs |
+| S3 | About reads "1.4 (1)"; the repository is tagged v1.5 (`17-settings-bottom.jpg`) | `project.pbxproj` `MARKETING_VERSION`, `docs/APP_STORE.md` | Bump to 1.5 (APP_STORE.md step 8) |
+
+## The first five minutes (fresh install)
+
+Screens: `f01`–`f04` intro, `f05-builtins`, `f06-review-fullbody`, `f07-home-first`, `f08-start-tapped`,
+`f09-warmup`, `f10-first-set`, `f11-typing-weight`, `f12-rest`, `f17-finish-confirm`, `f18-summary`,
+`f19-home-after`.
+
+- **F1 · GG, Kid · The introduction explains instead of showing.** Four pages of prose, one symbol
+  each, no picture of the product; page four names six controls. Idea: three real screens with a
+  five-word caption each, and the plan chooser as page four; or an interactive page that logs one
+  fake set.
+- **F2 · GG · The plan picker is a reading test with no default.** Sixteen lines across four rows;
+  the footer sends people to "Create with a chatbot", which is on the previous screen. Idea: two
+  questions (where do you train, how many days) then one recommended card with a "Start here" badge.
+- **F3 · Pro, GG · The unit is chosen silently.** Built-in plans take the unit from the region;
+  the review shows "lb" in 13-point grey. Fix: when a plan states no unit, the review asks with a
+  full-width kg / lb control above the days.
+- **F4 · All · Defect above.** A false "missed" on day one is the single most damaging sentence
+  in the first five minutes.
+- **F5 · All · Defect above.**
+- **F6 · GG, Kid · Start opens three things at once.** The permission alert, the five-minute
+  warm-up (default) and the first card arrive together, with the primary button reading "Log set"
+  while nothing has been done. Ideas: ask for notifications on the intro page about the rest timer;
+  ship with the warm-up off for the first workout and offer "Add a 5-minute warm-up" as a chip;
+  during any rest the primary button names what it does ("Start set now" / "Skip warm-up").
+- **F7 · GG, Kid · Defect above.**
+- **F8 · The chip repeats the field.** "Try 4 reps · The plan's target" under a reps field already
+  showing 4. Rule: show the chip only when it differs from the fields.
+- **F9 · All · Defect above.**
+- **F10 · "set 4:16" tells a beginner they were slow.** Idea: hide rep-set durations unless the
+  user has opened Details once; keep them for holds.
+- **F11 · GG · Defect above.**
+- **F12 · Defect above**, plus: five identical cards and no next step. Idea: one sentence ("You
+  logged 1 set in 8 minutes. Next: Full Body B, Friday."), cards only for exercises with data, a
+  coloured moment for a record or a goal.
+- **F13 · GG · Home speaks schedule, not intent.** "Rest day", "Start Full Body B early",
+  "Full Body B is next, Fri" and "was due Sunday" in one card. Idea: headline the workout, button
+  "Start Full Body B", one quiet schedule line ("Planned for Friday. Starting today is fine.").
+
+## The workout screen
+
+Screens: `19-workout-seeded-warmup`, `20-workout-seeded-set1`, `21-workout-seeded-rest`,
+`f13-overview`, `32-push-overview`, `33-push-overview-bottom`, `34-plank-timed`, `f21-workout-ax`,
+`f16-menu`.
+
+The five fixed zones work: nothing moves between working, resting and holds; one-tap logging works;
+Undo exists. What remains is language and hierarchy.
+
+- **W1 · GG · One row, three number systems.** "5 (4–6) · 100 kg" beside "last 10 @ 100"; "6–8 ·
+  80 kg"; "12 (8–12)". Idea: one grammar in words ("Aim 4–6 reps · 100 kg"; "Last time 10 × 100 kg"
+  on its own line; never "@"); compact notation as a setting for the coach.
+- **W2 · Pro · Defect above.**
+- **W3 · The stage is written twice.** "Exercise 1 of 5 · Set 1 of 4" as the header title and
+  again in the small line beneath while working. Fix: once; use the freed line for the cue.
+- **W4 · GG · Undo is easy to miss.** A small blue word at the right end of a wrapping line. Idea:
+  Undo on the logged row (↺ beside the green tick).
+- **W5 · Defect above.**
+- **W6 · GG · Superset and drop vocabulary is raw.** "A"/"B" badges, "round 2 of 3", "drop 1 of 2",
+  "AMRAP". Idea: "paired with Tricep Pushdown", "then lighter, as many as you can", explained once.
+- **W7 · The strip is a blank band most of the time.** Fixed zones are right; a fixed empty zone
+  looks broken. Idea: an idle sentence that earns the space ("Rest 2:30 starts when you log").
+- **W8 · GG · Defect above.**
+- **W9 · Starting a day from Plan detail is a plain text link.** "Start Legs" at the bottom of each
+  day's list; a workout (warm-up, Live Activity) starts instantly and I started one by accident
+  aiming at Add plan. Idea: a bordered button, and "Legs isn't today's day. Start anyway?" when
+  another day is scheduled.
+- **W10 · GG · "Finish workout" is red**, which reads as delete. Normal colour for Finish, red for
+  Discard only.
+- **W11 · Kid · The Plank screen is the template** (one label, one number, one button). A rep set
+  with a correct prefill could be one big "Done: 10 × 100 kg" button with the steppers a tap away.
+
+## Home and the calendar
+
+Screens: `01-home-seeded`, `02-home-month`, `03-home-month-daytapped`, `35-home-final`, `f20-home-ax`.
+
+- **H1 · GG · Blue means two things.** Headers ("This week", "September 2026") and links share the
+  same blue. Fix: headers in ink; links with a chevron or a button shape; the three footnote links as
+  one row of small bordered buttons.
+- **H2 · The month grid competes with Start.** Twenty outlined projected days. Idea: projected days
+  as a small initial or dot in the day's colour; done days filled; today strong.
+- **H3 · GG · Start is not where the thumb is.** Mid-height, with the bottom half of the screen
+  empty; below the fold at large text (`f20-home-ax`). Fix: Start in the bottom slot like Log set.
+- **H4 · GG · "Plan a progression", "Another day", "Preview"** are 15-point links whose meaning
+  needs the app's vocabulary. Idea: "See today's exercises", "Pick a different day"; keep the
+  progression link inside the plan until the intro has taught the word.
+
+## Getting a plan in
+
+Screens: `27-add-plan`, `28-paste-error`, `29-paste-error-details`, `06-progression`,
+`07-progression-bottom`, `f05-builtins`, `f06-review-fullbody`.
+
+- **P1 · All · Defect above.** The most natural first paste (your own plan as text) gets an error
+  about a chatbot reply that never existed.
+- **P2 · GG · The round-trip is six context switches.** The chatbot cannot be removed (no backend,
+  by decision) but the reading and guessing can: one button "Get a plan from ChatGPT" that copies the
+  prompt and opens the chatbot app (URL scheme) or its web page; on return, if the clipboard holds
+  the marker or a JSON fence, a banner on Home: "Looks like a plan. Add it?"; the three steps as a
+  checklist that ticks itself.
+- **P3 · Defect above.**
+- **P4 · GG · "Set as current plan" and "Active"** are database words. Idea: "Use this plan", a
+  filled check on the plan in use, "Switch to this plan" in its menu.
+- **P5 · GG · Chip rows scroll sideways with no hint** ("Rest" and "Full Body…" cut at the edge in
+  Plan detail and the review). Fix: wrap the chips.
+
+## Plans, History, Settings
+
+Screens: `05-plan-detail`, `09-plan-detail-bottom`, `08-exercise-edit`, `10-history`, `11-metrics`,
+`12-session-detail`, `13-session-detail-sets`, `14-exercise-history`, `15-set-goal`, `16-settings`,
+`17-settings-bottom`.
+
+- **E1 · Pro · "Reps 6-8" and "Rep range 6-8" look like the same field twice**, plus a paragraph
+  teaching the mini-language. Idea: one Reps control with a segmented kind (a number / a range / as
+  many as possible / a time) and two number fields; "Advice range" separately.
+- **E2 · GG · Add exercise is hidden behind the day's ···.** Fix: an "Add exercise" row at the end
+  of each day.
+- **G1 · History rows need the labels Metrics already has.** "28:08 · 16 sets · 13,920 kg" reads as
+  a clock time and an unlabelled weight. Fix: "28 min · 16 sets · 13,920 kg lifted".
+- **G2 · Pro · The exercise search is invisible** on this iOS (the `.searchable` field does not
+  show in the History list). Fix: an explicit "Find an exercise" row under Metrics.
+- **G3 · Metrics is the standard**: every number labelled and explained. The rest of the app's
+  numbers should meet it.
+- **S1 · GG · Durations by stepper only** (5 minutes of warm-up is twenty taps from 90 s). Fix:
+  preset chips (Off · 1 · 2 · 3 · 5 min) with the stepper for fine tuning, or a wheel.
+- **S2 · Developer sentences in the product**: "Re-running from Xcode over the existing install
+  keeps your data", "Only affects the prompt and future imports that don't state their own units",
+  "The date is said, never enforced." Rewrite for a stranger.
+- **S3 · Defect above.**
+
+## The one big idea
+
+A plain-words layer under the expert one, not a separate mode: the first time a screen shows a
+thing it says it in words a stranger knows, and the compact notation is a setting the coach turns
+on. "Aim 4–6 reps at 100 kg. Last time: 10." for "5 (4–6) · 100 kg · last 10 @ 100"; "Paired with
+Tricep Pushdown" for a "B" badge; "Then lighter, as many as you can" for "drop 1 of 2 · AMRAP";
+"Use this plan" for "Set as current plan"; "Repeats every 7 days" for "rotation". The engine, the
+format and the tests do not change; `TargetText` (`Core/Stats.swift`) and a handful of labels do.
+
+## Ideas by user
+
+- **Pro**: an in-app number pad with plate math behind the weight; a "compact notation" toggle;
+  the chip rule (W2) and advice computed from history when none is stored; duration presets (S1);
+  a visible exercise search (G2); labelled History rows (G1); never a false "missed" (F4).
+- **Great-grandparent**: a visible Cancel on every dialog (F11); Finish not in red (W10);
+  placeholder and coach mark on the empty weight (F7); Start at the bottom of Home (H3); links
+  that look like buttons, headers that do not (H1); warm-up off for the first workout and a
+  primary button that names what it does (F6); chips that wrap (P5); inputs first at large text
+  (W8); notifications asked with a reason on the intro (F6).
+- **Five-year-old**: a pictogram per exercise from the system's figure symbols (strength
+  training, core, rowing, running); a colour per plan day on Home, the calendar and the workout
+  header; a "Done" mode for rep sets modelled on the Plank screen; a sound and haptic on Log set,
+  a bigger one on a record or goal; the summary as a moment (one sentence, one colour, one
+  "Next: Friday").
+
+## Ranked backlog
+
+**Quick wins (an hour or two each)**
+
+1. Guard `missed()` by import date and anchor (F4).
+2. Two-button alerts for Finish and Discard; audit every confirmation dialog (F11).
+3. Remove the keyboard toolbar or move Done into the strip (F9).
+4. Notes once per exercise in the overview (W5).
+5. Split the `E_NOT_JSON` sentence (P1); "copy the prompt with my text" for plain-text pastes.
+6. No inset for an empty bottom action (P3).
+7. "Nothing logged" over "First time" (F12); the chip rule (W2, F8); distinguishing day names (F5).
+8. Labels on History rows (G1); Finish in the normal colour (W10); developer sentences rewritten
+   (S2); version 1.5 (S3).
+
+**One milestone: the first five minutes**
+
+1. Intro as three real screens plus the chooser (F1); notifications asked there (F6).
+2. Picker with two questions and a recommended card (F2); units asked in the review (F3).
+3. First workout: warm-up off, placeholder and coach mark on the empty weight, a primary button that
+   names what it does, no "set 4:16" (F6, F7, F10).
+4. Summary as a sentence with "Next: …" (F12); Home headlines the workout, not the schedule (F13).
+
+**One milestone: plain words and hierarchy**
+
+1. The plain-words layer in `TargetText` and the labels (W1, W6, P4, E1); compact notation as a
+   setting.
+2. Home: Start at the bottom, links as buttons, a quieter month grid (H1–H4).
+3. Undo on the logged row; the idle strip says something (W4, W7); accessibility-size reflow (W8).
+
+**Bigger bets**
+
+1. Pictograms per exercise and a colour per day, everywhere.
+2. An in-app number pad with plate math.
+3. The "one big Done button" logging mode for rep sets.
+4. Opening the chatbot app directly with the prompt, and a "Looks like a plan" banner on return (P2).
+
+## Since the 5 September review
+
+Landed: the five fixed zones, Undo, labelled inputs, Exercises reachable during rest, the guided Add
+plan, per-set previews, the calendar line that opens a session, a summary in sentences. Still live:
+the interface exposes technical structure (now in words rather than JSON), the notation asks the
+reader to do the parsing, and there is no imagery or colour to recognise things by. New here, and
+only visible on a fresh install: the first five minutes, and the places where the schedule model
+tells the user something untrue.
+
+## How to validate
+
+1. Hand the phone to someone who has never seen the app with one instruction: "do a workout". Count
+   the questions they ask before the first set is logged; today's path produces at least five.
+2. Repeat at the largest accessibility text size, and once with VoiceOver.
+3. Install fresh on a phone set to a US region and a kg lifter; watch whether they notice "lb".
+4. After the quick wins, re-run the first-five-minutes path and confirm no sentence on any screen
+   claims something the user knows is false.
 `````
 
 ---
@@ -6688,6 +7281,22 @@ mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** 
 rows (Z4, Z10, Z17, Z25, Z31) join the checklist. The reading of "a history for each exercise"
 as typed current numbers is parked by the owner's decision (the plan's last section).
 
+`docs/ITERATION_7_PLAN.md` is the v1.6 plan (milestones **U0–U6**), built from the 2026-09-09
+usability audit (`docs/UX_REVIEW_2026-09-09.md`) and judged for three users — a coach, a
+great-grandparent and a five-year-old: **nothing untrue** (D55 — a missed workout only when the
+plan expected one, "Nothing logged" before "First time", calendar labels unique within the plan,
+a chip that never contradicts the fields, the right sentence for a plan pasted in words),
+**nothing unreachable** (D56 — every menu confirmation an alert with a way out, Done in the strip
+instead of over Log set, no phantom bar, a placeholder in the empty weight, large text that keeps
+the inputs on screen), **the first five minutes** (D57 — no warm-up on a fresh install, **Start
+first set** during a warm-up, the notification permission at the first Log set,
+`InputDefaults.weightHint`, the unit asked on the review when the plan named none, a **Start
+here** badge, Home that headlines the workout on a rest day, "Next: …" on the Summary) and
+**hierarchy** (D59 — Start in the bottom slot, headers in ink, `WrapLayout`, Undo on the row, an
+idle strip that says what follows, labelled History rows, Settings presets). U0–U3, U5 and U6 are
+built and green on `v1.6-refinement` (pull request #2); **U4 — plain words (D58) — is written as
+two readings and waits for the owner's choice.** The v1.6 device rows join the checklist.
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
@@ -6712,7 +7321,7 @@ Three v1.2 rules are worth knowing before touching anything:
 
 ## Working style
 
-- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25).
+- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25). CI runs the three routes and `tools/check_bundle.py` on every push, so a milestone that edits a bundled document regenerates the bundle in the same commit (`python3 tools/build_bundle.py`); v1.6's U1–U3 were red on that job until U5 did.
 - Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author — no `Co-Authored-By` trailer of any kind, whatever a harness suggests; the history was rewritten once (2026-09-08) to remove them.
 - The repository is public under the MIT license (`LICENSE`), with a landing page at the top of `README.md` and CI in `.github/workflows/ci.yml` running the three routes on every push. Keep the README's landing section for people and its lower half for you; keep `docs/screenshots/` to what the README shows.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.

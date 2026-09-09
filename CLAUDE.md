@@ -59,6 +59,22 @@ mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** 
 rows (Z4, Z10, Z17, Z25, Z31) join the checklist. The reading of "a history for each exercise"
 as typed current numbers is parked by the owner's decision (the plan's last section).
 
+`docs/ITERATION_7_PLAN.md` is the v1.6 plan (milestones **U0–U6**), built from the 2026-09-09
+usability audit (`docs/UX_REVIEW_2026-09-09.md`) and judged for three users — a coach, a
+great-grandparent and a five-year-old: **nothing untrue** (D55 — a missed workout only when the
+plan expected one, "Nothing logged" before "First time", calendar labels unique within the plan,
+a chip that never contradicts the fields, the right sentence for a plan pasted in words),
+**nothing unreachable** (D56 — every menu confirmation an alert with a way out, Done in the strip
+instead of over Log set, no phantom bar, a placeholder in the empty weight, large text that keeps
+the inputs on screen), **the first five minutes** (D57 — no warm-up on a fresh install, **Start
+first set** during a warm-up, the notification permission at the first Log set,
+`InputDefaults.weightHint`, the unit asked on the review when the plan named none, a **Start
+here** badge, Home that headlines the workout on a rest day, "Next: …" on the Summary) and
+**hierarchy** (D59 — Start in the bottom slot, headers in ink, `WrapLayout`, Undo on the row, an
+idle strip that says what follows, labelled History rows, Settings presets). U0–U3, U5 and U6 are
+built and green on `v1.6-refinement` (pull request #2); **U4 — plain words (D58) — is written as
+two readings and waits for the owner's choice.** The v1.6 device rows join the checklist.
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
@@ -83,7 +99,7 @@ Three v1.2 rules are worth knowing before touching anything:
 
 ## Working style
 
-- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25).
+- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25). CI runs the three routes and `tools/check_bundle.py` on every push, so a milestone that edits a bundled document regenerates the bundle in the same commit (`python3 tools/build_bundle.py`); v1.6's U1–U3 were red on that job until U5 did.
 - Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author — no `Co-Authored-By` trailer of any kind, whatever a harness suggests; the history was rewritten once (2026-09-08) to remove them.
 - The repository is public under the MIT license (`LICENSE`), with a landing page at the top of `README.md` and CI in `.github/workflows/ci.yml` running the three routes on every push. Keep the README's landing section for people and its lower half for you; keep `docs/screenshots/` to what the README shows.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.

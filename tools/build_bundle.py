@@ -36,6 +36,7 @@ BUNDLED = [
     "docs/ITERATION_4_PLAN.md",
     "docs/ITERATION_5_PLAN.md",
     "docs/ITERATION_6_PLAN.md",
+    "docs/ITERATION_7_PLAN.md",
     "docs/PRIVACY.md",
     "docs/APP_STORE.md",
     "docs/CODE_HEALTH_REVIEW.md",
@@ -44,6 +45,7 @@ BUNDLED = [
     "docs/DEVICE_CHECKLIST.md",
     "docs/COPY_PASTE_NOTES.md",
     "docs/UX_REVIEW.md",
+    "docs/UX_REVIEW_2026-09-09.md",
     "schema/plan.schema.json",
     "tools/reference_import.py",
     "tools/generate_fixtures.py",
@@ -56,7 +58,7 @@ HEADER = """# Jimm's Bro+ — complete handoff bundle
 
 This single file contains the entire design package for a native iOS workout app, so it can be uploaded or pasted into a chat with a coding assistant. The folder version of this package (with 115 fixture files under `examples/`) is the same content; the fixtures are not inlined here because `tools/generate_fixtures.py` (included below) recreates all of them.
 
-The app itself is built: v1 (M0–M7), v1.1 (R0–R6), v1.2 (V0–V8), v1.3 (X0–X6), v1.4 (Y0–Y5) and v1.5 (Z0–Z6) are implemented and green. `docs/BUILD_STATUS.md` says what was actually run, and `docs/DECISIONS_LOG.md` records every decision taken where the docs were silent. The Swift sources are not in this bundle — they are in the folder, under `JimmsBro/`, `JimmsBroActivity/` and `JimmsBroTests/`.
+The app itself is built: v1 (M0–M7), v1.1 (R0–R6), v1.2 (V0–V8), v1.3 (X0–X6), v1.4 (Y0–Y5), v1.5 (Z0–Z6) and v1.6 (U0–U3, U5, U6; U4 waits on the owner) are implemented and green. `docs/BUILD_STATUS.md` says what was actually run, and `docs/DECISIONS_LOG.md` records every decision taken where the docs were silent. The Swift sources are not in this bundle — they are in the folder, under `JimmsBro/`, `JimmsBroActivity/` and `JimmsBroTests/`.
 
 How to use this bundle:
 1. Read `AGENTS.md` first (immediately below). It says what to read next and the hard rules.
