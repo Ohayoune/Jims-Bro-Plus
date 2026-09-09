@@ -27,6 +27,12 @@ struct SummaryView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    // D57 (v1.6): what happens next, from the schedule the calendar draws.
+                    if let next = model.summaryNext(for: session) {
+                        Text(next)
+                            .font(.subheadline)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     // D54 (v1.5): a goal this workout was the first to reach, in the colour
                     // reserved for "this happened" (§4.0), like a record.
                     ForEach(model.goalsReached(by: session)) { goal in

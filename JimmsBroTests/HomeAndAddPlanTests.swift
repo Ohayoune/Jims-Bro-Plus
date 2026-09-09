@@ -84,13 +84,14 @@ final class HomeAndAddPlanTests: XCTestCase {
         let calendar = CoreTestSupport.utc()
         XCTAssertEqual(calendar.component(.weekday, from: tuesday), 3, "the fixture day is a Tuesday")
 
+        // D57 (v1.6): the workout is the headline on a rest day too; the schedule is a fragment.
         let card = HomeStart.current(library: library, now: tuesday, calendar: calendar)
-        XCTAssertEqual(card.title, "Rest day")
-        XCTAssertEqual(card.buttonTitle, "Start Lower early")
+        XCTAssertEqual(card.title, "Lower")
+        XCTAssertEqual(card.buttonTitle, "Start Lower")
         XCTAssertEqual(card.dayIndex, 1)
-        XCTAssertEqual(card.exercises, ["Squat"], "the day you would start early is the one previewed")
+        XCTAssertEqual(card.exercises, ["Squat"], "the day you would start is the one previewed")
         let subtitle = try XCTUnwrap(card.subtitle)
-        XCTAssertTrue(subtitle.hasPrefix("Lower is next, Thu"), subtitle)
+        XCTAssertTrue(subtitle.hasPrefix("Planned for Thu · Upper Lower"), subtitle)
 
         // And on its own day the same plan simply starts it.
         let monday = CoreTestSupport.date(7)

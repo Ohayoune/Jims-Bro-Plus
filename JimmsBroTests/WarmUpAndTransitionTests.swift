@@ -10,8 +10,9 @@ import XCTest
 /// given no time at all.
 final class WarmUpAndTransitionTests: XCTestCase {
     private let now = CoreTestSupport.now
-    /// Both v1.2 settings on, at their defaults: 5 min of warm-up, 2 min between exercises.
-    private let settings = Settings()
+    /// Both v1.2 settings on, at v1.2's defaults: 5 min of warm-up, 2 min between exercises.
+    /// (D57, v1.6: a fresh install now starts with the warm-up off, so it is said here.)
+    private let settings = Settings(warmUpSeconds: 300)
 
     private func engine(_ plan: Plan, _ settings: Settings? = nil) -> SessionEngine {
         SessionEngine(session: CoreTestSupport.session(plan), settings: settings ?? self.settings,

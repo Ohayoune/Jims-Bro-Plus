@@ -110,7 +110,7 @@ struct StatusStrip: Equatable {
 
 /// Zone 5. One control, one slot, whatever the work is (D20, D22).
 struct PrimaryAction: Equatable {
-    enum Kind: String, Equatable { case log, startTimer, doneTimer, stopTimer }
+    enum Kind: String, Equatable { case log, startTimer, doneTimer, stopTimer, startSet }
     var title: String
     var kind: Kind
 }
@@ -126,6 +126,15 @@ struct InputDefaults: Equatable {
     var suggestionReason: String?
     var suggestedWeight: Double?
     var suggestedReps: Int?
+    /// D57 (v1.6): why the weight field is empty, said under it until it is not. A built-in
+    /// plan's first set has no weight and no history; the sentence used to live in a note
+    /// that truncated after two lines.
+    var weightHint: String?
+}
+
+/// The workout's own sentences, in Core so a test can pin them (Y13's rule).
+enum WorkoutText {
+    static let weightHint = "Type the weight you lift. The app remembers it from then on."
 }
 
 /// The whole workout screen as data. Views render it; they compute nothing.
@@ -173,6 +182,8 @@ enum WorkoutScreen {
         let values = Prefill.values(session: session, step: index, history: history,
                                     settings: settings)
         let timed = target.work.isTimed
+        let restKind: RestKind?
+        if case let .resting(rest) = active.phase { restKind = rest.kind } else { restKind = nil }
         return WorkoutScreenModel(
             // Every state returns the same five, in the same order (D22, O50).
             zones: WorkoutZone.allCases,
@@ -190,11 +201,16 @@ enum WorkoutScreen {
                                  warning: target.warning, now: now) : nil,
             strip: strip(active: active, step: index, work: target.work, warning: target.warning,
                          history: history, now: now),
-            primary: primary(work: target.work, running: active.timerRunning),
+            primary: primary(work: target.work, running: active.timerRunning, resting: restKind),
             spoken: StepCard.spoken(session: session, step: index))
     }
 
-    static func primary(work: WorkTarget, running: Bool) -> PrimaryAction {
+    static func primary(work: WorkTarget, running: Bool, resting: RestKind? = nil) -> PrimaryAction {
+        // D57 (v1.6): during the warm-up nothing has been done yet, so the button starts the
+        // set rather than logging one — a stranger tapped "Log set" and logged a set they had
+        // not done. Between-set rests keep Log set: a set *has* been done by then, and logging
+        // the next one straight out of the rest is the coach's flow (§4.5).
+        if resting == .warmUp { return PrimaryAction(title: "Start first set", kind: .startSet) }
         switch work {
         case .reps:
             return PrimaryAction(title: "Log set", kind: .log)
@@ -220,6 +236,9 @@ enum WorkoutScreen {
         defaults.suggestedReps = values.suggestion?.reps
         if case let .duration(seconds) = target.work, defaults.reps.isEmpty {
             defaults.reps = String(values.seconds ?? seconds)
+        }
+        if values.showsWeight, values.weight == nil, values.lastWeight == nil {
+            defaults.weightHint = WorkoutText.weightHint
         }
         return defaults
     }

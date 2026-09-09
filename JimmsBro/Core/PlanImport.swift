@@ -4,6 +4,9 @@ struct ImportStage<Value> { var value: Value?; var issues: [Issue] = [] }
 struct ImportResult {
     var plan: Plan?
     var issues: [Issue]
+    /// D57 (v1.6): whether the JSON named its unit. A plan that did not took the setting's,
+    /// silently; the review now asks instead (§4.4).
+    var unitsStated = true
     var errors: [Issue] { issues.filter { $0.severity == .error } }
 }
 enum PlanImport {
@@ -16,6 +19,7 @@ enum PlanImport {
         guard let body = extracted.value else { return ImportResult(plan: nil, issues: extracted.issues) }
         let decoded = decode(body)
         guard let raw = decoded.value else { return ImportResult(plan: nil, issues: extracted.issues + decoded.issues) }
+        let unitsStated = raw["units"] != nil
         var normalized = normalize(raw, settings: settings, now: now, calendar: calendar, allowEmptyDays: allowEmptyDays)
         var issues = extracted.issues + decoded.issues + normalized.issues
         if let plan = normalized.value { issues += validate(plan, allowEmptyDays: allowEmptyDays) }
@@ -23,7 +27,7 @@ enum PlanImport {
         if issues.contains(where: { $0.severity == .error }) { normalized.value = nil }
         normalized.value?.sourceText = text
         normalized.value?.warnings = issues.filter { $0.severity == .warning }
-        return ImportResult(plan: normalized.value, issues: issues)
+        return ImportResult(plan: normalized.value, issues: issues, unitsStated: unitsStated)
     }
     static func extract(_ text: String) -> ImportStage<String> {
         func failure(_ code: String, _ message: String) -> ImportStage<String> { ImportStage(value: nil, issues: [Issue(severity: .error, code: code, path: "", message: message)]) }

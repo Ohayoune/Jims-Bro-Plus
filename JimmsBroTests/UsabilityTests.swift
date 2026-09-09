@@ -214,4 +214,160 @@ final class UsabilityTests: XCTestCase {
         XCTAssertNotEqual(line, member.stage.title)
         XCTAssertTrue(line.contains("round"), line)
     }
+
+    // MARK: - U3 (D57): the first five minutes
+
+    // U15: a fresh install has no warm-up; a settings file written before v1.2 still does.
+    func testTheWarmUpIsOffForAFreshInstallAndOnForAnOldFile() throws {
+        XCTAssertEqual(Settings().warmUpSeconds, 0)
+        let old = try JSONDecoder().decode(Settings.self, from: Data("{}".utf8))
+        XCTAssertEqual(old.warmUpSeconds, Settings.warmUpBeforeV16)
+        XCTAssertEqual(old.warmUpSeconds, 300, "D32's phones keep their five minutes")
+        let off = try JSONDecoder().decode(Settings.self, from: Data(#"{"warmUpSeconds": 0}"#.utf8))
+        XCTAssertEqual(off.warmUpSeconds, 0, "a file that says Off means Off")
+        XCTAssertEqual(old.transitionRestSeconds, 120, "the walk between exercises is unchanged")
+    }
+
+    // U16: during the warm-up the primary button starts the set; it never logs one.
+    func testTheWarmUpsPrimaryButtonStartsTheFirstSet() throws {
+        let now = CoreTestSupport.now
+        XCTAssertEqual(WorkoutScreen.primary(work: .reps(.fixed(5)), running: false, resting: .warmUp),
+                       PrimaryAction(title: "Start first set", kind: .startSet))
+        XCTAssertEqual(WorkoutScreen.primary(work: .duration(seconds: 45), running: false, resting: .warmUp).kind,
+                       .startSet, "a hold's card starts the same way")
+        XCTAssertEqual(WorkoutScreen.primary(work: .reps(.fixed(5)), running: false, resting: .betweenSets),
+                       PrimaryAction(title: "Log set", kind: .log), "a set has been done by then")
+        XCTAssertEqual(WorkoutScreen.primary(work: .reps(.fixed(5)), running: false, resting: .betweenExercises).kind, .log)
+
+        var engine = CoreTestSupport.engine(CoreTestSupport.plan(sets: 3), settings: Settings(warmUpSeconds: 300))
+        let warming = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [], now: now))
+        XCTAssertEqual(warming.stage, .warmUp)
+        XCTAssertEqual(warming.primary.kind, .startSet)
+        engine.apply(.skipRest, now: now.addingTimeInterval(10))
+        let working = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [],
+                                                        now: now.addingTimeInterval(10)))
+        XCTAssertEqual(working.primary, PrimaryAction(title: "Log set", kind: .log))
+    }
+
+    // U17: the first empty weight explains itself, until it has a value or a history.
+    func testTheFirstEmptyWeightExplainsItself() throws {
+        let now = CoreTestSupport.now
+        let weightless = CoreTestSupport.plan(weight: nil)
+        var engine = CoreTestSupport.engine(weightless)
+        let first = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [], now: now))
+        XCTAssertEqual(first.inputs.weight, "")
+        XCTAssertEqual(first.inputs.weightHint, WorkoutText.weightHint)
+        XCTAssertTrue(WorkoutText.weightHint.hasPrefix("Type the weight"))
+
+        // Typed once, carried forward: the hint is gone from the second set.
+        engine.apply(.logSet(step: 0, result: .reps(count: 8, weight: 40)), now: now)
+        engine.apply(.skipRest, now: now.addingTimeInterval(1))
+        let second = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [],
+                                                       now: now.addingTimeInterval(1)))
+        XCTAssertEqual(second.inputs.weight, "40")
+        XCTAssertNil(second.inputs.weightHint)
+
+        // A history takes it away, and a bodyweight exercise never shows it.
+        let history = [CoreTestSupport.completed([10, 10, 8], weights: [40, 40, 40], plan: weightless)]
+        let known = try XCTUnwrap(WorkoutScreen.model(active: CoreTestSupport.engine(weightless).active,
+                                                      history: history, now: now))
+        XCTAssertNil(known.inputs.weightHint)
+        let body = try XCTUnwrap(WorkoutScreen.model(
+            active: CoreTestSupport.engine(CoreTestSupport.plan(weight: nil, bodyweight: true)).active,
+            history: [], now: now))
+        XCTAssertFalse(body.inputs.showsWeight)
+        XCTAssertNil(body.inputs.weightHint)
+    }
+
+    // U18: the import says whether the plan named its unit, so the review can ask.
+    func testTheImportSaysWhetherTheUnitWasStated() {
+        let exercises = #"[{"name":"Bench Press","sets":3,"reps":"8-12","repRange":"8-12"}]"#
+        let stated = PlanImport.run(#"{"schemaVersion":1,"name":"P","units":"lb","days":[{"name":"A","exercises":"# + exercises + "}]}")
+        XCTAssertNotNil(stated.plan, "\(stated.issues)")
+        XCTAssertTrue(stated.unitsStated)
+        XCTAssertEqual(stated.plan?.units, .lb)
+        let silent = PlanImport.run(#"{"schemaVersion":1,"name":"P","days":[{"name":"A","exercises":"# + exercises + "}]}",
+                                    settings: Settings(units: .kg))
+        XCTAssertNotNil(silent.plan, "\(silent.issues)")
+        XCTAssertFalse(silent.unitsStated, "the setting filled it in; the review should ask")
+        XCTAssertEqual(silent.plan?.units, .kg)
+        XCTAssertTrue(PlanImport.run("not a plan").unitsStated, "a refusal says nothing about units")
+    }
+
+    // U19: the picker recommends Full Body, and its sentence names controls on the screen it sends you to.
+    func testThePickerRecommendsAndPointsBack() {
+        XCTAssertEqual(BuiltInPlans.entry(BuiltInPlans.recommendedId)?.name, "Full Body")
+        XCTAssertTrue(BuiltInPlans.all.contains { $0.id == BuiltInPlans.recommendedId })
+        XCTAssertTrue(BuiltInPlans.buildYourOwn.contains("Add plan"))
+        XCTAssertTrue(BuiltInPlans.buildYourOwn.contains("Copy prompt"))
+        XCTAssertTrue(BuiltInPlans.buildYourOwn.contains("Create with a chatbot"))
+    }
+
+    // U20: Home leads with the workout on a rest day, for a rotation as for a weekday plan.
+    func testHomeLeadsWithTheWorkoutOnARestDay() throws {
+        // Push / Pull / Legs / rest with Legs done on the 7th: the 8th is a rest day, Push is the 9th.
+        var library = PlanLibrary()
+        library.save(rotation(anchor: 7, position: 2), makeActive: true)
+        let card = HomeStart.current(library: library, now: day(8), calendar: calendar)
+        XCTAssertEqual(card.title, "Push")
+        XCTAssertEqual(card.buttonTitle, "Start Push")
+        XCTAssertEqual(card.subtitle, "Planned for Wed · PPL")
+        XCTAssertNil(card.missed)
+        // The weekday case is HomeAndAddPlanTests' O63, rewritten for D57.
+    }
+
+    // U21: the Summary says what comes next, from the schedule after the rotation advanced.
+    func testTheSummarySaysWhatComesNext() throws {
+        let target = SetTarget(work: .reps(.fixed(5)), weight: 100, restSeconds: 90)
+        func day(_ name: String, _ weekday: Weekday? = nil) -> Day {
+            Day(name: name, weekday: weekday, exercises: [Exercise(name: "\(name) Press", sets: [target])])
+        }
+        func session(_ plan: Plan, dayIndex: Int, on date: Date) throws -> Session {
+            var session = try XCTUnwrap(Session.start(plan: plan, dayIndex: dayIndex, now: date))
+            session.endedAt = date.addingTimeInterval(1800)
+            return session
+        }
+
+        // A rotation: Push done on Wednesday the 9th, Pull is tomorrow.
+        var ppl = Plan(name: "PPL", units: .kg, schedule: .rotation,
+                       days: [day("Push"), day("Pull"), day("Legs")],
+                       importedAt: self.day(1), sourceText: "", cycle: [.day(0), .day(1), .day(2), .rest])
+        var library = PlanLibrary()
+        library.save(ppl, makeActive: true)
+        let push = try session(library.plans[0], dayIndex: 0, on: self.day(9))
+        PlanSchedule.advance(&library.plans[0], completedDayName: "Push", on: self.day(9), calendar: calendar)
+        XCTAssertEqual(SummaryText.next(after: push, library: library, now: self.day(9), calendar: calendar),
+                       "Next: Pull, tomorrow")
+
+        // With a rest day in between, the weekday is named.
+        ppl.cycle = [.day(0), .rest, .day(1), .rest, .day(2), .rest]
+        library.plans[0] = ppl
+        PlanSchedule.advance(&library.plans[0], completedDayName: "Push", on: self.day(9), calendar: calendar)
+        XCTAssertEqual(SummaryText.next(after: push, library: library, now: self.day(9), calendar: calendar),
+                       "Next: Pull, Friday")
+
+        // A week or more away is a date.
+        ppl.cycle = [.day(0), .rest, .rest, .rest, .rest, .rest, .rest, .rest]
+        library.plans[0] = ppl
+        PlanSchedule.advance(&library.plans[0], completedDayName: "Push", on: self.day(9), calendar: calendar)
+        let far = try XCTUnwrap(SummaryText.next(after: push, library: library, now: self.day(9), calendar: calendar))
+        XCTAssertTrue(far.hasPrefix("Next: Push, on "), far)
+
+        // A weekday plan: Upper on Monday the 7th, Lower is Thursday.
+        let weekly = Plan(name: "UL", units: .kg, schedule: .weekday,
+                          days: [day("Upper", .monday), day("Lower", .thursday)],
+                          importedAt: self.day(1), sourceText: "", cycle: [])
+        var weekLibrary = PlanLibrary()
+        weekLibrary.save(weekly, makeActive: true)
+        let upper = try session(weekLibrary.plans[0], dayIndex: 0, on: self.day(7))
+        XCTAssertEqual(SummaryText.next(after: upper, library: weekLibrary, now: self.day(7), calendar: calendar),
+                       "Next: Lower, Thursday")
+
+        // A plan that is gone, or a session that never had one, says nothing.
+        weekLibrary.plans = []
+        XCTAssertNil(SummaryText.next(after: upper, library: weekLibrary, now: self.day(7), calendar: calendar))
+        var imported = push
+        imported.planId = nil
+        XCTAssertNil(SummaryText.next(after: imported, library: library, now: self.day(9), calendar: calendar))
+    }
 }

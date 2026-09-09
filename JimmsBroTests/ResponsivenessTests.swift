@@ -42,9 +42,11 @@ final class ResponsivenessTests: XCTestCase {
         let root = CoreTestSupport.makeRoot("Responsiveness")
         defer { CoreTestSupport.discard(root) }
         let alerts = BlockingAlerts()
-        // Default settings: the warm-up (D32) is on, so starting schedules its end at once.
+        // With a warm-up (D32) on, starting schedules its end at once. (D57, v1.6: a fresh
+        // install's warm-up is off, so it is turned on here.)
         let model = AppModel(store: Store(root: root), scheduler: alerts, alerts: alerts)
         await model.load()
+        await model.setWarmUp(300)
         let plan = CoreTestSupport.plan()
         await model.save(plan, makeActive: true)
         XCTAssertEqual(model.startedWorkouts, 0)

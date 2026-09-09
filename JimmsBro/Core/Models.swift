@@ -407,8 +407,13 @@ struct Settings: Codable, Equatable {
     var units: WeightUnit = .kg
     var defaultRestSeconds = 90
     /// D32 (v1.2): the warm-up before the first set of a session. 0 turns it off, which is
-    /// exactly v1.1's behavior.
-    var warmUpSeconds = 300
+    /// exactly v1.1's behavior. D57 (v1.6): a fresh install starts with it off — a stranger's
+    /// first tap on Start opened a five-minute countdown they had not asked for — and a
+    /// settings file that predates the setting still reads `warmUpBeforeV16` (Persistence).
+    var warmUpSeconds = 0
+    /// What a settings file written before v1.2 decodes to for the warm-up: D32's default, so
+    /// the phones that lived with it keep it. Only the decoder reads this.
+    static let warmUpBeforeV16 = 300
     /// D33 (v1.2): how long it takes to get from one exercise to the next. v1.1 gave this no
     /// time at all and moved straight on; 0 restores that.
     var transitionRestSeconds = 120

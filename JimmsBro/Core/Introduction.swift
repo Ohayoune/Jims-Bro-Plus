@@ -25,7 +25,8 @@ enum Introduction {
             title: "Log the set, rest, repeat",
             body: "Type what you did and tap Log set. The rest timer starts on its own and "
                 + "counts down on the Lock Screen and in the Dynamic Island; when it ends, the "
-                + "next set is up. A hold gets a countdown of its own."),
+                + "next set is up. A hold gets a countdown of its own. The first time you log "
+                + "a set, the app asks to send you that alert."),
         IntroPage(
             symbol: "chart.line.uptrend.xyaxis",
             title: "It remembers",

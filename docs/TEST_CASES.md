@@ -867,6 +867,22 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | U13 | ui | (D56, v1.6) Accessibility XL text on the workout | The header without its elapsed line, the target line cut to one, the current set row only, the strip without its next-set and set-time lines; the reps and weight rows and Log set on screen without scrolling (`build/u2-ax-2.png`); Exercises still lists every set |
 | U14 | ui | (D56, v1.6) The header while working | "Exercise 1 of 5 · Set 1 of 3" once, over the bar; the small line reads the elapsed time alone; resting, it reads "Resting" over "Exercise 1 of 5 · Set 2 of 3" |
 
+### U3 — the first five minutes (D57)
+
+`JimmsBroTests/UsabilityTests.swift`; O63 (HomeAndAddPlanTests), Y1 (ResponsivenessTests) and Q21–Q30's settings (WarmUpAndTransitionTests) were rewritten for the new defaults and wording.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| U15 | unit | (D57, v1.6) The warm-up default | `Settings().warmUpSeconds` is 0; a settings file with no `warmUpSeconds` decodes to 300; one that says 0 means 0; the walk between exercises is unchanged |
+| U16 | unit | (D57, v1.6) `WorkoutScreen.primary` | "Start first set" (`.startSet`) during a warm-up for a rep set and a hold; "Log set" between sets and between exercises; through the model, a warm-up's card offers `.startSet` and, after `skipRest`, Log set |
+| U17 | unit | (D57, v1.6) `InputDefaults.weightHint` | Set on the first set of a plan without weights and no history; nil once a weight is typed and carried to the next set, nil with a history, nil for a bodyweight exercise |
+| U18 | unit | (D57, v1.6) `ImportResult.unitsStated` | True for a plan that names `units`; false for one that took the setting's; true for a refusal |
+| U19 | unit | (D57, v1.6) The picker's recommendation and sentence | `recommendedId` is Full Body and in the catalogue; `buildYourOwn` names Add plan, Copy prompt and Create with a chatbot |
+| U20 | unit | (D57, v1.6) `HomeStart` on a rest day | A rotation resting on the 8th titles "Push", offers "Start Push", says "Planned for Wed · PPL", and reports nothing missed; the weekday case (O63) titles "Lower" with "Planned for Thu · Upper Lower" |
+| U21 | unit | (D57, v1.6) `SummaryText.next` | "Next: Pull, tomorrow" after Push on a Wednesday; "Next: Pull, Friday" with a rest day between; "Next: Push, on …" a week away; "Next: Lower, Thursday" for a weekday plan done Monday; nil for a deleted plan or an imported session |
+| U22 | ui | (D57, v1.6) A clean install, through the first workout | The picker shows **Start here** on Full Body; the review asks kg / lb above the days; Home titles the day and offers **Start Full Body A**; Start opens the first card with no warm-up and no permission alert; the empty weight reads *tap to type* with the hint under it; the first Log set raises the permission alert over a counting rest; the Summary ends with "Next: Full Body B, …" (`build/u3-*.png`) |
+| U23 | ui | (D57, v1.6) A phone with the warm-up on | The card opens in the warm-up with **Start first set**; tapping it shows the first set with **Log set** |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

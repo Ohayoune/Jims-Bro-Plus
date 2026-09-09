@@ -40,7 +40,9 @@ extension Settings {
         self.init(
             units: container.value(.units, or: defaults.units),
             defaultRestSeconds: container.value(.defaultRestSeconds, or: defaults.defaultRestSeconds),
-            warmUpSeconds: container.value(.warmUpSeconds, or: defaults.warmUpSeconds),
+            // D57 (v1.6): absent means "written before v1.2", when the warm-up was five minutes
+            // for everyone; a fresh install's Settings() is off, but an old file is not new.
+            warmUpSeconds: container.value(.warmUpSeconds, or: Settings.warmUpBeforeV16),
             transitionRestSeconds: container.value(.transitionRestSeconds, or: defaults.transitionRestSeconds),
             sound: container.value(.sound, or: defaults.sound),
             vibration: container.value(.vibration, or: defaults.vibration),

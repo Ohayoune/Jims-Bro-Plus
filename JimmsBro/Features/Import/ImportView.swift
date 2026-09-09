@@ -45,6 +45,9 @@ struct ImportView: View {
     @State private var showDetails = false
     /// The review screen's "Set as current plan" toggle (D26/R0, v1.1), default on.
     @State private var makeActive = true
+    /// D57 (v1.6): whether the pasted plan named its unit; when it did not, the review asks.
+    @State private var unitsStated = true
+    @State private var units: WeightUnit = .kg
 
     private var errors: [Issue] { issues.filter { $0.severity == .error } }
     private var hasDraft: Bool { !text.trimmed.isEmpty }
@@ -77,7 +80,8 @@ struct ImportView: View {
             }
             .sheet(item: $preview, onDismiss: resolvePending) { plan in
                 // Replace already targets a specific plan, so the toggle would be redundant.
-                PlanReviewSheet(plan: plan, makeActive: replacingPlanId == nil ? $makeActive : nil) {
+                PlanReviewSheet(plan: plan, asksUnits: !unitsStated, units: $units,
+                                makeActive: replacingPlanId == nil ? $makeActive : nil) {
                     pending = plan; preview = nil
                 }
             }
@@ -298,14 +302,21 @@ struct ImportView: View {
         showDetails = false
         let result = model.runImport(text)
         issues = result.issues
+        unitsStated = result.unitsStated
+        units = result.plan?.units ?? model.settings.units
         preview = result.plan
     }
 
     /// Runs once the review sheet is fully dismissed: presenting the dialog in the same
     /// turn as the dismissal leaves it half-built.
     private func resolvePending() {
-        guard let plan = pending else { return }
+        guard var plan = pending else { return }
         pending = nil
+        // D57 (v1.6): the unit the review asked for, written into the plan and its JSON.
+        if !unitsStated {
+            plan.units = units
+            plan.sourceText = PlanJSON.render(plan)
+        }
         if let replacingPlanId {
             Task { await model.replacePlan(replacingPlanId, with: plan); dismiss() }
         } else if model.conflict(for: plan) != nil {
@@ -333,6 +344,11 @@ struct PlanReviewSheet: View {
     let plan: Plan
     /// D46 (v1.4): a built-in plan's paragraph — what it is and why — shown above the days.
     var about: String? = nil
+    /// D57 (v1.6): true when the plan did not name its unit; the sheet then asks with a
+    /// kg / lb control above the days, and the numbers below read in the chosen one. A
+    /// real `@Binding`, not an optional one: only a dynamic property re-renders the line.
+    var asksUnits = false
+    @Binding var units: WeightUnit
     /// nil hides the row entirely (Replace already targets a specific plan; see ImportView).
     var makeActive: Binding<Bool>?
     let save: () -> Void
@@ -343,6 +359,7 @@ struct PlanReviewSheet: View {
     @State private var showCleanup = false
 
     private var split: (material: [Issue], cleanup: [Issue]) { IssueText.split(plan.warnings) }
+    private var shownUnits: WeightUnit { asksUnits ? units : plan.units }
 
     var body: some View {
         NavigationStack {
@@ -354,9 +371,21 @@ struct PlanReviewSheet: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                if asksUnits {
+                    Section {
+                        Picker("Weights in", selection: $units) {
+                            ForEach(WeightUnit.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                    } header: {
+                        Text("Weights in")
+                    } footer: {
+                        Text("This plan doesn't say which unit it uses. Pick the one you lift in.")
+                    }
+                }
                 Section {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("\(plan.units.rawValue) · \(plan.schedule.rawValue) · \(plan.days.count) day\(plan.days.count == 1 ? "" : "s")")
+                        Text("\(shownUnits.rawValue) · \(plan.schedule.rawValue) · \(plan.days.count) day\(plan.days.count == 1 ? "" : "s")")
                             .font(.footnote).foregroundStyle(.secondary)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 6) {
@@ -402,7 +431,7 @@ struct PlanReviewSheet: View {
                     ForEach(day.exercises) { exercise in
                         VStack(alignment: .leading, spacing: 2) {
                             Text(exercise.name).font(.footnote)
-                            Text(TargetText.summary(exercise, units: plan.units))
+                            Text(TargetText.summary(exercise, units: shownUnits))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)

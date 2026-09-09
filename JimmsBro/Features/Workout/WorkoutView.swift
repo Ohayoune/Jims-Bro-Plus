@@ -350,6 +350,13 @@ private struct WorkoutScreenView: View {
                        // before v1.2, four writes of active-session.json. The steppers, the
                        // suggestion chip, losing focus and the primary button all push it.
                        committed: {})
+            // D57 (v1.6): the first empty weight says why it is empty, until it is not.
+            if let hint = screen.inputs.weightHint, weightText.isEmpty {
+                Text(hint)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             // D36: the chip says what to aim for and why, and one tap fills in both numbers.
             if let chip = screen.inputs.suggestion {
                 VStack(alignment: .leading, spacing: 3) {
@@ -400,6 +407,9 @@ private struct WorkoutScreenView: View {
                 await model.apply(.timerDone(step: screen.step))
             case .stopTimer:
                 await model.apply(.stopTimer(step: screen.step))
+            case .startSet:
+                // D57 (v1.6): the warm-up ends and the first set's card is live.
+                await model.apply(.skipRest)
             }
         }
     }

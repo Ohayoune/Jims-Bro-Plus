@@ -55,7 +55,8 @@ struct DraftPlanView: View {
             Text("The outline and every day you pasted go. Nothing you saved changes.")
         }
         .sheet(item: $reviewing, onDismiss: resolvePending) { plan in
-            PlanReviewSheet(plan: plan, makeActive: $makeActive) {
+            // The outline prompt asks the chatbot for the unit, so the review does not (D57).
+            PlanReviewSheet(plan: plan, units: .constant(plan.units), makeActive: $makeActive) {
                 pending = plan
                 reviewing = nil
             }

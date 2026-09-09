@@ -491,6 +491,11 @@ enum SaveFailure: Equatable {
 
     func refreshNotificationState() async { notificationState = await scheduler.authorizationState() }
 
+    /// D57 (v1.6): "Next: Full Body B, Friday" under the Summary's headline.
+    func summaryNext(for session: Session, now: Date = Date()) -> String? {
+        SummaryText.next(after: session, library: library, now: now)
+    }
+
     /// Waits for the launch read to finish, for the DEBUG screenshot hooks that need a loaded
     /// model before they navigate. Bounded and cancellation-aware: an unbounded `while !loaded`
     /// spins the main actor for ever if its task is cancelled before the load lands.

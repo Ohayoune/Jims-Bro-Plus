@@ -13,8 +13,10 @@ import XCTest
 final class ActivityTests: XCTestCase {
     private let now = CoreTestSupport.now
 
+    /// v1.2's defaults — the warm-up on — which these states were written against. (D57,
+    /// v1.6: a fresh install's warm-up is off, so it is said here.)
     private func engine(_ plan: Plan = CoreTestSupport.plan(sets: 3, secondExercise: true),
-                        settings: Settings = Settings()) -> SessionEngine {
+                        settings: Settings = Settings(warmUpSeconds: 300)) -> SessionEngine {
         SessionEngine(session: CoreTestSupport.session(plan), settings: settings, now: now)
     }
 
