@@ -896,6 +896,9 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | U28 | ui | (D59, v1.6) The workout | ↺ on the row just logged; the strip's Undo only at accessibility sizes; the idle strip reads "Rest … starts when you log" |
 | U29 | ui | (D59, v1.6) Plan detail and the review | "kg · repeats every 7 days"; chips wrapping onto a second line; an Add exercise row and a bordered Start per day; **Use this plan** in the menu and on the review's toggle; a check on the plan in use in the list |
 | U30 | ui | (D59, v1.6) History and Settings | "28 min · 16 sets · 13,920 kg lifted" rows; a Find an exercise row that lists every exercise; preset buttons under the three duration rows, the current one tinted; the rewritten footers |
+| U31 | unit | (D60, v1.6) A launch with no workout | `AppModel.load` calls `end()` once even though it has shown nothing — an activity left by a run that was killed is not the app's to remember, and it is the app's to clear |
+| U32 | unit | (D60, v1.6) A launch mid-workout | The resumed state is pushed exactly once, `end()` is not called, and `shownActivity` is the state of the session on disk; an unchanged tick after it pushes nothing |
+| U33 | device | (D60, v1.6) The real activity on the phone | Start a workout, force-quit the app mid-rest, reopen: one activity, still counting, not two. Finish it — the Island and the Lock Screen clear. Force-quit mid-rest, then open the app on a day with no workout: the leftover activity goes within a second |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |

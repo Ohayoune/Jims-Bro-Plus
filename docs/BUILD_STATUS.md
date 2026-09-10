@@ -1,11 +1,11 @@
 # Build status
 
-Updated 2026-09-09. **v1.6 (U0–U3, U5, U6) is built and green on branch `v1.6-refinement`
+Updated 2026-09-09. **v1.6 (U0–U3, U5–U7) is built and green on branch `v1.6-refinement`
 (pull request #2); U4 — plain words — waits for the owner's reading; the device checklist, the
 Developer Program, a release Xcode and the submission itself are the owner's.** v1.5 and
 everything before it are below, unchanged except where a later milestone corrected them.
 
-## v1.6 (U0–U6): built and green, one milestone waiting on the owner
+## v1.6 (U0–U7): built and green, one milestone waiting on the owner
 
 `docs/ITERATION_7_PLAN.md` is the v1.6 plan, built from the 2026-09-09 usability audit
 (`docs/UX_REVIEW_2026-09-09.md`): v1.5 walked on the simulators as a stranger (a clean install
@@ -16,13 +16,13 @@ on all three routes, a Release build and `tools/check_release.py`, and one commi
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **304 tests, 7 skipped, 0 failures** |
-| `swift test` | **303 tests, 0 failures** |
-| `python3 tools/check_core.py` | **303 bodies, 5,932 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **306 tests, 7 skipped, 0 failures** |
+| `swift test` | **305 tests, 0 failures** |
+| `python3 tools/check_core.py` | **305 bodies, 5,945 assertions, 0 failures** |
 | `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.5 (1) |
-| `python3 tools/check_bundle.py` | **current** (regenerated in U5 and U6; CI's bundle job was red for U1–U3's pushes until then) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in U5, U6 and U7; CI's bundle job was red for U1–U3's pushes until then) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -33,7 +33,8 @@ on all three routes, a Release build and `tools/check_release.py`, and one commi
 | U4 | Plain words (D58) | **Waiting on the owner** — two readings in the plan; not built |
 | U5 | Hierarchy (D59): Start in the bottom slot; headers in ink; small actions as buttons; a quieter grid; Undo on the row; an idle strip that says what follows; chips that wrap; Add exercise and Start per day; labelled History rows and a Find an exercise row; Settings presets; sentences for a stranger; "Use this plan" | Done |
 | U6 | Docs, checklist rows, bundle | Done |
-| — | The v1.6 device rows (U9, U10, U13, U22, U23, U28) | **Written, not run** — need the phone |
+| U7 | An activity that outlived the app (D60): the Live Activity the owner could only clear by deleting the app. `SystemActivityPresenter` holds no handle — `Activity.activities` is asked instead — and every launch reconciles the Lock Screen | Done |
+| — | The v1.6 device rows (U9, U10, U13, U22, U23, U28, U33) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.6)
 

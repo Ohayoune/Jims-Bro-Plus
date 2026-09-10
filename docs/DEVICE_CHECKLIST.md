@@ -6,7 +6,7 @@ these are here rather than automated.
 
 Everything else — 304 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
-**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, and **v1.6** U9, U10, U13, U22, U23 and U28. Y19 needs a TestFlight build, which needs the paid
+**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, and **v1.6** U9, U10, U13, U22, U23, U28 and U33. Y19 needs a TestFlight build, which needs the paid
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
@@ -149,7 +149,7 @@ Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Note
 | **Z25** | Plan → Progression → **When I hit the target**, paste the reply, Save; run a day hitting one exercise and missing another | The chip reads "Step 1 of N of your progression"; after Finish, the Progression screen shows the hit exercise at step 2 with ▸ moved and the other at "Step 1 of N · 1 try"; Home's subtitle reads "step 1 of N" until every exercise of the day moves |  |  |
 | **Z31** | History → **Set a goal** for an exercise you do (a weight you can lift for the reps), then run a workout that meets it | The Goals section shows the line and the bar; the Summary says "Goal reached: …" in green; the goal reads "reached" with the date; Plan → Progression → Copy prompt has a MY GOALS block |  |  |
 
-## v1.6 rows (new or changed in U1–U5)
+## v1.6 rows (new or changed in U1–U5, U7)
 
 | Case | What to do | Expected | Result | Notes |
 |---|---|---|---|---|
@@ -159,13 +159,16 @@ Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Note
 | **U22** | Delete the app, install, and go through the intro to a first workout with Full Body | The picker shows **Start here**; the review asks kg / lb; Home reads "Full Body A" with **Start Full Body A**; Start opens the first card with no warm-up and no permission alert; the empty weight reads *tap to type* with the hint under it; the first Log set raises the permission alert over a counting rest; the Summary ends with "Next: Full Body B, …"; Home never says a day was missed |  |  |
 | **U23** | Settings → Warm-up → 5 min, then Start | The card opens in the warm-up with **Start first set**; tapping it shows the first set with **Log set** |  |  |
 | **U28** | Log a set, then look at the row and the strip | ↺ beside the logged row's tick undoes it; the strip shows no Undo at the normal text size; before logging, the strip read "Rest … starts when you log" |  |  |
+| **U33** | Start a workout, log a set so a rest is counting, then force-quit the app (swipe it away) and reopen it. Then finish the workout. Then force-quit mid-rest again, and this time open the app on a day with no workout | After the reopen: **one** activity on the Lock Screen and in the Island, still counting — not two, and not frozen. After Finish: both clear. After the last step: the leftover activity is gone within a second of the app opening, without deleting the app |  |  |
 
 For the v1.6 rows: a `fail` on U9 points at the `.alert` modifiers in `WorkoutView`, `PlanDetailView`
 and `SessionDetailView`; on U10 at `StatusStripView`'s `done` slot and the removed keyboard toolbar;
 on U13 at the `isAccessibilitySize` branches in `WorkoutView`; on U22 at `Settings()`'s warm-up,
 `SessionRunner.apply`'s permission request, `InputDefaults.weightHint`, `ImportResult.unitsStated`
 and `PlanSchedule.missed`; on U23 at `WorkoutScreen.primary(resting:)`; on U28 at
-`WorkoutScreenModel.undoStep` and `WorkoutScreen.idleLine`.
+`WorkoutScreenModel.undoStep` and `WorkoutScreen.idleLine`; on U33 at
+`SystemActivityPresenter` (it must read `Activity.activities` rather than a stored handle) and
+`AppModel.load`'s closing `refreshActivity(force: true)`.
 
 ## When you are done
 

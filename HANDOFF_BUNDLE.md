@@ -627,7 +627,7 @@ A **Live Activity** runs for as long as a workout does. It shows the stage (Warm
 - **`WorkoutActivityState` is resolved in Core** from the same `ActiveSession` the workout screen reads, so the Island and the app cannot disagree. `WorkoutActivityState.swift` is the one file compiled into both the app and the widget extension — it is the contract between them, and depends on nothing but Foundation.
 - **ActivityKit lives behind `ActivityPresenting`**, injected exactly as `NotificationScheduling` is, so what the Lock Screen would show is a unit test rather than something only a phone can answer.
 - A state that has not changed is not pushed. A per-second tick that woke the system sixty times a minute would cost battery for no new information.
-- The activity ends when the workout does — finished **or discarded**. A countdown for a workout that no longer exists is worse than none.
+- The activity ends when the workout does — finished **or discarded**. A countdown for a workout that no longer exists is worse than none. **The app never assumes it is the process that started it** (D60, §6.35).
 - Failure is silent: a Lock Screen widget that will not start is a missing convenience, not a lost set, and the workout screen is unaffected. The user can turn Live Activities off for the app in iOS Settings, and the app simply shows nothing.
 
 The extension target is `JimmsBroActivity` (`com.ohayoune.jimmsbro.activity`), embedded in the app. It renders and nothing else.
@@ -815,6 +815,24 @@ Where the eye lands, and what looks tappable. The audit's great-grandparent tapp
 - **Plans** (§4.3, §4.4): "kg · repeats every 7 days"; chips that wrap; an Add exercise row per day; **Use this plan** for "Set as current plan" and "Set as active"; the plan in use marked with a check in the list.
 - **History** (§4.10): labelled rows; a Find an exercise row.
 - **Settings** (§4.11, §8.6): duration presets; sentences without "prompt", "imports" or "Xcode"; the goal sheet says the app never nags.
+
+### 6.35 An activity outlives the app (D60, v1.6)
+"After starting a workout the popup in the Dynamic Island and on the Lock Screen never goes away — I had to uninstall the app." Found on the phone, invisible to the simulator suite, and the first defect in this app that the user could not clear at all.
+
+A Live Activity is owned by the system, not by the app: it stays on screen when the app is terminated — swiped away, stopped from Xcode, or reclaimed while the phone sits in a pocket through a long rest — which is the entire point of one. `SystemActivityPresenter` held the `Activity` handle in a stored property, so the process that came back afterwards owned nothing:
+
+- `end()` returned early on a `nil` handle, so nothing the app could do would take the activity off the screen. It sat there until ActivityKit's own ceiling hours later, or until the app was deleted.
+- `show()` requested a **second** activity, because a `nil` handle also means "none is running" — so a resumed workout could stack activities rather than continue one.
+- The launch never asked at all: `refreshActivity` returns when the state has not changed, and on a fresh process with no workout the state is `nil` and the remembered state is `nil`.
+
+**The rule: the system's list is the only truth.** `Activity.activities` survives the launch; a stored handle does not. So `SystemActivityPresenter` keeps no state of its own:
+
+- `show` adopts whatever is already on screen (`.active` or `.stale`) and updates it, ending any duplicate; it requests a new activity only when the system has none.
+- `end` ends **every** activity of the type, not merely one this process started.
+- **Every launch reconciles**, `AppModel.load` → `refreshActivity(force: true)`: a workout still in progress adopts its activity, and anything left over from a run that was killed is ended. `force` exists because `nil == nil` is exactly the case that must not be skipped.
+- It runs after `loaded`, so D48 still holds — the launch paints before it tells the system anything.
+
+The seam is unchanged: `ActivityPresenting` still has only `show` and `end`, so the reconciliation is testable with the recorder, and what only a phone can answer is one device row (U33).
 
 ### 6.12 Calendar projection
 `Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.
@@ -2410,6 +2428,9 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | U28 | ui | (D59, v1.6) The workout | ↺ on the row just logged; the strip's Undo only at accessibility sizes; the idle strip reads "Rest … starts when you log" |
 | U29 | ui | (D59, v1.6) Plan detail and the review | "kg · repeats every 7 days"; chips wrapping onto a second line; an Add exercise row and a bordered Start per day; **Use this plan** in the menu and on the review's toggle; a check on the plan in use in the list |
 | U30 | ui | (D59, v1.6) History and Settings | "28 min · 16 sets · 13,920 kg lifted" rows; a Find an exercise row that lists every exercise; preset buttons under the three duration rows, the current one tinted; the rewritten footers |
+| U31 | unit | (D60, v1.6) A launch with no workout | `AppModel.load` calls `end()` once even though it has shown nothing — an activity left by a run that was killed is not the app's to remember, and it is the app's to clear |
+| U32 | unit | (D60, v1.6) A launch mid-workout | The resumed state is pushed exactly once, `end()` is not called, and `shownActivity` is the state of the session on disk; an unchanged tick after it pushes nothing |
+| U33 | device | (D60, v1.6) The real activity on the phone | Start a workout, force-quit the app mid-rest, reopen: one activity, still counting, not two. Finish it — the Island and the Lock Screen clear. Force-quit mid-rest, then open the app on a day with no workout: the leftover activity goes within a second |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -3962,6 +3983,33 @@ gives the coach two things they asked for in the audit.
   `HANDOFF_BUNDLE.md` regenerated; `tools/check_bundle.py` and `tools/check_release.py` pass; a
   Release build compiles.
 
+## U7 — An activity that outlived the app (D60)
+
+Not from the audit: the owner hit it running v1.6 on the phone. *"After starting a workout the
+popup in the Dynamic Island and on the Lock Screen does not go away — I had to uninstall the app
+to make it go away."* It is the first defect in this app the user could not clear by any means
+the app offered, and no simulator run would have shown it, because it needs the app to be killed
+with a workout running.
+
+A Live Activity belongs to the system and survives the app that started it — that is what it is
+for. `SystemActivityPresenter` kept the `Activity` in a stored property, so after a termination
+the new process owned nothing: `end()` returned early on the `nil` handle and the orphan could
+never be cleared, `show()` requested a *second* activity beside it, and the launch never asked at
+all, because `refreshActivity` returns when the state has not changed and a fresh process with no
+workout compares `nil` to `nil`.
+
+- **The presenter holds nothing.** `Activity.activities` is the system's own list and survives the
+  launch; a stored handle does not. `show` adopts what is on screen (`.active` or `.stale`),
+  updates it, and ends any duplicate — requesting a new one only when there is none. `end` ends
+  every activity of the type. The type becomes stateless, and its lock goes with the state.
+- **Every launch reconciles**: `AppModel.load` ends with `refreshActivity(force: true)`, after
+  `loaded = true` so D48 still holds. A workout in progress adopts its activity; anything left by
+  a killed run is ended.
+- `ActivityPresenting` does not change, so this is testable with the recorder: **U31** (a launch
+  with no workout still asks for the end) and **U32** (a launch mid-workout resumes rather than
+  ending or stacking). What only a phone can answer is **U33** on the device checklist.
+- SPEC gains §6.35 and a line in §6.17.
+
 ---
 
 ## Parked for v1.7 — the bigger bets
@@ -4292,12 +4340,12 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 `````markdown
 # Build status
 
-Updated 2026-09-09. **v1.6 (U0–U3, U5, U6) is built and green on branch `v1.6-refinement`
+Updated 2026-09-09. **v1.6 (U0–U3, U5–U7) is built and green on branch `v1.6-refinement`
 (pull request #2); U4 — plain words — waits for the owner's reading; the device checklist, the
 Developer Program, a release Xcode and the submission itself are the owner's.** v1.5 and
 everything before it are below, unchanged except where a later milestone corrected them.
 
-## v1.6 (U0–U6): built and green, one milestone waiting on the owner
+## v1.6 (U0–U7): built and green, one milestone waiting on the owner
 
 `docs/ITERATION_7_PLAN.md` is the v1.6 plan, built from the 2026-09-09 usability audit
 (`docs/UX_REVIEW_2026-09-09.md`): v1.5 walked on the simulators as a stranger (a clean install
@@ -4308,13 +4356,13 @@ on all three routes, a Release build and `tools/check_release.py`, and one commi
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **304 tests, 7 skipped, 0 failures** |
-| `swift test` | **303 tests, 0 failures** |
-| `python3 tools/check_core.py` | **303 bodies, 5,932 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **306 tests, 7 skipped, 0 failures** |
+| `swift test` | **305 tests, 0 failures** |
+| `python3 tools/check_core.py` | **305 bodies, 5,945 assertions, 0 failures** |
 | `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.5 (1) |
-| `python3 tools/check_bundle.py` | **current** (regenerated in U5 and U6; CI's bundle job was red for U1–U3's pushes until then) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in U5, U6 and U7; CI's bundle job was red for U1–U3's pushes until then) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -4325,7 +4373,8 @@ on all three routes, a Release build and `tools/check_release.py`, and one commi
 | U4 | Plain words (D58) | **Waiting on the owner** — two readings in the plan; not built |
 | U5 | Hierarchy (D59): Start in the bottom slot; headers in ink; small actions as buttons; a quieter grid; Undo on the row; an idle strip that says what follows; chips that wrap; Add exercise and Start per day; labelled History rows and a Find an exercise row; Settings presets; sentences for a stranger; "Use this plan" | Done |
 | U6 | Docs, checklist rows, bundle | Done |
-| — | The v1.6 device rows (U9, U10, U13, U22, U23, U28) | **Written, not run** — need the phone |
+| U7 | An activity that outlived the app (D60): the Live Activity the owner could only clear by deleting the app. `SystemActivityPresenter` holds no handle — `Activity.activities` is asked instead — and every launch reconciles the Lock Screen | Done |
+| — | The v1.6 device rows (U9, U10, U13, U22, U23, U28, U33) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.6)
 
@@ -5051,6 +5100,8 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.6 U5 (D59): **`ExerciseText.summary` reads "28 min · 16 sets · 13,920 kg lifted"** (`HomeActivity.duration`, the word *lifted*); **History gains a Find an exercise row** (`HistoryRoute.exercises`) because `.searchable` is not drawn on every iOS.
 - v1.6 U5 (D59): **Settings presets** (`PresetRow`) for the three durations; the units and data footers rewritten for a stranger (no "prompt", "imports" or "Xcode"); the goal sheet's "said, never enforced" becomes "shows the date and never nags"; "Set as current plan" / "Set as active" become **Use this plan**, and the Plans list marks the plan in use with a check.
 - v1.6 U6: `ITERATION_7_PLAN.md` and `UX_REVIEW_2026-09-09.md` join the bundle. Since CI checks the bundle on every push, a milestone that edits a bundled document regenerates it in the same commit; U1–U3's pushes were red on that job until U5 regenerated it, which is now a rule in `CLAUDE.md`/`AGENTS.md`.
+- v1.6 U7 (D60): **`SystemActivityPresenter` keeps no `Activity` handle.** A Live Activity outlives the process that started it, so a stored handle is a lie after a termination: `end()` returned early and could never clear the orphan, and `show()` requested a second activity beside it. `Activity.activities` — the system's own list — is asked instead, on every push, and the type is stateless.
+- v1.6 U7 (D60): **Every launch reconciles the Lock Screen.** `AppModel.load` ends with `refreshActivity(force: true)`; `force` exists because the skipped case is exactly `nil == nil` — a fresh process with no workout, which is when an orphan is on screen. It runs after `loaded = true`, so D48's rule (paint first, tell the system after) still holds.
 `````
 
 ---
@@ -5066,7 +5117,7 @@ these are here rather than automated.
 
 Everything else — 304 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
-**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, and **v1.6** U9, U10, U13, U22, U23 and U28. Y19 needs a TestFlight build, which needs the paid
+**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, and **v1.6** U9, U10, U13, U22, U23, U28 and U33. Y19 needs a TestFlight build, which needs the paid
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
@@ -5209,7 +5260,7 @@ Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Note
 | **Z25** | Plan → Progression → **When I hit the target**, paste the reply, Save; run a day hitting one exercise and missing another | The chip reads "Step 1 of N of your progression"; after Finish, the Progression screen shows the hit exercise at step 2 with ▸ moved and the other at "Step 1 of N · 1 try"; Home's subtitle reads "step 1 of N" until every exercise of the day moves |  |  |
 | **Z31** | History → **Set a goal** for an exercise you do (a weight you can lift for the reps), then run a workout that meets it | The Goals section shows the line and the bar; the Summary says "Goal reached: …" in green; the goal reads "reached" with the date; Plan → Progression → Copy prompt has a MY GOALS block |  |  |
 
-## v1.6 rows (new or changed in U1–U5)
+## v1.6 rows (new or changed in U1–U5, U7)
 
 | Case | What to do | Expected | Result | Notes |
 |---|---|---|---|---|
@@ -5219,13 +5270,16 @@ Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Note
 | **U22** | Delete the app, install, and go through the intro to a first workout with Full Body | The picker shows **Start here**; the review asks kg / lb; Home reads "Full Body A" with **Start Full Body A**; Start opens the first card with no warm-up and no permission alert; the empty weight reads *tap to type* with the hint under it; the first Log set raises the permission alert over a counting rest; the Summary ends with "Next: Full Body B, …"; Home never says a day was missed |  |  |
 | **U23** | Settings → Warm-up → 5 min, then Start | The card opens in the warm-up with **Start first set**; tapping it shows the first set with **Log set** |  |  |
 | **U28** | Log a set, then look at the row and the strip | ↺ beside the logged row's tick undoes it; the strip shows no Undo at the normal text size; before logging, the strip read "Rest … starts when you log" |  |  |
+| **U33** | Start a workout, log a set so a rest is counting, then force-quit the app (swipe it away) and reopen it. Then finish the workout. Then force-quit mid-rest again, and this time open the app on a day with no workout | After the reopen: **one** activity on the Lock Screen and in the Island, still counting — not two, and not frozen. After Finish: both clear. After the last step: the leftover activity is gone within a second of the app opening, without deleting the app |  |  |
 
 For the v1.6 rows: a `fail` on U9 points at the `.alert` modifiers in `WorkoutView`, `PlanDetailView`
 and `SessionDetailView`; on U10 at `StatusStripView`'s `done` slot and the removed keyboard toolbar;
 on U13 at the `isAccessibilitySize` branches in `WorkoutView`; on U22 at `Settings()`'s warm-up,
 `SessionRunner.apply`'s permission request, `InputDefaults.weightHint`, `ImportResult.unitsStated`
 and `PlanSchedule.missed`; on U23 at `WorkoutScreen.primary(resting:)`; on U28 at
-`WorkoutScreenModel.undoStep` and `WorkoutScreen.idleLine`.
+`WorkoutScreenModel.undoStep` and `WorkoutScreen.idleLine`; on U33 at
+`SystemActivityPresenter` (it must read `Activity.activities` rather than a stored handle) and
+`AppModel.load`'s closing `refreshActivity(force: true)`.
 
 ## When you are done
 

@@ -373,7 +373,7 @@ A **Live Activity** runs for as long as a workout does. It shows the stage (Warm
 - **`WorkoutActivityState` is resolved in Core** from the same `ActiveSession` the workout screen reads, so the Island and the app cannot disagree. `WorkoutActivityState.swift` is the one file compiled into both the app and the widget extension — it is the contract between them, and depends on nothing but Foundation.
 - **ActivityKit lives behind `ActivityPresenting`**, injected exactly as `NotificationScheduling` is, so what the Lock Screen would show is a unit test rather than something only a phone can answer.
 - A state that has not changed is not pushed. A per-second tick that woke the system sixty times a minute would cost battery for no new information.
-- The activity ends when the workout does — finished **or discarded**. A countdown for a workout that no longer exists is worse than none.
+- The activity ends when the workout does — finished **or discarded**. A countdown for a workout that no longer exists is worse than none. **The app never assumes it is the process that started it** (D60, §6.35).
 - Failure is silent: a Lock Screen widget that will not start is a missing convenience, not a lost set, and the workout screen is unaffected. The user can turn Live Activities off for the app in iOS Settings, and the app simply shows nothing.
 
 The extension target is `JimmsBroActivity` (`com.ohayoune.jimmsbro.activity`), embedded in the app. It renders and nothing else.
@@ -561,6 +561,24 @@ Where the eye lands, and what looks tappable. The audit's great-grandparent tapp
 - **Plans** (§4.3, §4.4): "kg · repeats every 7 days"; chips that wrap; an Add exercise row per day; **Use this plan** for "Set as current plan" and "Set as active"; the plan in use marked with a check in the list.
 - **History** (§4.10): labelled rows; a Find an exercise row.
 - **Settings** (§4.11, §8.6): duration presets; sentences without "prompt", "imports" or "Xcode"; the goal sheet says the app never nags.
+
+### 6.35 An activity outlives the app (D60, v1.6)
+"After starting a workout the popup in the Dynamic Island and on the Lock Screen never goes away — I had to uninstall the app." Found on the phone, invisible to the simulator suite, and the first defect in this app that the user could not clear at all.
+
+A Live Activity is owned by the system, not by the app: it stays on screen when the app is terminated — swiped away, stopped from Xcode, or reclaimed while the phone sits in a pocket through a long rest — which is the entire point of one. `SystemActivityPresenter` held the `Activity` handle in a stored property, so the process that came back afterwards owned nothing:
+
+- `end()` returned early on a `nil` handle, so nothing the app could do would take the activity off the screen. It sat there until ActivityKit's own ceiling hours later, or until the app was deleted.
+- `show()` requested a **second** activity, because a `nil` handle also means "none is running" — so a resumed workout could stack activities rather than continue one.
+- The launch never asked at all: `refreshActivity` returns when the state has not changed, and on a fresh process with no workout the state is `nil` and the remembered state is `nil`.
+
+**The rule: the system's list is the only truth.** `Activity.activities` survives the launch; a stored handle does not. So `SystemActivityPresenter` keeps no state of its own:
+
+- `show` adopts whatever is already on screen (`.active` or `.stale`) and updates it, ending any duplicate; it requests a new activity only when the system has none.
+- `end` ends **every** activity of the type, not merely one this process started.
+- **Every launch reconciles**, `AppModel.load` → `refreshActivity(force: true)`: a workout still in progress adopts its activity, and anything left over from a run that was killed is ended. `force` exists because `nil == nil` is exactly the case that must not be skipped.
+- It runs after `loaded`, so D48 still holds — the launch paints before it tells the system anything.
+
+The seam is unchanged: `ActivityPresenting` still has only `show` and `end`, so the reconciliation is testable with the recorder, and what only a phone can answer is one device row (U33).
 
 ### 6.12 Calendar projection
 `Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.

@@ -198,6 +198,33 @@ gives the coach two things they asked for in the audit.
   `HANDOFF_BUNDLE.md` regenerated; `tools/check_bundle.py` and `tools/check_release.py` pass; a
   Release build compiles.
 
+## U7 — An activity that outlived the app (D60)
+
+Not from the audit: the owner hit it running v1.6 on the phone. *"After starting a workout the
+popup in the Dynamic Island and on the Lock Screen does not go away — I had to uninstall the app
+to make it go away."* It is the first defect in this app the user could not clear by any means
+the app offered, and no simulator run would have shown it, because it needs the app to be killed
+with a workout running.
+
+A Live Activity belongs to the system and survives the app that started it — that is what it is
+for. `SystemActivityPresenter` kept the `Activity` in a stored property, so after a termination
+the new process owned nothing: `end()` returned early on the `nil` handle and the orphan could
+never be cleared, `show()` requested a *second* activity beside it, and the launch never asked at
+all, because `refreshActivity` returns when the state has not changed and a fresh process with no
+workout compares `nil` to `nil`.
+
+- **The presenter holds nothing.** `Activity.activities` is the system's own list and survives the
+  launch; a stored handle does not. `show` adopts what is on screen (`.active` or `.stale`),
+  updates it, and ends any duplicate — requesting a new one only when there is none. `end` ends
+  every activity of the type. The type becomes stateless, and its lock goes with the state.
+- **Every launch reconciles**: `AppModel.load` ends with `refreshActivity(force: true)`, after
+  `loaded = true` so D48 still holds. A workout in progress adopts its activity; anything left by
+  a killed run is ended.
+- `ActivityPresenting` does not change, so this is testable with the recorder: **U31** (a launch
+  with no workout still asks for the end) and **U32** (a launch mid-workout resumes rather than
+  ending or stacking). What only a phone can answer is **U33** on the device checklist.
+- SPEC gains §6.35 and a line in §6.17.
+
 ---
 
 ## Parked for v1.7 — the bigger bets

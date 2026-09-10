@@ -216,9 +216,13 @@ extension AppModel {
     /// when there is no workout to show. Called after every event and on every tick; a state
     /// that has not changed is not pushed, so a per-second tick does not wake the system
     /// sixty times a minute.
-    func refreshActivity(now: Date = Date()) async {
+    ///
+    /// D60 (v1.6): `force` is the launch. A fresh process has shown nothing and has no workout,
+    /// so `nil == nil` would return here and never ask for the end — which is precisely the
+    /// case where an activity left over from the last run is still on the Lock Screen.
+    func refreshActivity(now: Date = Date(), force: Bool = false) async {
         let state = library.engine.map(\.active).flatMap { WorkoutActivityState.of($0, now: now) }
-        guard state != shownActivity else { return }
+        guard force || state != shownActivity else { return }
         shownActivity = state
         if let state {
             await activities.show(state)

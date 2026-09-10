@@ -166,6 +166,13 @@ enum SaveFailure: Equatable {
             do { try await store.save(settings: library.settings) } catch { saveFailure = .settings(library.settings) }
         }
         loaded = true
+
+        // D60 (v1.6): the Lock Screen and the Dynamic Island are the one piece of this app's
+        // state that the app does not own — an activity outlives the process that started it.
+        // So the first thing a launch owes them is the truth: adopt the one belonging to a
+        // workout still in progress, end anything left over from a run that was killed. After
+        // `loaded`, because D48 says a launch paints before it does its side effects.
+        await refreshActivity(now: now, force: true)
     }
 
     var startCard: StartCard { StartCard.current(library: library) }
