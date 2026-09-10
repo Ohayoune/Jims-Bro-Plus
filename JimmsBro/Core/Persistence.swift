@@ -51,7 +51,8 @@ extension Settings {
             weightStepLb: container.value(.weightStepLb, or: defaults.weightStepLb),
             weightIncrementKg: container.value(.weightIncrementKg, or: defaults.weightIncrementKg),
             weightIncrementLb: container.value(.weightIncrementLb, or: defaults.weightIncrementLb),
-            introSeen: container.value(.introSeen, or: defaults.introSeen))
+            introSeen: container.value(.introSeen, or: defaults.introSeen),
+            compactNotation: container.value(.compactNotation, or: defaults.compactNotation))
     }
 }
 

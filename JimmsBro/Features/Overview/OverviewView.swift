@@ -63,7 +63,8 @@ struct OverviewView: View {
     /// more than one exercise the rows name it instead of showing the shared group tag.
     private func row(session: Session, index: Int, nameRows: Bool) -> some View {
         let step = session.steps[index]
-        let label = StepCard.rowLabel(session: session, step: index, naming: nameRows)
+        let label = StepCard.rowLabel(session: session, step: index, naming: nameRows,
+                                      wording: model.settings.wording)
         return HStack {
             Image(systemName: icon(step.status))
                 .foregroundStyle(step.status == .logged ? Color.done : .secondary)
@@ -96,10 +97,11 @@ struct OverviewView: View {
         case .pending:
             // D55 (v1.6): the set's own target. The note belongs to the exercise, said once on
             // the card; printed here it repeated forty words on every row.
-            return StepCard.targetLine(session: session, step: index, notes: false)
+            return StepCard.targetLine(session: session, step: index, notes: false,
+                                       wording: model.settings.wording)
         case .skipped, .logged:
             // The same sentence Session detail prints, so the two screens cannot drift apart.
-            return ExerciseText.result(step)
+            return ExerciseText.result(step, wording: model.settings.wording)
         }
     }
 

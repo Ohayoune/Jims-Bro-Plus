@@ -143,13 +143,14 @@ the five-year-old, and costs the coach nothing they will notice.
 - **The Summary says what happens next.** One line under the headline: *"Next: Full Body B,
   Friday"*, from the same schedule the calendar draws, now that the rotation has advanced.
 
-## U4 — Plain words (D58) — the owner's reading
+## U4 — Plain words (D58) — **Reading B, chosen 2026-09-09**
 
 The audit's largest finding is not a defect: the app's notation — "5 (4–6) · 100 kg · last
 10 @ 100", "12 (8–12) · 24 kg", "AMRAP · 20 kg", "drop 1 of 2", the A / B badges, "kg ·
 rotation", "Set as current plan" — is correct and is what a coach reads at a glance, and it is
 also the single biggest reason the other two users cannot. This changes the app's voice, so it is
-the owner's call. Two readings, and the second is recommended:
+the owner's call. Two readings, and the second was recommended and **chosen**; it is built,
+with SPEC §4.0's rule rewritten and §6.36 added, and U34–U37 in `TEST_CASES.md`:
 
 - **Reading A — compact stays, words are a tap away.** Notation unchanged; the first time a
   screen shows a group badge, a drop or an AMRAP, a one-line explanation appears beneath it, once

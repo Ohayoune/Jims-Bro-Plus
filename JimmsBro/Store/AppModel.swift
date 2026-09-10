@@ -328,6 +328,8 @@ enum SaveFailure: Equatable {
     func setSound(_ on: Bool) async { await update { $0.sound = on } }
     func setVibration(_ on: Bool) async { await update { $0.vibration = on } }
     func setKeepAwake(_ on: Bool) async { await update { $0.keepAwake = on } }
+    /// D58 (v1.6): the coach's switch — v1.5's notation back everywhere.
+    func setCompactNotation(_ on: Bool) async { await update { $0.compactNotation = on } }
     /// The step is per unit, so switching units doesn't silently change the other one.
     func setWeightStep(_ step: Double, for units: WeightUnit) async {
         let clamped = min(100, max(0.1, (step * 10).rounded() / 10))

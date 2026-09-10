@@ -340,6 +340,7 @@ struct ImportView: View {
 /// their exercises with per-set targets, material warnings are shown and cleanup warnings are
 /// folded behind Details, and the plan becomes the current one unless you say otherwise.
 struct PlanReviewSheet: View {
+    @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     let plan: Plan
     /// D46 (v1.4): a built-in plan's paragraph — what it is and why — shown above the days.
@@ -431,7 +432,8 @@ struct PlanReviewSheet: View {
                     ForEach(day.exercises) { exercise in
                         VStack(alignment: .leading, spacing: 2) {
                             Text(exercise.name).font(.footnote)
-                            Text(TargetText.summary(exercise, units: shownUnits))
+                            Text(TargetText.summary(exercise, units: shownUnits,
+                                                    wording: model.settings.wording))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)

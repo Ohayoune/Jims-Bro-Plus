@@ -403,6 +403,24 @@ enum Phase: Codable, Equatable {
 }
 private struct EmptyPayload: Codable, Equatable {}
 enum TimerBeep: String, Codable, Hashable { case warning, end, minimum }
+/// D58 (v1.6): which words the app uses.
+///
+/// The 2026-09-09 audit's largest finding was not a defect. The app's notation — "5 (4–6) ·
+/// 100 kg · last 10 @ 100", "AMRAP", "drop 1 of 2", the A / B badges — is correct, and is what
+/// a coach reads at a glance. It is also the single biggest reason the audit's other two users,
+/// a great-grandparent and a five-year-old, could not read the screen at all. Reading B of two:
+/// the app speaks plainly by default and keeps the notation behind a switch, so neither user is
+/// chosen over the other.
+///
+/// Only rendered strings change. The engine, the plan format, the prompts and the fixtures do
+/// not know this type exists.
+enum Wording: Sendable {
+    /// "Aim 4–6 reps · 100 kg", "Last time 10 × 100 kg", "paired with Tricep Pushdown".
+    case plain
+    /// v1.5's forms, unchanged, for someone who reads them faster: "4–6 · 100 kg", "10 @ 100".
+    case compact
+}
+
 struct Settings: Codable, Equatable {
     var units: WeightUnit = .kg
     var defaultRestSeconds = 90
@@ -432,11 +450,18 @@ struct Settings: Codable, Equatable {
     /// side, so Delete all data brings the intro back (a first launch by choice) and a backup
     /// carries it. Absent from a file written before v1.4, which reads as not seen.
     var introSeen = false
+    /// D58 (v1.6): the coach's switch. Off — the default — and the app speaks in words; on, and
+    /// it goes back to v1.5's notation everywhere. Absent from a file written before v1.6,
+    /// which reads as off: an existing phone gets the words too, because the audit found the
+    /// notation was as opaque to the owner's other two users on day 400 as on day one.
+    var compactNotation = false
     enum CodingKeys: String, CodingKey {
         case units, defaultRestSeconds, warmUpSeconds, transitionRestSeconds, sound, vibration,
              keepAwake, weightStepKg, weightStepLb, weightIncrementKg, weightIncrementLb,
-             introSeen
+             introSeen, compactNotation
     }
+    /// Which grammar the screens use. One place, so no view decides for itself.
+    var wording: Wording { compactNotation ? .compact : .plain }
     func weightStep(for units: WeightUnit) -> Double { units == .kg ? weightStepKg : weightStepLb }
     func weightIncrement(for units: WeightUnit) -> Double {
         units == .kg ? weightIncrementKg : weightIncrementLb

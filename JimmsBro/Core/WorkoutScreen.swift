@@ -197,15 +197,18 @@ enum WorkoutScreen {
             stage: WorkoutStage.current(active: active, step: index),
             completion: WorkoutStage.progress(session),
             elapsed: TargetText.time(wholeSeconds(SessionStats.duration(session, now: now))),
-            progress: StepCard.progress(session: session, step: index),
+            progress: StepCard.progress(session: session, step: index,
+                                        wording: settings.wording),
             exerciseName: exercise.name,
-            targetLine: StepCard.targetLine(session: session, step: index),
-            rows: StepCard.setRows(session: session, step: index, history: history),
+            targetLine: StepCard.targetLine(session: session, step: index,
+                                            wording: settings.wording),
+            rows: StepCard.setRows(session: session, step: index, history: history,
+                                   wording: settings.wording),
             inputs: inputs(values: values, target: target, units: session.units),
             timer: timed ? timer(active: active, step: index, work: target.work,
                                  warning: target.warning, now: now) : nil,
             strip: strip(active: active, step: index, work: target.work, warning: target.warning,
-                         history: history, now: now),
+                         wording: settings.wording, history: history, now: now),
             primary: primary(work: target.work, running: active.timerRunning, resting: restKind),
             spoken: StepCard.spoken(session: session, step: index),
             undoStep: active.canUndo ? active.lastCompletedStep : nil)
@@ -273,6 +276,7 @@ enum WorkoutScreen {
     /// SPEC §4.6 and §4.7. Rest wins over a block-done line, because only one of them can be
     /// true at a time: a block that just ended never starts a rest (§6.3).
     static func strip(active: ActiveSession, step: Int, work: WorkTarget, warning: Int?,
+                      wording: Wording = .plain,
                       history: [Session], now: Date) -> StatusStrip {
         let session = active.session
         var strip = StatusStrip()
@@ -289,7 +293,7 @@ enum WorkoutScreen {
             strip.title = remaining > 0 ? rest.kind.title : rest.kind.overTitle
             strip.restKind = rest.kind
             strip.skipTitle = rest.kind.skipTitle
-            strip.next = nextLine(session: session, step: rest.nextStep)
+            strip.next = nextLine(session: session, step: rest.nextStep, wording: wording)
             // A block that ended and then started this walk still says what finished — but on
             // the strip's own line, not squeezed in beside the countdown, where it wrapped and
             // truncated its own advice. "Next:" would be redundant here anyway: the next
@@ -351,14 +355,16 @@ enum WorkoutScreen {
         return "Then on to \(exercise.name)"
     }
 
-    /// "Next: Bench Press · set 2 of 3 · 8–12 · 60 kg".
-    static func nextLine(session: Session, step index: Int) -> String? {
+    /// "Next: Bench Press · set 2 of 3 · Aim 8–12 reps · 60 kg".
+    static func nextLine(session: Session, step index: Int,
+                         wording: Wording = .plain) -> String? {
         guard let step = session.steps[safe: index],
               let exercise = session.exercises[safe: step.exerciseIndex],
               let target = session.target(at: index) else { return nil }
         let work = SetTarget(work: target.work, weight: target.weight, restSeconds: 0, inReserve: target.reserve)
         return "Next: \(exercise.name) · set \(step.setIndex + 1) of \(exercise.targets.count) · "
-            + TargetText.target(work, range: exercise.repRange, units: session.units)
+            + TargetText.target(work, range: exercise.repRange, units: session.units,
+                                wording: wording)
     }
 
     /// "set 0:34" — how long the set that was just logged took (D19), small text only.

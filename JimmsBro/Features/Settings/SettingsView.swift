@@ -28,6 +28,7 @@ struct SettingsView: View {
                 restSection
                 alertsSection
                 screenSection
+                wordingSection
                 homeSection
                 dataSection
                 aboutSection
@@ -127,6 +128,21 @@ struct SettingsView: View {
                 set: { on in Task { await model.setKeepAwake(on) } }))
         } footer: {
             Text("During a workout only. The screen locks normally everywhere else.")
+        }
+    }
+
+    /// D58 (v1.6): the app writes its targets in words. This puts the notation back for
+    /// someone who reads it faster than the sentence.
+    private var wordingSection: some View {
+        Section {
+            Toggle("Compact notation", isOn: Binding(
+                get: { model.settings.compactNotation },
+                set: { on in Task { await model.setCompactNotation(on) } }))
+        } footer: {
+            Text(model.settings.compactNotation
+                 ? "Targets read \"5 (4–6) · 100 kg\" and past sets read \"10 @ 100\"."
+                 : "Targets read \"Aim 4–6 reps · 100 kg\" and past sets read \"10 × 100 kg\". "
+                 + "Turn this on for the shorter notation.")
         }
     }
 

@@ -92,6 +92,7 @@ Rewritten in v1.1's R2 milestone. The v1 text is kept underneath each rule that 
 - Show a line only when it has content (no "Notes: none", no empty "Last time").
 - Tab bar with four tabs: **Home · Plans · History · Settings**. No other navigation chrome on Home.
 - **Zones do not move.** Within one task, a control keeps its position across every state of that task: nothing appears, disappears or shifts under the thumb between working, resting and timed work (§4.5, D22, P1).
+- **The app speaks in words, and keeps the notation behind a switch** (v1.6, D58, §6.36). A target reads *"Aim 4–6 reps · 100 kg"*, a past set *"Last time 10 × 100 kg"* on its own line and never with "@", an exercise *"3 sets of 8–12 reps · 60 kg"*, a superset member *"paired with Tricep Pushdown"* rather than a bare **A**, a drop *"lighter set 1 of 2"* and, on the exercise's line, *"then lighter, as many as you can"*; "AMRAP" is *"as many reps as you can"*, an effort target *"stop 2 short of failure"*, and every button says the thing rather than the term — **Use this plan**, *"repeats every 7 days"* (D59). **Settings → Compact notation** restores v1.5's forms everywhere at once. Only rendered strings have two grammars: the engine, the plan format, the prompts (§7), the exports and the fixtures know nothing about this.
 - **Every confirmation shows its way out** (v1.6, D56). A confirmation presented from a menu is an alert with two named buttons, never a `confirmationDialog`: from a menu anchor a dialog draws as a popover on iOS 26 and drops its cancel-role button. Finish is never red — it saves; only Discard and Delete are.
 
 ### 4.1 Home (D18, rewritten in v1.1's R3)
@@ -579,6 +580,32 @@ A Live Activity is owned by the system, not by the app: it stays on screen when 
 - It runs after `loaded`, so D48 still holds — the launch paints before it tells the system anything.
 
 The seam is unchanged: `ActivityPresenting` still has only `show` and `end`, so the reconciliation is testable with the recorder, and what only a phone can answer is one device row (U33).
+
+### 6.36 Plain words (D58, v1.6)
+The 2026-09-09 audit's largest finding was not a defect. "5 (4–6) · 100 kg · last 10 @ 100" is correct, dense and exactly what a coach reads at a glance — and it was the single biggest reason the audit's other two readers, a great-grandparent and a five-year-old, could not read the screen at all. Two readings went to the owner; **Reading B** was chosen: the app speaks plainly by default, and the notation becomes a setting.
+
+`Wording` (`.plain` / `.compact`) is chosen in one place — `Settings.compactNotation`, off on a fresh install and absent from any file written before v1.6, which reads as off. `WorkoutScreen.model(settings:)` passes it down; no view decides for itself.
+
+| | Compact (v1.5, and the switch) | Plain (the default) |
+|---|---|---|
+| A target | `4–6 · 100 kg` | `Aim 4–6 reps · 100 kg` |
+| A fixed count in a range | `5 (4–6) · 100 kg` | `Aim 4–6 reps · 100 kg` — the range is what is asked; the prefill puts 5 in the field |
+| Timed | `45 s`, `30+ s` | `For 45 seconds`, `For at least 30 seconds` |
+| AMRAP | `AMRAP`, `10+` | `As many reps as you can`, `Aim at least 10 reps` |
+| An exercise | `3 × 8–12 · 60 kg` | `3 sets of 8–12 reps · 60 kg` |
+| Climbing weights | `24 / 26 / 28 kg` | `24, then 26, then 28 kg` |
+| A superset member | `A · Set 2 of 4` | `Set 2 of 4 · paired with Tricep Pushdown` |
+| A superset round | `A · round 2 of 3 · Incline Press` | `Round 2 of 3 · Incline Press` |
+| A drop | `drop 1 of 2`; `· 2 drops` | `lighter set 1 of 2`; `· then lighter, as many as you can` |
+| A logged set | `10 @ 80` | `10 × 80` |
+| The row's second line | `last 10 @ 100` | `Last time 10 × 100 kg`, on its own line |
+| An effort target | `2 in reserve` | `stop 2 short of failure` |
+
+- **A row that names its own exercise does not also carry the pairing** — in a superset the rows are already distinguishable, and either form would only repeat what the row beside it says (`StepCard.rowLabel`, `group: false`).
+- **VoiceOver speaks the plain forms** whatever the switch says (§9): it was already written out rather than read off the screen, and "lighter set" is what it now says for a drop.
+- **Two things keep the compact forms whatever the setting**, because no person reads them as a sentence: the chatbot prompt (§7 — PROMPT.md pins it, and a machine reads it), and the progression ladder's columns (`w1 8 × 80 kg · w2 …`, which is a specification of what the plan will do). The CSV export has no grammar to choose: every value is its own column, so nothing there was ever a sentence.
+
+*(The other reading, kept for the record: leave the notation and explain each form once per install the first time it appears. It was the smaller change and would have left the numbers exactly as the owner reads them, but it teaches a notation rather than removing the need for one, and it says nothing on the four-hundredth day.)*
 
 ### 6.12 Calendar projection
 `Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.

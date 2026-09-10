@@ -265,7 +265,8 @@ MY PLAN
     static func planListing(_ plan: Plan) -> String {
         plan.days.map { day -> String in
             let exercises = day.exercises.map { exercise -> String in
-                var parts = [TargetText.summary(exercise, units: plan.units)]
+                // D58 (v1.6): the prompt is read by a chatbot, not by a person, and PROMPT.md pins it.
+                var parts = [TargetText.summary(exercise, units: plan.units, wording: .compact)]
                 if let rest = exercise.sets.first?.restSeconds { parts.append("rest \(rest) s") }
                 if exercise.bodyweight { parts.append("bodyweight") }
                 if let group = exercise.group { parts.append("superset \(group)") }
@@ -309,7 +310,7 @@ MY PLAN
                 // D51 (v1.5): the sets were not to failure, and the chatbot should know.
                 if let done = session.exercises.first(where: { normalized($0.name) == normalized(exercise.name) }) {
                     let reserves = Set(steps.map { done.targets[safe: $0.setIndex]?.inReserve })
-                    if reserves.count == 1, let n = reserves.first ?? nil { text += " · \(TargetText.reserve(n))" }
+                    if reserves.count == 1, let n = reserves.first ?? nil { text += " · \(TargetText.reserve(n, wording: .compact))" }
                 }
                 return text
             }

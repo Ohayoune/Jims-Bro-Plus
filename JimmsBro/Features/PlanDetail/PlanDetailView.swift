@@ -269,6 +269,7 @@ struct PlanDetailView: View {
 }
 
 private struct ExerciseRow: View {
+    @Environment(AppModel.self) private var model
     let exercise: Exercise
     let units: WeightUnit
 
@@ -296,7 +297,7 @@ private struct ExerciseRow: View {
     /// varies across the sets instead of repeating the first set's target as if it were all of them.
     private var detail: String {
         guard let first = exercise.sets.first else { return "No sets" }
-        var parts = [TargetText.summary(exercise, units: units)]
+        var parts = [TargetText.summary(exercise, units: units, wording: model.settings.wording)]
         parts.append("rest \(first.restSeconds) s")
         if exercise.bodyweight { parts.append("bodyweight") }
         return parts.joined(separator: " · ")

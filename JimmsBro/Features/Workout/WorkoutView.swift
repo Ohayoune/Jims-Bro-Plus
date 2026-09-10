@@ -576,7 +576,7 @@ private struct SetRowView: View {
                     .font(.footnote.monospacedDigit())
                     .foregroundStyle(row.isCurrent ? .primary : .secondary)
                 if row.isCurrent, let last = row.lastTime {
-                    Text("last \(last)").font(.caption2).foregroundStyle(.secondary)
+                    Text(last).font(.caption2).foregroundStyle(.secondary)
                 }
             }
             .multilineTextAlignment(.trailing)

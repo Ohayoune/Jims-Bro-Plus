@@ -63,7 +63,7 @@ final class SummaryAndVisualTests: XCTestCase {
         let variedThen = session([12, 10, 8], [24, 26, 28], daysAgo: 7)
         let variedNow = session([12, 10, 8], [24, 26, 30], daysAgo: 0)
         let varied = compare(variedNow, [variedThen])
-        XCTAssertEqual(varied.rows, ["12 @ 24 → 12 @ 24", "10 @ 26 → 10 @ 26", "8 @ 28 → 8 @ 30"])
+        XCTAssertEqual(varied.rows, ["12 × 24 → 12 × 24", "10 × 26 → 10 × 26", "8 × 28 → 8 × 30"])
         XCTAssertEqual(varied.headline, "Volume up 16 kg")
 
         // A comparison needs something on both sides.
@@ -122,15 +122,16 @@ final class SummaryAndVisualTests: XCTestCase {
     func testPlanDetailShowsPerSetVariation() throws {
         let plan = CoreTestSupport.plan(sets: 3)
         let straight = try XCTUnwrap(plan.days.first?.exercises.first)
-        XCTAssertEqual(TargetText.summary(straight, units: .kg), "3 × 8–12 · 60 kg")
+        XCTAssertEqual(TargetText.summary(straight, units: .kg, wording: .compact), "3 × 8–12 · 60 kg")
 
         var pyramid = straight
         pyramid.sets = [SetTarget(work: .reps(.range(min: 8, max: 12)), weight: 24, restSeconds: 90),
                         SetTarget(work: .reps(.range(min: 8, max: 12)), weight: 26, restSeconds: 90),
                         SetTarget(work: .reps(.range(min: 8, max: 12)), weight: 28, restSeconds: 90)]
-        XCTAssertEqual(TargetText.summary(pyramid, units: .kg), "3 × 8–12 · 24 / 26 / 28 kg")
+        XCTAssertEqual(TargetText.summary(pyramid, units: .kg, wording: .compact),
+                       "3 × 8–12 · 24 / 26 / 28 kg")
         XCTAssertNotEqual(TargetText.summary(pyramid, units: .kg),
-                          TargetText.summary(straight, units: .kg),
+                          TargetText.summary(straight, units: .kg),  // plain, the default
                           "v1 printed the same line for both, which is the defect this fixes")
     }
 }

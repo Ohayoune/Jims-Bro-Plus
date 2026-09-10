@@ -221,7 +221,8 @@ extension AppModel {
     /// so `nil == nil` would return here and never ask for the end — which is precisely the
     /// case where an activity left over from the last run is still on the Lock Screen.
     func refreshActivity(now: Date = Date(), force: Bool = false) async {
-        let state = library.engine.map(\.active).flatMap { WorkoutActivityState.of($0, now: now) }
+        let state = library.engine.map(\.active)
+            .flatMap { WorkoutActivityState.of($0, now: now, wording: settings.wording) }
         guard force || state != shownActivity else { return }
         shownActivity = state
         if let state {

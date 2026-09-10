@@ -49,17 +49,15 @@ enum ExerciseText {
         return longest.map { "Best: \(TargetText.time($0))" }
     }
 
-    /// One logged step as the detail screens show it: "10 @ 60 · 0:34".
-    static func result(_ step: SessionStep) -> String {
+    /// One logged step as the detail screens show it: "10 × 60 · 0:34". D58 (v1.6): the same
+    /// sentence the workout's own rows use, so the two cannot drift apart in either grammar.
+    static func result(_ step: SessionStep, wording: Wording = .plain) -> String {
         switch step.status {
         case .pending: return "—"
         case .skipped: return "skipped"
         case .logged:
             guard let result = step.result else { return "" }
-            var text = result.reps.map(String.init) ?? result.seconds.map(TargetText.time) ?? ""
-            if let weight = result.weight { text += " @ \(TargetText.number(weight))" }
-            if let seconds = step.setSeconds { text += " · \(TargetText.time(seconds))" }
-            return text
+            return StepCard.resultText(result, setSeconds: step.setSeconds, wording: wording)
         }
     }
 

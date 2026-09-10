@@ -164,11 +164,13 @@ final class WorkoutScreenTests: XCTestCase {
         XCTAssertEqual(screen.rows.count, 3, "only this exercise's sets, not the whole day")
         XCTAssertEqual(screen.rows.map(\.status), [.logged, .skipped, .pending])
         XCTAssertEqual(screen.rows.map(\.isCurrent), [false, false, true])
-        XCTAssertEqual(screen.rows[0].value, "11 @ 62.5",
+        XCTAssertEqual(screen.rows[0].value, "11 × 62.5",
                        "D19: the row says what was lifted, not how long it took")
         XCTAssertEqual(screen.rows[1].value, "skipped")
-        XCTAssertEqual(screen.rows[2].value, "8–12 · 60 kg", "an upcoming row shows its target")
-        XCTAssertEqual(screen.rows[2].lastTime, "9 @ 60", "the current row says what to beat")
+        XCTAssertEqual(screen.rows[2].value, "Aim 8–12 reps · 60 kg", "an upcoming row shows its target")
+        // D58 (v1.6): the row's second line is a sentence, and it carries its unit.
+        XCTAssertEqual(screen.rows[2].lastTime, "Last time 9 × 60 kg",
+                       "the current row says what to beat")
         XCTAssertEqual(screen.progress, "Exercise 1 of 2 · Set 3 of 3")
 
         // The exercise's notes belong to the exercise's own line, once — not to each of its rows.
@@ -181,8 +183,8 @@ final class WorkoutScreenTests: XCTestCase {
                          importedAt: now, sourceText: "", cycle: [.day(0)])
         let notedEngine = SessionEngine(session: CoreTestSupport.session(noted), settings: CoreTestSupport.classic, now: now)
         let withNotes = try XCTUnwrap(WorkoutScreen.model(active: notedEngine.active, history: [], now: now))
-        XCTAssertEqual(withNotes.targetLine, "8–12 · 80 kg · Pause on chest")
-        XCTAssertEqual(withNotes.rows.map(\.value), Array(repeating: "8–12 · 80 kg", count: 3),
+        XCTAssertEqual(withNotes.targetLine, "Aim 8–12 reps · 80 kg · Pause on chest")
+        XCTAssertEqual(withNotes.rows.map(\.value), Array(repeating: "Aim 8–12 reps · 80 kg", count: 3),
                        "four rows repeating the same note is noise, not information")
 
         // A superset lists the round in front of you, not every round of the block.
@@ -190,7 +192,7 @@ final class WorkoutScreenTests: XCTestCase {
                                                                   group: "A"))
         let round = try XCTUnwrap(WorkoutScreen.model(active: grouped.active, history: [], now: now))
         XCTAssertEqual(round.rows.count, 2)
-        XCTAssertEqual(round.progress, "A · round 1 of 2 · Bench Press")
+        XCTAssertEqual(round.progress, "Round 1 of 2 · Bench Press")
         // Both rows of a superset round would otherwise read "A · Set 1 of 2" and be
         // indistinguishable, which is the defect M5 fixed in the Overview and R2 must not
         // reintroduce on the screen you are actually working from.

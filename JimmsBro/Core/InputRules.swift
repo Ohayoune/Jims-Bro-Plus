@@ -91,15 +91,48 @@ enum StepCard {
     }
 
     /// "Set 2 of 4", "Set 2 of 4 · drop 1 of 2", or "A · Set 2 of 4" for a superset member.
-    static func setLine(session: Session, step index: Int) -> String {
+    ///
+    /// D58 (v1.6): plain says who the exercise is paired with instead of tagging it "A", and
+    /// calls a drop what it is — a lighter set. `group: false` is for a row that already names
+    /// its exercise, where either form would only repeat what the rows around it say.
+    static func setLine(session: Session, step index: Int, wording: Wording = .plain,
+                        group: Bool = true) -> String {
         guard let step = session.steps[safe: index],
               let exercise = session.exercises[safe: step.exerciseIndex] else { return "" }
         var text = "Set \(step.setIndex + 1) of \(exercise.targets.count)"
-        if let group = exercise.group { text = "\(group) · " + text }
+        if group, let tag = exercise.group {
+            switch wording {
+            case .compact: text = "\(tag) · " + text
+            case .plain:
+                if let phrase = pairedWith(session: session, step: index) { text += " · " + phrase }
+                else { text = "\(tag) · " + text }
+            }
+        }
         if step.dropIndex > 0, let target = exercise.targets[safe: step.setIndex] {
-            text += " · drop \(step.dropIndex) of \(target.drops.count)"
+            text += " · " + drop(step.dropIndex, of: target.drops.count, wording: wording)
         }
         return text
+    }
+
+    /// "paired with Tricep Pushdown", or "paired with X and Y" in a longer round. Nil when the
+    /// block holds nothing else — a group tag on a lone exercise says nothing plain.
+    static func pairedWith(session: Session, step index: Int) -> String? {
+        guard let step = session.steps[safe: index] else { return nil }
+        var names: [String] = []
+        for other in session.steps where other.blockIndex == step.blockIndex
+            && other.exerciseIndex != step.exerciseIndex {
+            if let name = session.exercises[safe: other.exerciseIndex]?.name,
+               !names.contains(name) { names.append(name) }
+        }
+        guard !names.isEmpty else { return nil }
+        let list = names.count == 1 ? names[0]
+            : names.dropLast().joined(separator: ", ") + " and " + names[names.count - 1]
+        return "paired with \(list)"
+    }
+
+    /// "drop 1 of 2" / "lighter set 1 of 2".
+    static func drop(_ index: Int, of count: Int, wording: Wording = .plain) -> String {
+        wording == .compact ? "drop \(index) of \(count)" : "lighter set \(index) of \(count)"
     }
 
     /// The label a list row uses for a step. In a block holding more than one exercise (a
@@ -107,13 +140,13 @@ enum StepCard {
     /// to tell the two exercises apart, so the row names the exercise and drops the group tag
     /// that is no longer telling you anything. Shared by the workout's set rows, the Overview
     /// and Session detail, which each used to work this out for themselves.
-    static func rowLabel(session: Session, step index: Int, naming: Bool) -> String {
-        let line = setLine(session: session, step: index)
+    static func rowLabel(session: Session, step index: Int, naming: Bool,
+                         wording: Wording = .plain) -> String {
         guard naming, let step = session.steps[safe: index],
-              let exercise = session.exercises[safe: step.exerciseIndex] else { return line }
-        let bare = exercise.group.map { group in
-            line.hasPrefix("\(group) · ") ? String(line.dropFirst(group.count + 3)) : line
-        } ?? line
+              let exercise = session.exercises[safe: step.exerciseIndex] else {
+            return setLine(session: session, step: index, wording: wording)
+        }
+        let bare = setLine(session: session, step: index, wording: wording, group: false)
         return "\(exercise.name) · \(bare)"
     }
 
@@ -125,14 +158,15 @@ enum StepCard {
     /// The target line, with the exercise's notes after a "·" when it has any. The set rows of
     /// zone 2 pass `notes: false`: the notes belong to the exercise, and repeating them on all
     /// four of its rows is noise, not information.
-    static func targetLine(session: Session, step index: Int, notes: Bool = true) -> String {
+    static func targetLine(session: Session, step index: Int, notes: Bool = true,
+                           wording: Wording = .plain) -> String {
         guard let step = session.steps[safe: index],
               let exercise = session.exercises[safe: step.exerciseIndex],
               let resolved = session.target(at: index) else { return "" }
         let target = SetTarget(work: resolved.work, weight: resolved.weight, restSeconds: 0,
                                inReserve: resolved.reserve)
         var text = TargetText.target(target, range: step.dropIndex == 0 ? exercise.repRange : nil,
-                                     units: session.units)
+                                     units: session.units, wording: wording)
         // D42: said once, on the exercise's line, like the notes — never on every row.
         if notes, let was = exercise.substitutedFor { text += " · was \(was)" }
         if notes, let note = exercise.notes?.trimmed, !note.isEmpty { text += " · \(note)" }
@@ -167,7 +201,7 @@ enum StepCard {
         var parts = [exercise.name, "set \(step.setIndex + 1) of \(exercise.targets.count)"]
         if let n = target.reserve { parts.append(TargetText.reserve(n)) }
         if step.dropIndex > 0, let set = exercise.targets[safe: step.setIndex] {
-            parts.append("drop \(step.dropIndex) of \(set.drops.count)")
+            parts.append(drop(step.dropIndex, of: set.drops.count))
         }
         parts.append("target " + spokenWork(target.work, range: step.dropIndex == 0 ? exercise.repRange : nil))
         if let weight = target.weight {
@@ -184,14 +218,16 @@ enum StepCard {
     /// "Exercise 2 of 5 · Set 2 of 3", "... · drop 1 of 2", or "A · round 2 of 3 · Incline Press"
     /// for a superset member. v1.1 (D22): replaces the header's old "Set 5 of 18", which counted
     /// drops as if they were separate sets.
-    static func progress(session: Session, step index: Int) -> String {
+    static func progress(session: Session, step index: Int, wording: Wording = .plain) -> String {
         guard let step = session.steps[safe: index],
               let exercise = session.exercises[safe: step.exerciseIndex] else { return "" }
         var text: String
         if let group = exercise.group {
             let rounds = (session.steps.filter { $0.blockIndex == step.blockIndex }.map(\.setIndex).max()
                           ?? step.setIndex) + 1
-            text = "\(group) · round \(step.setIndex + 1) of \(rounds) · \(exercise.name)"
+            // D58: the round and the exercise are the content; "A" is a label for the round.
+            let tag = wording == .compact ? "\(group) · round" : "Round"
+            text = "\(tag) \(step.setIndex + 1) of \(rounds) · \(exercise.name)"
         } else {
             // The same count the stage uses (D34), so the header cannot disagree with itself
             // after "Do later" (D28) or a substitution (D42).
@@ -201,15 +237,20 @@ enum StepCard {
                  + " · Set \(step.setIndex + 1) of \(exercise.targets.count)"
         }
         if step.dropIndex > 0, let target = exercise.targets[safe: step.setIndex] {
-            text += " · drop \(step.dropIndex) of \(target.drops.count)"
+            text += " · " + drop(step.dropIndex, of: target.drops.count, wording: wording)
         }
         return text
     }
 
-    /// A logged step's short result text, e.g. "10 @ 80" or "10 @ 80 · 0:34" with its set time.
-    static func resultText(_ result: SetResult, setSeconds: Int? = nil) -> String {
+    /// A logged step's short result text, e.g. "10 × 80" or "10 × 80 · 0:34" with its set time.
+    /// D58 (v1.6): "×" reads as "by" to everyone; "@" read as an email address to the audit's
+    /// stranger. Compact keeps "@".
+    static func resultText(_ result: SetResult, setSeconds: Int? = nil,
+                           wording: Wording = .plain) -> String {
         var text = result.reps.map(String.init) ?? result.seconds.map(TargetText.time) ?? ""
-        if let weight = result.weight { text += " @ \(TargetText.number(weight))" }
+        if let weight = result.weight {
+            text += "\(wording == .compact ? " @ " : " × ")\(TargetText.number(weight))"
+        }
         if let setSeconds { text += " · \(TargetText.time(setSeconds))" }
         return text
     }
@@ -217,7 +258,8 @@ enum StepCard {
     /// The current exercise's set rows (SPEC §4.5 zone 2): every set of a straight exercise, or
     /// just the current round's members for a superset. Written and tested in v1.1's R1
     /// milestone; R2 renders it. `history` is history only, never the current session.
-    static func setRows(session: Session, step index: Int, history: [Session]) -> [SetRow] {
+    static func setRows(session: Session, step index: Int, history: [Session],
+                        wording: Wording = .plain) -> [SetRow] {
         guard let step = session.steps[safe: index],
               session.exercises[safe: step.exerciseIndex] != nil else { return [] }
         let exercise = session.exercises[step.exerciseIndex]
@@ -237,17 +279,26 @@ enum StepCard {
             let s = session.steps[i]
             let value: String
             switch s.status {
-            case .pending: value = targetLine(session: session, step: i, notes: false)
+            case .pending: value = targetLine(session: session, step: i, notes: false,
+                                              wording: wording)
             case .skipped: value = "skipped"
             // D19 (v1.1): no set duration here. A finished row reads "10 @ 80"; the seconds
             // belong to the Overview, Session detail, the strip and the Summary's details,
             // never to the screen you are working on.
-            case .logged: value = s.result.map { resultText($0) } ?? ""
+            case .logged: value = s.result.map { resultText($0, wording: wording) } ?? ""
             }
+            // D58 (v1.6): the row's second line is a sentence — "Last time 10 × 100 kg" —
+            // written here rather than in the view, so a test can pin it (Y13's rule).
             let lastTime = Prefill.historicalResult(session: session, step: i, history: history)
-                .map { resultText($0) }
+                .map { result -> String in
+                    let text = resultText(result, wording: wording)
+                    guard wording == .plain else { return "last " + text }
+                    let unit = result.weight == nil ? "" : " \(session.units.rawValue)"
+                    return "Last time " + text + unit
+                }
             return SetRow(stepIndex: i, status: s.status, isCurrent: i == index,
-                         label: rowLabel(session: session, step: i, naming: naming),
+                         label: rowLabel(session: session, step: i, naming: naming,
+                                         wording: wording),
                          value: value, lastTime: lastTime)
         }
     }

@@ -72,13 +72,16 @@ final class WorkoutTests: XCTestCase {
         XCTAssertEqual(InputRules.stepped(seconds: 5, by: 15, up: false), 0)
     }
 
-    // O7 / O34 / O39: the card's lines for every target kind.
+    // O7 / O34 / O39: the card's lines for every target kind, in the compact notation —
+    // which since D58 (v1.6) is Settings' switch rather than the only voice the app has.
+    // U34 pins the plain grammar that replaced it as the default.
     func testStepCardLines() throws {
         let plan = CoreTestSupport.plan(sets: 3, secondExercise: true)
         var session = CoreTestSupport.session(plan)
         XCTAssertEqual(StepCard.header(session: session, step: 0), "Set 1 of 6")
-        XCTAssertEqual(StepCard.setLine(session: session, step: 0), "Set 1 of 3")
-        XCTAssertEqual(StepCard.targetLine(session: session, step: 0), "8–12 · 60 kg")
+        XCTAssertEqual(StepCard.setLine(session: session, step: 0, wording: .compact), "Set 1 of 3")
+        XCTAssertEqual(StepCard.targetLine(session: session, step: 0, wording: .compact),
+                       "8–12 · 60 kg")
 
         // A fixed count inside a range, AMRAP, an open minimum and a fixed duration.
         let cases: [(WorkTarget, String)] = [
@@ -92,7 +95,7 @@ final class WorkoutTests: XCTestCase {
             var one = CoreTestSupport.plan(sets: 1, work: work)
             one.days[0].exercises[0].repRange = RepRange(min: 8, max: 12)
             let s = CoreTestSupport.session(one)
-            XCTAssertEqual(StepCard.targetLine(session: s, step: 0), expected)
+            XCTAssertEqual(StepCard.targetLine(session: s, step: 0, wording: .compact), expected)
         }
 
         // A superset member is tagged, and a drop names its position.
@@ -100,15 +103,16 @@ final class WorkoutTests: XCTestCase {
                                            drops: [DropTarget(work: .reps(.amrap(min: nil)), weight: 40)],
                                            group: "A")
         session = CoreTestSupport.session(grouped)
-        XCTAssertEqual(StepCard.setLine(session: session, step: 0), "A · Set 1 of 2")
+        XCTAssertEqual(StepCard.setLine(session: session, step: 0, wording: .compact), "A · Set 1 of 2")
         let dropStep = try XCTUnwrap(session.steps.firstIndex { $0.dropIndex == 1 })
-        XCTAssertEqual(StepCard.setLine(session: session, step: dropStep), "A · Set 1 of 2 · drop 1 of 1")
+        XCTAssertEqual(StepCard.setLine(session: session, step: dropStep, wording: .compact),
+                       "A · Set 1 of 2 · drop 1 of 1")
 
         // Bodyweight hides the weight everywhere.
         let bodyweight = CoreTestSupport.plan(sets: 2, weight: nil, bodyweight: true)
         let body = CoreTestSupport.session(bodyweight)
         XCTAssertFalse(Prefill.values(session: body, step: 0, history: []).showsWeight)
-        XCTAssertEqual(StepCard.targetLine(session: body, step: 0), "8–12")
+        XCTAssertEqual(StepCard.targetLine(session: body, step: 0, wording: .compact), "8–12")
 
         // O8: Log set needs a number, unless the set is timed.
         XCTAssertFalse(StepCard.canLog(repsText: "", isTimed: false))
@@ -120,10 +124,11 @@ final class WorkoutTests: XCTestCase {
     func testProgressSetRowsAndBlockDoneLine() throws {
         let plain = CoreTestSupport.plan(sets: 3, secondExercise: true)
         var session = CoreTestSupport.session(plain)
-        XCTAssertEqual(StepCard.progress(session: session, step: 0), "Exercise 1 of 2 · Set 1 of 3")
+        XCTAssertEqual(StepCard.progress(session: session, step: 0, wording: .compact),
+                       "Exercise 1 of 2 · Set 1 of 3")
         session.steps[0].status = .logged
         session.steps[0].result = .reps(count: 10, weight: 60)
-        let rows = StepCard.setRows(session: session, step: 1, history: [])
+        let rows = StepCard.setRows(session: session, step: 1, history: [], wording: .compact)
         XCTAssertEqual(rows.count, 3)
         XCTAssertEqual(rows.map(\.isCurrent), [false, true, false])
         XCTAssertEqual(rows[0].status, .logged); XCTAssertEqual(rows[0].value, "10 @ 60")
@@ -131,7 +136,8 @@ final class WorkoutTests: XCTestCase {
 
         let grouped = CoreTestSupport.plan(sets: 2, secondExercise: true, group: "A")
         let groupedSession = CoreTestSupport.session(grouped)
-        XCTAssertEqual(StepCard.progress(session: groupedSession, step: 0), "A · round 1 of 2 · Bench Press")
+        XCTAssertEqual(StepCard.progress(session: groupedSession, step: 0, wording: .compact),
+                       "A · round 1 of 2 · Bench Press")
         let groupRows = StepCard.setRows(session: groupedSession, step: 0, history: [])
         XCTAssertEqual(groupRows.count, 2, "only this round's members, not every round")
         XCTAssertEqual(Set(groupRows.map(\.stepIndex)), [0, 1])
@@ -139,7 +145,7 @@ final class WorkoutTests: XCTestCase {
         let dropped = CoreTestSupport.plan(sets: 1, drops: [DropTarget(work: .reps(.amrap(min: nil)), weight: 40)])
         let droppedSession = CoreTestSupport.session(dropped)
         let dropIndex = try XCTUnwrap(droppedSession.steps.firstIndex { $0.dropIndex == 1 })
-        XCTAssertEqual(StepCard.progress(session: droppedSession, step: dropIndex),
+        XCTAssertEqual(StepCard.progress(session: droppedSession, step: dropIndex, wording: .compact),
                       "Exercise 1 of 1 · Set 1 of 1 · drop 1 of 1")
 
         var e = CoreTestSupport.engine(CoreTestSupport.plan(sets: 1, secondExercise: true))

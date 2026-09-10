@@ -138,14 +138,15 @@ struct SessionDetailView: View {
 
     private func row(session: Session, index: Int, named: Bool) -> some View {
         let step = session.steps[index]
-        let label = StepCard.rowLabel(session: session, step: index, naming: named)
+        let label = StepCard.rowLabel(session: session, step: index, naming: named,
+                                      wording: model.settings.wording)
         return HStack {
             Text(label).font(.footnote).lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
             // D30 (v1.1): the set that beat everything before it, marked where you go looking.
             if records.contains(index) { PRBadge(text: "PR") }
-            Text(ExerciseText.result(step))
+            Text(ExerciseText.result(step, wording: model.settings.wording))
                 .font(.footnote.monospacedDigit())
                 .foregroundStyle(step.status == .logged ? .primary : .secondary)
         }

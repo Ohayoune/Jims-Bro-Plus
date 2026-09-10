@@ -185,9 +185,10 @@ final class UsabilityTests: XCTestCase {
         var plan = CoreTestSupport.plan()
         plan.days[0].exercises[0].notes = "Bar on the upper back, big breath, sit down between the knees."
         let session = CoreTestSupport.session(plan)
-        XCTAssertEqual(StepCard.targetLine(session: session, step: 0, notes: false), "8–12 · 60 kg")
+        XCTAssertEqual(StepCard.targetLine(session: session, step: 0, notes: false),
+                       "Aim 8–12 reps · 60 kg")
         XCTAssertEqual(StepCard.targetLine(session: session, step: 0),
-                       "8–12 · 60 kg · Bar on the upper back, big breath, sit down between the knees.")
+                       "Aim 8–12 reps · 60 kg · Bar on the upper back, big breath, sit down between the knees.")
     }
 
     // MARK: - U2 (D56): nothing unreachable
@@ -212,7 +213,7 @@ final class UsabilityTests: XCTestCase {
         let member = try XCTUnwrap(WorkoutScreen.model(active: grouped.active, history: [], now: now))
         let line = try XCTUnwrap(member.progressLine)
         XCTAssertNotEqual(line, member.stage.title)
-        XCTAssertTrue(line.contains("round"), line)
+        XCTAssertTrue(line.contains("Round"), line)
     }
 
     // MARK: - U3 (D57): the first five minutes
@@ -411,5 +412,151 @@ final class UsabilityTests: XCTestCase {
         let summary = ExerciseText.summary(CoreTestSupport.completed([10, 10, 8], weights: [60, 60, 60]))
         XCTAssertTrue(summary.hasSuffix(" min · 3 sets · 1,680 kg lifted"), summary)
         XCTAssertFalse(summary.contains(":"), "a duration is minutes, not a clock time: \(summary)")
+    }
+
+
+    // MARK: - U4 (D58): plain words
+
+    // U34: the grammar itself. Every form the audit named as unreadable, said in words — and
+    // the numbers a coach acts on still on the same line, in the same order.
+    func testThePlainGrammar() throws {
+        let range = SetTarget(work: .reps(.range(min: 4, max: 6)), weight: 100, restSeconds: 90)
+        XCTAssertEqual(TargetText.target(range, range: nil, units: .kg), "Aim 4–6 reps · 100 kg")
+
+        // A fixed count inside a range says the range: it is what is being asked of you, and
+        // the prefill puts the exact number in the field.
+        let fixed = SetTarget(work: .reps(.fixed(5)), weight: 100, restSeconds: 90)
+        XCTAssertEqual(TargetText.target(fixed, range: RepRange(min: 4, max: 6), units: .kg),
+                       "Aim 4–6 reps · 100 kg")
+        XCTAssertEqual(TargetText.target(fixed, range: nil, units: .kg), "Aim 5 reps · 100 kg")
+
+        // "AMRAP" is the audit's own example of a word nobody outside a gym knows.
+        let amrap = SetTarget(work: .reps(.amrap(min: nil)), weight: 20, restSeconds: 60)
+        XCTAssertEqual(TargetText.target(amrap, range: nil, units: .kg),
+                       "As many reps as you can · 20 kg")
+        let atLeast = SetTarget(work: .reps(.amrap(min: 10)), weight: 20, restSeconds: 60)
+        XCTAssertEqual(TargetText.target(atLeast, range: nil, units: .kg),
+                       "Aim at least 10 reps · 20 kg")
+
+        // Timed work is a duration, not "45 s".
+        let held = SetTarget(work: .duration(seconds: 45), weight: nil, restSeconds: 60)
+        XCTAssertEqual(TargetText.target(held, range: nil, units: .kg), "For 45 seconds")
+        let open = SetTarget(work: .openDuration(minSeconds: 30), weight: nil, restSeconds: 60)
+        XCTAssertEqual(TargetText.target(open, range: nil, units: .kg), "For at least 30 seconds")
+
+        // The effort target says what being "in reserve" means.
+        var reserved = range
+        reserved.inReserve = 2
+        XCTAssertEqual(TargetText.target(reserved, range: nil, units: .kg),
+                       "Aim 4–6 reps · 100 kg · stop 2 short of failure")
+
+        // An exercise in one line: sets, not multiplication; a drop said as what it is.
+        let exercise = Exercise(name: "Curl", repRange: RepRange(min: 8, max: 12),
+                                sets: Array(repeating: SetTarget(work: .reps(.range(min: 8, max: 12)),
+                                                                 weight: 60, restSeconds: 90),
+                                            count: 3))
+        XCTAssertEqual(TargetText.summary(exercise, units: .kg), "3 sets of 8–12 reps · 60 kg")
+        let dropped = Exercise(name: "Curl", sets: [
+            SetTarget(work: .reps(.fixed(10)), weight: 20, restSeconds: 60,
+                      drops: [DropTarget(work: .reps(.amrap(min: nil)), weight: 15)])])
+        XCTAssertEqual(TargetText.summary(dropped, units: .kg),
+                       "1 set of 10 reps · 20 kg · then lighter, as many as you can")
+    }
+
+    // U34: and on the workout screen — the set row's own line, the pairing, the lighter set.
+    func testThePlainGrammarOnTheCard() throws {
+        let now = CoreTestSupport.now
+        let grouped = CoreTestSupport.plan(sets: 2, secondExercise: true,
+                                           drops: [DropTarget(work: .reps(.amrap(min: nil)), weight: 40)],
+                                           group: "A")
+        let session = CoreTestSupport.session(grouped)
+        // "A" is a label for a pair; the pair is the fact.
+        XCTAssertEqual(StepCard.setLine(session: session, step: 0),
+                       "Set 1 of 2 · paired with \(session.exercises[1].name)")
+        let dropStep = try XCTUnwrap(session.steps.firstIndex { $0.dropIndex == 1 })
+        XCTAssertTrue(StepCard.setLine(session: session, step: dropStep).hasSuffix("lighter set 1 of 1"),
+                      StepCard.setLine(session: session, step: dropStep))
+        // A row that names its own exercise does not also carry the pairing.
+        XCTAssertEqual(StepCard.rowLabel(session: session, step: 0, naming: true),
+                       "\(session.exercises[0].name) · Set 1 of 2")
+
+        // The second line of the current row is a sentence, with its unit, and never "@".
+        let plan = CoreTestSupport.plan(sets: 3)
+        let history = [CoreTestSupport.completed([9, 9, 9], weights: [60, 60, 60])]
+        let engine = CoreTestSupport.engine(plan)
+        let screen = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: history,
+                                                       now: now))
+        let last = try XCTUnwrap(screen.rows.first { $0.isCurrent }?.lastTime)
+        XCTAssertEqual(last, "Last time 9 × 60 kg")
+        XCTAssertFalse(screen.rows.contains { $0.value.contains("@") }, "no row uses @")
+    }
+
+    // U35: the coach's switch. The same session in the same app, in v1.5's forms — and the
+    // setting is what chooses, so no screen decides for itself.
+    func testCompactNotationRestoresTheOldForms() throws {
+        let now = CoreTestSupport.now
+        let plan = CoreTestSupport.plan(sets: 3)
+        var history = [CoreTestSupport.completed([9, 9, 9], weights: [60, 60, 60])]
+        history[0].units = .kg
+        let engine = CoreTestSupport.engine(plan)
+
+        var settings = CoreTestSupport.classic
+        settings.compactNotation = true
+        XCTAssertEqual(settings.wording, .compact)
+        XCTAssertEqual(Settings().wording, .plain, "words are the default, on a fresh install")
+
+        let compact = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: history,
+                                                        now: now, settings: settings))
+        XCTAssertEqual(compact.targetLine, "8–12 · 60 kg")
+        XCTAssertEqual(compact.rows.first { $0.isCurrent }?.lastTime, "last 9 @ 60")
+
+        var plain = settings
+        plain.compactNotation = false
+        let words = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: history,
+                                                      now: now, settings: plain))
+        XCTAssertEqual(words.targetLine, "Aim 8–12 reps · 60 kg")
+        XCTAssertNotEqual(words.targetLine, compact.targetLine)
+    }
+
+    // U35: and it survives the launch — a setting that resets is worse than none.
+    func testCompactNotationRoundTripsThroughTheStore() throws {
+        var settings = Settings()
+        settings.compactNotation = true
+        let data = try StoreCoder.encoder.encode(settings)
+        XCTAssertTrue(try XCTUnwrap(String(data: data, encoding: .utf8)).contains("compactNotation"))
+        XCTAssertTrue(try JSONDecoder().decode(Settings.self, from: data).compactNotation)
+
+        // A file written before v1.6 does not mention it, and reads as words.
+        let old = Data(#"{ "units": "kg", "defaultRestSeconds": 90 }"#.utf8)
+        XCTAssertFalse(try JSONDecoder().decode(Settings.self, from: old).compactNotation)
+    }
+
+    // U35: and the switch itself — Settings' toggle calls this, and a relaunch reads it back.
+    @MainActor func testTheSwitchIsWrittenAndReadBack() async throws {
+        let root = CoreTestSupport.makeRoot("U4Tests")
+        defer { CoreTestSupport.discard(root) }
+        let model = AppModel(store: Store(root: root), sampleJSON: { nil }, practiceJSON: { nil })
+        await model.load()
+        XCTAssertFalse(model.settings.compactNotation)
+
+        await model.setCompactNotation(true)
+        XCTAssertTrue(model.settings.compactNotation, "the toggle's own call has to take")
+        XCTAssertEqual(model.settings.wording, .compact)
+
+        let relaunched = AppModel(store: Store(root: root), sampleJSON: { nil }, practiceJSON: { nil })
+        await relaunched.load()
+        XCTAssertTrue(relaunched.settings.compactNotation, "and survive the launch")
+
+        await model.setCompactNotation(false)
+        XCTAssertFalse(model.settings.compactNotation)
+    }
+
+    // U36: what the chatbot is told does not change with the app's voice. The prompt is read
+    // by a machine, PROMPT.md pins it, and a plan's JSON is the same either way.
+    func testThePromptIsUnaffectedByTheSetting() throws {
+        var settings = Settings()
+        let words = Prompts.render(settings: settings)
+        settings.compactNotation = true
+        XCTAssertEqual(Prompts.render(settings: settings), words)
     }
 }

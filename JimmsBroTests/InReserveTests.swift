@@ -57,21 +57,25 @@ final class InReserveTests: XCTestCase {
         """).plan)
         let session = try XCTUnwrap(Session.start(plan: imported, dayIndex: 0, now: now))
         XCTAssertEqual(session.target(at: 0)?.reserve, 2)
-        XCTAssertEqual(StepCard.targetLine(session: session, step: 0), "6–8 · 80 kg · 2 in reserve")
-        XCTAssertTrue(StepCard.spoken(session: session, step: 0).contains("2 in reserve"))
+        XCTAssertEqual(StepCard.targetLine(session: session, step: 0, wording: .compact),
+                       "6–8 · 80 kg · 2 in reserve")
+        XCTAssertTrue(StepCard.spoken(session: session, step: 0).contains("stop 2 short of failure"))
         // The drop after the first set has no effort target of its own.
         XCTAssertEqual(session.steps[1].dropIndex, 1)
         XCTAssertNil(session.target(at: 1)?.reserve)
-        XCTAssertFalse(StepCard.targetLine(session: session, step: 1).contains("in reserve"))
-        XCTAssertEqual(WorkoutScreen.nextLine(session: session, step: 0),
+        XCTAssertFalse(StepCard.targetLine(session: session, step: 1, wording: .compact)
+            .contains("in reserve"))
+        XCTAssertEqual(WorkoutScreen.nextLine(session: session, step: 0, wording: .compact),
                        "Next: Barbell Bench Press · set 1 of 3 · 6–8 · 80 kg · 2 in reserve")
 
         let bench = imported.days[0].exercises[0]
-        XCTAssertEqual(TargetText.summary(bench, units: .kg), "3 × 6–8 · 80 kg · 3 drops · 2 in reserve")
+        XCTAssertEqual(TargetText.summary(bench, units: .kg, wording: .compact),
+                       "3 × 6–8 · 80 kg · 3 drops · 2 in reserve")
         let curl = imported.days[0].exercises[1]
-        XCTAssertFalse(TargetText.summary(curl, units: .kg).contains("in reserve"), "sets that differ are the JSON's business")
+        XCTAssertFalse(TargetText.summary(curl, units: .kg, wording: .compact).contains("in reserve"),
+                       "sets that differ are the JSON's business")
         let row = imported.days[0].exercises[2]
-        XCTAssertEqual(TargetText.summary(row, units: .kg), "2 × 10 · 50 kg")
+        XCTAssertEqual(TargetText.summary(row, units: .kg, wording: .compact), "2 × 10 · 50 kg")
     }
 
     // Z7: on disk — round trip, the frozen files, the session's snapshot.

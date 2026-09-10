@@ -50,7 +50,8 @@ struct SummaryView: View {
                 Section {
                     let comparison = SessionStats.comparison(
                         for: exercise.name, session: session,
-                        history: model.sessions.filter { $0.id != session.id })
+                        history: model.sessions.filter { $0.id != session.id },
+                        wording: model.settings.wording)
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(comparison.headline)
                             .font(.subheadline)

@@ -77,7 +77,7 @@ mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** 
 rows (Z4, Z10, Z17, Z25, Z31) join the checklist. The reading of "a history for each exercise"
 as typed current numbers is parked by the owner's decision (the plan's last section).
 
-`docs/ITERATION_7_PLAN.md` is the v1.6 plan (milestones **U0–U6**), built from the 2026-09-09
+`docs/ITERATION_7_PLAN.md` is the v1.6 plan (milestones **U0–U7**), built from the 2026-09-09
 usability audit (`docs/UX_REVIEW_2026-09-09.md`) and judged for three users — a coach, a
 great-grandparent and a five-year-old: **nothing untrue** (D55 — a missed workout only when the
 plan expected one, "Nothing logged" before "First time", calendar labels unique within the plan,
@@ -89,9 +89,17 @@ first set** during a warm-up, the notification permission at the first Log set,
 `InputDefaults.weightHint`, the unit asked on the review when the plan named none, a **Start
 here** badge, Home that headlines the workout on a rest day, "Next: …" on the Summary) and
 **hierarchy** (D59 — Start in the bottom slot, headers in ink, `WrapLayout`, Undo on the row, an
-idle strip that says what follows, labelled History rows, Settings presets). U0–U3, U5 and U6 are
-built and green on `v1.6-refinement` (pull request #2); **U4 — plain words (D58) — is written as
-two readings and waits for the owner's choice.** The v1.6 device rows join the checklist.
+idle strip that says what follows, labelled History rows, Settings presets). U4 — **plain words**
+(D58) — was written as two readings and the owner chose **Reading B**: the app speaks in words
+("Aim 4–6 reps · 100 kg", "Last time 10 × 100 kg", "paired with …", "lighter set 1 of 2") and
+**Settings → Compact notation** restores v1.5's forms; `Wording` is chosen once from
+`Settings.compactNotation` and threaded from `WorkoutScreen.model(settings:)`, and the chatbot
+prompt and the progression ladder keep the compact forms whatever the switch says. U7 — **an
+activity that outlived the app** (D60) — is the one defect the owner hit on the phone rather than
+in the audit: a Live Activity survives the process that started it, so `SystemActivityPresenter`
+keeps no handle and asks `Activity.activities` instead, and every launch reconciles the Lock
+Screen (`refreshActivity(force:)`). U0–U7 are built and green on `v1.6-refinement` (pull request
+#2). The v1.6 device rows join the checklist.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -346,6 +354,7 @@ Rewritten in v1.1's R2 milestone. The v1 text is kept underneath each rule that 
 - Show a line only when it has content (no "Notes: none", no empty "Last time").
 - Tab bar with four tabs: **Home · Plans · History · Settings**. No other navigation chrome on Home.
 - **Zones do not move.** Within one task, a control keeps its position across every state of that task: nothing appears, disappears or shifts under the thumb between working, resting and timed work (§4.5, D22, P1).
+- **The app speaks in words, and keeps the notation behind a switch** (v1.6, D58, §6.36). A target reads *"Aim 4–6 reps · 100 kg"*, a past set *"Last time 10 × 100 kg"* on its own line and never with "@", an exercise *"3 sets of 8–12 reps · 60 kg"*, a superset member *"paired with Tricep Pushdown"* rather than a bare **A**, a drop *"lighter set 1 of 2"* and, on the exercise's line, *"then lighter, as many as you can"*; "AMRAP" is *"as many reps as you can"*, an effort target *"stop 2 short of failure"*, and every button says the thing rather than the term — **Use this plan**, *"repeats every 7 days"* (D59). **Settings → Compact notation** restores v1.5's forms everywhere at once. Only rendered strings have two grammars: the engine, the plan format, the prompts (§7), the exports and the fixtures know nothing about this.
 - **Every confirmation shows its way out** (v1.6, D56). A confirmation presented from a menu is an alert with two named buttons, never a `confirmationDialog`: from a menu anchor a dialog draws as a popover on iOS 26 and drops its cancel-role button. Finish is never red — it saves; only Discard and Delete are.
 
 ### 4.1 Home (D18, rewritten in v1.1's R3)
@@ -833,6 +842,32 @@ A Live Activity is owned by the system, not by the app: it stays on screen when 
 - It runs after `loaded`, so D48 still holds — the launch paints before it tells the system anything.
 
 The seam is unchanged: `ActivityPresenting` still has only `show` and `end`, so the reconciliation is testable with the recorder, and what only a phone can answer is one device row (U33).
+
+### 6.36 Plain words (D58, v1.6)
+The 2026-09-09 audit's largest finding was not a defect. "5 (4–6) · 100 kg · last 10 @ 100" is correct, dense and exactly what a coach reads at a glance — and it was the single biggest reason the audit's other two readers, a great-grandparent and a five-year-old, could not read the screen at all. Two readings went to the owner; **Reading B** was chosen: the app speaks plainly by default, and the notation becomes a setting.
+
+`Wording` (`.plain` / `.compact`) is chosen in one place — `Settings.compactNotation`, off on a fresh install and absent from any file written before v1.6, which reads as off. `WorkoutScreen.model(settings:)` passes it down; no view decides for itself.
+
+| | Compact (v1.5, and the switch) | Plain (the default) |
+|---|---|---|
+| A target | `4–6 · 100 kg` | `Aim 4–6 reps · 100 kg` |
+| A fixed count in a range | `5 (4–6) · 100 kg` | `Aim 4–6 reps · 100 kg` — the range is what is asked; the prefill puts 5 in the field |
+| Timed | `45 s`, `30+ s` | `For 45 seconds`, `For at least 30 seconds` |
+| AMRAP | `AMRAP`, `10+` | `As many reps as you can`, `Aim at least 10 reps` |
+| An exercise | `3 × 8–12 · 60 kg` | `3 sets of 8–12 reps · 60 kg` |
+| Climbing weights | `24 / 26 / 28 kg` | `24, then 26, then 28 kg` |
+| A superset member | `A · Set 2 of 4` | `Set 2 of 4 · paired with Tricep Pushdown` |
+| A superset round | `A · round 2 of 3 · Incline Press` | `Round 2 of 3 · Incline Press` |
+| A drop | `drop 1 of 2`; `· 2 drops` | `lighter set 1 of 2`; `· then lighter, as many as you can` |
+| A logged set | `10 @ 80` | `10 × 80` |
+| The row's second line | `last 10 @ 100` | `Last time 10 × 100 kg`, on its own line |
+| An effort target | `2 in reserve` | `stop 2 short of failure` |
+
+- **A row that names its own exercise does not also carry the pairing** — in a superset the rows are already distinguishable, and either form would only repeat what the row beside it says (`StepCard.rowLabel`, `group: false`).
+- **VoiceOver speaks the plain forms** whatever the switch says (§9): it was already written out rather than read off the screen, and "lighter set" is what it now says for a drop.
+- **Two things keep the compact forms whatever the setting**, because no person reads them as a sentence: the chatbot prompt (§7 — PROMPT.md pins it, and a machine reads it), and the progression ladder's columns (`w1 8 × 80 kg · w2 …`, which is a specification of what the plan will do). The CSV export has no grammar to choose: every value is its own column, so nothing there was ever a sentence.
+
+*(The other reading, kept for the record: leave the notation and explain each form once per install the first time it appears. It was the smaller change and would have left the numbers exactly as the owner reads them, but it teaches a notation rather than removing the need for one, and it says nothing on the four-hundredth day.)*
 
 ### 6.12 Calendar projection
 `Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.
@@ -2431,6 +2466,10 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | U31 | unit | (D60, v1.6) A launch with no workout | `AppModel.load` calls `end()` once even though it has shown nothing — an activity left by a run that was killed is not the app's to remember, and it is the app's to clear |
 | U32 | unit | (D60, v1.6) A launch mid-workout | The resumed state is pushed exactly once, `end()` is not called, and `shownActivity` is the state of the session on disk; an unchanged tick after it pushes nothing |
 | U33 | device | (D60, v1.6) The real activity on the phone | Start a workout, force-quit the app mid-rest, reopen: one activity, still counting, not two. Finish it — the Island and the Lock Screen clear. Force-quit mid-rest, then open the app on a day with no workout: the leftover activity goes within a second |
+| U34 | unit | (D58, v1.6) The plain grammar | `TargetText.target` reads "Aim 4–6 reps · 100 kg" (and the same for a fixed 5 inside 4–6), "As many reps as you can", "Aim at least 10 reps", "For 45 seconds", "For at least 30 seconds", "… · stop 2 short of failure"; `summary` reads "3 sets of 8–12 reps · 60 kg" and "… · then lighter, as many as you can"; `setLine` reads "Set 1 of 2 · paired with <partner>" and "lighter set 1 of 1"; a row that names its exercise carries no pairing; the current row's second line is "Last time 9 × 60 kg" and no row contains "@" |
+| U35 | unit | (D58, v1.6) Compact notation | `Settings().wording == .plain`; with `compactNotation` on, the same screen reads "8–12 · 60 kg" and "last 9 @ 60"; the setting round-trips through the store, and a file written before v1.6 reads as off |
+| U36 | unit | (D58, v1.6) What the setting must not reach | `Prompts.render` is byte-identical with the switch on and off |
+| U37 | ui | (D58, v1.6) Settings → Compact notation | The toggle sits under Keep screen awake; its footer quotes the forms in force; turning it on changes the workout card, the set rows, Plan detail, the review, the Overview, Session detail and the Summary together |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -3928,13 +3967,14 @@ the five-year-old, and costs the coach nothing they will notice.
 - **The Summary says what happens next.** One line under the headline: *"Next: Full Body B,
   Friday"*, from the same schedule the calendar draws, now that the rotation has advanced.
 
-## U4 — Plain words (D58) — the owner's reading
+## U4 — Plain words (D58) — **Reading B, chosen 2026-09-09**
 
 The audit's largest finding is not a defect: the app's notation — "5 (4–6) · 100 kg · last
 10 @ 100", "12 (8–12) · 24 kg", "AMRAP · 20 kg", "drop 1 of 2", the A / B badges, "kg ·
 rotation", "Set as current plan" — is correct and is what a coach reads at a glance, and it is
 also the single biggest reason the other two users cannot. This changes the app's voice, so it is
-the owner's call. Two readings, and the second is recommended:
+the owner's call. Two readings, and the second was recommended and **chosen**; it is built,
+with SPEC §4.0's rule rewritten and §6.36 added, and U34–U37 in `TEST_CASES.md`:
 
 - **Reading A — compact stays, words are a tap away.** Notation unchanged; the first time a
   screen shows a group badge, a drop or an AMRAP, a one-line explanation appears beneath it, once
@@ -4340,12 +4380,12 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 `````markdown
 # Build status
 
-Updated 2026-09-09. **v1.6 (U0–U3, U5–U7) is built and green on branch `v1.6-refinement`
-(pull request #2); U4 — plain words — waits for the owner's reading; the device checklist, the
+Updated 2026-09-09. **v1.6 (U0–U7) is built and green on branch `v1.6-refinement`
+(pull request #2), the owner having chosen Reading B for U4; the device checklist, the
 Developer Program, a release Xcode and the submission itself are the owner's.** v1.5 and
 everything before it are below, unchanged except where a later milestone corrected them.
 
-## v1.6 (U0–U7): built and green, one milestone waiting on the owner
+## v1.6 (U0–U7): built and green
 
 `docs/ITERATION_7_PLAN.md` is the v1.6 plan, built from the 2026-09-09 usability audit
 (`docs/UX_REVIEW_2026-09-09.md`): v1.5 walked on the simulators as a stranger (a clean install
@@ -4356,13 +4396,13 @@ on all three routes, a Release build and `tools/check_release.py`, and one commi
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **306 tests, 7 skipped, 0 failures** |
-| `swift test` | **305 tests, 0 failures** |
-| `python3 tools/check_core.py` | **305 bodies, 5,945 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **312 tests, 7 skipped, 0 failures** |
+| `swift test` | **311 tests, 0 failures** |
+| `python3 tools/check_core.py` | **311 bodies, 5,981 assertions, 0 failures** |
 | `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.5 (1) |
-| `python3 tools/check_bundle.py` | **current** (regenerated in U5, U6 and U7; CI's bundle job was red for U1–U3's pushes until then) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in U5, U6, U7 and U4; CI's bundle job was red for U1–U3's pushes until then) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -4370,11 +4410,11 @@ on all three routes, a Release build and `tools/check_release.py`, and one commi
 | U1 | Nothing untrue (D55): a missed workout only when the plan expected one; "Nothing logged" before "First time"; calendar labels unique within the plan; a chip that never contradicts the fields; the right sentence for a plan pasted in words; the overview says a note once; version 1.5 | Done |
 | U2 | Nothing unreachable (D56): every menu confirmation an alert with two buttons; Done in the strip, off Log set; no phantom bar under empty sheets; the empty weight field looks like one; Finish not red; large text keeps the inputs and the button on one screen; the stage said once | Done |
 | U3 | The first five minutes (D57): no warm-up on a fresh install (old files keep theirs); **Start first set** during a warm-up; the notification permission at the first Log set; the weight hint; the unit asked on the review; **Start here** in the picker; Home headlines the workout on a rest day; "Next: …" on the Summary | Done |
-| U4 | Plain words (D58) | **Waiting on the owner** — two readings in the plan; not built |
+| U4 | Plain words (D58), **Reading B**: the app speaks in words — "Aim 4–6 reps · 100 kg", "Last time 10 × 100 kg", "paired with …", "lighter set 1 of 2", "as many reps as you can", "stop 2 short of failure" — and **Settings → Compact notation** restores v1.5's forms. The prompt and the progression ladder keep them regardless | Done |
 | U5 | Hierarchy (D59): Start in the bottom slot; headers in ink; small actions as buttons; a quieter grid; Undo on the row; an idle strip that says what follows; chips that wrap; Add exercise and Start per day; labelled History rows and a Find an exercise row; Settings presets; sentences for a stranger; "Use this plan" | Done |
 | U6 | Docs, checklist rows, bundle | Done |
 | U7 | An activity that outlived the app (D60): the Live Activity the owner could only clear by deleting the app. `SystemActivityPresenter` holds no handle — `Activity.activities` is asked instead — and every launch reconciles the Lock Screen | Done |
-| — | The v1.6 device rows (U9, U10, U13, U22, U23, U28, U33) | **Written, not run** — need the phone |
+| — | The v1.6 device rows (U9, U10, U13, U22, U23, U28, U33, U37) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.6)
 
@@ -5102,6 +5142,12 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.6 U6: `ITERATION_7_PLAN.md` and `UX_REVIEW_2026-09-09.md` join the bundle. Since CI checks the bundle on every push, a milestone that edits a bundled document regenerates it in the same commit; U1–U3's pushes were red on that job until U5 regenerated it, which is now a rule in `CLAUDE.md`/`AGENTS.md`.
 - v1.6 U7 (D60): **`SystemActivityPresenter` keeps no `Activity` handle.** A Live Activity outlives the process that started it, so a stored handle is a lie after a termination: `end()` returned early and could never clear the orphan, and `show()` requested a second activity beside it. `Activity.activities` — the system's own list — is asked instead, on every push, and the type is stateless.
 - v1.6 U7 (D60): **Every launch reconciles the Lock Screen.** `AppModel.load` ends with `refreshActivity(force: true)`; `force` exists because the skipped case is exactly `nil == nil` — a fresh process with no workout, which is when an orphan is on screen. It runs after `loaded = true`, so D48's rule (paint first, tell the system after) still holds.
+- v1.6 U4 (D58): **Reading B chosen by the owner** — the app speaks in words and the notation becomes **Settings → Compact notation**. `Wording` is picked once, from `Settings.compactNotation`, and threaded from `WorkoutScreen.model(settings:)`; no view decides for itself.
+- v1.6 U4 (D58): **A fixed count inside a range says the range** — "Aim 4–6 reps", not "Aim 5 reps (4–6)". The range is what is being asked of you and the prefill already puts 5 in the field, so saying both twice was the notation's problem restated in words.
+- v1.6 U4 (D58): where the plan was silent — **timed work** is "For 45 seconds" / "For at least 30 seconds", **AMRAP** is "As many reps as you can" / "Aim at least 10 reps", **an effort target** is "stop 2 short of failure", **a drop step** is "lighter set 1 of 2" (the plan's "then lighter, as many as you can" describes the exercise, not the step), and **climbing weights** read "24, then 26, then 28 kg".
+- v1.6 U4 (D58): **the prompt and the progression ladder stay compact.** A chatbot reads the prompt and PROMPT.md pins it; the ladder ("w1 8 × 80 kg · w2 …") is a specification of what the plan will do, column by column, not a sentence. The CSV needed no decision — every value is already its own column. **VoiceOver speaks the plain forms whatever the switch says**, since it was always written out rather than read off the screen.
+- v1.6 U4 (D58): the tests that enumerated the notation form by form (`testStepCardLines`, `testExerciseSummaryShowsPerSetVariation`, `testWhereItShows`, O76) now pass `wording: .compact` and keep guarding it — the switch restores those exact strings, so they are still the contract. U34–U36 pin the plain grammar, the switch and the prompt's immunity to it.
+- v1.6 U4 (D58): **the rest notification's "Next: …" body uses the setting too** (`SessionEngine.nextBody`) — a person reads it on a Lock Screen, so it is a sentence like any other.
 `````
 
 ---
@@ -5117,7 +5163,7 @@ these are here rather than automated.
 
 Everything else — 304 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
-**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, and **v1.6** U9, U10, U13, U22, U23, U28 and U33. Y19 needs a TestFlight build, which needs the paid
+**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, and **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37. Y19 needs a TestFlight build, which needs the paid
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
@@ -5260,7 +5306,7 @@ Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Note
 | **Z25** | Plan → Progression → **When I hit the target**, paste the reply, Save; run a day hitting one exercise and missing another | The chip reads "Step 1 of N of your progression"; after Finish, the Progression screen shows the hit exercise at step 2 with ▸ moved and the other at "Step 1 of N · 1 try"; Home's subtitle reads "step 1 of N" until every exercise of the day moves |  |  |
 | **Z31** | History → **Set a goal** for an exercise you do (a weight you can lift for the reps), then run a workout that meets it | The Goals section shows the line and the bar; the Summary says "Goal reached: …" in green; the goal reads "reached" with the date; Plan → Progression → Copy prompt has a MY GOALS block |  |  |
 
-## v1.6 rows (new or changed in U1–U5, U7)
+## v1.6 rows (new or changed in U1–U5, U7, U4)
 
 | Case | What to do | Expected | Result | Notes |
 |---|---|---|---|---|
@@ -5271,6 +5317,7 @@ Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Note
 | **U23** | Settings → Warm-up → 5 min, then Start | The card opens in the warm-up with **Start first set**; tapping it shows the first set with **Log set** |  |  |
 | **U28** | Log a set, then look at the row and the strip | ↺ beside the logged row's tick undoes it; the strip shows no Undo at the normal text size; before logging, the strip read "Rest … starts when you log" |  |  |
 | **U33** | Start a workout, log a set so a rest is counting, then force-quit the app (swipe it away) and reopen it. Then finish the workout. Then force-quit mid-rest again, and this time open the app on a day with no workout | After the reopen: **one** activity on the Lock Screen and in the Island, still counting — not two, and not frozen. After Finish: both clear. After the last step: the leftover activity is gone within a second of the app opening, without deleting the app |  |  |
+| **U37** | Settings → Compact notation, off then on, looking at a workout card, Plan detail and a past workout between each | Off: "Aim 8–12 reps · 60 kg", "Last time 10 × 60 kg" on its own line under the current row, "paired with …" on a superset, "3 sets of 8–12 reps" in Plan detail. On: "8–12 · 60 kg", "last 10 @ 60", the A badge, "3 × 8–12". The switch changes every screen, and survives force-quitting the app |  |  |
 
 For the v1.6 rows: a `fail` on U9 points at the `.alert` modifiers in `WorkoutView`, `PlanDetailView`
 and `SessionDetailView`; on U10 at `StatusStripView`'s `done` slot and the removed keyboard toolbar;
@@ -5279,7 +5326,8 @@ on U13 at the `isAccessibilitySize` branches in `WorkoutView`; on U22 at `Settin
 and `PlanSchedule.missed`; on U23 at `WorkoutScreen.primary(resting:)`; on U28 at
 `WorkoutScreenModel.undoStep` and `WorkoutScreen.idleLine`; on U33 at
 `SystemActivityPresenter` (it must read `Activity.activities` rather than a stored handle) and
-`AppModel.load`'s closing `refreshActivity(force: true)`.
+`AppModel.load`'s closing `refreshActivity(force: true)`; on U37 at `Settings.wording` and
+whichever screen still calls a text function without passing it.
 
 ## When you are done
 
@@ -7335,7 +7383,7 @@ mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** 
 rows (Z4, Z10, Z17, Z25, Z31) join the checklist. The reading of "a history for each exercise"
 as typed current numbers is parked by the owner's decision (the plan's last section).
 
-`docs/ITERATION_7_PLAN.md` is the v1.6 plan (milestones **U0–U6**), built from the 2026-09-09
+`docs/ITERATION_7_PLAN.md` is the v1.6 plan (milestones **U0–U7**), built from the 2026-09-09
 usability audit (`docs/UX_REVIEW_2026-09-09.md`) and judged for three users — a coach, a
 great-grandparent and a five-year-old: **nothing untrue** (D55 — a missed workout only when the
 plan expected one, "Nothing logged" before "First time", calendar labels unique within the plan,
@@ -7347,9 +7395,17 @@ first set** during a warm-up, the notification permission at the first Log set,
 `InputDefaults.weightHint`, the unit asked on the review when the plan named none, a **Start
 here** badge, Home that headlines the workout on a rest day, "Next: …" on the Summary) and
 **hierarchy** (D59 — Start in the bottom slot, headers in ink, `WrapLayout`, Undo on the row, an
-idle strip that says what follows, labelled History rows, Settings presets). U0–U3, U5 and U6 are
-built and green on `v1.6-refinement` (pull request #2); **U4 — plain words (D58) — is written as
-two readings and waits for the owner's choice.** The v1.6 device rows join the checklist.
+idle strip that says what follows, labelled History rows, Settings presets). U4 — **plain words**
+(D58) — was written as two readings and the owner chose **Reading B**: the app speaks in words
+("Aim 4–6 reps · 100 kg", "Last time 10 × 100 kg", "paired with …", "lighter set 1 of 2") and
+**Settings → Compact notation** restores v1.5's forms; `Wording` is chosen once from
+`Settings.compactNotation` and threaded from `WorkoutScreen.model(settings:)`, and the chatbot
+prompt and the progression ladder keep the compact forms whatever the switch says. U7 — **an
+activity that outlived the app** (D60) — is the one defect the owner hit on the phone rather than
+in the audit: a Live Activity survives the process that started it, so `SystemActivityPresenter`
+keeps no handle and asks `Activity.activities` instead, and every launch reconciles the Lock
+Screen (`refreshActivity(force:)`). U0–U7 are built and green on `v1.6-refinement` (pull request
+#2). The v1.6 device rows join the checklist.
 
 Three v1.2 rules are worth knowing before touching anything:
 

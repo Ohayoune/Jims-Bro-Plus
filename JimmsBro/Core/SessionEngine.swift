@@ -138,7 +138,10 @@ struct SessionEngine {
     }
     private func nextBody(_ index: Int) -> String {
         guard let step = session.steps[safe: index], let e = session.exercises[safe: step.exerciseIndex], let target = session.target(at: index) else { return "Next set" }
-        return "Next: \(e.name) · set \(step.setIndex + 1) of \(e.targets.count) · \(TargetText.work(target.work))"
+        // D58 (v1.6): the notification is read by a person on a Lock Screen, so it uses
+        // whichever grammar the app is set to, like every other sentence.
+        return "Next: \(e.name) · set \(step.setIndex + 1) of \(e.targets.count) · "
+            + TargetText.work(target.work, wording: settings.wording)
     }
     private func valid(_ result: SetResult) -> Bool {
         let count = result.reps ?? result.seconds ?? -1

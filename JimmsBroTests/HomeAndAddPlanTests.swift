@@ -157,33 +157,35 @@ final class HomeAndAddPlanTests: XCTestCase {
         XCTAssertEqual(HomeActivity.duration(0), "0 min")
     }
 
-    // O68: the review sheet shows what the chatbot actually wrote, per set.
+    // O68: the review sheet shows what the chatbot actually wrote, per set — in the
+    // compact notation, which since D58 (v1.6) is Settings' switch. U34 pins the plain
+    // grammar that replaced it as the default.
     func testExerciseSummaryShowsPerSetVariation() throws {
         func sets(_ weights: [Double?], work: WorkTarget = .reps(.range(min: 8, max: 12))) -> [SetTarget] {
             weights.map { SetTarget(work: work, weight: $0, restSeconds: 90) }
         }
         let straight = Exercise(name: "Bench", repRange: RepRange(min: 8, max: 12), sets: sets([60, 60, 60]))
-        XCTAssertEqual(TargetText.summary(straight, units: .kg), "3 × 8–12 · 60 kg")
+        XCTAssertEqual(TargetText.summary(straight, units: .kg, wording: .compact), "3 × 8–12 · 60 kg")
 
         // The defect this replaced: v1 repeated the first set and hid the pyramid entirely.
         let pyramid = Exercise(name: "Incline", repRange: RepRange(min: 8, max: 12), sets: sets([24, 26, 28]))
-        XCTAssertEqual(TargetText.summary(pyramid, units: .kg), "3 × 8–12 · 24 / 26 / 28 kg")
+        XCTAssertEqual(TargetText.summary(pyramid, units: .kg, wording: .compact), "3 × 8–12 · 24 / 26 / 28 kg")
 
         let varied = Exercise(name: "Incline", sets: [
             SetTarget(work: .reps(.fixed(12)), weight: 24, restSeconds: 90),
             SetTarget(work: .reps(.fixed(10)), weight: 26, restSeconds: 90),
             SetTarget(work: .reps(.fixed(8)), weight: 28, restSeconds: 90)])
-        XCTAssertEqual(TargetText.summary(varied, units: .kg), "12 · 24 / 10 · 26 / 8 · 28 kg")
+        XCTAssertEqual(TargetText.summary(varied, units: .kg, wording: .compact), "12 · 24 / 10 · 26 / 8 · 28 kg")
 
         let bodyweight = Exercise(name: "Push-Up", bodyweight: true, sets: sets([nil, nil]))
-        XCTAssertEqual(TargetText.summary(bodyweight, units: .kg), "2 × 8–12")
-        XCTAssertEqual(TargetText.summary(Exercise(name: "Empty", sets: []), units: .kg), "No sets")
+        XCTAssertEqual(TargetText.summary(bodyweight, units: .kg, wording: .compact), "2 × 8–12")
+        XCTAssertEqual(TargetText.summary(Exercise(name: "Empty", sets: []), units: .kg, wording: .compact), "No sets")
 
         let dropped = Exercise(name: "Curl", sets: [
             SetTarget(work: .reps(.fixed(10)), weight: 20, restSeconds: 60,
                       drops: [DropTarget(work: .reps(.amrap(min: nil)), weight: 15)])])
-        XCTAssertTrue(TargetText.summary(dropped, units: .kg).hasSuffix("· 1 drop"),
-                      TargetText.summary(dropped, units: .kg))
+        XCTAssertTrue(TargetText.summary(dropped, units: .kg, wording: .compact).hasSuffix("· 1 drop"),
+                      TargetText.summary(dropped, units: .kg, wording: .compact))
     }
 
     // O69: warnings worth reading are shown; tidying goes behind Details.
