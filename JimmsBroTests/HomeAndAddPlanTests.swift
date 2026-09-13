@@ -32,7 +32,7 @@ final class HomeAndAddPlanTests: XCTestCase {
     func testStartCardWordingAndPreview() throws {
         var library = PlanLibrary()
         XCTAssertEqual(HomeStart.current(library: library, now: now).title, "No plan yet")
-        XCTAssertEqual(HomeStart.current(library: library, now: now).buttonTitle, "Add plan")
+        XCTAssertEqual(HomeStart.current(library: library, now: now).buttonTitle, "Choose a plan")
         XCTAssertTrue(HomeStart.current(library: library, now: now).isEmpty)
 
         library.save(rotation(), makeActive: true)

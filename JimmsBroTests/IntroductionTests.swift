@@ -33,9 +33,10 @@ final class IntroductionTests: XCTestCase {
     // against Core; the ones that are view literals are read from the views' own source, on
     // the routes that can see the checkout.
     @MainActor func testEveryControlTheIntroNamesExists() throws {
-        // "Add plan" and "Start …" are the empty and the ready card's buttons.
+        // "Choose a plan" and "Start …" are the empty and the ready card's buttons (D61, v1.7:
+        // the empty card says what the intro's button says); "Add plan" is the Plans list's.
         var library = PlanLibrary()
-        XCTAssertEqual(HomeStart.current(library: library, now: now).buttonTitle, "Add plan")
+        XCTAssertEqual(HomeStart.current(library: library, now: now).buttonTitle, Introduction.choosePlan)
         library.save(CoreTestSupport.plan(), makeActive: true)
         XCTAssertEqual(HomeStart.current(library: library, now: now).buttonTitle, "Start Push")
         // "Log set" is the workout's primary action on a set of reps.
@@ -49,7 +50,7 @@ final class IntroductionTests: XCTestCase {
             ("History", "JimmsBro/RootView.swift", "Label(\"History\""),
             ("Progression", "JimmsBro/Features/PlanDetail/PlanDetailView.swift", "Text(\"Progression\")"),
             ("built-in plan", "JimmsBro/Features/Import/ImportView.swift", "Label(\"Choose a built-in plan\""),
-            ("built-in plan", "JimmsBro/Features/Home/HomeView.swift", "Button(\"Choose a built-in plan\")"),
+            ("Add plan", "JimmsBro/Features/Plans/PlansView.swift", "PrimaryButton(title: \"Add plan\")"),
         ]
         for pin in literals {
             guard let source = FixtureLoader.doc(pin.file) else {

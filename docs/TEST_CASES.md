@@ -904,6 +904,23 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | U36 | unit | (D58, v1.6) What the setting must not reach | `Prompts.render` is byte-identical with the switch on and off |
 | U37 | ui | (D58, v1.6) Settings → Compact notation | The toggle sits under Keep screen awake; its footer quotes the forms in force; turning it on changes the workout card, the set rows, Plan detail, the review, the Overview, Session detail and the Summary together |
 
+## T. v1.7 — Today as one card, fewer tabs, earned controls, a colour per day
+
+`docs/ITERATION_8_PLAN.md` is the plan; one subsection per milestone, added as it lands. The plan's proposed ids are kept where they were free.
+
+### T1 — Today is one card (D61)
+
+`JimmsBroTests/TodayTests.swift`; O63's empty-card row, Y11's subtitle and Y13's pins were rewritten for the new button.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| T1 | unit | (D61, v1.7) `HomeStart.message` | Nil with no plan and on an ordinary day; `.notificationsOff` when the permission was declined; `.progressionFinished` outranks it; `.missed` outranks both; with the missed workout dismissed the next in the order speaks; never two. Each reads as it read in v1.6: "… was due …" · Do it now · Dismiss; "Your progression has run its course." · Plan the next one; the notifications sentence with no actions |
+| T2 | unit | (D61, v1.7) `HomeStart.alternatives` | Empty with no plan; Another day, Change plan on a three-day plan; Change plan alone on a one-day plan; Plan a progression joins last while D50 offers it and leaves when the plan carries a progression; while a session is open Change plan, Discard workout — ending with Discard, without Another day; the titles are Another day, Change plan, Plan a progression, Discard workout |
+| T3 | unit | (D61, v1.7) The exercise block is the preview | `exerciseLabel` reads "Exercises: Bench Press, Incline Press, Lateral Raise, Tricep Pushdown, Plank, and 2 more. Opens Push", and "Exercises: Squat. Opens Legs" with fewer than five; in progress the block comes from the session with the same label, `previewPlanId` is the session's plan, the subtitle reads "In progress · 0 of 7 sets · 23 min" and `planId` stays nil |
+| T4 | unit | (D61, v1.7) The empty card | "No plan yet"; "Choose a built-in plan to start today, or have a chatbot write yours."; **Choose a plan** — `Introduction.choosePlan`, the same words as the intro's button — and the one link **Try a short practice workout**; no ···, no message, no exercises; the link is on no other card |
+| T5 | ui | (D61, v1.7) Today at accessibility XL | On the smallest supported iPhone, in every state — a workout day, a rest day, mid-workout, the empty card — the name, the subtitle and Start stay visible without scrolling, and the exercise list is what scrolls (device; `DEVICE_CHECKLIST.md` T5) |
+| T6 | ui | (D61, v1.7) The screenshot hook | `tools/shot.sh build/today.png -uiScreen today` shows Today: the name, the subtitle, the exercise block with its chevron, the ··· top-right, Start in the bottom slot; no calendar, no week line, no small buttons under the names |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

@@ -81,8 +81,11 @@ final class ClarityTests: XCTestCase {
             ("JimmsBro/Features/PlanDetail/ProgressionView.swift", "PromptText.copyStep"),
             ("JimmsBro/Features/PlanDetail/ProgressionView.swift", "PromptText.mechanism"),
             ("JimmsBro/Features/PlanDetail/PlanDetailView.swift", "PromptText.progressionRow"),
-            ("JimmsBro/Features/Home/HomeView.swift", "PromptText.planProgression"),
-            ("JimmsBro/Features/Home/HomeView.swift", "card.offersProgression"),
+            // D61 (v1.7): Today's ··· takes its titles from Core — `HomeStart.Alternative.title`
+            // says PromptText.planProgression, and Core decides when it is offered.
+            ("JimmsBro/Core/HomeCard.swift", "PromptText.planProgression"),
+            ("JimmsBro/Core/HomeCard.swift", "start.offersProgression ? [.planProgression]"),
+            ("JimmsBro/Features/Home/HomeView.swift", "alternative.title"),
         ]
         for pin in pins {
             guard let source = FixtureLoader.doc(pin.file) else {

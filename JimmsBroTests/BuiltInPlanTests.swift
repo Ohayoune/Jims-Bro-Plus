@@ -220,7 +220,7 @@ final class BuiltInPlanTests: XCTestCase {
         // Home before: the empty card names the picker.
         let empty = HomeStart.current(library: model.library, now: now)
         XCTAssertTrue(empty.isEmpty)
-        XCTAssertEqual(empty.subtitle, "Choose a built-in plan, or get one from a chatbot.")
+        XCTAssertEqual(empty.subtitle, HomeStart.emptySentence)
 
         let result = model.loadBuiltInPlan("FullBody", now: now)
         XCTAssertTrue(result.issues.isEmpty, "\(result.issues)")

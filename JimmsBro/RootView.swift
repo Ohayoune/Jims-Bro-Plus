@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// The four tabs of SPEC §4.0. Home carries no navigation chrome of its own.
+/// The tabs of SPEC §4.0. Today's bar carries only its ··· (D61, v1.7).
 /// Why Add plan is opening: the ordinary sheet, or the sheet with the built-in picker already
 /// on it (D46, v1.4). An item rather than a Bool and a flag, because a sheet's content closure
 /// runs with the state it captured before the tap that presented it — a flag set in the same
@@ -14,12 +14,12 @@ enum AddPlanRequest: Identifiable, Equatable {
 }
 
 struct RootView: View {
-    enum Tab: String { case home, plans, history, settings }
+    enum Tab: String { case today, plans, history, settings }
 
     @State private var model: AppModel
     @State private var addPlan: AddPlanRequest?
     @State private var showWorkout = false
-    @State private var tab: Tab = .home
+    @State private var tab: Tab = .today
     /// D47 (v1.4): the intro's primary action was tapped, so Add plan opens on the picker
     /// once the cover is down — presenting a sheet while a cover is dismissing loses one.
     @State private var introChosePlan = false
@@ -28,9 +28,10 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $tab) {
-            HomeView(addPlan: $addPlan, showWorkout: $showWorkout)
-                .tabItem { Label("Home", systemImage: "house") }
-                .tag(Tab.home)
+            // D61 (v1.7): Home became Today — one card. ··· → Change plan reaches Plans.
+            HomeView(addPlan: $addPlan, showWorkout: $showWorkout, changePlan: { tab = .plans })
+                .tabItem { Label("Today", systemImage: "calendar") }
+                .tag(Tab.today)
             PlansView(addPlan: $addPlan, showWorkout: $showWorkout)
                 .tabItem { Label("Plans", systemImage: "list.bullet") }
                 .tag(Tab.plans)
@@ -154,7 +155,8 @@ struct RootView: View {
                     }
                 }
             }
-        } else if let requested = Tab(rawValue: name) {
+        } else if let requested = Tab(rawValue: name) ?? (name == "home" ? .today : nil) {
+            // `home` is kept for the scripts written before T1 renamed the tab (v1.7).
             tab = requested
         }
         #endif

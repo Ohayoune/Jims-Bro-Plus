@@ -30,7 +30,7 @@ of "Before starting" are done; start at step 3. H33's read-only-store case needs
 3. iPhone → Settings → Privacy & Security → Developer Mode → on (the phone restarts).
 4. Plug in the phone, tap "Trust this computer", pick it as the run destination, press Run.
 5. On the phone: Settings → General → VPN & Device Management → trust your developer certificate.
-6. Choose a built-in plan from Home (v1.4), or paste a real one, before starting the timer cases.
+6. **Choose a plan** from Today (v1.4, v1.7), or paste a real one, before starting the timer cases.
 
 Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Notes.
 
@@ -171,6 +171,12 @@ and `PlanSchedule.missed`; on U23 at `WorkoutScreen.primary(resting:)`; on U28 a
 `SystemActivityPresenter` (it must read `Activity.activities` rather than a stored handle) and
 `AppModel.load`'s closing `refreshActivity(force: true)`; on U37 at `Settings.wording` and
 whichever screen still calls a text function without passing it.
+
+## v1.7 rows (new or changed in T1)
+
+| Case | What to do | Expected | Result | Notes |
+|---|---|---|---|---|
+| **T5** | Settings → Accessibility → Larger Text at the largest size, then Today in each state — a workout day, a rest day, mid-workout, the empty card | The day's name, the subtitle and Start stay on screen without scrolling; the exercise list is what scrolls; the ··· sits top-right on every state that has one, and Discard from it is an alert with **Keep going** |  |  |
 
 ## When you are done
 

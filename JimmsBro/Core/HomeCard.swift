@@ -115,9 +115,11 @@ enum RepeatBlock {
     }
 }
 
-/// SPEC §4.1 (D18, revised v1.1): Home leads with the workout. The start card names the day and
-/// the plan, previews the exercises, and its button says what it will do. Resolved here, without
-/// view code, so the wording per schedule state is a unit test (O63) rather than a screenshot.
+/// SPEC §4.1 (D18, revised v1.1; D61, v1.7): Today is the day's card and nothing else. The
+/// card names the day and the plan, previews the exercises, carries at most one message, and
+/// its button says what it will do. Resolved here, without view code, so the wording per
+/// schedule state is a unit test (O63) rather than a screenshot — and since v1.7 the one
+/// message and the ··· items are chosen here too (T1, T2): the view stops deciding either.
 struct HomeStart: Equatable {
     /// The day, big: "Push", "Rest day", "No plan yet".
     var title: String
@@ -127,24 +129,40 @@ struct HomeStart: Equatable {
     var exercises: [String]
     /// The exercises not listed, e.g. 2 for "and 2 more".
     var more: Int
-    /// "Start Push", "Resume Push · 23 min", "Start Pull early", "Add plan".
+    /// "Start Push", "Resume Push · 23 min", "Choose a plan".
     var buttonTitle: String?
     /// The day the button would start, and that Preview would open.
     var planId: UUID?
     var dayIndex: Int?
     var isInProgress: Bool
-    /// No plan at all: Home offers the two onboarding imports instead of a preview.
+    /// No plan at all: Today offers the built-in picker and the practice workout instead.
     var isEmpty: Bool
     /// D37 (v1.2): the training day the schedule put before today that never happened, said
     /// plainly rather than resolved behind your back. "Push was due Tuesday."
     var missed: MissedWorkout?
-    /// D44 (v1.3): the plan's progression has run its course, so Home offers the next one.
+    /// D44 (v1.3): the plan's progression has run its course, so Today offers the next one.
     var progressionFinished = false
     /// D50 (v1.5): the quiet link to plan one — only when the plan has no progression and
     /// every exercise on this day has a logged session to plan from. "Not too obvious".
     var offersProgression = false
+    /// D61 (v1.7): the one message line, chosen by priority — the missed workout, then the
+    /// progression that has run its course, then notifications off — and never two at once.
+    var message: Message?
+    /// D61 (v1.7): the ··· items, in order. Empty means no ··· at all.
+    var alternatives: [Alternative] = []
+    /// D61 (v1.7): the exercise block is the preview — one tappable row that opens the day in
+    /// Plan detail. This is what VoiceOver reads for it: "Exercises: …, and 2 more. Opens Push".
+    var exerciseLabel: String?
+    /// D61 (v1.7): the plan the exercise block opens. The card's `planId` while a day is ready;
+    /// the running session's plan while one is in progress (Resume still goes to the session).
+    var previewPlanId: UUID?
+    /// D61 (v1.7): the empty card's one quiet link, under the sentence.
+    var link: String?
 
     static let previewLimit = 5
+    static let chooseButton = "Choose a plan"
+    static let practiceLink = "Try a short practice workout"
+    static let emptySentence = "Choose a built-in plan to start today, or have a chatbot write yours."
 
     /// A workout the schedule expected on a day that has no session on it.
     struct MissedWorkout: Equatable {
@@ -155,7 +173,62 @@ struct HomeStart: Equatable {
         var text: String
     }
 
-    static func current(library: PlanLibrary, now: Date = Date(), calendar: Calendar = .current) -> HomeStart {
+    /// D61 (v1.7): at most one of these is on the card. Each reads as it read in v1.6, with
+    /// the actions it had; nothing joins this list without a decision.
+    enum Message: Equatable {
+        /// D37: "Push was due Monday" · Do it now · Dismiss.
+        case missed(MissedWorkout)
+        /// D44: "Your progression has run its course." · Plan the next one.
+        case progressionFinished
+        /// D57: notifications were declined, so alerts only sound while the app is open.
+        case notificationsOff
+
+        var text: String {
+            switch self {
+            case let .missed(missed): return missed.text
+            case .progressionFinished: return "Your progression has run its course."
+            case .notificationsOff:
+                return "Notifications are off, so alerts only sound while the app is open."
+            }
+        }
+
+        /// The message's own buttons, in order.
+        var actions: [String] {
+            switch self {
+            case .missed: return ["Do it now", "Dismiss"]
+            case .progressionFinished: return ["Plan the next one"]
+            case .notificationsOff: return []
+            }
+        }
+    }
+
+    /// D61 (v1.7): the day's alternatives, which live in Today's ··· and nowhere else.
+    enum Alternative: Hashable {
+        /// The plan's other days, in the existing chooser.
+        case anotherDay
+        /// The Plans list.
+        case changePlan
+        /// D50: while the plan has none and every exercise on the day has history.
+        case planProgression
+        /// D56: while a session is open, with its alert.
+        case discardWorkout
+
+        var title: String {
+            switch self {
+            case .anotherDay: return "Another day"
+            case .changePlan: return "Change plan"
+            case .planProgression: return PromptText.planProgression
+            case .discardWorkout: return "Discard workout"
+            }
+        }
+    }
+
+    /// - Parameters:
+    ///   - notificationsOff: the permission was declined this run (D57), the lowest message.
+    ///   - missedDismissed: Dismiss was tapped on the missed workout this run (D37), so the
+    ///     next message in the order takes the line.
+    static func current(library: PlanLibrary, now: Date = Date(), calendar: Calendar = .current,
+                        notificationsOff: Bool = false, missedDismissed: Bool = false) -> HomeStart {
         let card = StartCard.current(library: library, now: now, calendar: calendar)
         var start = HomeStart(title: card.title, exercises: [], more: 0,
                               isInProgress: false, isEmpty: false)
@@ -163,22 +236,44 @@ struct HomeStart: Equatable {
         switch card {
         case .noPlan:
             start.title = "No plan yet"
-            // D46 (v1.4): the built-in picker took the sample's place.
-            start.subtitle = "Choose a built-in plan, or get one from a chatbot."
-            start.buttonTitle = "Add plan"
+            // D46 (v1.4): the built-in picker took the sample's place. D61 (v1.7): two choices
+            // where there were three — the button opens the picker, and the chatbot and paste
+            // routes are one tap back inside it, where D57 already sends the reader.
+            start.subtitle = emptySentence
+            start.buttonTitle = chooseButton
+            start.link = practiceLink
             start.isEmpty = true
             return start
 
         case let .inProgress(dayName, elapsed):
             start.title = dayName
-            start.subtitle = "In progress"
             start.buttonTitle = "Resume \(dayName) · \(Int(elapsed) / 60) min"
             start.isInProgress = true
+            if let session = library.engine?.session {
+                // D61 (v1.7): the subtitle says where you are, and the exercise block still
+                // stands — the same five zones as on any other day.
+                let logged = SessionStats.loggedCount(session)
+                let total = session.steps.count
+                start.subtitle = "In progress · \(logged) of \(total) set\(total == 1 ? "" : "s")"
+                    + " · \(Int(elapsed) / 60) min"
+                start.previewPlanId = library.plans.first { $0.id == session.planId }?.id
+                preview(&start, names: session.exercises.map(\.name), dayName: dayName)
+            } else {
+                start.subtitle = "In progress"
+            }
+            start.alternatives = [.changePlan, .discardWorkout]
+            start.message = message(for: start, notificationsOff: notificationsOff,
+                                    missedDismissed: missedDismissed)
             return start
 
         case .nothingScheduled:
             start.title = "Nothing scheduled"
             start.subtitle = "This plan has no day to start. Open it in Plans to check its repeat block."
+            if let plan = library.activePlan {
+                start.alternatives = (plan.days.isEmpty ? [] : [.anotherDay]) + [.changePlan]
+            }
+            start.message = message(for: start, notificationsOff: notificationsOff,
+                                    missedDismissed: missedDismissed)
             return start
 
         case let .nextUp(planId, dayIndex, dayName), let .today(planId, dayIndex, dayName):
@@ -212,9 +307,8 @@ struct HomeStart: Equatable {
 
         guard let plan = library.plans.first(where: { $0.id == start.planId }),
               let index = start.dayIndex, let day = plan.days[safe: index] else { return start }
-        let names = day.exercises.map(\.name)
-        start.exercises = Array(names.prefix(previewLimit))
-        start.more = max(0, names.count - previewLimit)
+        start.previewPlanId = plan.id
+        preview(&start, names: day.exercises.map(\.name), dayName: day.name)
 
         var fragments: [String] = []
         // The plan's name always (D57): "Planned for Fri · Upper Lower · 5 exercises".
@@ -245,7 +339,36 @@ struct HomeStart: Equatable {
         // A rest day already used the subtitle to say what is next; the rest hangs off that.
         start.subtitle = ([start.subtitle].compactMap { $0 } + fragments).joined(separator: " · ")
         if start.subtitle?.isEmpty == true { start.subtitle = nil }
+
+        // D61 (v1.7): the alternatives, in the order the ··· lists them. Another day only when
+        // the plan has another day; Plan a progression only while D50 offers it.
+        start.alternatives = (plan.days.count > 1 ? [.anotherDay] : []) + [.changePlan]
+            + (start.offersProgression ? [.planProgression] : [])
+        start.message = message(for: start, notificationsOff: notificationsOff,
+                                missedDismissed: missedDismissed)
         return start
+    }
+
+    /// The first five names, the count of the rest, and what VoiceOver reads for the block.
+    private static func preview(_ start: inout HomeStart, names: [String], dayName: String) {
+        start.exercises = Array(names.prefix(previewLimit))
+        start.more = max(0, names.count - previewLimit)
+        guard !start.exercises.isEmpty else { return }
+        var label = "Exercises: " + start.exercises.joined(separator: ", ")
+        if start.more > 0 { label += ", and \(start.more) more" }
+        if start.previewPlanId != nil { label += ". Opens \(dayName)" }
+        start.exerciseLabel = label
+    }
+
+    /// D61 (v1.7): one message, by priority. The missed workout first — it is the only one
+    /// with a date on it — unless it was dismissed this run; then the progression that has run
+    /// its course; then notifications off. Never two.
+    private static func message(for start: HomeStart, notificationsOff: Bool,
+                                missedDismissed: Bool) -> Message? {
+        if let missed = start.missed, !missedDismissed { return .missed(missed) }
+        if start.progressionFinished { return .progressionFinished }
+        if notificationsOff { return .notificationsOff }
+        return nil
     }
 
     /// Whole minutes of the most recent completed session of this day name.

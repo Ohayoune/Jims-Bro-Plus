@@ -1,11 +1,52 @@
 # Build status
 
-Updated 2026-09-09. **v1.6 (U0–U7) is built and green on branch `v1.6-refinement`
-(pull request #2), the owner having chosen Reading B for U4; the device checklist, the
-Developer Program, a release Xcode and the submission itself are the owner's.** v1.5 and
-everything before it are below, unchanged except where a later milestone corrected them.
+Updated 2026-09-13. **v1.7 is in progress on branch `v1.7-today` (off `main`, which holds
+v1.6 since pull request #2 merged): T0 and T1 are built and green; T2–T6 follow.** v1.6 and
+everything before it are below, unchanged except where a later milestone corrected them; the
+device checklist, the Developer Program, a release Xcode and the submission itself are the
+owner's.
 
-## v1.6 (U0–U7): built and green
+## v1.7 (T0–T6): in progress
+
+`docs/ITERATION_8_PLAN.md` is the v1.7 plan, written from the owner's note after living with
+v1.6 — *"sensory overload… less choices… more forcing… feels like a settings menu"*. Two
+milestones were the owner's call and were chosen on 2026-09-13: T2 is Reading A (Today ·
+History) and T5 (a colour per day) is go. Each milestone ends with the whole suite green on all
+three routes, a Release build and `tools/check_release.py`, and one commit on `v1.7-today`.
+
+After T1:
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **316 tests, 7 skipped, 0 failures** |
+| `swift test` | **315 tests, 0 failures** |
+| `python3 tools/check_core.py` | **315 bodies, 6,039 assertions, 0 failures** |
+| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.5 (1); T6 makes it 1.7 |
+| `python3 tools/check_bundle.py` | **current** (regenerated in T0 and T1) |
+
+| Milestone | What it did | State |
+|---|---|---|
+| T0 | The plan, the branch, the mock (the "Jimm's Bro+ Today" artifact, not committed) | Done |
+| T1 | Today is one card (D61): the day's name, one subtitle, the exercise block as the preview, at most one message, Start — and the day's alternatives in one ···. `HomeStart.message` and `.alternatives` are Core data (T1–T4 in `TodayTests`); the calendar, the week's line, Preview, the Week/Month control and the small buttons left the screen; the empty card offers **Choose a plan** and the practice link; Home's tab is Today | Done |
+| T2 | How many tabs (D62) — Reading A | Next |
+| T3 | The calendar lives in History (D63) | — |
+| T4 | Controls are earned (D64) | — |
+| T5 | A colour per day (D65) | — |
+| T6 | Docs, checklist, bundle, screenshots, 1.7 | — |
+| — | The v1.7 device rows (T5 so far) | **Written, not run** — need the phone |
+
+### Checked on the simulator (v1.7)
+
+| Screenshot | What it shows |
+|---|---|
+| `build/today.png` | Today on the seeded plan, from `SEED=1 tools/shot.sh build/today.png -uiScreen today -uiNoAsk` (T6): "Push", "Planned for Mon · Push Pull Legs · 5 exercises · 39 min last time", the five names with a chevron, the ··· top-right, **Start Push** in the bottom slot; no calendar, no week line, no buttons under the names |
+
+What T1 could not check without the phone: T5 (Today at accessibility XL, every state, on the
+smallest supported iPhone). The calendar is off Today and not yet on History until T3; that gap
+is one commit wide and deliberate (`DECISIONS_LOG.md`).
+
+## v1.6 (U0–U7): built and green (merged as pull request #2)
 
 `docs/ITERATION_7_PLAN.md` is the v1.6 plan, built from the 2026-09-09 usability audit
 (`docs/UX_REVIEW_2026-09-09.md`): v1.5 walked on the simulators as a stranger (a clean install
