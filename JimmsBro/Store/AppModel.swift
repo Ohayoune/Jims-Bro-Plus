@@ -166,6 +166,13 @@ enum SaveFailure: Equatable {
             do { try await store.save(settings: library.settings) } catch { saveFailure = .settings(library.settings) }
         }
         loaded = true
+
+        // D60 (v1.6): the Lock Screen and the Dynamic Island are the one piece of this app's
+        // state that the app does not own — an activity outlives the process that started it.
+        // So the first thing a launch owes them is the truth: adopt the one belonging to a
+        // workout still in progress, end anything left over from a run that was killed. After
+        // `loaded`, because D48 says a launch paints before it does its side effects.
+        await refreshActivity(now: now, force: true)
     }
 
     var startCard: StartCard { StartCard.current(library: library) }
@@ -321,6 +328,8 @@ enum SaveFailure: Equatable {
     func setSound(_ on: Bool) async { await update { $0.sound = on } }
     func setVibration(_ on: Bool) async { await update { $0.vibration = on } }
     func setKeepAwake(_ on: Bool) async { await update { $0.keepAwake = on } }
+    /// D58 (v1.6): the coach's switch — v1.5's notation back everywhere.
+    func setCompactNotation(_ on: Bool) async { await update { $0.compactNotation = on } }
     /// The step is per unit, so switching units doesn't silently change the other one.
     func setWeightStep(_ step: Double, for units: WeightUnit) async {
         let clamped = min(100, max(0.1, (step * 10).rounded() / 10))
@@ -490,6 +499,11 @@ enum SaveFailure: Equatable {
     }
 
     func refreshNotificationState() async { notificationState = await scheduler.authorizationState() }
+
+    /// D57 (v1.6): "Next: Full Body B, Friday" under the Summary's headline.
+    func summaryNext(for session: Session, now: Date = Date()) -> String? {
+        SummaryText.next(after: session, library: library, now: now)
+    }
 
     /// Waits for the launch read to finish, for the DEBUG screenshot hooks that need a loaded
     /// model before they navigate. Bounded and cancellation-aware: an unbounded `while !loaded`

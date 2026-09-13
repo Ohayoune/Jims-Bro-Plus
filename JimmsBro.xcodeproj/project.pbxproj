@@ -18,6 +18,7 @@
 		F1E2D78EB69B4D84BB7235FF /* PlanDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6D6F6D20E64623A6844375 /* PlanDraft.swift */; };
 		71D355C1D4494A1AAAF29773 /* InReserveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF89143A6A24A11AD257E08 /* InReserveTests.swift */; };
 		6AF74EC479B54190A353B001 /* ClarityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E635E7EA3F746999CDF7B7A /* ClarityTests.swift */; };
+		8386FC4A2BD8A8EB4D3E69F1 /* UsabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 339B9278096A6BDBEC9F29F2 /* UsabilityTests.swift */; };
 		BFDFD10AB57F40E89D105DF3 /* IntroductionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A4FF34348CD4A5A9817D5DF /* IntroductionTests.swift */; };
 		198D82D2E4624379BB30206C /* IntroductionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1611CF2EBEDC4B84BB786C9E /* IntroductionView.swift */; };
 		584C20992B1740DAB06C4356 /* Introduction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 296E62D52FE147DC91EFCE6F /* Introduction.swift */; };
@@ -168,6 +169,7 @@
 		AB6D6F6D20E64623A6844375 /* PlanDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanDraft.swift; sourceTree = "<group>"; };
 		7CF89143A6A24A11AD257E08 /* InReserveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InReserveTests.swift; sourceTree = "<group>"; };
 		1E635E7EA3F746999CDF7B7A /* ClarityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClarityTests.swift; sourceTree = "<group>"; };
+		339B9278096A6BDBEC9F29F2 /* UsabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsabilityTests.swift; sourceTree = "<group>"; };
 		7A4FF34348CD4A5A9817D5DF /* IntroductionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroductionTests.swift; sourceTree = "<group>"; };
 		1611CF2EBEDC4B84BB786C9E /* IntroductionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroductionView.swift; sourceTree = "<group>"; };
 		296E62D52FE147DC91EFCE6F /* Introduction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Introduction.swift; sourceTree = "<group>"; };
@@ -421,6 +423,7 @@
 				439CE55246D549E1A020FA0E /* DraftPlanTests.swift */,
 				7CF89143A6A24A11AD257E08 /* InReserveTests.swift */,
 				1E635E7EA3F746999CDF7B7A /* ClarityTests.swift */,
+				339B9278096A6BDBEC9F29F2 /* UsabilityTests.swift */,
 				7A4FF34348CD4A5A9817D5DF /* IntroductionTests.swift */,
 				CC3062DA399F4FC0ADD64D9E /* BuiltInPlanTests.swift */,
 				2103E9EAD9FA4C7C9E983661 /* ResponsivenessTests.swift */,
@@ -789,6 +792,7 @@
 				DB098ECF90B343CFB99C0C47 /* DraftPlanTests.swift in Sources */,
 				71D355C1D4494A1AAAF29773 /* InReserveTests.swift in Sources */,
 				6AF74EC479B54190A353B001 /* ClarityTests.swift in Sources */,
+				8386FC4A2BD8A8EB4D3E69F1 /* UsabilityTests.swift in Sources */,
 				BFDFD10AB57F40E89D105DF3 /* IntroductionTests.swift in Sources */,
 				53B49EEC35564F51B63EACB5 /* BuiltInPlanTests.swift in Sources */,
 				A6425EB9BC3B41C9998C1B11 /* ResponsivenessTests.swift in Sources */,
@@ -866,7 +870,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohayoune.jimmsbro.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -891,7 +895,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohayoune.jimmsbro.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -925,7 +929,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohayoune.jimmsbro;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1049,7 +1053,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohayoune.jimmsbro;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1077,7 +1081,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohayoune.jimmsbro.activity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1105,7 +1109,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohayoune.jimmsbro.activity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

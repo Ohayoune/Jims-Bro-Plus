@@ -77,7 +77,15 @@ struct PlanDetailView: View {
                                 guard let position = offsets.first else { return }
                                 edit(.deleteExercise(day: index, exercise: position))
                             }
+                            // D59 (v1.6): Add exercise as a row, not only behind the day's ···;
+                            // Start as a button, not a text link at the end of a list.
+                            Button { fragment = .addExercise(day: index) } label: {
+                                Label("Add exercise", systemImage: "plus")
+                            }
                             Button("Start \(day.name)") { start(plan, index) }
+                                .buttonStyle(.bordered)
+                                .buttonBorderShape(.capsule)
+                                .tint(Color.accentColor)
                         } header: {
                             HStack {
                                 Text(day.name)
@@ -164,8 +172,9 @@ struct PlanDetailView: View {
                     Button("Cancel", role: .cancel) {}
                     Button("Rename") { Task { await model.renamePlan(planId, to: draftName) } }
                 }
-                .confirmationDialog("Delete \(plan.name)?", isPresented: $confirmDelete,
-                                    titleVisibility: .visible) {
+                // D56 (v1.6): an alert, because a dialog presented from the ··· menu draws as a
+                // popover on iOS 26 and drops its Cancel.
+                .alert("Delete \(plan.name)?", isPresented: $confirmDelete) {
                     Button("Delete", role: .destructive) { Task { await model.deletePlan(planId); dismiss() } }
                     Button("Cancel", role: .cancel) {}
                 }
@@ -194,25 +203,23 @@ struct PlanDetailView: View {
 
     private func repeatBlock(_ plan: Plan) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("\(plan.units.rawValue) · \(plan.schedule.rawValue)")
+            // D59 (v1.6): "kg · repeats every 7 days" — "rotation" was the format's word, not
+            // the person's — and chips that wrap instead of scrolling off the edge.
+            Text([plan.units.rawValue, RepeatBlock.caption(plan)?.lowercased()].compactMap { $0 }
+                .joined(separator: " · "))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(Array(RepeatBlock.chips(plan).enumerated()), id: \.offset) { index, name in
-                        let highlighted = RepeatBlock.highlighted(plan) == index
-                        Text(name)
-                            .font(.caption)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(highlighted ? Color.accentColor : Color.secondary.opacity(0.15),
-                                        in: Capsule())
-                            .foregroundStyle(highlighted ? .white : .primary)
-                    }
+            WrapLayout(spacing: 6) {
+                ForEach(Array(RepeatBlock.chips(plan).enumerated()), id: \.offset) { index, name in
+                    let highlighted = RepeatBlock.highlighted(plan) == index
+                    Text(name)
+                        .font(.caption)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(highlighted ? Color.accentColor : Color.secondary.opacity(0.15),
+                                    in: Capsule())
+                        .foregroundStyle(highlighted ? .white : .primary)
                 }
-            }
-            if let caption = RepeatBlock.caption(plan) {
-                Text(caption).font(.footnote).foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 4)
@@ -222,7 +229,7 @@ struct PlanDetailView: View {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 if plan.id != model.activePlanId {
-                    Button("Set as active") { Task { await model.setActivePlan(planId) } }
+                    Button("Use this plan") { Task { await model.setActivePlan(planId) } }
                 }
                 Button("Rename") { draftName = plan.name; renaming = true }
                 Button(copied ? "Copied" : "Copy JSON") { Clipboard.write(plan.sourceText); copied = true }
@@ -262,6 +269,7 @@ struct PlanDetailView: View {
 }
 
 private struct ExerciseRow: View {
+    @Environment(AppModel.self) private var model
     let exercise: Exercise
     let units: WeightUnit
 
@@ -289,7 +297,7 @@ private struct ExerciseRow: View {
     /// varies across the sets instead of repeating the first set's target as if it were all of them.
     private var detail: String {
         guard let first = exercise.sets.first else { return "No sets" }
-        var parts = [TargetText.summary(exercise, units: units)]
+        var parts = [TargetText.summary(exercise, units: units, wording: model.settings.wording)]
         parts.append("rest \(first.restSeconds) s")
         if exercise.bodyweight { parts.append("bodyweight") }
         return parts.joined(separator: " · ")

@@ -207,7 +207,8 @@ final class SettingsPolishTests: XCTestCase {
         pounds.units = .lb
         let dropSession = CoreTestSupport.session(pounds)
         XCTAssertTrue(StepCard.spoken(session: dropSession, step: 0).contains("pounds"))
-        XCTAssertTrue(StepCard.spoken(session: dropSession, step: 1).contains("drop 1 of 1"))
+        // D58 (v1.6): VoiceOver speaks plainly too — a drop is a lighter set.
+        XCTAssertTrue(StepCard.spoken(session: dropSession, step: 1).contains("lighter set 1 of 1"))
 
         // A bodyweight exercise says no weight at all.
         let bodyweight = CoreTestSupport.session(

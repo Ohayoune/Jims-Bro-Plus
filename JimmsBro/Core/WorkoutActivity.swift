@@ -8,7 +8,8 @@ import Foundation
 /// widget extension and behind `ActivityPresenting`, exactly as UserNotifications lives behind
 /// `NotificationScheduling` — which is what makes this testable without a device.
 extension WorkoutActivityState {
-    static func of(_ active: ActiveSession, now: Date = Date()) -> WorkoutActivityState? {
+    static func of(_ active: ActiveSession, now: Date = Date(),
+                   wording: Wording = .plain) -> WorkoutActivityState? {
         let session = active.session
         guard active.phase != .completed, !session.steps.isEmpty else { return nil }
         let index: Int
@@ -18,7 +19,7 @@ extension WorkoutActivityState {
         case .completed: return nil
         }
         let done = session.steps.filter { $0.status != .pending }.count
-        let detail = WorkoutScreen.nextLine(session: session, step: index)?
+        let detail = WorkoutScreen.nextLine(session: session, step: index, wording: wording)?
             .replacingOccurrences(of: "Next: ", with: "")
             ?? session.dayName
 

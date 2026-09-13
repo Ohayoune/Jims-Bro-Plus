@@ -137,7 +137,8 @@ final class ProgressionTests: XCTestCase {
         let after = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: days(40), calendar: calendar))
         let later = Prefill.values(session: after, step: 0, history: history, settings: settings)
         XCTAssertEqual(later.weight, 70)
-        XCTAssertEqual(later.suggestion?.isProgression, false)
+        // D55 (v1.6): last time is back in the fields, so there is nothing left to suggest.
+        XCTAssertNil(later.suggestion)
 
         // Bodyweight in its week: reps only, nothing invented for the weight.
         let first = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: now, calendar: calendar))

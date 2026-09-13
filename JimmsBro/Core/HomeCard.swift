@@ -188,13 +188,15 @@ struct HomeStart: Equatable {
             start.dayIndex = dayIndex
 
         case let .restDay(planId, dayIndex, dayName, weekday, _):
-            // The day itself is the headline even on a rest day: the button starts it early.
-            start.title = "Rest day"
-            start.buttonTitle = "Start \(dayName) early"
+            // D57 (v1.6): the workout is the headline on a rest day too, and the button just
+            // starts it; the schedule is one quiet fragment in front of the rest. v1.1–v1.5
+            // said "Rest day" and "Start Lower early" — schedule-speak to someone in a gym.
+            start.title = dayName
+            start.buttonTitle = "Start \(dayName)"
             start.planId = planId
             start.dayIndex = dayIndex
-            let when = weekday.map { ", \(WeekdayText.short($0))" } ?? ""
-            start.subtitle = "\(dayName) is next\(when)"
+            let when = weekday.map { " for \(WeekdayText.short($0))" } ?? ""
+            start.subtitle = "Planned\(when)"
         }
 
         if let plan = library.activePlan, plan.schedule == .rotation, library.engine == nil,
@@ -215,7 +217,8 @@ struct HomeStart: Equatable {
         start.more = max(0, names.count - previewLimit)
 
         var fragments: [String] = []
-        if start.subtitle == nil { fragments.append(plan.name) }
+        // The plan's name always (D57): "Planned for Fri · Upper Lower · 5 exercises".
+        fragments.append(plan.name)
         if !day.exercises.isEmpty {
             fragments.append("\(day.exercises.count) exercise\(day.exercises.count == 1 ? "" : "s")")
         }
@@ -276,5 +279,55 @@ enum HomeActivity {
         guard minutes >= 60 else { return "\(minutes) min" }
         let remainder = minutes % 60
         return remainder == 0 ? "\(minutes / 60) h" : "\(minutes / 60) h \(remainder) min"
+    }
+}
+
+/// D57 (v1.6): the Summary's one line about what comes next, from the same schedule the
+/// calendar draws — read after the rotation has advanced, so "next" is never the day just done.
+enum SummaryText {
+    static func next(after session: Session, library: PlanLibrary, now: Date = Date(),
+                     calendar: Calendar = .current) -> String? {
+        guard let planId = session.planId,
+              let plan = library.plans.first(where: { $0.id == planId }) else { return nil }
+        let today = calendar.startOfDay(for: now)
+        var found: (name: String, date: Date)?
+        if plan.schedule == .weekday {
+            // The next weekday after today that has a day; today's is the one just done.
+            let current = calendar.component(.weekday, from: now)
+            for offset in 1...7 {
+                let weekday = (current - 1 + offset) % 7 + 1
+                if let day = plan.days.first(where: { $0.weekday?.calendarValue == weekday }),
+                   let date = calendar.date(byAdding: .day, value: offset, to: today) {
+                    found = (day.name, date)
+                    break
+                }
+            }
+        } else if let next = PlanSchedule.next(plan, today: now, calendar: calendar),
+                  let day = plan.days[safe: next.dayIndex], next.date > today {
+            found = (day.name, next.date)
+        }
+        guard let found else { return nil }
+        let days = calendar.dateComponents([.day], from: today,
+                                           to: calendar.startOfDay(for: found.date)).day ?? 0
+        let when: String
+        switch days {
+        case 1: when = "tomorrow"
+        case 2...6: when = formatted(found.date, template: "EEEE", calendar: calendar)
+        default: when = "on " + formatted(found.date, template: "d MMM", calendar: calendar)
+        }
+        return "Next: \(found.name), \(when)"
+    }
+
+    /// "Friday" or "17 Sep", in the calendar's own zone and locale — `weekdaySymbols` on a
+    /// calendar without a locale is not reliably the full name.
+    private static func formatted(_ date: Date, template: String, calendar: Calendar) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        // A calendar built from an identifier carries a nameless "fixed" locale that formats
+        // "EEEE" as "Fri"; the device's current locale is the one that says "Friday".
+        formatter.locale = calendar.locale.flatMap { $0.identifier.isEmpty ? nil : $0 } ?? .current
+        formatter.setLocalizedDateFormatFromTemplate(template)
+        return formatter.string(from: date)
     }
 }

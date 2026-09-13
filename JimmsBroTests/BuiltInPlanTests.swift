@@ -172,6 +172,9 @@ final class BuiltInPlanTests: XCTestCase {
 
     // Y9: every day runs through the real flattening, and takes about what the picker says.
     func testEveryDayRunsInAboutAnHour() throws {
+        // The picker's minutes under v1.2's defaults, warm-up and walk included. (D57, v1.6:
+        // a fresh install's warm-up is off; the plans' own numbers are judged with it on.)
+        let v15 = Settings(warmUpSeconds: 300)
         for entry in BuiltInPlans.all {
             let plan = try imported(entry)
             var minutes: [Int] = []
@@ -181,11 +184,11 @@ final class BuiltInPlanTests: XCTestCase {
                 let sets = plan.days[index].exercises.reduce(0) { $0 + $1.sets.count }
                 XCTAssertEqual(session.steps.count, sets, "\(label): one step per set, no drops")
                 XCTAssertTrue(session.steps.allSatisfy { $0.status == .pending }, label)
-                let estimate = try XCTUnwrap(BuiltInPlans.estimatedMinutes(plan, dayIndex: index, settings: Settings()), label)
+                let estimate = try XCTUnwrap(BuiltInPlans.estimatedMinutes(plan, dayIndex: index, settings: v15), label)
                 XCTAssertTrue((35...65).contains(estimate), "\(label): about \(estimate) min")
                 minutes.append(estimate)
             }
-            let typical = try XCTUnwrap(BuiltInPlans.estimatedMinutes(plan, settings: Settings()))
+            let typical = try XCTUnwrap(BuiltInPlans.estimatedMinutes(plan, settings: v15))
             XCTAssertEqual(typical % 5, 0, "\(entry.id): to the nearest five minutes")
             XCTAssertTrue(abs(typical - minutes.reduce(0, +) / minutes.count) <= 3, entry.id)
             XCTAssertTrue(BuiltInPlans.summary(entry, minutes: typical)
@@ -193,10 +196,10 @@ final class BuiltInPlanTests: XCTestCase {
         }
         // No warm-up and no walk (v1.1's settings) takes the estimate down, never up.
         let plan = try imported(try entry("FullBody"))
-        let full = try XCTUnwrap(BuiltInPlans.estimatedMinutes(plan, dayIndex: 0, settings: Settings()))
+        let full = try XCTUnwrap(BuiltInPlans.estimatedMinutes(plan, dayIndex: 0, settings: v15))
         let bare = try XCTUnwrap(BuiltInPlans.estimatedMinutes(plan, dayIndex: 0, settings: CoreTestSupport.classic))
         XCTAssertEqual(full - bare, (300 + 4 * 120) / 60, "the warm-up and four walks")
-        XCTAssertNil(BuiltInPlans.estimatedMinutes(plan, dayIndex: 9, settings: Settings()))
+        XCTAssertNil(BuiltInPlans.estimatedMinutes(plan, dayIndex: 9, settings: v15))
     }
 
     // Y10: the model reads a built-in plan through the injected reader, refuses an unknown

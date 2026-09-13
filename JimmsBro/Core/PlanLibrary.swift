@@ -189,14 +189,25 @@ enum PlanSchedule {
     /// A training day the projection put **before** today that has no completed session on it —
     /// the workout that was missed. Only the most recent one, and only within a week: a plan you
     /// came back to after a fortnight is not a missed Tuesday, it is a fresh start.
+    ///
+    /// D55 (v1.6): only a day the plan actually expected. A plan with nothing completed has no
+    /// anchor and projected its pattern backwards over days before it existed — "Full Body B
+    /// was due Sunday", three minutes after a fresh install — and a completion re-anchors the
+    /// pattern over days that were already lived through ("Pull was due Tuesday" after a day
+    /// run out of order). A missed day is therefore after the plan's import day and after its
+    /// anchor, the day of its most recent completed workout; with nothing completed, nothing
+    /// was missed.
     static func missed(_ plan: Plan, sessions: [Session], today: Date,
                        calendar: Calendar = .current) -> (dayIndex: Int, date: Date)? {
-        guard !plan.cycle.isEmpty else { return nil }
+        guard !plan.cycle.isEmpty, let anchor = plan.cycleAnchor else { return nil }
+        let anchorDay = calendar.startOfDay(for: anchor)
+        let importDay = calendar.startOfDay(for: plan.importedAt)
         let done = Set(sessions.filter { $0.endedAt != nil }
             .map { calendar.startOfDay(for: $0.startedAt) })
         for offset in 1...7 {
             guard let date = calendar.date(byAdding: .day, value: -offset,
                                            to: calendar.startOfDay(for: today)) else { continue }
+            guard date > anchorDay, date >= importDay else { return nil }   // before the plan expected anything
             guard !done.contains(date) else { return nil }   // you trained; nothing was missed
             guard let (_, entry) = entry(plan, on: date, today: today, calendar: calendar),
                   case let .day(day) = entry, plan.days.indices.contains(day) else { continue }

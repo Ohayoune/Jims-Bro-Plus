@@ -94,7 +94,8 @@ final class ChangeExerciseTests: XCTestCase {
         XCTAssertEqual(engine.active.workWeight, 24)
         XCTAssertEqual(engine.session.exercises[0].targets.first?.weight, 50, "the plan's target is not history")
         XCTAssertEqual(Prefill.lastTime(session: engine.session, step: 0, history: [history])?.text, "12, 12 @ 24 kg")
-        XCTAssertEqual(values.suggestion?.reason, "Last time 12 × 24 kg")
+        // D55 (v1.6): the fields already say 12 × 24, so there is no chip to draw.
+        XCTAssertNil(values.suggestion)
     }
 
     // W7: the header keeps the exercise's number and says what it stood in for.

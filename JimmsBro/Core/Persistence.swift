@@ -40,7 +40,9 @@ extension Settings {
         self.init(
             units: container.value(.units, or: defaults.units),
             defaultRestSeconds: container.value(.defaultRestSeconds, or: defaults.defaultRestSeconds),
-            warmUpSeconds: container.value(.warmUpSeconds, or: defaults.warmUpSeconds),
+            // D57 (v1.6): absent means "written before v1.2", when the warm-up was five minutes
+            // for everyone; a fresh install's Settings() is off, but an old file is not new.
+            warmUpSeconds: container.value(.warmUpSeconds, or: Settings.warmUpBeforeV16),
             transitionRestSeconds: container.value(.transitionRestSeconds, or: defaults.transitionRestSeconds),
             sound: container.value(.sound, or: defaults.sound),
             vibration: container.value(.vibration, or: defaults.vibration),
@@ -49,7 +51,8 @@ extension Settings {
             weightStepLb: container.value(.weightStepLb, or: defaults.weightStepLb),
             weightIncrementKg: container.value(.weightIncrementKg, or: defaults.weightIncrementKg),
             weightIncrementLb: container.value(.weightIncrementLb, or: defaults.weightIncrementLb),
-            introSeen: container.value(.introSeen, or: defaults.introSeen))
+            introSeen: container.value(.introSeen, or: defaults.introSeen),
+            compactNotation: container.value(.compactNotation, or: defaults.compactNotation))
     }
 }
 

@@ -1,8 +1,72 @@
 # Build status
 
-Updated 2026-09-08. **v1.5 (Z0–Z6) is built and green; the device checklist, the Developer
-Program, a release Xcode and the submission itself are the owner's.** v1.4, v1.3, v1.2, v1.1
-and v1 are below, unchanged except where a later milestone corrected them.
+Updated 2026-09-09. **v1.6 (U0–U7) is built and green on branch `v1.6-refinement`
+(pull request #2), the owner having chosen Reading B for U4; the device checklist, the
+Developer Program, a release Xcode and the submission itself are the owner's.** v1.5 and
+everything before it are below, unchanged except where a later milestone corrected them.
+
+## v1.6 (U0–U7): built and green
+
+`docs/ITERATION_7_PLAN.md` is the v1.6 plan, built from the 2026-09-09 usability audit
+(`docs/UX_REVIEW_2026-09-09.md`): v1.5 walked on the simulators as a stranger (a clean install
+through the first workout) and as a returning user, judged for the owner's three users — a
+coach, a great-grandparent and a five-year-old. Every milestone ended with the whole suite green
+on all three routes, a Release build and `tools/check_release.py`, and one commit on
+`v1.6-refinement` (off `main`, which holds v1.5).
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **312 tests, 7 skipped, 0 failures** |
+| `swift test` | **311 tests, 0 failures** |
+| `python3 tools/check_core.py` | **311 bodies, 5,981 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged) |
+| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.5 (1) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in U5, U6, U7 and U4; CI's bundle job was red for U1–U3's pushes until then) |
+
+| Milestone | What it did | State |
+|---|---|---|
+| U0 | The plan, and the audit it answers, committed | Done |
+| U1 | Nothing untrue (D55): a missed workout only when the plan expected one; "Nothing logged" before "First time"; calendar labels unique within the plan; a chip that never contradicts the fields; the right sentence for a plan pasted in words; the overview says a note once; version 1.5 | Done |
+| U2 | Nothing unreachable (D56): every menu confirmation an alert with two buttons; Done in the strip, off Log set; no phantom bar under empty sheets; the empty weight field looks like one; Finish not red; large text keeps the inputs and the button on one screen; the stage said once | Done |
+| U3 | The first five minutes (D57): no warm-up on a fresh install (old files keep theirs); **Start first set** during a warm-up; the notification permission at the first Log set; the weight hint; the unit asked on the review; **Start here** in the picker; Home headlines the workout on a rest day; "Next: …" on the Summary | Done |
+| U4 | Plain words (D58), **Reading B**: the app speaks in words — "Aim 4–6 reps · 100 kg", "Last time 10 × 100 kg", "paired with …", "lighter set 1 of 2", "as many reps as you can", "stop 2 short of failure" — and **Settings → Compact notation** restores v1.5's forms. The prompt and the progression ladder keep them regardless | Done |
+| U5 | Hierarchy (D59): Start in the bottom slot; headers in ink; small actions as buttons; a quieter grid; Undo on the row; an idle strip that says what follows; chips that wrap; Add exercise and Start per day; labelled History rows and a Find an exercise row; Settings presets; sentences for a stranger; "Use this plan" | Done |
+| U6 | Docs, checklist rows, bundle | Done |
+| U7 | An activity that outlived the app (D60): the Live Activity the owner could only clear by deleting the app. `SystemActivityPresenter` holds no handle — `Activity.activities` is asked instead — and every launch reconciles the Lock Screen | Done |
+| — | The v1.6 device rows (U9, U10, U13, U22, U23, U28, U33, U37) | **Written, not run** — need the phone |
+
+### Checked on the simulator (v1.6)
+
+Every screenshot is from a real build; the `u3-*` ones from a clean install on the iPhone 16
+simulator, the rest from the iPhone 16 or 17 with data the walkthrough itself produced.
+
+| File | Shows |
+|---|---|
+| `build/u2-home.png` | A three-minute-old plan with no "was due Sunday"; calendar cells FBA / FBB |
+| `build/u2-warmup.png`, `build/u2-working.png` | The empty weight reading *tap to type* in its outline; the stage said once |
+| `build/u2-keyboard.png` | The keyboard up with Done in the strip and nothing over Log set |
+| `build/u2-finish-alert.png`, `build/u2-finish-alert-2.png` | Discard and Finish as alerts with a visible way out; Finish not red |
+| `build/u2-ax-2.png` | Accessibility-XL text with the reps, the weight and Log set on one screen |
+| `build/u2-addplan-empty.png` | Add plan with no white rectangle at the bottom |
+| `build/u3-02-intro-2.png` | The intro's rest page saying the app will ask to send the alert |
+| `build/u3-03-picker.png` | **Start here** on Full Body; the sentence that names Copy prompt |
+| `build/u3-04-review.png`, `build/u3-05-review-lb.png`, `build/u3-13-review-kg.png` | The review asking kg / lb, the line beneath following the choice |
+| `build/u3-06-home.png`, `build/u3-10-home-after.png` | Home before and after the first workout: "Start Full Body A", then "Full Body B · Planned for Fri" |
+| `build/u3-07-card.png` | The first card with no warm-up, the hint under the empty weight |
+| `build/u3-08-permission.png` | The permission alert over a counting rest, at the first Log set |
+| `build/u3-09-summary.png` | The Summary with "Next: Full Body B, Friday" and "Nothing logged" |
+| `build/u5-01-home.png` | Start above the tab bar, headers in ink, bordered links, a planned day without a box |
+| `build/u5-02-workout-idle.png`, `build/u5-03-undo-row.png` | "Rest 3:00 starts when you log"; ↺ on the logged row |
+| `build/u5-04-plan-detail.png`, `build/u5-04b-plan-detail-end.png` | "lb · repeats every 14 days", chips on three lines, Add exercise and a bordered Start |
+| `build/u5-05-history.png`, `build/u5-06-settings.png` | "2 min · 1 set · 540 lb lifted", Find an exercise; the preset rows |
+
+### Not run in v1.6
+
+- The device rows above. Three findings depend on system presentation — the popover dialogs,
+  the keyboard's Done pill and the search field — and were seen on the iOS 27.0 simulator; the
+  phone should confirm them.
+- U4, by design: the plan's two readings are the owner's to choose between.
 
 ## v1.5 (Z0–Z6): built and green
 

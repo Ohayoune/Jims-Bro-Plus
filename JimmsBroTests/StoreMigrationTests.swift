@@ -72,7 +72,10 @@ final class StoreMigrationTests: XCTestCase {
     // what makes the thing itself.
     func testOptionalKeysMayBeMissingAndIdentityKeysMayNot() throws {
         let minimalSettings = Data(#"{"fileVersion":1}"#.utf8)
-        XCTAssertEqual(try StoreCoder.decode(Settings.self, from: minimalSettings), Settings())
+        // D57 (v1.6): an absent warm-up is a file from before v1.2, which keeps D32's five minutes;
+        // a fresh install's Settings() has none.
+        XCTAssertEqual(try StoreCoder.decode(Settings.self, from: minimalSettings),
+                       Settings(warmUpSeconds: Settings.warmUpBeforeV16))
 
         // A plan with only its identity: no cycle, no warnings, no sourceText, no id.
         let minimalPlan = Data("""

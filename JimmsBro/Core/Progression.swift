@@ -226,8 +226,8 @@ enum ProgressionText {
             let parts = sets.map { set -> String in
                 let weight = bodyweight ? nil : set.weight
                 switch (set.work, weight) {
-                case let (work?, weight?): return "\(TargetText.work(work)) · \(TargetText.number(weight))"
-                case let (work?, nil): return TargetText.work(work)
+                case let (work?, weight?): return "\(TargetText.work(work, wording: .compact)) · \(TargetText.number(weight))"
+                case let (work?, nil): return TargetText.work(work, wording: .compact)
                 case let (nil, weight?): return TargetText.number(weight)
                 case (nil, nil): return "–"
                 }
@@ -238,8 +238,8 @@ enum ProgressionText {
         }
         let weight = bodyweight ? nil : week.weight
         switch (week.work, weight) {
-        case let (work?, weight?): return "\(TargetText.work(work)) × \(TargetText.number(weight)) \(units.rawValue)"
-        case let (work?, nil): return TargetText.work(work)
+        case let (work?, weight?): return "\(TargetText.work(work, wording: .compact)) × \(TargetText.number(weight)) \(units.rawValue)"
+        case let (work?, nil): return TargetText.work(work, wording: .compact)
         case let (nil, weight?): return "\(TargetText.number(weight)) \(units.rawValue)"
         case (nil, nil): return "same"
         }

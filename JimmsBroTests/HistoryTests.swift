@@ -157,7 +157,8 @@ final class HistoryTests: XCTestCase {
     func testResultAndSummaryText() throws {
         // Three sets, so there is a logged, a skipped and a pending row to render.
         var session = CoreTestSupport.completed([10, 10, 10], weights: [60, 60, 60])
-        XCTAssertEqual(ExerciseText.result(session.steps[0]), "10 @ 60 · 0:34")
+        // D58 (v1.6): the detail screens read "×" like every other set the app shows.
+        XCTAssertEqual(ExerciseText.result(session.steps[0]), "10 × 60 · 0:34")
 
         session.steps[1].status = .skipped
         session.steps[1].result = nil

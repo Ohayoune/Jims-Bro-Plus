@@ -28,6 +28,7 @@ struct SettingsView: View {
                 restSection
                 alertsSection
                 screenSection
+                wordingSection
                 homeSection
                 dataSection
                 aboutSection
@@ -51,7 +52,7 @@ struct SettingsView: View {
             }
             .pickerStyle(.segmented)
         } footer: {
-            Text("Only affects the prompt and future imports that don't state their own units.")
+            Text("New plans use this unit unless they say otherwise. The plans you already have keep theirs.")
         }
     }
 
@@ -63,6 +64,9 @@ struct SettingsView: View {
                     in: 0...600, step: 15) {
                 row("Default rest", "\(model.settings.defaultRestSeconds) s")
             }
+            // D59 (v1.6): the usual values in one tap; the stepper stays for the rest.
+            PresetRow(values: [60, 90, 120, 180], current: model.settings.defaultRestSeconds,
+                      label: { "\($0) s" }) { seconds in Task { await model.setDefaultRest(seconds) } }
             // D32 (v1.2): the warm-up before the first set.
             Stepper(value: Binding(
                 get: { model.settings.warmUpSeconds },
@@ -70,6 +74,8 @@ struct SettingsView: View {
                     in: 0...1800, step: 60) {
                 row("Warm-up", duration(model.settings.warmUpSeconds))
             }
+            PresetRow(values: [0, 60, 120, 180, 300], current: model.settings.warmUpSeconds,
+                      label: duration) { seconds in Task { await model.setWarmUp(seconds) } }
             // D33 (v1.2): the walk to the next machine.
             Stepper(value: Binding(
                 get: { model.settings.transitionRestSeconds },
@@ -77,6 +83,8 @@ struct SettingsView: View {
                     in: 0...600, step: 30) {
                 row("Between exercises", duration(model.settings.transitionRestSeconds))
             }
+            PresetRow(values: [0, 60, 120, 180], current: model.settings.transitionRestSeconds,
+                      label: duration) { seconds in Task { await model.setTransitionRest(seconds) } }
         } footer: {
             Text("Default rest is used when a plan doesn't give a rest time. "
                  + "The warm-up runs before the first set, and \"between exercises\" is the "
@@ -120,6 +128,21 @@ struct SettingsView: View {
                 set: { on in Task { await model.setKeepAwake(on) } }))
         } footer: {
             Text("During a workout only. The screen locks normally everywhere else.")
+        }
+    }
+
+    /// D58 (v1.6): the app writes its targets in words. This puts the notation back for
+    /// someone who reads it faster than the sentence.
+    private var wordingSection: some View {
+        Section {
+            Toggle("Compact notation", isOn: Binding(
+                get: { model.settings.compactNotation },
+                set: { on in Task { await model.setCompactNotation(on) } }))
+        } footer: {
+            Text(model.settings.compactNotation
+                 ? "Targets read \"5 (4–6) · 100 kg\" and past sets read \"10 @ 100\"."
+                 : "Targets read \"Aim 4–6 reps · 100 kg\" and past sets read \"10 × 100 kg\". "
+                 + "Turn this on for the shorter notation.")
         }
     }
 
@@ -190,9 +213,10 @@ struct SettingsView: View {
         } header: {
             Text("Data")
         } footer: {
+            // D59 (v1.6): no Xcode in a sentence a stranger reads.
             Text("A backup is everything, for this app. History as CSV is every set, for a spreadsheet "
                  + "or another app; a CSV from Strong or Hevy imports here the same way. "
-                 + "Re-running from Xcode over the existing install keeps your data. Deleting the app deletes everything.")
+                 + "Deleting the app deletes everything, so export a backup first.")
         }
         .sheet(item: Binding(get: { backup.map(BackupFile.init(url:)) },
                              set: { backup = $0?.url })) { file in
@@ -295,4 +319,27 @@ private struct ShareSheet: UIViewControllerRepresentable {
         UIActivityViewController(activityItems: [url], applicationActivities: nil)
     }
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}
+
+/// D59 (v1.6): the usual values of a duration setting as small buttons, the current one tinted.
+/// Five minutes of warm-up was twenty taps of a 15-second stepper.
+private struct PresetRow: View {
+    let values: [Int]
+    let current: Int
+    let label: (Int) -> String
+    let choose: (Int) -> Void
+
+    var body: some View {
+        WrapLayout(spacing: 8, lineSpacing: 6) {
+            ForEach(values, id: \.self) { value in
+                Button(label(value)) { choose(value) }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+                    .controlSize(.small)
+                    .tint(value == current ? Color.accentColor : Color.secondary)
+                    .accessibilityAddTraits(value == current ? [.isSelected] : [])
+            }
+        }
+        .padding(.vertical, 2)
+    }
 }

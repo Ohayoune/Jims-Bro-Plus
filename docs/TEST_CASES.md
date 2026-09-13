@@ -835,6 +835,75 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | Z30 | unit | (D54, v1.5) The words | "100 kg × 5", "1:30", "1 rep"; the line with best and by, with nothing logged yet, and with reached; the prompt's line with and without a date |
 | Z31 | manual | (D54, v1.5) History → **Set a goal** for an exercise you do, then a workout that meets it | The Goals section shows the line and the bar climbing; the Summary says "Goal reached: …" in green; the goal reads "reached" with the date; Progression's prompt has MY GOALS |
 
+## U. v1.6 — nothing untrue, nothing unreachable, the first five minutes, hierarchy
+
+`docs/ITERATION_7_PLAN.md` is the plan and `docs/UX_REVIEW_2026-09-09.md` the review it answers; one subsection per milestone, added as it lands.
+
+### U1 — nothing untrue (D55)
+
+`JimmsBroTests/UsabilityTests.swift`; Q38, Q39 and W6 were rewritten for the chip rule.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| U1 | unit | (D55, v1.6) `PlanSchedule.missed` | Nil for a plan with no anchor, however old; nil for a day before the import day or on or before the anchor day; Pull on the 8th when Push was done on the 7th and today is the 9th; nil after a completion re-anchors the pattern over the 8th; nil a fortnight away; Home's `missed` agrees |
+| U2 | unit | (D55, v1.6) `SessionStats.comparison` | "Nothing logged" for an exercise with nothing logged today, with and without history; "First time" only for a first time that happened |
+| U3 | unit | (D55, v1.6) `CalendarText.short(_:among:)` and `label` | Push/Pull/Legs unchanged; Full Body A/B → FBA/FBB; Upper A/Lower A/Upper B/Lower B → UA/LA/UB/LB; Day 1/2/3 → D1/D2/D3; names whose initials collide → their numbers; a name the plan lacks, or a one-day plan, keeps the plain rule; a projected cell and a completed session of the same plan read the same; the spoken cell says the whole name |
+| U4 | unit | (D55, v1.6) The chip | "Do that again" is "10 × 100 kg · Last time 10 × 100 kg", never "5 × 100 kg"; with the fields prefilled to last time no chip is drawn; advice ("Try 5 × 102.5 kg") is; the first set of a weightless plan has none; a held set keeps its "60 s" chip |
+| U5 | unit | (D55, v1.6) `IssueText.friendly` for `E_NOT_JSON` | A plan in words → "This is a plan in words. Send it to a chatbot with the prompt and paste back what it writes."; JSON cut short → the "looks cut off" sentence |
+| U6 | unit | (D55, v1.6) `StepCard.targetLine(notes: false)` | The set's target without the exercise's note, which the overview's rows now render |
+| U7 | check | (v1.6) `tools/check_release.py` | Version 1.5, build 1, on every target and in `docs/APP_STORE.md` |
+
+### U2 — nothing unreachable (D56)
+
+`JimmsBroTests/UsabilityTests.swift` for the one Core rule; the rest are the simulator screens in `build/u2-*.png`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| U8 | unit | (D56, v1.6) `WorkoutScreenModel.progressLine` | Nil while working (the stage title already says "Exercise 1 of 5 · Set 1 of 3"); "Exercise 1 of 5 · Set 2 of 3" while resting; a superset member's "A · round 1 of 3 · …" while working |
+| U9 | ui | (D56, v1.6) ··· → Finish workout with sets left; ··· → Finish with nothing logged; Plan detail ··· → Delete; Session detail ··· → Delete workout; Build it day by day ··· → Discard draft; Progression ··· → Remove | Each is an alert with two buttons — Finish workout / Keep going, Discard / Keep going, Delete / Cancel, Discard / Keep it, Remove / Cancel — and Finish is not red |
+| U10 | ui | (D56, v1.6) Tap the weight field | The keyboard rises with no system toolbar; the strip's trailing slot reads **Done**; nothing overlaps Log set; Done closes the keyboard and the rest controls return |
+| U11 | ui | (D56, v1.6) Add plan, Build it day by day and Progression before anything is pasted | No white rectangle at the bottom; the button appears once there is text |
+| U12 | ui | (D56, v1.6) The first set of a built-in plan | The weight field reads *tap to type* inside a soft outline; both go once a number is typed |
+| U13 | ui | (D56, v1.6) Accessibility XL text on the workout | The header without its elapsed line, the target line cut to one, the current set row only, the strip without its next-set and set-time lines; the reps and weight rows and Log set on screen without scrolling (`build/u2-ax-2.png`); Exercises still lists every set |
+| U14 | ui | (D56, v1.6) The header while working | "Exercise 1 of 5 · Set 1 of 3" once, over the bar; the small line reads the elapsed time alone; resting, it reads "Resting" over "Exercise 1 of 5 · Set 2 of 3" |
+
+### U3 — the first five minutes (D57)
+
+`JimmsBroTests/UsabilityTests.swift`; O63 (HomeAndAddPlanTests), Y1 (ResponsivenessTests) and Q21–Q30's settings (WarmUpAndTransitionTests) were rewritten for the new defaults and wording.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| U15 | unit | (D57, v1.6) The warm-up default | `Settings().warmUpSeconds` is 0; a settings file with no `warmUpSeconds` decodes to 300; one that says 0 means 0; the walk between exercises is unchanged |
+| U16 | unit | (D57, v1.6) `WorkoutScreen.primary` | "Start first set" (`.startSet`) during a warm-up for a rep set and a hold; "Log set" between sets and between exercises; through the model, a warm-up's card offers `.startSet` and, after `skipRest`, Log set |
+| U17 | unit | (D57, v1.6) `InputDefaults.weightHint` | Set on the first set of a plan without weights and no history; nil once a weight is typed and carried to the next set, nil with a history, nil for a bodyweight exercise |
+| U18 | unit | (D57, v1.6) `ImportResult.unitsStated` | True for a plan that names `units`; false for one that took the setting's; true for a refusal |
+| U19 | unit | (D57, v1.6) The picker's recommendation and sentence | `recommendedId` is Full Body and in the catalogue; `buildYourOwn` names Add plan, Copy prompt and Create with a chatbot |
+| U20 | unit | (D57, v1.6) `HomeStart` on a rest day | A rotation resting on the 8th titles "Push", offers "Start Push", says "Planned for Wed · PPL", and reports nothing missed; the weekday case (O63) titles "Lower" with "Planned for Thu · Upper Lower" |
+| U21 | unit | (D57, v1.6) `SummaryText.next` | "Next: Pull, tomorrow" after Push on a Wednesday; "Next: Pull, Friday" with a rest day between; "Next: Push, on …" a week away; "Next: Lower, Thursday" for a weekday plan done Monday; nil for a deleted plan or an imported session |
+| U22 | ui | (D57, v1.6) A clean install, through the first workout | The picker shows **Start here** on Full Body; the review asks kg / lb above the days; Home titles the day and offers **Start Full Body A**; Start opens the first card with no warm-up and no permission alert; the empty weight reads *tap to type* with the hint under it; the first Log set raises the permission alert over a counting rest; the Summary ends with "Next: Full Body B, …" (`build/u3-*.png`) |
+| U23 | ui | (D57, v1.6) A phone with the warm-up on | The card opens in the warm-up with **Start first set**; tapping it shows the first set with **Log set** |
+
+### U5 — hierarchy (D59)
+
+`JimmsBroTests/UsabilityTests.swift` for the Core rules; the rest are the simulator screens in `build/u5-*.png`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| U24 | unit | (D59, v1.6) `WorkoutScreenModel.undoStep` | Nil before anything is logged; the step just logged afterwards; nil again after `undoLast` |
+| U25 | unit | (D59, v1.6) `WorkoutScreen.idleLine` and the idle strip | "Rest 1:30 starts when you log" on a set with rest after it; "Then on to <exercise>" on a block's last set; nil on the day's last set; the working strip's title carries it |
+| U26 | unit | (D59, v1.6) `ExerciseText.summary` | Minutes, sets, and "… kg lifted"; no clock-time duration |
+| U27 | ui | (D59, v1.6) Home | Start above the tab bar; "This week" in ink; Preview / Another day as small bordered buttons; planned days as labels without boxes, today outlined |
+| U28 | ui | (D59, v1.6) The workout | ↺ on the row just logged; the strip's Undo only at accessibility sizes; the idle strip reads "Rest … starts when you log" |
+| U29 | ui | (D59, v1.6) Plan detail and the review | "kg · repeats every 7 days"; chips wrapping onto a second line; an Add exercise row and a bordered Start per day; **Use this plan** in the menu and on the review's toggle; a check on the plan in use in the list |
+| U30 | ui | (D59, v1.6) History and Settings | "28 min · 16 sets · 13,920 kg lifted" rows; a Find an exercise row that lists every exercise; preset buttons under the three duration rows, the current one tinted; the rewritten footers |
+| U31 | unit | (D60, v1.6) A launch with no workout | `AppModel.load` calls `end()` once even though it has shown nothing — an activity left by a run that was killed is not the app's to remember, and it is the app's to clear |
+| U32 | unit | (D60, v1.6) A launch mid-workout | The resumed state is pushed exactly once, `end()` is not called, and `shownActivity` is the state of the session on disk; an unchanged tick after it pushes nothing |
+| U33 | device | (D60, v1.6) The real activity on the phone | Start a workout, force-quit the app mid-rest, reopen: one activity, still counting, not two. Finish it — the Island and the Lock Screen clear. Force-quit mid-rest, then open the app on a day with no workout: the leftover activity goes within a second |
+| U34 | unit | (D58, v1.6) The plain grammar | `TargetText.target` reads "Aim 4–6 reps · 100 kg" (and the same for a fixed 5 inside 4–6), "As many reps as you can", "Aim at least 10 reps", "For 45 seconds", "For at least 30 seconds", "… · stop 2 short of failure"; `summary` reads "3 sets of 8–12 reps · 60 kg" and "… · then lighter, as many as you can"; `setLine` reads "Set 1 of 2 · paired with <partner>" and "lighter set 1 of 1"; a row that names its exercise carries no pairing; the current row's second line is "Last time 9 × 60 kg" and no row contains "@" |
+| U35 | unit | (D58, v1.6) Compact notation | `Settings().wording == .plain`; with `compactNotation` on, the same screen reads "8–12 · 60 kg" and "last 9 @ 60"; the setting round-trips through the store, and a file written before v1.6 reads as off |
+| U36 | unit | (D58, v1.6) What the setting must not reach | `Prompts.render` is byte-identical with the switch on and off |
+| U37 | ui | (D58, v1.6) Settings → Compact notation | The toggle sits under Keep screen awake; its footer quotes the forms in force; turning it on changes the workout card, the set rows, Plan detail, the review, the Overview, Session detail and the Summary together |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

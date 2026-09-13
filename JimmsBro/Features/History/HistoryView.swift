@@ -43,6 +43,7 @@ struct HistoryView: View {
                         case let .session(id): SessionDetailView(sessionId: id)
                         case let .exercise(name, units): ExerciseHistoryView(name: name, units: units)
                         case .metrics: MetricsView()
+                        case .exercises: ExercisesListView()
                         }
                     }
                 } else {
@@ -52,6 +53,11 @@ struct HistoryView: View {
                         Section {
                             NavigationLink(value: HistoryRoute.metrics) {
                                 Label("Metrics", systemImage: "chart.bar")
+                            }
+                            // D59 (v1.6): the search field is not drawn on every iOS; the fastest
+                            // route to an exercise's chart needs a row of its own.
+                            NavigationLink(value: HistoryRoute.exercises) {
+                                Label("Find an exercise", systemImage: "magnifyingglass")
                             }
                         }
                         // D54 (v1.5): the goals, and how close each is.
@@ -74,6 +80,7 @@ struct HistoryView: View {
                         case let .session(id): SessionDetailView(sessionId: id)
                         case let .exercise(name, units): ExerciseHistoryView(name: name, units: units)
                         case .metrics: MetricsView()
+                        case .exercises: ExercisesListView()
                         }
                     }
                 }
@@ -124,4 +131,21 @@ enum HistoryRoute: Hashable {
     case exercise(name: String, units: WeightUnit)
     /// D39 (v1.2): what a run of workouts adds up to.
     case metrics
+    /// D59 (v1.6): every exercise in history, most recent first, each a way to its chart.
+    case exercises
+}
+
+/// D59 (v1.6): the list behind History's **Find an exercise** row.
+struct ExercisesListView: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        List(ExerciseText.search("", sessions: model.sessions), id: \.self) { name in
+            NavigationLink(value: HistoryRoute.exercise(name: name, units: model.displayUnits)) {
+                Text(name)
+            }
+        }
+        .navigationTitle("Exercises")
+        .navigationBarTitleDisplayMode(.inline)
+    }
 }

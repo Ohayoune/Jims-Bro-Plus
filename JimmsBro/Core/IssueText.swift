@@ -47,6 +47,11 @@ enum IssueText {
         case "E_MULTIPLE_OBJECTS":
             return "There's more than one plan in there. Paste one at a time."
         case "E_NOT_JSON":
+            // D55 (v1.6): a plan pasted in words — the most natural first paste there is — is
+            // not a cut-off reply, and was told it was. The importer says which case this is.
+            if issue.message.hasPrefix("No JSON found") {
+                return "This is a plan in words. Send it to a chatbot with the prompt and paste back what it writes."
+            }
             return "The plan isn't complete — the chatbot's reply looks cut off. Ask it to send the whole plan again."
         case "E_NOT_A_PLAN":
             return "That's valid JSON, but it isn't a workout plan."

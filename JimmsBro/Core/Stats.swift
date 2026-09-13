@@ -111,14 +111,19 @@ enum SessionStats {
     /// SPEC §4.9 (v1.1): one comparison per exercise, in words. v1 printed both sessions'
     /// raw sets — "10, 8@60 · last 10, 9@60 · kg" — and left the reader to do the subtraction.
     /// The set-by-set table only appears when no single sentence is true of the whole exercise.
-    static func comparison(for name: String, session: Session, history: [Session]) -> ExerciseComparison {
+    static func comparison(for name: String, session: Session, history: [Session],
+                           wording: Wording = .plain) -> ExerciseComparison {
         let current = ExerciseHistory.steps(name: name, session: session).filter { $0.status == .logged }
+        // D55 (v1.6): an exercise nothing was logged for today says so whether or not it has a
+        // past. "First time" is for a first time that happened; a first workout's Summary said
+        // it for four exercises the person never touched.
+        guard !current.isEmpty else { return ExerciseComparison(headline: "Nothing logged", rows: []) }
         guard let last = previousSession(for: name, units: session.units, before: session.startedAt,
                                          sessions: history) else {
             return ExerciseComparison(headline: "First time", rows: [])
         }
         let previous = ExerciseHistory.steps(name: name, session: last).filter { $0.status == .logged }
-        guard !current.isEmpty, !previous.isEmpty else {
+        guard !previous.isEmpty else {
             return ExerciseComparison(headline: "Nothing logged", rows: [])
         }
 
@@ -157,9 +162,9 @@ enum SessionStats {
 
         // The weights varied within a session, so no one sentence is true: show the sets.
         let rows = zip(nowResults, thenResults).map { now, then in
-            "\(short(then)) → \(short(now))"
+            "\(short(then, wording: wording)) → \(short(now, wording: wording))"
         }
-        let extra = nowResults.dropFirst(thenResults.count).map { short($0) }
+        let extra = nowResults.dropFirst(thenResults.count).map { short($0, wording: wording) }
         let volumeNow = volume(current), volumeThen = volume(previous)
         var headline = "Sets varied"
         if volumeNow > 0, volumeThen > 0 {
@@ -179,9 +184,12 @@ enum SessionStats {
         return first
     }
 
-    private static func short(_ result: SetResult) -> String {
+    /// D58 (v1.6): "10 × 80", not "10 @ 80" — the audit found "@" read as an email address
+    /// as often as as "at". Compact keeps it.
+    private static func short(_ result: SetResult, wording: Wording = .plain) -> String {
         let value = result.reps.map(String.init) ?? result.seconds.map(TargetText.time) ?? "–"
-        return value + (result.weight.map { " @ " + TargetText.number($0) } ?? "")
+        let join = wording == .compact ? " @ " : " × "
+        return value + (result.weight.map { join + TargetText.number($0) } ?? "")
     }
 
     private static func reps(_ delta: Int, suffix: String) -> String {
@@ -207,6 +215,8 @@ struct ExerciseComparison: Equatable {
 extension String {
     /// "2 more reps" after a comma in "+2.5 kg, 2 more reps".
     var lowercasedFirst: String { isEmpty ? self : prefix(1).lowercased() + dropFirst() }
+    /// "As many reps as you can" when a plain phrase has to start a line (D58, v1.6).
+    var capitalizedFirst: String { isEmpty ? self : prefix(1).uppercased() + dropFirst() }
 }
 func mean(_ values: [Double]) -> Double? { values.isEmpty ? nil : values.reduce(0,+) / Double(values.count) }
 struct ExerciseHistory {
@@ -255,63 +265,113 @@ enum TargetText {
         formatter.maximumFractionDigits = 1
         return formatter.string(from: NSNumber(value: value)) ?? number(value)
     }
-    static func work(_ target: WorkTarget) -> String {
+    /// D58 (v1.6): the work, in whichever grammar is in force. Compact is v1.5's, unchanged.
+    static func work(_ target: WorkTarget, wording: Wording = .plain) -> String {
         switch target {
-        case let .duration(n): return "\(n) s"
-        case let .openDuration(n): return n.map { "\($0)+ s" } ?? "As long as possible"
+        case let .duration(n):
+            return wording == .compact ? "\(n) s" : "\(n) seconds"
+        case let .openDuration(n):
+            switch wording {
+            case .compact: return n.map { "\($0)+ s" } ?? "As long as possible"
+            case .plain: return n.map { "at least \($0) seconds" } ?? "as long as you can"
+            }
         case let .reps(r):
-            switch r { case let .fixed(n): return "\(n)"; case let .range(a,b): return "\(a)–\(b)"; case let .amrap(n): return n.map { "\($0)+" } ?? "AMRAP" }
+            switch r {
+            case let .fixed(n):
+                return wording == .compact ? "\(n)" : "\(n) rep\(n == 1 ? "" : "s")"
+            case let .range(a, b):
+                return wording == .compact ? "\(a)–\(b)" : "\(a)–\(b) reps"
+            case let .amrap(n):
+                switch wording {
+                case .compact: return n.map { "\($0)+" } ?? "AMRAP"
+                case .plain: return n.map { "at least \($0) reps" } ?? "as many reps as you can"
+                }
+            }
         }
     }
-    static func target(_ target: SetTarget, range: RepRange?, units: WeightUnit) -> String {
-        var text = work(target.work)
-        if case let .reps(.fixed(n)) = target.work, let range, range.min != n || range.max != n { text += " (\(range.min)–\(range.max))" }
+
+    /// The work with the plan's rep range folded in. Compact keeps the number the plan named
+    /// and puts the range in brackets after it — "5 (4–6)". Plain says the range and lets the
+    /// prefill put 5 in the field: the range is what is being asked of you, and "5 (4–6)" was
+    /// the audit's first example of a line nobody but a coach could read.
+    static func workWithRange(work target: WorkTarget, range: RepRange?,
+                              wording: Wording = .plain) -> String {
+        guard case let .reps(.fixed(n)) = target, let range, range.min != n || range.max != n else {
+            return work(target, wording: wording)
+        }
+        switch wording {
+        case .compact: return "\(n) (\(range.min)–\(range.max))"
+        case .plain: return "\(range.min)–\(range.max) reps"
+        }
+    }
+
+    static func target(_ target: SetTarget, range: RepRange?, units: WeightUnit,
+                       wording: Wording = .plain) -> String {
+        var text = workWithRange(work: target.work, range: range, wording: wording)
+        if wording == .plain {
+            // A verb, so the line is a sentence rather than a specification.
+            if case .reps(.amrap(nil)) = target.work { text = text.capitalizedFirst }
+            else { text = (target.work.isTimed ? "For " : "Aim ") + text }
+        }
         if let w = target.weight { text += " · \(number(w)) \(units.rawValue)" }
         // D51 (v1.5): the effort target, said as body text after the numbers you act on.
-        if let n = target.inReserve { text += " · \(reserve(n))" }
+        if let n = target.inReserve { text += " · \(reserve(n, wording: wording))" }
         return text
     }
-    /// "2 in reserve" — reps on a rep set, seconds on a hold; the number says which.
-    static func reserve(_ n: Int) -> String { "\(n) in reserve" }
+    /// "2 in reserve" — reps on a rep set, seconds on a hold; the number says which. Plain says
+    /// what being in reserve means, since that is the whole content of the word.
+    static func reserve(_ n: Int, wording: Wording = .plain) -> String {
+        wording == .compact ? "\(n) in reserve" : "stop \(n) short of failure"
+    }
 
     /// An exercise in one line, showing what actually varies across its sets (v1.1, R3/R4):
     /// "3 × 8–12 · 60 kg" when every set matches, "3 × 8–12 · 24 / 26 / 28 kg" when the weight
     /// climbs, and "12 · 24 kg / 10 · 26 kg / 8 · 28 kg" when the work varies too. v1 repeated
     /// the first set's target and called it the exercise, which hid every pyramid and drop-down.
-    static func summary(_ exercise: Exercise, units: WeightUnit) -> String {
+    static func summary(_ exercise: Exercise, units: WeightUnit,
+                        wording: Wording = .plain) -> String {
         guard let first = exercise.sets.first else { return "No sets" }
         let count = exercise.sets.count
-        let works = exercise.sets.map { work($0.work) }
+        let works = exercise.sets.map { work($0.work, wording: wording) }
         let weights = exercise.sets.map(\.weight)
         let sameWork = works.allSatisfy { $0 == works[0] }
         let sameWeight = weights.allSatisfy { $0 == weights[0] }
+        // D58 (v1.6): "3 × 8–12" is multiplication to a coach and nothing at all to a stranger;
+        // "3 sets of 8–12 reps" is the same fact in words. A list of climbing weights reads
+        // "24, then 26, then 28 kg" rather than "24 / 26 / 28".
+        let sets = wording == .compact ? "\(count) × " : "\(count) set\(count == 1 ? "" : "s") of "
+        let and = wording == .compact ? " / " : ", then "
 
         var text: String
         if sameWork && sameWeight {
             // The effort target is said once for the exercise, below, not per set here.
-            var plain = first
-            plain.inReserve = nil
-            text = "\(count) × \(target(plain, range: exercise.repRange, units: units))"
+            text = sets + workWithRange(work: first.work, range: exercise.repRange,
+                                        wording: wording)
+            if let weight = first.weight { text += " · \(number(weight)) \(units.rawValue)" }
         } else if sameWork {
             // Only the load moves: say the work once and list the weights.
-            var work = "\(count) × " + works[0]
-            if case let .reps(.fixed(n)) = first.work, let range = exercise.repRange,
-               range.min != n || range.max != n { work += " (\(range.min)–\(range.max))" }
-            let list = weights.map { $0.map(number) ?? "–" }.joined(separator: " / ")
+            let work = sets + workWithRange(work: first.work, range: exercise.repRange,
+                                            wording: wording)
+            let list = weights.map { $0.map(number) ?? "–" }.joined(separator: and)
             text = weights.contains(where: { $0 != nil })
                 ? "\(work) · \(list) \(units.rawValue)" : work
         } else {
             text = zip(works, weights)
                 .map { work, weight in weight.map { "\(work) · \(number($0))" } ?? work }
-                .joined(separator: " / ")
+                .joined(separator: and)
             if weights.contains(where: { $0 != nil }) { text += " \(units.rawValue)" }
         }
         let drops = exercise.sets.reduce(0) { $0 + $1.drops.count }
-        if drops > 0 { text += " · \(drops) drop\(drops == 1 ? "" : "s")" }
+        if drops > 0 {
+            text += wording == .compact ? " · \(drops) drop\(drops == 1 ? "" : "s")"
+                                        : " · then lighter, as many as you can"
+        }
         // D51 (v1.5): one effort target for the whole exercise is said once; sets that differ
         // are the JSON's business, and the review shows them per set.
         let reserves = Set(exercise.sets.map(\.inReserve))
-        if reserves.count == 1, let n = reserves.first ?? nil { text += " · \(reserve(n))" }
+        if reserves.count == 1, let n = reserves.first ?? nil {
+            text += " · \(reserve(n, wording: wording))"
+        }
         return text
     }
 }

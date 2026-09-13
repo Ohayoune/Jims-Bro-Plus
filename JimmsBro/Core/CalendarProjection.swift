@@ -15,11 +15,13 @@ enum CalendarText {
     static func label(_ entry: DayEntry, plans: [Plan], sessions: [Session] = []) -> String? {
         switch entry {
         case let .completed(sessions):
-            return sessions.first.map { short($0.dayName) }
+            guard let session = sessions.first else { return nil }
+            let plan = plans.first { $0.id == session.planId }
+            return short(session.dayName, among: plan?.days.map(\.name) ?? [])
         case let .projected(planId, dayIndex):
             guard let plan = plans.first(where: { $0.id == planId }),
                   let day = plan.days[safe: dayIndex] else { return nil }
-            return short(day.name)
+            return short(day.name, among: plan.days.map(\.name))
         case .rest, .none:
             return nil
         }
@@ -27,8 +29,33 @@ enum CalendarText {
 
     /// "Push" from "Push", "Upper" from "Upper Body", "Leg…" from "Legs and Core".
     static func short(_ name: String) -> String {
-        let first = name.split(separator: " ").first.map(String.init) ?? name
-        return first.count <= 5 ? first : String(first.prefix(4)) + "…"
+        first(of: name).count <= 5 ? first(of: name) : String(first(of: name).prefix(4)) + "…"
+    }
+
+    /// D55 (v1.6): a label that tells the plan's days apart. The first word cut every name to
+    /// its beginning, so Full Body A and Full Body B were both "Full…" and Upper A and Upper B
+    /// both "Uppe…". Now: the first word when this is the only day of the plan that starts
+    /// with it; else the initials of every word ("FBA" / "FBB", "UA" / "LB", "D1" / "D2");
+    /// else the day's number in the plan. A name the plan does not hold keeps the plain rule.
+    static func short(_ name: String, among names: [String]) -> String {
+        guard names.count > 1,
+              let index = names.firstIndex(where: { normalized($0) == normalized(name) }) else {
+            return short(name)
+        }
+        let mine = first(of: name).lowercased()
+        if names.filter({ first(of: $0).lowercased() == mine }).count == 1 { return short(name) }
+        let letters = initials(of: name)
+        if !letters.isEmpty, names.filter({ initials(of: $0) == letters }).count == 1 { return letters }
+        return String(index + 1)
+    }
+
+    private static func first(of name: String) -> String {
+        name.split(separator: " ").first.map(String.init) ?? name
+    }
+
+    /// "FBA" for "Full Body A", "D1" for "Day 1"; at most five characters, like the first word.
+    private static func initials(of name: String) -> String {
+        String(name.split(separator: " ").compactMap { $0.first }.map { String($0).uppercased() }.joined().prefix(5))
     }
 
     /// What VoiceOver reads for a cell, since the visual language is dots and four-letter labels.

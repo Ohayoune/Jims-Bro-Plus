@@ -44,19 +44,19 @@ struct DraftPlanView: View {
                 }
             }
         }
-        .bottomAction {
-            if let draft = model.draft, draft.isComplete {
-                PrimaryButton(title: "Review plan") { review() }
-            }
+        .bottomAction(if: model.draft?.isComplete == true) {
+            PrimaryButton(title: "Review plan") { review() }
         }
-        .confirmationDialog("Discard this draft?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+        // D56 (v1.6): an alert — from a menu, a dialog's Cancel is not drawn on iOS 26.
+        .alert("Discard this draft?", isPresented: $confirmDiscard) {
             Button("Discard", role: .destructive) { Task { await model.discardDraft() }; issues = [] }
             Button("Keep it", role: .cancel) {}
         } message: {
             Text("The outline and every day you pasted go. Nothing you saved changes.")
         }
         .sheet(item: $reviewing, onDismiss: resolvePending) { plan in
-            PlanReviewSheet(plan: plan, makeActive: $makeActive) {
+            // The outline prompt asks the chatbot for the unit, so the review does not (D57).
+            PlanReviewSheet(plan: plan, units: .constant(plan.units), makeActive: $makeActive) {
                 pending = plan
                 reviewing = nil
             }

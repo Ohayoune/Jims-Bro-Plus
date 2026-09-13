@@ -110,7 +110,7 @@ struct StatusStrip: Equatable {
 
 /// Zone 5. One control, one slot, whatever the work is (D20, D22).
 struct PrimaryAction: Equatable {
-    enum Kind: String, Equatable { case log, startTimer, doneTimer, stopTimer }
+    enum Kind: String, Equatable { case log, startTimer, doneTimer, stopTimer, startSet }
     var title: String
     var kind: Kind
 }
@@ -126,6 +126,15 @@ struct InputDefaults: Equatable {
     var suggestionReason: String?
     var suggestedWeight: Double?
     var suggestedReps: Int?
+    /// D57 (v1.6): why the weight field is empty, said under it until it is not. A built-in
+    /// plan's first set has no weight and no history; the sentence used to live in a note
+    /// that truncated after two lines.
+    var weightHint: String?
+}
+
+/// The workout's own sentences, in Core so a test can pin them (Y13's rule).
+enum WorkoutText {
+    static let weightHint = "Type the weight you lift. The app remembers it from then on."
 }
 
 /// The whole workout screen as data. Views render it; they compute nothing.
@@ -147,6 +156,17 @@ struct WorkoutScreenModel: Equatable {
     var primary: PrimaryAction
     /// The one VoiceOver string for the exercise block (SPEC §9).
     var spoken: String
+
+    /// D59 (v1.6): the step whose row carries Undo — the last logged or skipped step, while
+    /// D23's undo is still valid. The strip's own Undo stays only at accessibility sizes,
+    /// where the list shows the current row alone.
+    var undoStep: Int?
+
+    /// D56 (v1.6): the small line under the stage, or nil when it would only repeat it. While
+    /// working, the stage already reads "Exercise 1 of 5 · Set 1 of 4"; the audit found it
+    /// printed twice, one above the other. Resting, and a superset member's "A · round 2 of 3",
+    /// still have something of their own to say.
+    var progressLine: String? { progress == stage.title ? nil : progress }
 }
 
 enum WorkoutScreen {
@@ -167,6 +187,8 @@ enum WorkoutScreen {
         let values = Prefill.values(session: session, step: index, history: history,
                                     settings: settings)
         let timed = target.work.isTimed
+        let restKind: RestKind?
+        if case let .resting(rest) = active.phase { restKind = rest.kind } else { restKind = nil }
         return WorkoutScreenModel(
             // Every state returns the same five, in the same order (D22, O50).
             zones: WorkoutZone.allCases,
@@ -175,20 +197,29 @@ enum WorkoutScreen {
             stage: WorkoutStage.current(active: active, step: index),
             completion: WorkoutStage.progress(session),
             elapsed: TargetText.time(wholeSeconds(SessionStats.duration(session, now: now))),
-            progress: StepCard.progress(session: session, step: index),
+            progress: StepCard.progress(session: session, step: index,
+                                        wording: settings.wording),
             exerciseName: exercise.name,
-            targetLine: StepCard.targetLine(session: session, step: index),
-            rows: StepCard.setRows(session: session, step: index, history: history),
+            targetLine: StepCard.targetLine(session: session, step: index,
+                                            wording: settings.wording),
+            rows: StepCard.setRows(session: session, step: index, history: history,
+                                   wording: settings.wording),
             inputs: inputs(values: values, target: target, units: session.units),
             timer: timed ? timer(active: active, step: index, work: target.work,
                                  warning: target.warning, now: now) : nil,
             strip: strip(active: active, step: index, work: target.work, warning: target.warning,
-                         history: history, now: now),
-            primary: primary(work: target.work, running: active.timerRunning),
-            spoken: StepCard.spoken(session: session, step: index))
+                         wording: settings.wording, history: history, now: now),
+            primary: primary(work: target.work, running: active.timerRunning, resting: restKind),
+            spoken: StepCard.spoken(session: session, step: index),
+            undoStep: active.canUndo ? active.lastCompletedStep : nil)
     }
 
-    static func primary(work: WorkTarget, running: Bool) -> PrimaryAction {
+    static func primary(work: WorkTarget, running: Bool, resting: RestKind? = nil) -> PrimaryAction {
+        // D57 (v1.6): during the warm-up nothing has been done yet, so the button starts the
+        // set rather than logging one — a stranger tapped "Log set" and logged a set they had
+        // not done. Between-set rests keep Log set: a set *has* been done by then, and logging
+        // the next one straight out of the rest is the coach's flow (§4.5).
+        if resting == .warmUp { return PrimaryAction(title: "Start first set", kind: .startSet) }
         switch work {
         case .reps:
             return PrimaryAction(title: "Log set", kind: .log)
@@ -214,6 +245,9 @@ enum WorkoutScreen {
         defaults.suggestedReps = values.suggestion?.reps
         if case let .duration(seconds) = target.work, defaults.reps.isEmpty {
             defaults.reps = String(values.seconds ?? seconds)
+        }
+        if values.showsWeight, values.weight == nil, values.lastWeight == nil {
+            defaults.weightHint = WorkoutText.weightHint
         }
         return defaults
     }
@@ -242,6 +276,7 @@ enum WorkoutScreen {
     /// SPEC §4.6 and §4.7. Rest wins over a block-done line, because only one of them can be
     /// true at a time: a block that just ended never starts a rest (§6.3).
     static func strip(active: ActiveSession, step: Int, work: WorkTarget, warning: Int?,
+                      wording: Wording = .plain,
                       history: [Session], now: Date) -> StatusStrip {
         let session = active.session
         var strip = StatusStrip()
@@ -258,7 +293,7 @@ enum WorkoutScreen {
             strip.title = remaining > 0 ? rest.kind.title : rest.kind.overTitle
             strip.restKind = rest.kind
             strip.skipTitle = rest.kind.skipTitle
-            strip.next = nextLine(session: session, step: rest.nextStep)
+            strip.next = nextLine(session: session, step: rest.nextStep, wording: wording)
             // A block that ended and then started this walk still says what finished — but on
             // the strip's own line, not squeezed in beside the countdown, where it wrapped and
             // truncated its own advice. "Next:" would be redundant here anyway: the next
@@ -298,19 +333,38 @@ enum WorkoutScreen {
             return strip
         }
 
-        // Working with nothing to report: the zone stays, empty, so nothing below it moves.
+        // Working with nothing to report: the zone stays, so nothing below it moves — and
+        // since v1.6 (D59) it says what the button will start, rather than sitting blank.
+        strip.title = idleLine(session: session, step: step)
         strip.detail = lastSetLine(session)
         return strip
     }
 
-    /// "Next: Bench Press · set 2 of 3 · 8–12 · 60 kg".
-    static func nextLine(session: Session, step index: Int) -> String? {
+    /// D59 (v1.6): what follows the set on the card — "Rest 1:30 starts when you log", or,
+    /// on a block's last set, "Then on to Barbell Row". Nil for the last set of the day.
+    static func idleLine(session: Session, step index: Int) -> String? {
+        guard let step = session.steps[safe: index] else { return nil }
+        if !step.isLastInBlock {
+            guard step.isLastInRound,
+                  let target = session.exercises[safe: step.exerciseIndex]?.targets[safe: step.setIndex],
+                  (target.groupRestSeconds ?? target.restSeconds) > 0 else { return nil }
+            return "Rest \(TargetText.time(target.groupRestSeconds ?? target.restSeconds)) starts when you log"
+        }
+        guard let next = session.steps.dropFirst(index + 1).first(where: { $0.blockIndex != step.blockIndex && $0.status == .pending }),
+              let exercise = session.exercises[safe: next.exerciseIndex] else { return nil }
+        return "Then on to \(exercise.name)"
+    }
+
+    /// "Next: Bench Press · set 2 of 3 · Aim 8–12 reps · 60 kg".
+    static func nextLine(session: Session, step index: Int,
+                         wording: Wording = .plain) -> String? {
         guard let step = session.steps[safe: index],
               let exercise = session.exercises[safe: step.exerciseIndex],
               let target = session.target(at: index) else { return nil }
         let work = SetTarget(work: target.work, weight: target.weight, restSeconds: 0, inReserve: target.reserve)
         return "Next: \(exercise.name) · set \(step.setIndex + 1) of \(exercise.targets.count) · "
-            + TargetText.target(work, range: exercise.repRange, units: session.units)
+            + TargetText.target(work, range: exercise.repRange, units: session.units,
+                                wording: wording)
     }
 
     /// "set 0:34" — how long the set that was just logged took (D19), small text only.

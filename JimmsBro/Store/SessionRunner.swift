@@ -69,14 +69,8 @@ extension AppModel {
         justCompleted = nil
         // D48 (v1.4): the workout exists now; the cover opens on this, not on the awaits below.
         startedWorkouts += 1
-        // Asking does not block the first set from appearing; the prompt sits over the card
-        // and the banner appears afterwards if permission was refused (SPEC §5.3).
-        if !askedForNotifications {
-            Task { [weak self] in
-                guard let self else { return }
-                if await !self.requestNotificationAuthorization() { self.showNotificationBanner = true }
-            }
-        }
+        // D57 (v1.6): the notification permission is asked for at the first Log set or Start
+        // timer (`apply`), not here over the first card (SPEC §5.3).
         // The effects carry `.sessionCompleted` for a finished switch and a final `.persist`
         // for the new session, in that order, so running them is all the persistence needed.
         await run(effects)
@@ -100,6 +94,15 @@ extension AppModel {
         // Completing clears the engine, so hold the finished session for the Summary.
         if let finished = library.sessions.first(where: { !known.contains($0.id) }) {
             justCompleted = finished
+        }
+        // D57 (v1.6): the permission is asked for at the first moment an alert is about to
+        // matter — the first set logged or timer started, whose rest or end the alert will
+        // announce — rather than at Start, over the first card (SPEC §5.3). Awaited here so
+        // the notification this event schedules lands after the answer; the strip is already
+        // counting, because `library.apply` mutated before the first await (D48).
+        if !askedForNotifications, event.asksForAlerts,
+           await !requestNotificationAuthorization() {
+            showNotificationBanner = true
         }
         await run(effects)
         await refreshActivity(now: now)
@@ -213,9 +216,14 @@ extension AppModel {
     /// when there is no workout to show. Called after every event and on every tick; a state
     /// that has not changed is not pushed, so a per-second tick does not wake the system
     /// sixty times a minute.
-    func refreshActivity(now: Date = Date()) async {
-        let state = library.engine.map(\.active).flatMap { WorkoutActivityState.of($0, now: now) }
-        guard state != shownActivity else { return }
+    ///
+    /// D60 (v1.6): `force` is the launch. A fresh process has shown nothing and has no workout,
+    /// so `nil == nil` would return here and never ask for the end — which is precisely the
+    /// case where an activity left over from the last run is still on the Lock Screen.
+    func refreshActivity(now: Date = Date(), force: Bool = false) async {
+        let state = library.engine.map(\.active)
+            .flatMap { WorkoutActivityState.of($0, now: now, wording: settings.wording) }
+        guard force || state != shownActivity else { return }
         shownActivity = state
         if let state {
             await activities.show(state)
@@ -233,4 +241,14 @@ extension AppModel {
 
     /// Everything the app may have scheduled, cancelled together when a session ends or is left.
     func cancelAllAlerts() async { await scheduler.cancel(ids: AlertIdentifier.all) }
+}
+
+private extension Event {
+    /// The events after which an alert would fire: a rest's end, or a timed set's beeps.
+    var asksForAlerts: Bool {
+        switch self {
+        case .logSet, .startTimer: return true
+        default: return false
+        }
+    }
 }

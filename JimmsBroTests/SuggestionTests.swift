@@ -91,26 +91,41 @@ final class SuggestionTests: XCTestCase {
         (CoreTestSupport.session(plan, start: now), history)
     }
 
-    // Q38: with no history, the suggestion is the plan's own target — said as a set to aim for.
-    func testTheFirstTimeTheSuggestionIsThePlansTarget() {
+    // Q38: with no history, the plan's own target is the fallback suggestion — and since the
+    // fields already show it, no chip is drawn (D55, v1.6; U4 has the rule).
+    func testTheFirstTimeTheSuggestionIsThePlansTarget() throws {
         let plan = CoreTestSupport.plan(sets: 3, weight: 60)
-        let values = Prefill.values(session: CoreTestSupport.session(plan), step: 0, history: [])
-        let suggestion = values.suggestion
+        let session = CoreTestSupport.session(plan)
+        let target = try XCTUnwrap(session.target(at: 0))
+        let suggestion = Prefill.setSuggestion(session: session, step: 0, exercise: session.exercises[0],
+                                               target: target, last: nil, lastWeight: nil,
+                                               advice: nil, adviceReason: nil, units: .kg)
         XCTAssertEqual(suggestion?.text, "8 × 60 kg")
         XCTAssertEqual(suggestion?.reason, "The plan's target")
         XCTAssertEqual(suggestion?.isProgression, false)
-        XCTAssertEqual(StepCard.suggestionChip(values, units: .kg), "Try 8 × 60 kg")
+        let values = Prefill.values(session: session, step: 0, history: [])
+        XCTAssertEqual(values.reps, 8); XCTAssertEqual(values.weight, 60)
+        XCTAssertNil(values.suggestion, "the fields already say 8 × 60")
+        XCTAssertNil(StepCard.suggestionChip(values, units: .kg))
     }
 
-    // Q39: with a last time and no advice, it says what you did, and says so.
-    func testWithHistoryItRepeatsLastTimeAndSaysWhy() {
+    // Q39: with a last time and no advice, "do that again" is what you did — and the fields
+    // already carry it, so no chip is drawn (D55, v1.6).
+    func testWithHistoryItRepeatsLastTimeAndSaysWhy() throws {
         let plan = CoreTestSupport.plan(sets: 3, weight: 60)
         let last = CoreTestSupport.completed([10, 10, 9], weights: [70, 70, 70], plan: plan)
-        let values = Prefill.values(session: CoreTestSupport.session(plan), step: 0,
-                                    history: [last])
-        XCTAssertEqual(values.suggestion?.weight, 70)
-        XCTAssertEqual(values.suggestion?.reason, "Last time 10 × 70 kg")
-        XCTAssertEqual(values.suggestion?.isProgression, false)
+        let session = CoreTestSupport.session(plan)
+        let target = try XCTUnwrap(session.target(at: 0))
+        let suggestion = Prefill.setSuggestion(session: session, step: 0, exercise: session.exercises[0],
+                                               target: target, last: .reps(count: 10, weight: 70),
+                                               lastWeight: 70, advice: nil, adviceReason: nil, units: .kg)
+        XCTAssertEqual(suggestion?.weight, 70)
+        XCTAssertEqual(suggestion?.text, "10 × 70 kg")
+        XCTAssertEqual(suggestion?.reason, "Last time 10 × 70 kg")
+        XCTAssertEqual(suggestion?.isProgression, false)
+        let values = Prefill.values(session: session, step: 0, history: [last])
+        XCTAssertEqual(values.reps, 10); XCTAssertEqual(values.weight, 70)
+        XCTAssertNil(values.suggestion, "the fields already say 10 × 70")
     }
 
     // Q40: advice wins over "do that again", and says which rule produced it.
