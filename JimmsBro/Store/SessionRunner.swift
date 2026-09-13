@@ -100,9 +100,10 @@ extension AppModel {
         // announce — rather than at Start, over the first card (SPEC §5.3). Awaited here so
         // the notification this event schedules lands after the answer; the strip is already
         // counting, because `library.apply` mutated before the first await (D48).
-        if !askedForNotifications, event.asksForAlerts,
-           await !requestNotificationAuthorization() {
-            showNotificationBanner = true
+        // D64 (v1.7): the line on Today that reports a refusal is earned here (§6.40).
+        if !askedForNotifications, event.asksForAlerts {
+            let allowed = await requestNotificationAuthorization()
+            showNotificationBanner = Gates.notificationsOff(askedAtLogSet: true, allowed: allowed)
         }
         await run(effects)
         await refreshActivity(now: now)

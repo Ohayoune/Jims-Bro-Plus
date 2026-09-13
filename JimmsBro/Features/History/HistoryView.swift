@@ -16,11 +16,15 @@ struct HistoryView: View {
     @State private var showingSettings = false
 
     private var matches: [String] { ExerciseText.search(query, sessions: model.sessions) }
+    /// D64 (v1.7): Metrics, Find an exercise and the search field are earned by the first
+    /// workout (§6.40) — before it there is nothing to count or to find.
+    private var finding: Bool { Gates.metricsAndFind(sessions: model.sessions) }
 
     var body: some View {
         NavigationStack(path: $path) {
             Group {
-                if !query.trimmed.isEmpty {
+                // A query left behind when the last workout goes is not shown: its field went too.
+                if finding, !query.trimmed.isEmpty {
                     List {
                         if matches.isEmpty {
                             ContentUnavailableView.search(text: query)
@@ -53,7 +57,8 @@ struct HistoryView: View {
                             } footer: {
                                 Text("Finished workouts appear here.")
                             }
-                        } else {
+                        }
+                        if finding {
                             // D39 (v1.2): the numbers over time, one tap from the list of workouts
                             // that produced them.
                             Section {
@@ -66,18 +71,21 @@ struct HistoryView: View {
                                     Label("Find an exercise", systemImage: "magnifyingglass")
                                 }
                             }
-                            // D54 (v1.5): the goals, and how close each is.
+                        }
+                        // D54 (v1.5): the goals, and how close each is — once there is a workout
+                        // to measure them against (D64, §6.40).
+                        if Gates.goals(sessions: model.sessions) {
                             GoalsSection()
-                            ForEach(model.historyMonths) { month in
-                                Section(month.title) {
-                                    ForEach(month.sessions) { session in
-                                        NavigationLink(value: HistoryRoute.session(session.id)) {
-                                            row(session)
-                                        }
+                        }
+                        ForEach(model.historyMonths) { month in
+                            Section(month.title) {
+                                ForEach(month.sessions) { session in
+                                    NavigationLink(value: HistoryRoute.session(session.id)) {
+                                        row(session)
                                     }
-                                    .onDelete { offsets in
-                                        confirmDeleteId = offsets.first.map { month.sessions[$0].id }
-                                    }
+                                }
+                                .onDelete { offsets in
+                                    confirmDeleteId = offsets.first.map { month.sessions[$0].id }
                                 }
                             }
                         }
@@ -95,7 +103,7 @@ struct HistoryView: View {
             .navigationTitle("History")
             // D62 (v1.7): Settings, from the same gear as Today's, in the same place.
             .settingsGear($showingSettings)
-            .searchable(text: $query, prompt: "Find an exercise")
+            .modifier(FindAnExercise(earned: finding, query: $query))
             .historyImportFlow(choosing: $choosingHistory)
             .confirmationDialog("Delete this workout?", isPresented: Binding(
                 get: { confirmDeleteId != nil }, set: { if !$0 { confirmDeleteId = nil } }),
@@ -156,5 +164,20 @@ struct ExercisesListView: View {
         }
         .navigationTitle("Exercises")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// D64 (v1.7): the search field is Find an exercise too, so it arrives with the row (§6.40). A
+/// field over no workouts could only ever say "No results".
+private struct FindAnExercise: ViewModifier {
+    let earned: Bool
+    @Binding var query: String
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if earned {
+            content.searchable(text: $query, prompt: "Find an exercise")
+        } else {
+            content
+        }
     }
 }

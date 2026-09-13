@@ -261,7 +261,8 @@ struct HomeStart: Equatable {
             } else {
                 start.subtitle = "In progress"
             }
-            start.alternatives = [.changePlan, .discardWorkout]
+            start.alternatives = (Gates.changePlan(plans: library.plans) ? [.changePlan] : [])
+                + [.discardWorkout]
             start.message = message(for: start, notificationsOff: notificationsOff,
                                     missedDismissed: missedDismissed)
             return start
@@ -270,7 +271,9 @@ struct HomeStart: Equatable {
             start.title = "Nothing scheduled"
             start.subtitle = "This plan has no day to start. Open it in Plans to check its repeat block."
             if let plan = library.activePlan {
-                start.alternatives = (plan.days.isEmpty ? [] : [.anotherDay]) + [.changePlan]
+                // With nothing scheduled any day is another day: the chooser is the way in.
+                start.alternatives = (Gates.anotherDay(plan: plan, showing: nil) ? [.anotherDay] : [])
+                    + (Gates.changePlan(plans: library.plans) ? [.changePlan] : [])
             }
             start.message = message(for: start, notificationsOff: notificationsOff,
                                     missedDismissed: missedDismissed)
@@ -329,20 +332,21 @@ struct HomeStart: Equatable {
             } else if progression.isFinished(on: now, calendar: calendar) {
                 start.progressionFinished = true
             }
-        } else if !start.isInProgress, !day.exercises.isEmpty {
+        } else {
             // D50 (v1.5): the link appears only once there is something to plan from — a
-            // logged session of every exercise on the day — and never shouts.
-            start.offersProgression = day.exercises.allSatisfy { exercise in
-                ExerciseHistory.last(name: exercise.name, units: plan.units, sessions: library.sessions) != nil
-            }
+            // logged session of every exercise on the day — and never shouts. A row of §6.40.
+            start.offersProgression = Gates.planProgression(plan: plan, dayIndex: index,
+                                                            sessions: library.sessions)
         }
         // A rest day already used the subtitle to say what is next; the rest hangs off that.
         start.subtitle = ([start.subtitle].compactMap { $0 } + fragments).joined(separator: " · ")
         if start.subtitle?.isEmpty == true { start.subtitle = nil }
 
-        // D61 (v1.7): the alternatives, in the order the ··· lists them. Another day only when
-        // the plan has another day; Plan a progression only while D50 offers it.
-        start.alternatives = (plan.days.count > 1 ? [.anotherDay] : []) + [.changePlan]
+        // D61 (v1.7): the alternatives, in the order the ··· lists them, each earned (D64,
+        // §6.40): Another day when the plan has another day, Change plan when there is a plan
+        // list, Plan a progression while D50 offers it.
+        start.alternatives = (Gates.anotherDay(plan: plan, showing: index) ? [.anotherDay] : [])
+            + (Gates.changePlan(plans: library.plans) ? [.changePlan] : [])
             + (start.offersProgression ? [.planProgression] : [])
         start.message = message(for: start, notificationsOff: notificationsOff,
                                 missedDismissed: missedDismissed)

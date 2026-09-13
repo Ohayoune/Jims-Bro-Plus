@@ -91,14 +91,17 @@ on 2026-09-13); the calendar and the week's line move to History (D63); controls
 are **earned** by a table in SPEC (D64, `Core/Gates.swift`); and a **colour per day** in four
 places (D65, `Core/DayColour.swift`, chosen go the same day). Nothing in it touches
 `Core/Persistence.swift`, the pipeline, the format, the prompts or the Workout screen. The Today
-mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T3 are built and green on
+mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T4 are built and green on
 `v1.7-today` off `main` now that pull request #2 has merged: Today is one card (`HomeStart.message`
 and `.alternatives` are Core data, `TodayTests` T1–T4), and the empty card offers **Choose a
 plan**. The tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, pinned to SPEC §4.0 by
 T7): Plans is pushed from Today's ··· → Change plan, and Settings from a gear at the top-left of
 both tabs (`settingsGear`). The calendar and the week's line open History
 (`Features/History/CalendarView.swift`); the tapped-day line is Core's (`CalendarText.line`) and
-has no Start this, because a workout starts on Today. T4 is next.
+has no Start this, because a workout starts on Today. Controls are earned (T4): `Core/Gates.swift`
+has one function per row of SPEC §6.40's table, pinned by T21, and the views ask it — Month waits
+for a workout older than this week, and Metrics, Find an exercise, the search field and Goals
+for the first workout. T5 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 

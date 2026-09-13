@@ -41,14 +41,19 @@ struct CalendarView: View {
                         .accessibilityLabel("Next month")
                         .padding(.trailing, 4)
                 }
-                Button(expanded ? "Week" : "Month") {
-                    withAnimation(.snappy) {
-                        expanded.toggle()
-                        month = Date()
-                        selected = nil
+                // D64 (v1.7): Month is earned by a workout older than this week (§6.40); until
+                // then the strip is the whole record. Week stays while the grid is open, so it
+                // can always be closed.
+                if expanded || Gates.month(sessions: model.sessions, today: Date(), calendar: calendar) {
+                    Button(expanded ? "Week" : "Month") {
+                        withAnimation(.snappy) {
+                            expanded.toggle()
+                            month = Date()
+                            selected = nil
+                        }
                     }
+                    .font(.footnote)
                 }
-                .font(.footnote)
             }
             .buttonStyle(.plain)
             .foregroundStyle(Color.accentColor)

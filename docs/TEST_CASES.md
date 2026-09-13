@@ -942,6 +942,21 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | T12 | unit | (D63, v1.7) The plan's week before the first workout | With no sessions, `CalendarProjection.week` for a weekday plan (Upper on Monday, Lower on Thursday) lists Upper and Lower as planned, in that order, and the other five days as rest, and every day has a line — what History's strip draws above "No workouts yet" |
 | T13 | ui | (D63, v1.7) History's calendar by hand | History opens with the strip and the week's line; **Month** and **Week** switch; a done day tapped once shows its line, tapped again lands on the session pushed onto History, and back returns to History; today's planned day shows "… · planned" with no button; a fresh install with a plan shows the plan's week above "No workouts yet" and **Import from another app** (device; `DEVICE_CHECKLIST.md` T13) |
 
+### T4 — Controls are earned (D64)
+
+`JimmsBroTests/GatesTests.swift`. T2's ··· cases in `TodayTests` now run through `Gates`, unchanged. The plan's T14–T21 kept their ids; SPEC's table is §6.40, not the plan's §6.39, which T3 took.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| T14 | unit | (D64, v1.7) `Gates.month` | False with no workouts; true on a Monday for a workout six days old (last Tuesday); on a Sunday, the same age (last Monday) is false when the week starts on Monday — it is this week, the strip's first day — and true when it starts on Sunday; still true a day and a month later; a workout still running earns nothing |
+| T15 | unit | (D64, v1.7) `Gates.metricsAndFind` | False with no workouts, true with one, false with only a running one |
+| T16 | unit | (D64, v1.7) `Gates.goals` | False with no workouts, true with one, false with only a running one |
+| T17 | unit | (D64, v1.7) `Gates.anotherDay` | Showing a day: true for a two-day plan, false for a one-day plan; with nothing scheduled: true for a one-day plan, false for a plan with no days |
+| T18 | unit | (D64, v1.7) `Gates.changePlan` | False with no plans, true with one |
+| T19 | unit | (D64, v1.7) `Gates.planProgression` | False with no sessions, or with a session of another exercise only; true once every exercise on the day has one; false again once the plan carries a progression; false for an index past the plan's days |
+| T20 | unit | (D64, v1.7) `Gates.notificationsOff` | False before the first Log set whatever the answer would be; after it, true when refused and false when allowed; through `AppModel`, Start leaves the line off and the first Log set with the permission refused turns it on |
+| T21 | unit | (D64, v1.7) The table is SPEC's | Every `static func` in `Core/Gates.swift` is named in a row of SPEC §6.40's table, every row names one, and there are as many rows as functions (the SPEC and source reads run on the host routes and skip on the simulator) |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|
