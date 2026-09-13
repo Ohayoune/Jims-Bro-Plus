@@ -83,6 +83,17 @@ keeps no handle and asks `Activity.activities` instead, and every launch reconci
 Screen (`refreshActivity(force:)`). U0–U7 are built and green on `v1.6-refinement` (pull request
 #2). The v1.6 device rows join the checklist.
 
+`docs/ITERATION_8_PLAN.md` is the v1.7 plan (milestones **T0–T6**), written 2026-09-13 from the
+owner's note after living with v1.6 — *"sensory overload… less choices… more forcing… feels like a
+settings menu"*. Home becomes **Today**, one card with the same five zones every day and its
+alternatives in one ··· (D61); the tab bar shrinks (D62 — the owner chose **Reading A: Today · History**
+on 2026-09-13); the calendar and the week's line move to History (D63); controls
+are **earned** by a table in SPEC (D64, `Core/Gates.swift`); and a **colour per day** in four
+places (D65, `Core/DayColour.swift`, chosen go the same day). Nothing in it touches
+`Core/Persistence.swift`, the pipeline, the format, the prompts or the Workout screen. The Today
+mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0 is built, on `v1.7-today` off
+`main` now that pull request #2 has merged; T1 begins the actual build.
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
