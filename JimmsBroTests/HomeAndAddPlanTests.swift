@@ -126,36 +126,7 @@ final class HomeAndAddPlanTests: XCTestCase {
         }
     }
 
-    // O66: the one activity line that replaced the tap-to-cycle sparkline.
-    func testActivityLine() throws {
-        let calendar = CoreTestSupport.utc()
-        let today = CoreTestSupport.date(10)   // 2026-09-10, a Thursday
-        XCTAssertEqual(HomeActivity.line(sessions: [], now: today, calendar: calendar),
-                       "No workouts yet this week")
-
-        func session(daysAgo: Int, minutes: Int, finished: Bool = true) -> Session {
-            let start = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
-            var s = CoreTestSupport.session(rotation(), start: start)
-            if finished { s.endedAt = start.addingTimeInterval(Double(minutes * 60)) }
-            return s
-        }
-        // Sunday 6 September opens this week; the 3rd is the previous one.
-        let line = HomeActivity.line(sessions: [session(daysAgo: 2, minutes: 48),
-                                                session(daysAgo: 4, minutes: 44),
-                                                session(daysAgo: 7, minutes: 60)],
-                                     now: today, calendar: calendar)
-        XCTAssertEqual(line, "2 workouts this week · 1 h 32 min")
-
-        // A workout still running is not activity yet.
-        XCTAssertEqual(HomeActivity.line(sessions: [session(daysAgo: 1, minutes: 30, finished: false)],
-                                         now: today, calendar: calendar),
-                       "No workouts yet this week")
-        XCTAssertEqual(HomeActivity.line(sessions: [session(daysAgo: 1, minutes: 48)],
-                                         now: today, calendar: calendar),
-                       "1 workout this week · 48 min")
-        XCTAssertEqual(HomeActivity.duration(7_200), "2 h")
-        XCTAssertEqual(HomeActivity.duration(0), "0 min")
-    }
+    // O66 (the week's line) moved to HistoryTests as T10, with the calendar (D63).
 
     // O68: the review sheet shows what the chatbot actually wrote, per set — in the
     // compact notation, which since D58 (v1.6) is Settings' switch. U34 pins the plain

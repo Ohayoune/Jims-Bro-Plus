@@ -226,4 +226,101 @@ final class HistoryTests: XCTestCase {
         XCTAssertEqual(model.historyMonths.count, 2)
         XCTAssertEqual(model.historyMonths.flatMap(\.sessions).count, 2)
     }
+
+    // T10 (O66, re-homed with the calendar, D63): the week's line under History's calendar —
+    // the one activity line that replaced Home's tap-to-cycle sparkline in v1.1.
+    func testWeekLine() throws {
+        let calendar = CoreTestSupport.utc()
+        let today = CoreTestSupport.date(10)   // 2026-09-10, a Thursday
+        XCTAssertEqual(HomeActivity.line(sessions: [], now: today, calendar: calendar),
+                       "No workouts yet this week")
+
+        func workout(daysAgo: Int, minutes: Int, finished: Bool = true) -> Session {
+            let start = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
+            var s = CoreTestSupport.session(start: start)
+            if finished { s.endedAt = start.addingTimeInterval(Double(minutes * 60)) }
+            return s
+        }
+        // Sunday 6 September opens this week; the 3rd is the previous one.
+        let line = HomeActivity.line(sessions: [workout(daysAgo: 2, minutes: 48),
+                                                workout(daysAgo: 4, minutes: 44),
+                                                workout(daysAgo: 7, minutes: 60)],
+                                     now: today, calendar: calendar)
+        XCTAssertEqual(line, "2 workouts this week · 1 h 32 min")
+
+        // A workout still running is not activity yet.
+        XCTAssertEqual(HomeActivity.line(sessions: [workout(daysAgo: 1, minutes: 30, finished: false)],
+                                         now: today, calendar: calendar),
+                       "No workouts yet this week")
+        XCTAssertEqual(HomeActivity.line(sessions: [workout(daysAgo: 1, minutes: 48)],
+                                         now: today, calendar: calendar),
+                       "1 workout this week · 48 min")
+        XCTAssertEqual(HomeActivity.duration(7_200), "2 h")
+        XCTAssertEqual(HomeActivity.duration(0), "0 min")
+    }
+
+    /// Upper on Monday, Lower on Thursday: a week with planned days and rest days in it.
+    private func upperLower() -> Plan {
+        let target = SetTarget(work: .reps(.fixed(5)), weight: 100, restSeconds: 180)
+        return Plan(name: "Upper Lower", units: .kg, schedule: .weekday,
+                    days: [Day(name: "Upper", weekday: .monday,
+                               exercises: [Exercise(name: "Press", sets: [target])]),
+                           Day(name: "Lower", weekday: .thursday,
+                               exercises: [Exercise(name: "Squat", sets: [target])])],
+                    importedAt: CoreTestSupport.now, sourceText: "", cycle: [])
+    }
+
+    // T11 (D63): the tapped-day line. Today's planned day reads "planned" and opens nothing —
+    // no Start this, since a workout starts on Today; a finished day opens its sessions; a rest
+    // day is text; a day the plan says nothing about has no line.
+    func testTappedDayLine() throws {
+        let calendar = CoreTestSupport.utc()
+        let plan = upperLower()
+        let monday = CoreTestSupport.date(14)   // 2026-09-14
+        let week = CalendarProjection.week(containing: monday, activePlan: plan, sessions: [],
+                                           today: monday, calendar: calendar)
+        let today = try XCTUnwrap(week.first { calendar.isDate($0.date, inSameDayAs: monday) })
+        let planned = try XCTUnwrap(CalendarText.line(today, plans: [plan], calendar: calendar))
+        XCTAssertTrue(planned.text.hasSuffix(" · Upper · planned"), planned.text)
+        XCTAssertTrue(planned.text.contains("14"), planned.text)
+        XCTAssertTrue(planned.sessions.isEmpty, "today's planned day carries no button")
+
+        var done = CoreTestSupport.session(start: CoreTestSupport.date(10))
+        done.endedAt = done.startedAt.addingTimeInterval(48 * 60)
+        let finished = try XCTUnwrap(CalendarText.line(
+            CalendarDay(date: CoreTestSupport.date(10), entry: .completed([done])),
+            plans: [], calendar: calendar))
+        XCTAssertTrue(finished.text.hasSuffix(" · Push · 48 min"), finished.text)
+        XCTAssertEqual(finished.sessions, [done])
+
+        let rest = try XCTUnwrap(week.first { $0.entry == .rest })
+        let restLine = try XCTUnwrap(CalendarText.line(rest, plans: [plan], calendar: calendar))
+        XCTAssertTrue(restLine.text.hasSuffix(" · Rest day"), restLine.text)
+        XCTAssertTrue(restLine.sessions.isEmpty)
+
+        XCTAssertNil(CalendarText.line(CalendarDay(date: monday, entry: .none), plans: [plan],
+                                       calendar: calendar))
+        // A planned day whose plan is gone has nothing true to say.
+        XCTAssertNil(CalendarText.line(today, plans: [], calendar: calendar))
+        for line in [planned, finished, restLine] { XCTAssertFalse(line.text.contains("projected")) }
+    }
+
+    // T12 (D63): with no sessions the strip still shows the plan's week — Upper on Monday and
+    // Lower on Thursday, every other day a rest day, and a line for each.
+    func testEmptyHistoryStillShowsThePlansWeek() throws {
+        let calendar = CoreTestSupport.utc()
+        let plan = upperLower()
+        let sunday = CoreTestSupport.date(13)   // 2026-09-13 opens the week
+        let week = CalendarProjection.week(containing: sunday, activePlan: plan, sessions: [],
+                                           today: sunday, calendar: calendar)
+        XCTAssertEqual(week.count, 7)
+        let planned = week.compactMap { day -> String? in
+            guard case let .projected(_, index) = day.entry else { return nil }
+            return plan.days[index].name
+        }
+        XCTAssertEqual(planned, ["Upper", "Lower"])
+        XCTAssertEqual(week.filter { $0.entry == .rest }.count, 5)
+        XCTAssertEqual(week.compactMap { CalendarText.line($0, plans: [plan], calendar: calendar) }.count, 7,
+                       "every day of the plan's week has a line to show")
+    }
 }

@@ -1,7 +1,7 @@
 # Build status
 
 Updated 2026-09-13. **v1.7 is in progress on branch `v1.7-today` (off `main`, which holds
-v1.6 since pull request #2 merged): T0–T2 are built and green; T3–T6 follow.** v1.6 and
+v1.6 since pull request #2 merged): T0–T3 are built and green; T4–T6 follow.** v1.6 and
 everything before it are below, unchanged except where a later milestone corrected them; the
 device checklist, the Developer Program, a release Xcode and the submission itself are the
 owner's.
@@ -14,27 +14,27 @@ milestones were the owner's call and were chosen on 2026-09-13: T2 is Reading A 
 History) and T5 (a colour per day) is go. Each milestone ends with the whole suite green on all
 three routes, a Release build and `tools/check_release.py`, and one commit on `v1.7-today`.
 
-After T2:
+After T3:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **317 tests, 8 skipped, 0 failures** — the eighth skip is T7, which reads SPEC and `RootView.swift` and so runs on the host routes |
-| `swift test` | **316 tests, 0 failures** |
-| `python3 tools/check_core.py` | **316 bodies, 6,047 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **319 tests, 8 skipped, 0 failures** — the eighth skip is T7, which reads SPEC and `RootView.swift` and so runs on the host routes |
+| `swift test` | **318 tests, 0 failures** |
+| `python3 tools/check_core.py` | **318 bodies, 6,068 assertions, 0 failures** |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.5 (1); T6 makes it 1.7 |
-| `python3 tools/check_bundle.py` | **current** (regenerated in T0, T1 and T2) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in T0–T3) |
 
 | Milestone | What it did | State |
 |---|---|---|
 | T0 | The plan, the branch, the mock (the "Jimm's Bro+ Today" artifact, not committed) | Done |
 | T1 | Today is one card (D61): the day's name, one subtitle, the exercise block as the preview, at most one message, Start — and the day's alternatives in one ···. `HomeStart.message` and `.alternatives` are Core data (T1–T4 in `TodayTests`); the calendar, the week's line, Preview, the Week/Month control and the small buttons left the screen; the empty card offers **Choose a plan** and the practice link; Home's tab is Today | Done |
 | T2 | How many tabs (D62) — Reading A: the tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, drawn as `AppTab.allCases` and held to SPEC §4.0 by T7); Plans is pushed from Today's ··· → Change plan and Settings from a gear top-left on both tabs (`settingsGear`), both keeping large titles; Y13 re-run as T8; `-uiScreen plans` and `settings` land on Today and push the screen. The README's landing section names no tabs, so it did not change | Done |
-| T3 | The calendar lives in History (D63) | Next |
-| T4 | Controls are earned (D64) | — |
+| T3 | The calendar lives in History (D63): the week strip, **Month**, the tapped-day line and the week's line open History, above Metrics, Find an exercise, Goals and the months (`Features/History/CalendarView.swift`, drawing unchanged). The tapped-day line is Core's (`CalendarText.line` → `DayLine`): "planned", not "projected", and no **Start this**; a finished day opens pushed onto History's stack. With no workouts the strip still shows the plan's week above "No workouts yet" and Import from another app. O66 re-homed as T10, T11–T12 in `HistoryTests`; the seeder takes `--no-history` (`SEED_NO_HISTORY=1`) | Done |
+| T4 | Controls are earned (D64) | Next |
 | T5 | A colour per day (D65) | — |
 | T6 | Docs, checklist, bundle, screenshots, 1.7 | — |
-| — | The v1.7 device rows (T5, T9 so far) | **Written, not run** — need the phone |
+| — | The v1.7 device rows (T5, T9, T13 so far) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.7)
 
@@ -45,11 +45,14 @@ After T2:
 | `build/t2-plans.png` | `-uiScreen plans`: the Plans list pushed onto Today — a back button, the large title, the plan in use marked, **Add plan** in the bottom slot, Today still selected in the tab bar |
 | `build/t2-settings.png` | `-uiScreen settings`: Settings pushed onto Today, with a back button and its large title |
 | `build/t2-history.png` | `-uiScreen history`: the same gear at the same point as Today's, top-left, above the large title |
+| `build/t3-history.png` | History after T3, from `SEED=1 tools/shot.sh build/t3-history.png -uiScreen history -uiNoAsk`: **This week** and **Month** over the strip — today outlined (a rest day, drawn as a dash), the plan's days named in the accent — then "No workouts yet this week" (the seeded six are all last week or earlier), Metrics, Find an exercise, Goals and September 2026 |
+| `build/t3-history-empty.png` | `SEED=1 SEED_NO_HISTORY=1 tools/shot.sh … -uiScreen history -uiNoAsk`: the plan and no workouts — the plan's week in the strip (Push today, outlined; Saturday a rest dash), "No workouts yet" under it, then **Import from another app** with "Finished workouts appear here." |
 
-What T1 and T2 could not check without the phone: T5 (Today at accessibility XL, every state, on
-the smallest supported iPhone) and T9 (Plans and Settings reached from Today by hand, back to the
-tab each left, and the gear in the same place on both tabs). The calendar is off Today and not
-yet on History until T3; that gap is one commit wide and deliberate (`DECISIONS_LOG.md`).
+What T1–T3 could not check without the phone: T5 (Today at accessibility XL, every state, on
+the smallest supported iPhone), T9 (Plans and Settings reached from Today by hand, back to the
+tab each left, and the gear in the same place on both tabs) and T13 (History's calendar by hand —
+Month and Week, a done day tapped twice landing on its session, and back). The one-commit gap T1
+left — the calendar off Today and not yet on History — closed in T3.
 
 ## v1.6 (U0–U7): built and green (merged as pull request #2)
 

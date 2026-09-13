@@ -1,18 +1,22 @@
 import SwiftUI
 
-// D63 (v1.7, T3): the calendar leaves Today for History. Its drawing is unchanged; only
-// its file is — it was `private` inside HomeView.swift until T1 took it off Today.
-/// SPEC §4.1 (v1.1): a 7-day strip by default, with a disclosure to the month grid. Cells are
-/// at least 44 pt in both (P6, O73).
+// D63 (v1.7, T3): the calendar is History's. Its drawing is the one Home had in v1.6; what
+// changed is where it sits, the tapped-day line (Core's `CalendarText.line` — no Start this,
+// since a workout starts on Today) and how a finished day opens: pushed on History's stack,
+// like its row below, where over Home it opened in a sheet.
+/// SPEC §4.10 (v1.1, D18): a 7-day strip by default, with a disclosure to the month grid. Cells
+/// are at least 44 pt in both (P6, O73).
 struct CalendarView: View {
     @Environment(AppModel.self) private var model
     @State private var month = Date()
     @State private var selected: Date?
     @State private var expanded = false
-    /// Tapping an already-selected completed day opens it (SPEC §4.1); a day with more than
-    /// one session offers a chooser first.
-    @State private var openSessionId: UUID?
+    /// A day with more than one session offers a chooser before it opens.
     @State private var choosingAmong: [Session]?
+    /// Opens a finished workout; History pushes it.
+    private let open: (UUID) -> Void
+
+    init(open: @escaping (UUID) -> Void) { self.open = open }
 
     private var calendar: Calendar { .current }
 
@@ -67,17 +71,17 @@ struct CalendarView: View {
                 }
             }
 
-            if let line = selectedLine(days) {
-                // A completed day's line is the way into it (D39, v1.2). v1.1 wanted a second
-                // tap on the cell, which nothing on the screen said you could do.
-                if let day = selectedDay(days), case let .completed(sessions) = day.entry,
-                   !sessions.isEmpty {
-                    Button {
-                        if sessions.count == 1 { openSessionId = sessions[0].id }
-                        else { choosingAmong = sessions }
-                    } label: {
+            if let day = selectedDay(days),
+               let line = CalendarText.line(day, plans: model.plans, calendar: calendar) {
+                if line.sessions.isEmpty {
+                    // A planned or rest day's line is text (D63): a workout starts on Today.
+                    Text(line.text).font(.footnote).foregroundStyle(.secondary)
+                } else {
+                    // A finished day's line is the way into it (D39, v1.2). v1.1 wanted a second
+                    // tap on the cell, which nothing on the screen said you could do.
+                    Button { openAny(line.sessions) } label: {
                         HStack(spacing: 4) {
-                            Text(line)
+                            Text(line.text)
                             Image(systemName: "chevron.right").font(.caption2)
                         }
                         .font(.footnote)
@@ -85,8 +89,6 @@ struct CalendarView: View {
                     .buttonStyle(.plain)
                     .foregroundStyle(Color.accentColor)
                     .accessibilityHint("Opens this workout")
-                } else {
-                    Text(line).font(.footnote).foregroundStyle(.secondary)
                 }
             }
         }
@@ -95,32 +97,29 @@ struct CalendarView: View {
             if let sessions = choosingAmong {
                 ForEach(sessions) { session in
                     Button("\(session.dayName) · \(session.startedAt.formatted(date: .omitted, time: .shortened))") {
-                        openSessionId = session.id
                         choosingAmong = nil
+                        open(session.id)
                     }
                 }
             }
             Button("Cancel", role: .cancel) { choosingAmong = nil }
         }
-        .sheet(isPresented: Binding(get: { openSessionId != nil }, set: { if !$0 { openSessionId = nil } })) {
-            if let id = openSessionId {
-                NavigationStack { SessionDetailView(sessionId: id) }.environment(model)
-            }
-        }
     }
 
-    /// SPEC §4.1: tapping a day shows the line; tapping the same, already-selected, completed
+    /// SPEC §4.10: tapping a day shows the line; tapping the same, already-selected, finished
     /// day again opens it — a chooser first when it holds more than one session (v1.1).
     private func tapped(_ day: CalendarDay) {
         let alreadySelected = selected.map { calendar.isDate($0, inSameDayAs: day.date) } ?? false
         if alreadySelected {
-            if case let .completed(sessions) = day.entry {
-                if sessions.count == 1 { openSessionId = sessions[0].id } else { choosingAmong = sessions }
-            }
+            if case let .completed(sessions) = day.entry { openAny(sessions) }
             selected = nil
         } else {
             selected = day.date
         }
+    }
+
+    private func openAny(_ sessions: [Session]) {
+        if sessions.count > 1 { choosingAmong = sessions } else if let only = sessions.first { open(only.id) }
     }
 
     private var weekdaySymbols: [String] {
@@ -142,28 +141,6 @@ struct CalendarView: View {
     private func selectedDay(_ days: [CalendarDay]) -> CalendarDay? {
         guard let selected else { return nil }
         return days.first { calendar.isDate($0.date, inSameDayAs: selected) }
-    }
-
-    /// One line under the grid; rest days show nothing (SPEC §4.1).
-    private func selectedLine(_ days: [CalendarDay]) -> String? {
-        guard let selected,
-              let day = days.first(where: { calendar.isDate($0.date, inSameDayAs: selected) })
-        else { return nil }
-        let stamp = day.date.formatted(.dateTime.weekday(.abbreviated).day())
-        switch day.entry {
-        case let .completed(sessions):
-            guard let session = sessions.first else { return nil }
-            let minutes = Int(SessionStats.duration(session)) / 60
-            return "\(stamp) · \(session.dayName) · \(minutes) min"
-        case let .projected(planId, dayIndex):
-            guard let plan = model.plans.first(where: { $0.id == planId }),
-                  let name = plan.days[safe: dayIndex]?.name else { return nil }
-            return "\(stamp) · \(name) · projected"
-        case .rest:
-            return "\(stamp) · Rest day"
-        case .none:
-            return nil
-        }
     }
 }
 

@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// SPEC §4.10: sessions newest first, grouped by month.
+/// SPEC §4.10: the calendar and the week's line (D63, v1.7), then sessions newest first,
+/// grouped by month.
 struct HistoryView: View {
     @Environment(AppModel.self) private var model
 
@@ -19,16 +20,7 @@ struct HistoryView: View {
     var body: some View {
         NavigationStack(path: $path) {
             Group {
-                if model.sessions.isEmpty {
-                    // D45 (v1.3): the one place an empty History can offer what fills it.
-                    ContentUnavailableView {
-                        Label("No workouts yet", systemImage: "clock.arrow.circlepath")
-                    } description: {
-                        Text("Finished workouts appear here.")
-                    } actions: {
-                        Button("Import from another app") { choosingHistory = true }
-                    }
-                } else if !query.trimmed.isEmpty {
+                if !query.trimmed.isEmpty {
                     List {
                         if matches.isEmpty {
                             ContentUnavailableView.search(text: query)
@@ -40,51 +32,64 @@ struct HistoryView: View {
                             }
                         }
                     }
-                    .navigationDestination(for: HistoryRoute.self) { route in
-                        switch route {
-                        case let .session(id): SessionDetailView(sessionId: id)
-                        case let .exercise(name, units): ExerciseHistoryView(name: name, units: units)
-                        case .metrics: MetricsView()
-                        case .exercises: ExercisesListView()
-                        }
-                    }
                 } else {
                     List {
-                        // D39 (v1.2): the numbers over time, one tap from the list of workouts
-                        // that produced them.
+                        // D63 (v1.7): the calendar is the record's — what happened and what the
+                        // plan expects — so History opens with it, the week's line under it. A
+                        // finished day opens here, pushed like its row below.
                         Section {
-                            NavigationLink(value: HistoryRoute.metrics) {
-                                Label("Metrics", systemImage: "chart.bar")
-                            }
-                            // D59 (v1.6): the search field is not drawn on every iOS; the fastest
-                            // route to an exercise's chart needs a row of its own.
-                            NavigationLink(value: HistoryRoute.exercises) {
-                                Label("Find an exercise", systemImage: "magnifyingglass")
-                            }
+                            CalendarView { path.append(.session($0)) }
+                            // With no workouts the strip still shows: the plan's week is worth
+                            // seeing on day one.
+                            Text(model.sessions.isEmpty ? "No workouts yet"
+                                                        : HomeActivity.line(sessions: model.sessions))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
                         }
-                        // D54 (v1.5): the goals, and how close each is.
-                        GoalsSection()
-                        ForEach(model.historyMonths) { month in
-                            Section(month.title) {
-                                ForEach(month.sessions) { session in
-                                    NavigationLink(value: HistoryRoute.session(session.id)) {
-                                        row(session)
+                        if model.sessions.isEmpty {
+                            // D45 (v1.3): the one place an empty History can offer what fills it.
+                            Section {
+                                Button("Import from another app") { choosingHistory = true }
+                            } footer: {
+                                Text("Finished workouts appear here.")
+                            }
+                        } else {
+                            // D39 (v1.2): the numbers over time, one tap from the list of workouts
+                            // that produced them.
+                            Section {
+                                NavigationLink(value: HistoryRoute.metrics) {
+                                    Label("Metrics", systemImage: "chart.bar")
+                                }
+                                // D59 (v1.6): the search field is not drawn on every iOS; the fastest
+                                // route to an exercise's chart needs a row of its own.
+                                NavigationLink(value: HistoryRoute.exercises) {
+                                    Label("Find an exercise", systemImage: "magnifyingglass")
+                                }
+                            }
+                            // D54 (v1.5): the goals, and how close each is.
+                            GoalsSection()
+                            ForEach(model.historyMonths) { month in
+                                Section(month.title) {
+                                    ForEach(month.sessions) { session in
+                                        NavigationLink(value: HistoryRoute.session(session.id)) {
+                                            row(session)
+                                        }
+                                    }
+                                    .onDelete { offsets in
+                                        confirmDeleteId = offsets.first.map { month.sessions[$0].id }
                                     }
                                 }
-                                .onDelete { offsets in
-                                    confirmDeleteId = offsets.first.map { month.sessions[$0].id }
-                                }
                             }
                         }
                     }
-                    .navigationDestination(for: HistoryRoute.self) { route in
-                        switch route {
-                        case let .session(id): SessionDetailView(sessionId: id)
-                        case let .exercise(name, units): ExerciseHistoryView(name: name, units: units)
-                        case .metrics: MetricsView()
-                        case .exercises: ExercisesListView()
-                        }
-                    }
+                }
+            }
+            .navigationDestination(for: HistoryRoute.self) { route in
+                switch route {
+                case let .session(id): SessionDetailView(sessionId: id)
+                case let .exercise(name, units): ExerciseHistoryView(name: name, units: units)
+                case .metrics: MetricsView()
+                case .exercises: ExercisesListView()
                 }
             }
             .navigationTitle("History")

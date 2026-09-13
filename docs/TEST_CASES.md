@@ -931,6 +931,17 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | T8 | unit | (D62, v1.7) The intro's controls still exist (Y13, re-run) | Every `Introduction.namedControls` entry exists by that name: **Choose a plan** and **Start …** on Today's cards, **Log set** on the workout, **History** as `AppTab.history.title`, and the view literals — Create with a chatbot, Progression, built-in plan, and **Add plan** on the Plans list, which Today now pushes |
 | T9 | ui | (D62, v1.7) Plans and Settings from Today | With a plan: Plans is two taps from Today (··· → Change plan) and a plan's detail one more; Settings is one (the gear, top-left); the gear sits in the same place on Today and History; back returns to the tab it left; the tab bar shows Today and History and nothing else (device; `DEVICE_CHECKLIST.md` T9) |
 
+### T3 — The calendar lives in History (D63)
+
+`JimmsBroTests/HistoryTests.swift`; O66's test moved there from `HomeAndAddPlanTests.swift` as T10, its cases unchanged. O65 (the week strip is the month grid's projection) stands where it is.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| T10 | unit | (D63, v1.7) The week's line, re-homed (O66) | `HomeActivity.line` reads "2 workouts this week · 1 h 32 min" for the calendar week containing today, "1 workout this week · 48 min" for one, "No workouts yet this week" for none; a workout still running does not count |
+| T11 | unit | (D63, v1.7) The tapped-day line | `CalendarText.line` for today's planned day ends "· Upper · planned" and opens nothing (no **Start this**); a finished day's ends "· Push · 48 min" and opens its sessions; a rest day's ends "· Rest day" and opens nothing; a day the plan says nothing about, or a planned day whose plan is gone, has no line; no line says "projected" |
+| T12 | unit | (D63, v1.7) The plan's week before the first workout | With no sessions, `CalendarProjection.week` for a weekday plan (Upper on Monday, Lower on Thursday) lists Upper and Lower as planned, in that order, and the other five days as rest, and every day has a line — what History's strip draws above "No workouts yet" |
+| T13 | ui | (D63, v1.7) History's calendar by hand | History opens with the strip and the week's line; **Month** and **Week** switch; a done day tapped once shows its line, tapped again lands on the session pushed onto History, and back returns to History; today's planned day shows "… · planned" with no button; a fresh install with a plan shows the plan's week above "No workouts yet" and **Import from another app** (device; `DEVICE_CHECKLIST.md` T13) |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

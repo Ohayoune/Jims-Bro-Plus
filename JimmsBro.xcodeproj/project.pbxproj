@@ -472,7 +472,6 @@
 		8DB41853BCA3630CAEB0EE33 /* Home */ = {
 			isa = PBXGroup;
 			children = (
-				612199622A504012982B21D4 /* CalendarView.swift */,
 				1611CF2EBEDC4B84BB786C9E /* IntroductionView.swift */,
 				E83249BD3BA79932E16FB1FB /* HomeView.swift */,
 			);
@@ -482,6 +481,7 @@
 		92ABE87DC72054B8947D373C /* History */ = {
 			isa = PBXGroup;
 			children = (
+				612199622A504012982B21D4 /* CalendarView.swift */,
 				6024227A461A4433A1E43A87 /* GoalsView.swift */,
 				90E451936EF7424D9B04AEE3 /* MetricsView.swift */,
 				B0E13F6504754DBDB320FBF3 /* HistoryView.swift */,

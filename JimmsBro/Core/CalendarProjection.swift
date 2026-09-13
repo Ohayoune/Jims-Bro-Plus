@@ -72,7 +72,37 @@ enum CalendarText {
         case .none: return date
         }
     }
+
+    /// SPEC §4.10 (D63, v1.7): the one line under the grid for a tapped day. A finished day's
+    /// line is the way into it (D39) and carries the sessions it opens; a planned or rest day's
+    /// is text and opens nothing — the calendar is History's now and a workout starts on Today,
+    /// so v1.1's **Start this** on today's line is gone. "planned", where v1.1 said
+    /// "projected": the word VoiceOver already read. A day the plan says nothing about has no line.
+    static func line(_ day: CalendarDay, plans: [Plan], calendar: Calendar = .current) -> DayLine? {
+        let style = Date.FormatStyle(locale: calendar.locale ?? .autoupdatingCurrent,
+                                     calendar: calendar, timeZone: calendar.timeZone)
+        let stamp = day.date.formatted(style.weekday(.abbreviated).day())
+        switch day.entry {
+        case let .completed(sessions):
+            guard let session = sessions.first else { return nil }
+            let length = HomeActivity.duration(SessionStats.duration(session))
+            return DayLine(text: "\(stamp) · \(session.dayName) · \(length)", sessions: sessions)
+        case let .projected(planId, dayIndex):
+            guard let name = plans.first(where: { $0.id == planId })?.days[safe: dayIndex]?.name
+            else { return nil }
+            return DayLine(text: "\(stamp) · \(name) · planned", sessions: [])
+        case .rest:
+            return DayLine(text: "\(stamp) · Rest day", sessions: [])
+        case .none:
+            return nil
+        }
+    }
 }
+
+/// A tapped day's line and the finished workouts it opens — none for a planned or a rest day,
+/// whose line is text, not a button (D63).
+struct DayLine: Equatable { var text: String; var sessions: [Session] }
+
 enum CalendarProjection {
     static func entries(month: Date, activePlan: Plan?, sessions: [Session], today: Date, calendar: Calendar = .current) -> [CalendarDay] {
         guard let monthInterval = calendar.dateInterval(of:.month,for:month), let days = calendar.range(of:.day,in:.month,for:month) else { return [] }
@@ -112,8 +142,9 @@ enum CalendarProjection {
             return CalendarDay(date:date,entry:entry)
         }
     }
-    /// SPEC §4.1 (D18, v1.1): the seven days of the calendar week containing `date`, so Home's
-    /// strip and its "this week" line describe the same days. Same entries as `entries(month:)`.
+    /// SPEC §4.10 (D18, v1.1): the seven days of the calendar week containing `date`, so the
+    /// strip and the week's line under it describe the same days — Home's until v1.7, History's
+    /// since (D63). Same entries as `entries(month:)`.
     static func week(containing date: Date, activePlan: Plan?, sessions: [Session], today: Date,
                      calendar: Calendar = .current) -> [CalendarDay] {
         guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else { return [] }

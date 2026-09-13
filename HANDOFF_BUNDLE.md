@@ -109,13 +109,14 @@ on 2026-09-13); the calendar and the week's line move to History (D63); controls
 are **earned** by a table in SPEC (D64, `Core/Gates.swift`); and a **colour per day** in four
 places (D65, `Core/DayColour.swift`, chosen go the same day). Nothing in it touches
 `Core/Persistence.swift`, the pipeline, the format, the prompts or the Workout screen. The Today
-mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T2 are built and green on
+mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T3 are built and green on
 `v1.7-today` off `main` now that pull request #2 has merged: Today is one card (`HomeStart.message`
-and `.alternatives` are Core data, `TodayTests` T1–T4), the calendar is off Today and waits in
-`Features/Home/CalendarView.swift` for T3 to re-home it in History, and the empty card offers
-**Choose a plan**. The tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, pinned to SPEC
-§4.0 by T7): Plans is pushed from Today's ··· → Change plan, and Settings from a gear at the
-top-left of both tabs (`settingsGear`). T3 is next.
+and `.alternatives` are Core data, `TodayTests` T1–T4), and the empty card offers **Choose a
+plan**. The tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, pinned to SPEC §4.0 by
+T7): Plans is pushed from Today's ··· → Change plan, and Settings from a gear at the top-left of
+both tabs (`settingsGear`). The calendar and the week's line open History
+(`Features/History/CalendarView.swift`); the tapped-day line is Core's (`CalendarText.line`) and
+has no Start this, because a workout starts on Today. T4 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -458,6 +459,8 @@ Leads with "**Workout saved**", then one line of what happened — "Push · 48 m
 **v1.5 (D54, §6.30)**: a goal this workout was the first to reach is said under the headline — "Goal reached: Barbell Bench Press 100 kg × 5" — in the reserved green, like a record.
 
 ### 4.10 History
+**The calendar first (v1.7, D63, §6.39).** History opens with the calendar that was Home's until v1.7, its drawing unchanged: a **7-day strip of the current week**, with **Month** disclosing the full grid (7 columns, weeks as rows, ‹ › to change month) and **Week** collapsing it again; cells at least 44 pt in both (P6). A finished day is filled and named in the colour reserved for "this happened"; a day the plan expects is named in the accent (§6.12: the active plan only, never more than 62 days ahead); a scheduled rest day is a short dash; a day the plan says nothing about is its number alone; today is outlined in ink. Tapping a day shows one line under the grid: "Wed 10 · Legs · 52 min ›", the way into that workout — pushed onto History like its row below, a chooser first when the day holds two — "Sat 13 · Push · planned", or "Sun 14 · Rest day"; tapping the same day again opens a finished one and otherwise clears the line. A day the plan says nothing about shows no line. There is no **Start this**: a workout starts on Today (§4.1). Under the calendar, **the week's line**: "2 workouts this week · 1 h 32 min", or "No workouts yet this week" — this week is the calendar week containing today, the seven days the strip shows. With no workouts at all the strip still shows the plan's week — worth seeing on day one — with "No workouts yet" under it, then **Import from another app** (D45) with "Finished workouts appear here." Below the calendar, as before: Metrics and Find an exercise, Goals, and the months. A search replaces all of it, calendar included, with the exercises it finds.
+
 Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly (**v1.6, D59**: also a **Find an exercise** row under Metrics, listing every exercise most recent first, because the search field is not drawn on every iOS; and a session's row reads "28 min · 16 sets · 13,920 kg lifted", not "28:08 · 16 sets · 13,920 kg"). Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1). **v1.5 (D54, §6.30)**: a **Goals** section at the top, under Metrics — each goal's exercise, its line ("100 kg × 5 · best 82.5 kg × 5 · by 1 Dec", or "reached 3 Sep" in green) and a bar of how far along it is; **Set a goal**; swipe to remove. An exercise's own screen has **Set a goal** too.
 
 ### 4.11 Settings
@@ -653,7 +656,7 @@ Everything is a `Metric`: a label, an already-formatted value, and a one-line no
 
 **A run of workouts** (`TrendMetrics.summary(_:days:)`, on the **Metrics** screen under History, over 7 / 30 / 90 days): how many workouts and how many a week; time trained and the average length; volume; sets; consecutive weeks with at least one workout; the most-trained exercise; and the all-time count with the month it started. Volume only adds up within one unit, because the app never converts (D10). Under the numbers, the workouts of that window, so any figure can be traced back to the days that made it.
 
-**Getting to a past workout** is one tap from three places: the History list, the **Metrics** screen, and Home's calendar — where the line under the grid is now the way in ("Sat 6 · Legs · 28 min ›"). v1.1 wanted a second tap on the cell, which nothing on the screen said you could do.
+**Getting to a past workout** is one tap from three places: the History list, the **Metrics** screen, and the calendar at the top of History (Home's until v1.7, D63) — where the line under the grid is now the way in ("Sat 6 · Legs · 28 min ›"). v1.1 wanted a second tap on the cell, which nothing on the screen said you could do.
 
 ### 6.17 Lock Screen and Dynamic Island (D40, v1.2)
 "Could also have the time appear at the lock screen at the top — that would also be useful — and in the Dynamic Island."
@@ -970,6 +973,16 @@ The tab bar read as a settings menu from the first screen because two of its fou
 - **Deferred, never unreachable** (§6.37): Add plan is one tap further from launch than in v1.6 (··· → Change plan → Add plan). The owner judged that the coach notices once and the stranger never does, because the introduction and the empty Today lead to Add plan by the hand.
 
 The screenshot hook still takes `-uiScreen plans` and `-uiScreen settings`: both land on Today, which pushes the screen.
+
+### 6.39 The calendar lives in History (D63, v1.7)
+The calendar was always the record's: it shows what happened and what the plan expects, and the one thing it did for *today* — **Start this** on today's line — Today does (§6.37). It moved, its drawing unchanged, to the top of History (§4.10), with the week's line beneath it.
+
+- **The strip is History's first zone on every visit**, with Month a tap away. With no workouts it still shows the plan's week — the projection is worth seeing on day one — and "No workouts yet" and **Import from another app** (D45) sit under it.
+- **The tapped-day line is text unless it opens something.** `CalendarText.line` returns the line and the finished sessions it opens — none for a planned day, today's included, or a rest day — so "no Start this" is a unit test (T11). It says "planned", not "projected".
+- **A finished day opens pushed onto History's stack**, like its row, with the chooser first when the day holds two; over Home it opened in a sheet.
+- **The week's line** is `HomeActivity.line`, unchanged (O66, re-homed as T10); "this week" is still the calendar week the strip shows.
+
+Nothing about the projection changed (§6.12): the grid, Today's subtitle and the Summary's "Next: …" read the same schedule as before.
 
 ## 7. Data model (Core, Codable, no UI imports)
 
@@ -2548,6 +2561,17 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | T7 | unit | (D62, v1.7) The tab bar is SPEC's list | `AppTab.allCases` is Today, History, in that order, and equals the bold list on SPEC §4.0's "Tab bar with" line; `RootView.swift` draws `ForEach(AppTab.allCases` and has one `.tabItem`, so no tab is drawn outside the list (the SPEC and source reads run on the host routes and skip on the simulator) |
 | T8 | unit | (D62, v1.7) The intro's controls still exist (Y13, re-run) | Every `Introduction.namedControls` entry exists by that name: **Choose a plan** and **Start …** on Today's cards, **Log set** on the workout, **History** as `AppTab.history.title`, and the view literals — Create with a chatbot, Progression, built-in plan, and **Add plan** on the Plans list, which Today now pushes |
 | T9 | ui | (D62, v1.7) Plans and Settings from Today | With a plan: Plans is two taps from Today (··· → Change plan) and a plan's detail one more; Settings is one (the gear, top-left); the gear sits in the same place on Today and History; back returns to the tab it left; the tab bar shows Today and History and nothing else (device; `DEVICE_CHECKLIST.md` T9) |
+
+### T3 — The calendar lives in History (D63)
+
+`JimmsBroTests/HistoryTests.swift`; O66's test moved there from `HomeAndAddPlanTests.swift` as T10, its cases unchanged. O65 (the week strip is the month grid's projection) stands where it is.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| T10 | unit | (D63, v1.7) The week's line, re-homed (O66) | `HomeActivity.line` reads "2 workouts this week · 1 h 32 min" for the calendar week containing today, "1 workout this week · 48 min" for one, "No workouts yet this week" for none; a workout still running does not count |
+| T11 | unit | (D63, v1.7) The tapped-day line | `CalendarText.line` for today's planned day ends "· Upper · planned" and opens nothing (no **Start this**); a finished day's ends "· Push · 48 min" and opens its sessions; a rest day's ends "· Rest day" and opens nothing; a day the plan says nothing about, or a planned day whose plan is gone, has no line; no line says "projected" |
+| T12 | unit | (D63, v1.7) The plan's week before the first workout | With no sessions, `CalendarProjection.week` for a weekday plan (Upper on Monday, Lower on Thursday) lists Upper and Lower as planned, in that order, and the other five days as rest, and every day has a line — what History's strip draws above "No workouts yet" |
+| T13 | ui | (D63, v1.7) History's calendar by hand | History opens with the strip and the week's line; **Month** and **Week** switch; a done day tapped once shows its line, tapped again lands on the session pushed onto History, and back returns to History; today's planned day shows "… · planned" with no button; a fresh install with a plan shows the plan's week above "No workouts yet" and **Import from another app** (device; `DEVICE_CHECKLIST.md` T13) |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -4792,7 +4816,7 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 # Build status
 
 Updated 2026-09-13. **v1.7 is in progress on branch `v1.7-today` (off `main`, which holds
-v1.6 since pull request #2 merged): T0–T2 are built and green; T3–T6 follow.** v1.6 and
+v1.6 since pull request #2 merged): T0–T3 are built and green; T4–T6 follow.** v1.6 and
 everything before it are below, unchanged except where a later milestone corrected them; the
 device checklist, the Developer Program, a release Xcode and the submission itself are the
 owner's.
@@ -4805,27 +4829,27 @@ milestones were the owner's call and were chosen on 2026-09-13: T2 is Reading A 
 History) and T5 (a colour per day) is go. Each milestone ends with the whole suite green on all
 three routes, a Release build and `tools/check_release.py`, and one commit on `v1.7-today`.
 
-After T2:
+After T3:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **317 tests, 8 skipped, 0 failures** — the eighth skip is T7, which reads SPEC and `RootView.swift` and so runs on the host routes |
-| `swift test` | **316 tests, 0 failures** |
-| `python3 tools/check_core.py` | **316 bodies, 6,047 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **319 tests, 8 skipped, 0 failures** — the eighth skip is T7, which reads SPEC and `RootView.swift` and so runs on the host routes |
+| `swift test` | **318 tests, 0 failures** |
+| `python3 tools/check_core.py` | **318 bodies, 6,068 assertions, 0 failures** |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.5 (1); T6 makes it 1.7 |
-| `python3 tools/check_bundle.py` | **current** (regenerated in T0, T1 and T2) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in T0–T3) |
 
 | Milestone | What it did | State |
 |---|---|---|
 | T0 | The plan, the branch, the mock (the "Jimm's Bro+ Today" artifact, not committed) | Done |
 | T1 | Today is one card (D61): the day's name, one subtitle, the exercise block as the preview, at most one message, Start — and the day's alternatives in one ···. `HomeStart.message` and `.alternatives` are Core data (T1–T4 in `TodayTests`); the calendar, the week's line, Preview, the Week/Month control and the small buttons left the screen; the empty card offers **Choose a plan** and the practice link; Home's tab is Today | Done |
 | T2 | How many tabs (D62) — Reading A: the tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, drawn as `AppTab.allCases` and held to SPEC §4.0 by T7); Plans is pushed from Today's ··· → Change plan and Settings from a gear top-left on both tabs (`settingsGear`), both keeping large titles; Y13 re-run as T8; `-uiScreen plans` and `settings` land on Today and push the screen. The README's landing section names no tabs, so it did not change | Done |
-| T3 | The calendar lives in History (D63) | Next |
-| T4 | Controls are earned (D64) | — |
+| T3 | The calendar lives in History (D63): the week strip, **Month**, the tapped-day line and the week's line open History, above Metrics, Find an exercise, Goals and the months (`Features/History/CalendarView.swift`, drawing unchanged). The tapped-day line is Core's (`CalendarText.line` → `DayLine`): "planned", not "projected", and no **Start this**; a finished day opens pushed onto History's stack. With no workouts the strip still shows the plan's week above "No workouts yet" and Import from another app. O66 re-homed as T10, T11–T12 in `HistoryTests`; the seeder takes `--no-history` (`SEED_NO_HISTORY=1`) | Done |
+| T4 | Controls are earned (D64) | Next |
 | T5 | A colour per day (D65) | — |
 | T6 | Docs, checklist, bundle, screenshots, 1.7 | — |
-| — | The v1.7 device rows (T5, T9 so far) | **Written, not run** — need the phone |
+| — | The v1.7 device rows (T5, T9, T13 so far) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.7)
 
@@ -4836,11 +4860,14 @@ After T2:
 | `build/t2-plans.png` | `-uiScreen plans`: the Plans list pushed onto Today — a back button, the large title, the plan in use marked, **Add plan** in the bottom slot, Today still selected in the tab bar |
 | `build/t2-settings.png` | `-uiScreen settings`: Settings pushed onto Today, with a back button and its large title |
 | `build/t2-history.png` | `-uiScreen history`: the same gear at the same point as Today's, top-left, above the large title |
+| `build/t3-history.png` | History after T3, from `SEED=1 tools/shot.sh build/t3-history.png -uiScreen history -uiNoAsk`: **This week** and **Month** over the strip — today outlined (a rest day, drawn as a dash), the plan's days named in the accent — then "No workouts yet this week" (the seeded six are all last week or earlier), Metrics, Find an exercise, Goals and September 2026 |
+| `build/t3-history-empty.png` | `SEED=1 SEED_NO_HISTORY=1 tools/shot.sh … -uiScreen history -uiNoAsk`: the plan and no workouts — the plan's week in the strip (Push today, outlined; Saturday a rest dash), "No workouts yet" under it, then **Import from another app** with "Finished workouts appear here." |
 
-What T1 and T2 could not check without the phone: T5 (Today at accessibility XL, every state, on
-the smallest supported iPhone) and T9 (Plans and Settings reached from Today by hand, back to the
-tab each left, and the gear in the same place on both tabs). The calendar is off Today and not
-yet on History until T3; that gap is one commit wide and deliberate (`DECISIONS_LOG.md`).
+What T1–T3 could not check without the phone: T5 (Today at accessibility XL, every state, on
+the smallest supported iPhone), T9 (Plans and Settings reached from Today by hand, back to the
+tab each left, and the gear in the same place on both tabs) and T13 (History's calendar by hand —
+Month and Week, a done day tapped twice landing on its session, and back). The one-commit gap T1
+left — the calendar off Today and not yet on History — closed in T3.
 
 ## v1.6 (U0–U7): built and green (merged as pull request #2)
 
@@ -5619,6 +5646,11 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.7 T2 (D62): **Plans and Settings keep large titles** when pushed (`.navigationBarTitleDisplayMode(.large)`). Pushed from Today's inline bar they would inherit an inline title and read as detail pages rather than places.
 - v1.7 T2 (D62): **Today's stack has a path** (`NavigationPath`) so Change plan pushes Plans as a value and a plan's detail follows it as one; the gear uses `navigationDestination(isPresented:)` because Settings pushes nothing of its own.
 - v1.7 T2 (D62): **`-uiScreen plans` and `-uiScreen settings` still resolve.** Both land on Today, which pushes the screen (`-uiPlanDetail` then pushes the first plan), so the screenshot scripts written for the tabs keep working.
+- v1.7 T3 (D63): **a finished day opens pushed onto History's stack**, like its row in the list, not in the sheet it used over Home. `CalendarView` takes an `open` closure and History appends `.session`; the chooser for a day with two workouts is unchanged.
+- v1.7 T3 (D63): **the tapped-day line is Core's** (`CalendarText.line` → `DayLine`, the text and the sessions it opens, so "no button" is a unit test). "planned" replaces "projected" — the plan's own word, and the one VoiceOver already read for the cell — and a finished day's length is `HomeActivity.duration` ("1 h 32 min", as the week's line and History's rows write it) where the view wrote "92 min".
+- v1.7 T3 (D63): **with no workouts, History is the calendar, "No workouts yet" under it, and Import from another app** with "Finished workouts appear here." as its footer. D45's offer stays; the empty state's headline became the line under the strip, so nothing is said twice. The strip shows with no plan too — a blank week with today outlined — because the calendar is History's first zone on every visit (P1).
+- v1.7 T3 (D63): **`HomeActivity` keeps its name** (the plan: "kept for History"); only its doc comment moved to §4.10. It is also the app's one duration formatter — Metrics, the Summary and History's rows use it.
+- v1.7 T3 (D63): **a search replaces the whole list, calendar included**, as it replaced the list before; with no workouts a search now says "No results" rather than showing the empty state.
 `````
 
 ---
@@ -5800,12 +5832,13 @@ and `PlanSchedule.missed`; on U23 at `WorkoutScreen.primary(resting:)`; on U28 a
 `AppModel.load`'s closing `refreshActivity(force: true)`; on U37 at `Settings.wording` and
 whichever screen still calls a text function without passing it.
 
-## v1.7 rows (new or changed in T1–T2)
+## v1.7 rows (new or changed in T1–T3)
 
 | Case | What to do | Expected | Result | Notes |
 |---|---|---|---|---|
 | **T5** | Settings → Accessibility → Larger Text at the largest size, then Today in each state — a workout day, a rest day, mid-workout, the empty card | The day's name, the subtitle and Start stay on screen without scrolling; the exercise list is what scrolls; the ··· sits top-right on every state that has one, and Discard from it is an alert with **Keep going** |  |  |
 | **T9** | With a plan, on Today: tap the ···, then **Change plan**; open a plan, then go back twice. Tap the gear on Today and go back; switch to History and tap its gear. Then delete every plan from the Plans list and look at Today | The tab bar shows **Today** and **History** and nothing else. Plans is two taps from Today and a plan's detail one more; back returns to Today each time. The gear sits top-left in the same place on both tabs and opens Settings with a back button. With no plan, Today still has its gear (Import backup is in Settings) |  |  |
+| **T13** | With a plan and a few finished workouts, open History. Tap **Month**, then **Week**. Tap a done day once, then again; go back. Tap today when it is a planned day. Then, on a fresh install with a built-in plan chosen and nothing done, open History | History opens with the week strip and the week's line ("2 workouts this week · …") above Metrics. Month and Week switch the grid. A done day's first tap shows "… · Legs · 52 min ›", its second opens the workout pushed onto History, and back returns to History. Today's planned day shows "… · planned" and no button. The fresh install shows the plan's week — its days named, rest days as dashes — above "No workouts yet" and **Import from another app** |  |  |
 
 ## When you are done
 
@@ -7893,13 +7926,14 @@ on 2026-09-13); the calendar and the week's line move to History (D63); controls
 are **earned** by a table in SPEC (D64, `Core/Gates.swift`); and a **colour per day** in four
 places (D65, `Core/DayColour.swift`, chosen go the same day). Nothing in it touches
 `Core/Persistence.swift`, the pipeline, the format, the prompts or the Workout screen. The Today
-mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T2 are built and green on
+mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T3 are built and green on
 `v1.7-today` off `main` now that pull request #2 has merged: Today is one card (`HomeStart.message`
-and `.alternatives` are Core data, `TodayTests` T1–T4), the calendar is off Today and waits in
-`Features/Home/CalendarView.swift` for T3 to re-home it in History, and the empty card offers
-**Choose a plan**. The tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, pinned to SPEC
-§4.0 by T7): Plans is pushed from Today's ··· → Change plan, and Settings from a gear at the
-top-left of both tabs (`settingsGear`). T3 is next.
+and `.alternatives` are Core data, `TodayTests` T1–T4), and the empty card offers **Choose a
+plan**. The tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, pinned to SPEC §4.0 by
+T7): Plans is pushed from Today's ··· → Change plan, and Settings from a gear at the top-left of
+both tabs (`settingsGear`). The calendar and the week's line open History
+(`Features/History/CalendarView.swift`); the tapped-day line is Core's (`CalendarText.line`) and
+has no Start this, because a workout starts on Today. T4 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 

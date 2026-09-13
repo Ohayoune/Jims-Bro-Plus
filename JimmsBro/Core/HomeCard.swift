@@ -382,9 +382,10 @@ struct HomeStart: Equatable {
     }
 }
 
-/// SPEC §4.1 (D18, v1.1): the one activity line that replaced the tap-to-cycle sparkline.
-/// "This week" is the calendar week containing today, so the words and the week strip above it
-/// describe the same seven days.
+/// SPEC §4.10 (D18, v1.1): the one activity line that replaced the tap-to-cycle sparkline — on
+/// Home until v1.7, under History's calendar since (D63), where the name stayed. "This week" is
+/// the calendar week containing today, so the words and the week strip above them describe the
+/// same seven days.
 enum HomeActivity {
     static func line(sessions: [Session], now: Date = Date(), calendar: Calendar = .current) -> String {
         let week = sessions.filter { session in

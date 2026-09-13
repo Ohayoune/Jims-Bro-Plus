@@ -180,6 +180,8 @@ Leads with "**Workout saved**", then one line of what happened — "Push · 48 m
 **v1.5 (D54, §6.30)**: a goal this workout was the first to reach is said under the headline — "Goal reached: Barbell Bench Press 100 kg × 5" — in the reserved green, like a record.
 
 ### 4.10 History
+**The calendar first (v1.7, D63, §6.39).** History opens with the calendar that was Home's until v1.7, its drawing unchanged: a **7-day strip of the current week**, with **Month** disclosing the full grid (7 columns, weeks as rows, ‹ › to change month) and **Week** collapsing it again; cells at least 44 pt in both (P6). A finished day is filled and named in the colour reserved for "this happened"; a day the plan expects is named in the accent (§6.12: the active plan only, never more than 62 days ahead); a scheduled rest day is a short dash; a day the plan says nothing about is its number alone; today is outlined in ink. Tapping a day shows one line under the grid: "Wed 10 · Legs · 52 min ›", the way into that workout — pushed onto History like its row below, a chooser first when the day holds two — "Sat 13 · Push · planned", or "Sun 14 · Rest day"; tapping the same day again opens a finished one and otherwise clears the line. A day the plan says nothing about shows no line. There is no **Start this**: a workout starts on Today (§4.1). Under the calendar, **the week's line**: "2 workouts this week · 1 h 32 min", or "No workouts yet this week" — this week is the calendar week containing today, the seven days the strip shows. With no workouts at all the strip still shows the plan's week — worth seeing on day one — with "No workouts yet" under it, then **Import from another app** (D45) with "Finished workouts appear here." Below the calendar, as before: Metrics and Find an exercise, Goals, and the months. A search replaces all of it, calendar included, with the exercises it finds.
+
 Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly (**v1.6, D59**: also a **Find an exercise** row under Metrics, listing every exercise most recent first, because the search field is not drawn on every iOS; and a session's row reads "28 min · 16 sets · 13,920 kg lifted", not "28:08 · 16 sets · 13,920 kg"). Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1). **v1.5 (D54, §6.30)**: a **Goals** section at the top, under Metrics — each goal's exercise, its line ("100 kg × 5 · best 82.5 kg × 5 · by 1 Dec", or "reached 3 Sep" in green) and a bar of how far along it is; **Set a goal**; swipe to remove. An exercise's own screen has **Set a goal** too.
 
 ### 4.11 Settings
@@ -375,7 +377,7 @@ Everything is a `Metric`: a label, an already-formatted value, and a one-line no
 
 **A run of workouts** (`TrendMetrics.summary(_:days:)`, on the **Metrics** screen under History, over 7 / 30 / 90 days): how many workouts and how many a week; time trained and the average length; volume; sets; consecutive weeks with at least one workout; the most-trained exercise; and the all-time count with the month it started. Volume only adds up within one unit, because the app never converts (D10). Under the numbers, the workouts of that window, so any figure can be traced back to the days that made it.
 
-**Getting to a past workout** is one tap from three places: the History list, the **Metrics** screen, and Home's calendar — where the line under the grid is now the way in ("Sat 6 · Legs · 28 min ›"). v1.1 wanted a second tap on the cell, which nothing on the screen said you could do.
+**Getting to a past workout** is one tap from three places: the History list, the **Metrics** screen, and the calendar at the top of History (Home's until v1.7, D63) — where the line under the grid is now the way in ("Sat 6 · Legs · 28 min ›"). v1.1 wanted a second tap on the cell, which nothing on the screen said you could do.
 
 ### 6.17 Lock Screen and Dynamic Island (D40, v1.2)
 "Could also have the time appear at the lock screen at the top — that would also be useful — and in the Dynamic Island."
@@ -692,6 +694,16 @@ The tab bar read as a settings menu from the first screen because two of its fou
 - **Deferred, never unreachable** (§6.37): Add plan is one tap further from launch than in v1.6 (··· → Change plan → Add plan). The owner judged that the coach notices once and the stranger never does, because the introduction and the empty Today lead to Add plan by the hand.
 
 The screenshot hook still takes `-uiScreen plans` and `-uiScreen settings`: both land on Today, which pushes the screen.
+
+### 6.39 The calendar lives in History (D63, v1.7)
+The calendar was always the record's: it shows what happened and what the plan expects, and the one thing it did for *today* — **Start this** on today's line — Today does (§6.37). It moved, its drawing unchanged, to the top of History (§4.10), with the week's line beneath it.
+
+- **The strip is History's first zone on every visit**, with Month a tap away. With no workouts it still shows the plan's week — the projection is worth seeing on day one — and "No workouts yet" and **Import from another app** (D45) sit under it.
+- **The tapped-day line is text unless it opens something.** `CalendarText.line` returns the line and the finished sessions it opens — none for a planned day, today's included, or a rest day — so "no Start this" is a unit test (T11). It says "planned", not "projected".
+- **A finished day opens pushed onto History's stack**, like its row, with the chooser first when the day holds two; over Home it opened in a sheet.
+- **The week's line** is `HomeActivity.line`, unchanged (O66, re-homed as T10); "this week" is still the calendar week the strip shows.
+
+Nothing about the projection changed (§6.12): the grid, Today's subtitle and the Summary's "Next: …" read the same schedule as before.
 
 ## 7. Data model (Core, Codable, no UI imports)
 

@@ -19,8 +19,12 @@ plan = library.plans[0]
 
 // Six finished workouts across two weeks, so the calendar, the activity line and the
 // per-exercise chart (which needs at least two sessions of the same exercise) all have content.
+// v1.7 (D63): `--no-history` seeds none, so History can be shot as a new phone sees it — the
+// plan's week above "No workouts yet".
 var sessions: [Session] = []
-for (offset, dayIndex) in [(12, 0), (10, 1), (8, 2), (5, 0), (3, 1), (1, 2)] {
+let history: [(Int, Int)] = arguments.contains("--no-history")
+    ? [] : [(12, 0), (10, 1), (8, 2), (5, 0), (3, 1), (1, 2)]
+for (offset, dayIndex) in history {
     let start = Calendar.current.date(byAdding: .day, value: -offset, to: now)!
     guard var session = Session.start(plan: plan, dayIndex: dayIndex, now: start) else { continue }
     for index in session.steps.indices {
