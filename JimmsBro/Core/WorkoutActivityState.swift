@@ -23,6 +23,10 @@ struct WorkoutActivityState: Equatable, Hashable, Codable, Sendable {
     var total: Int
     /// True for a break of any kind, so the Island can colour it.
     var isBreak: Bool
+    /// D65 (v1.7, §6.41): the day's colour — the square before the title, and the compact
+    /// Island's figure while working. Nil when the day is in no plan, and in a state from
+    /// before v1.7. `DayColour.swift` is compiled into the extension alongside this file.
+    var dayColour: DayColour? = nil
 
     /// D41 (v1.3): no timer the Island draws is ever allowed to grow to `h:mm:ss`. A count-up
     /// that ran to `.distantFuture` reserved the width of "999:59:59" in the compact Island,

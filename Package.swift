@@ -13,7 +13,7 @@ let package = Package(
         .target(name: "JimmsBro", path: "JimmsBro",
                 // The app's views, resources and entry point are Xcode's; the two READMEs sit
                 // inside the source folders and are not sources.
-                exclude: ["Features", "Resources", "JimmsBroApp.swift", "RootView.swift",
+                exclude: ["Features", "Resources", "JimmsBroApp.swift", "RootView.swift", "DaySquare.swift",
                           "Core/README.md", "Store/README.md"],
                 sources: ["Core", "Store"]),
         .testTarget(
@@ -55,7 +55,8 @@ let package = Package(
                       "JimmsBroTests/GoalTests.swift",
                       "JimmsBroTests/UsabilityTests.swift",
                       "JimmsBroTests/TodayTests.swift",
-                      "JimmsBroTests/GatesTests.swift"],
+                      "JimmsBroTests/GatesTests.swift",
+                      "JimmsBroTests/DayColourTests.swift"],
             resources: [.copy("examples")]
         )
     ]

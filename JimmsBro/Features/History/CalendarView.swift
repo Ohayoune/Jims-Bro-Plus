@@ -70,6 +70,7 @@ struct CalendarView: View {
                     DayCell(day: day, isToday: calendar.isDateInToday(day.date),
                             isSelected: selected.map { calendar.isDate($0, inSameDayAs: day.date) } ?? false,
                             label: CalendarText.label(day.entry, plans: model.plans),
+                            colour: day.entry.dayColour(plans: model.plans),
                             spoken: CalendarText.spoken(day, plans: model.plans, calendar: calendar))
                         .contentShape(Rectangle())
                         .onTapGesture { tapped(day) }
@@ -156,6 +157,8 @@ private struct DayCell: View {
     let isToday: Bool
     let isSelected: Bool
     let label: String?
+    /// D65 (v1.7): the day's colour — a finished day's fill, a planned day's name.
+    let colour: DayColour?
     let spoken: String
 
     var body: some View {
@@ -184,13 +187,13 @@ private struct DayCell: View {
         .frame(minWidth: 44, minHeight: 44)
         .frame(maxWidth: .infinity)
         .background {
-            // A finished day is filled in the colour reserved for "this happened" (§4.0);
-            // a planned one is outlined. Both read at a glance; a dot did not.
-            // D59 (v1.6): a planned day is its label in the accent, no box — twenty outlined
-            // boxes in a six-day month shouted as loudly as the two done days and Start.
+            // A finished day is filled; a planned one is its label alone — D59 (v1.6): twenty
+            // outlined boxes in a six-day month shouted as loudly as the two done days and
+            // Start. D65 (v1.7): both in the day's colour, where the reserved green and the
+            // accent were, so the grid says which day as well as whether (§6.41).
             if case .completed = day.entry {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(Color.done.opacity(0.18))
+                    .fill(dayColour.opacity(0.18))
                     .frame(width: 38, height: 40)
             }
         }
@@ -206,9 +209,12 @@ private struct DayCell: View {
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
+    /// D65 (v1.7): the day's colour; grey for a finished day whose plan no longer has it.
+    private var dayColour: Color { colour?.color ?? .secondary }
+
     private var numberColour: Color {
         switch day.entry {
-        case .completed: return Color.done
+        case .completed: return dayColour
         case .projected: return .primary
         case .rest, .none: return .secondary
         }
@@ -216,8 +222,7 @@ private struct DayCell: View {
 
     private var labelColour: Color {
         switch day.entry {
-        case .completed: return Color.done
-        case .projected: return Color.accentColor
+        case .completed, .projected: return dayColour
         case .rest, .none: return .secondary
         }
     }

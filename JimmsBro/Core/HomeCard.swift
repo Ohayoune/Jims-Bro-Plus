@@ -134,6 +134,11 @@ struct HomeStart: Equatable {
     /// The day the button would start, and that Preview would open.
     var planId: UUID?
     var dayIndex: Int?
+    /// D65 (v1.7, §6.41): the colour of the day the card names, for the square before its
+    /// name — the day's own on a workout or rest day, the running session's while one is open.
+    /// Nil on the empty card, when nothing is scheduled, and for a session whose day is in no
+    /// plan.
+    var dayColour: DayColour?
     var isInProgress: Bool
     /// No plan at all: Today offers the built-in picker and the practice workout instead.
     var isEmpty: Bool
@@ -257,6 +262,7 @@ struct HomeStart: Equatable {
                 start.subtitle = "In progress · \(logged) of \(total) set\(total == 1 ? "" : "s")"
                     + " · \(Int(elapsed) / 60) min"
                 start.previewPlanId = library.plans.first { $0.id == session.planId }?.id
+                start.dayColour = DayColour.of(session: session, plans: library.plans)
                 preview(&start, names: session.exercises.map(\.name), dayName: dayName)
             } else {
                 start.subtitle = "In progress"
@@ -311,6 +317,7 @@ struct HomeStart: Equatable {
         guard let plan = library.plans.first(where: { $0.id == start.planId }),
               let index = start.dayIndex, let day = plan.days[safe: index] else { return start }
         start.previewPlanId = plan.id
+        start.dayColour = DayColour.of(dayIndex: index)
         preview(&start, names: day.exercises.map(\.name), dayName: day.name)
 
         var fragments: [String] = []

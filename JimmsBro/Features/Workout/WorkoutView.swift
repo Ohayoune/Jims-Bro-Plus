@@ -90,7 +90,9 @@ struct WorkoutView: View {
         if let active = model.engine?.active, model.phase != .completed,
            let screen = WorkoutScreen.model(active: active, history: model.sessions, now: now,
                                             settings: model.settings) {
-            WorkoutScreenView(screen: screen, now: now, showOverview: $showOverview,
+            WorkoutScreenView(screen: screen,
+                              dayColour: DayColour.of(session: active.session, plans: model.plans),
+                              now: now, showOverview: $showOverview,
                               editing: $editing, minimize: { dismiss() }, finish: requestFinish,
                               changeExercise: { changing = ChangeTarget(exerciseIndex: $0, name: $1) })
                 .toolbar(.hidden, for: .navigationBar)
@@ -126,6 +128,9 @@ private struct ChangeTarget: Identifiable {
 private struct WorkoutScreenView: View {
     @Environment(AppModel.self) private var model
     let screen: WorkoutScreenModel
+    /// D65 (v1.7): the day's colour, for the square that leads the header. Nil when the day is
+    /// in no plan.
+    let dayColour: DayColour?
     let now: Date
     @Binding var showOverview: Bool
     @Binding var editing: Int?
@@ -185,6 +190,9 @@ private struct WorkoutScreenView: View {
             // "Exercise 2 of 5 · Set 2 of 3" in the smallest text on screen, and said nothing
             // at all when you were in a break.
             HStack(spacing: 8) {
+                // D65 (v1.7): the day's square leads the stage line — the header names no day
+                // (D34 made it the stage), and the square says which day without taking a line.
+                if let dayColour { DaySquare(colour: dayColour) }
                 Text(screen.stage.title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(screen.stage.isBreak ? Color.accentColor : .primary)

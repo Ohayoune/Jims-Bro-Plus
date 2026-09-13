@@ -223,7 +223,7 @@ extension AppModel {
     /// case where an activity left over from the last run is still on the Lock Screen.
     func refreshActivity(now: Date = Date(), force: Bool = false) async {
         let state = library.engine.map(\.active)
-            .flatMap { WorkoutActivityState.of($0, now: now, wording: settings.wording) }
+            .flatMap { WorkoutActivityState.of($0, now: now, wording: settings.wording, plans: library.plans) }
         guard force || state != shownActivity else { return }
         shownActivity = state
         if let state {

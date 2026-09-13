@@ -5,6 +5,31 @@ import Foundation
 enum DayEntry: Equatable { case completed([Session]), projected(planId: UUID, dayIndex: Int), rest, none }
 struct CalendarDay: Equatable { var date: Date; var entry: DayEntry }
 
+/// D65 (v1.7, §6.41): a calendar day's colour — a planned day's is its day's; a finished day's
+/// is its first workout's, the one its label names. A rest day, or a day the plan says nothing
+/// about, has none.
+extension DayEntry {
+    func dayColour(plans: [Plan]) -> DayColour? {
+        switch self {
+        case let .completed(sessions): return sessions.first.flatMap { DayColour.of(session: $0, plans: plans) }
+        case let .projected(_, dayIndex): return DayColour.of(dayIndex: dayIndex)
+        case .rest, .none: return nil
+        }
+    }
+}
+
+extension DayColour {
+    /// D65 (v1.7, §6.41): a workout's colour is its day's, in its plan as the plan is now —
+    /// found by the plan's id and the day's name, as the calendar finds its label. None when
+    /// the plan is gone or no longer has the day: nothing is stored, so nothing else says.
+    static func of(session: Session, plans: [Plan]) -> DayColour? {
+        guard let plan = plans.first(where: { $0.id == session.planId }),
+              let index = plan.days.firstIndex(where: { normalized($0.name) == normalized(session.dayName) })
+        else { return nil }
+        return of(dayIndex: index)
+    }
+}
+
 /// SPEC §4.1 (D38, v1.2): what a calendar cell says. v1.1 drew every day as a dot of the same
 /// size — filled, outlined or grey — so a month of training looked like a month of anything
 /// else, and "the spacing between exercises is not perfectly clear" was the owner's way of

@@ -957,6 +957,17 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | T20 | unit | (D64, v1.7) `Gates.notificationsOff` | False before the first Log set whatever the answer would be; after it, true when refused and false when allowed; through `AppModel`, Start leaves the line off and the first Log set with the permission refused turns it on |
 | T21 | unit | (D64, v1.7) The table is SPEC's | Every `static func` in `Core/Gates.swift` is named in a row of SPEC §6.40's table, every row names one, and there are as many rows as functions (the SPEC and source reads run on the host routes and skip on the simulator) |
 
+### T5 — A colour per day (D65)
+
+`JimmsBroTests/DayColourTests.swift`. The plan's T22–T24 kept their ids; T25 is new, so that T24 on the phone checks the drawing rather than the arithmetic. SPEC's section is §6.41, after T4's §6.40.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| T22 | unit | (D65, v1.7) `DayColour.index(dayIndex:)` | Six days take positions 0–5 — green, orange, purple, pink, teal, indigo — and the seventh wraps to green; the fourteenth is orange; a negative index is still in range |
+| T23 | unit | (D65, v1.7) The palette is not the accent, red or yellow | `DayColour.allCases` is the plan's six and no name contains accent, blue, red or yellow; `DaySquare.swift` draws each as the system colour of its own name and names no `accentColor`, `.red`, `.yellow`, `.blue`, `.tint` or `Color.done` (the source read runs on the host routes and skips on the simulator) |
+| T24 | ui | (D65, v1.7) One day, one colour, on the phone | The same day is the same colour on Today, in the calendar, on its History rows, in the workout header and on the Lock Screen, in light and in dark, and nothing else took a colour (device; `DEVICE_CHECKLIST.md` T24) |
+| T25 | unit | (D65, v1.7) One day, one colour, in Core | `HomeStart.dayColour` is the colour of the day the card names, the running session's mid-workout (Legs: purple), and nil on the empty card; `DayEntry.dayColour` is the day's for a planned day and the first workout's for a finished one, nil for a rest day and an empty one; `DayColour.of(session:plans:)` finds the day by the plan's id and the normalized name, is nil when the plan is gone or the day renamed, and follows the day when the days are reordered; `WorkoutActivityState.of(…, plans:)` carries the day's colour working and resting, and none without the plans |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

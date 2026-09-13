@@ -8,8 +8,17 @@ import Foundation
 /// widget extension and behind `ActivityPresenting`, exactly as UserNotifications lives behind
 /// `NotificationScheduling` — which is what makes this testable without a device.
 extension WorkoutActivityState {
-    static func of(_ active: ActiveSession, now: Date = Date(),
-                   wording: Wording = .plain) -> WorkoutActivityState? {
+    /// `plans` give the day its colour (D65, §6.41): the workout's day in its plan. Without
+    /// them the state carries none, and the Lock Screen draws no square.
+    static func of(_ active: ActiveSession, now: Date = Date(), wording: Wording = .plain,
+                   plans: [Plan] = []) -> WorkoutActivityState? {
+        var state = resolved(active, now: now, wording: wording)
+        state?.dayColour = DayColour.of(session: active.session, plans: plans)
+        return state
+    }
+
+    private static func resolved(_ active: ActiveSession, now: Date,
+                                 wording: Wording) -> WorkoutActivityState? {
         let session = active.session
         guard active.phase != .completed, !session.steps.isEmpty else { return nil }
         let index: Int

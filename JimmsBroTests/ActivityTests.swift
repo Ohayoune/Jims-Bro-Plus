@@ -219,9 +219,11 @@ final class ActivityTests: XCTestCase {
         XCTAssertEqual(activities.shown.count, 1, "pushed once, not stacked")
         XCTAssertEqual(activities.current, relaunched.shownActivity)
 
-        // And the launch push is the state of the workout on disk, not a stale one.
+        // And the launch push is the state of the workout on disk, not a stale one — with its
+        // day's colour, which comes from the plans (D65, v1.7).
         let expected = try XCTUnwrap(WorkoutActivityState.of(try XCTUnwrap(relaunched.engine).active,
-                                                             now: now))
+                                                             now: now, plans: relaunched.plans))
+        XCTAssertEqual(expected.dayColour, .green, "the plan's first day")
         XCTAssertEqual(activities.current, expected)
 
         // A tick that changes nothing still does not push again: `force` is the launch only.

@@ -131,13 +131,18 @@ struct HistoryView: View {
         }
     }
 
+    /// D65 (v1.7): each row leads with its day's square, so a month of workouts reads as the
+    /// plan's days rather than as a column of identical grey rows.
     private func row(_ session: Session) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(session.dayName)
-            Text(session.startedAt.formatted(.dateTime.weekday(.abbreviated).day().hour().minute()))
-                .font(.footnote).foregroundStyle(.secondary)
-            Text(ExerciseText.summary(session))
-                .font(.footnote).foregroundStyle(.secondary)
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            DaySquare(colour: DayColour.of(session: session, plans: model.plans))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(session.dayName)
+                Text(session.startedAt.formatted(.dateTime.weekday(.abbreviated).day().hour().minute()))
+                    .font(.footnote).foregroundStyle(.secondary)
+                Text(ExerciseText.summary(session))
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
         }
     }
 }

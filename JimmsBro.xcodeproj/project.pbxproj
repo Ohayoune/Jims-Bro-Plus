@@ -129,6 +129,11 @@
 		9FBBABF59F6C423185988FA6 /* SystemActivities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ECE5A2B825C4D899A98760D /* SystemActivities.swift */; };
 		91F813883A2E4C74A3DB1074 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 467D48029A8C4F5E9A1ACFEB /* WorkoutActivityAttributes.swift */; };
 		5CF563E7589A4C9DB7E6FABC /* ActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5418E891D2194939B62AE34D /* ActivityTests.swift */; };
+		4166F4BBA24D47E79D240C27 /* DayColour.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7305E5F001F54DC3ACF882A1 /* DayColour.swift */; };
+		8736004A97C5433B89EB271A /* DaySquare.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB132C7498504B51A9F52BBD /* DaySquare.swift */; };
+		239C9EE5C7004FFE94A5AFE6 /* DayColourTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E9046A86F1E4F4DB9240423 /* DayColourTests.swift */; };
+		EC71A36AE9AC4BE897B77115 /* DayColour.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7305E5F001F54DC3ACF882A1 /* DayColour.swift */; };
+		DD1FCC8FD8CA4A4F970BFCD3 /* DaySquare.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB132C7498504B51A9F52BBD /* DaySquare.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -287,6 +292,9 @@
 		FE4CFF0CA2234C04A5F8C329 /* JimmsBroActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = JimmsBroActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9ECE5A2B825C4D899A98760D /* SystemActivities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemActivities.swift; sourceTree = "<group>"; };
 		5418E891D2194939B62AE34D /* ActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityTests.swift; sourceTree = "<group>"; };
+		7305E5F001F54DC3ACF882A1 /* DayColour.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayColour.swift; sourceTree = "<group>"; };
+		BB132C7498504B51A9F52BBD /* DaySquare.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaySquare.swift; sourceTree = "<group>"; };
+		8E9046A86F1E4F4DB9240423 /* DayColourTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayColourTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -371,6 +379,7 @@
 		3A2A88DEEFF3D1D23E496597 /* JimmsBro */ = {
 			isa = PBXGroup;
 			children = (
+				BB132C7498504B51A9F52BBD /* DaySquare.swift */,
 				8B9E5C3E88F646F9A2F4DA06 /* RootView.swift */,
 				8919F66F0992DE2AC46E5935 /* JimmsBroApp.swift */,
 				94A0426E8D3203DA5468CCF0 /* Core */,
@@ -428,6 +437,7 @@
 		8B7A6DECC0651D269EA794C7 /* JimmsBroTests */ = {
 			isa = PBXGroup;
 			children = (
+				8E9046A86F1E4F4DB9240423 /* DayColourTests.swift */,
 				116E02F6C8CC4045BCF3B05F /* TodayTests.swift */,
 				52A47BBF57B74FE383D3E2A2 /* GatesTests.swift */,
 				A9833F12841D4DCFB6BD7AD2 /* GoalTests.swift */,
@@ -497,6 +507,7 @@
 		94A0426E8D3203DA5468CCF0 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				7305E5F001F54DC3ACF882A1 /* DayColour.swift */,
 				E2A952D2EB8B426DB3290340 /* Goals.swift */,
 				AB6D6F6D20E64623A6844375 /* PlanDraft.swift */,
 				296E62D52FE147DC91EFCE6F /* Introduction.swift */,
@@ -733,6 +744,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8736004A97C5433B89EB271A /* DaySquare.swift in Sources */,
+				4166F4BBA24D47E79D240C27 /* DayColour.swift in Sources */,
 				3E9381121D5F4776974B78C4 /* CalendarView.swift in Sources */,
 				7C5684A9F24D40EB89F9F4E9 /* GoalsView.swift in Sources */,
 				E97523CD2B19481A82A471FA /* GoalsModel.swift in Sources */,
@@ -805,6 +818,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				239C9EE5C7004FFE94A5AFE6 /* DayColourTests.swift in Sources */,
 				8B873C0ED783406EADB72E7F /* TodayTests.swift in Sources */,
 				91B4F25683904A3BB2BA15F7 /* GatesTests.swift in Sources */,
 				8EC0D3F5FF374BC28D71BCDF /* GoalTests.swift in Sources */,
@@ -854,6 +868,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DD1FCC8FD8CA4A4F970BFCD3 /* DaySquare.swift in Sources */,
+				EC71A36AE9AC4BE897B77115 /* DayColour.swift in Sources */,
 				7E907E4DC7844438A02C1233 /* in Sources */,
 				BD51AC2137BB473F9D26A2D9 /* in Sources */,
 				35564E3615584AD098C5E1C8 /* in Sources */,

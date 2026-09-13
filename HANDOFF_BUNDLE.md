@@ -109,7 +109,7 @@ on 2026-09-13); the calendar and the week's line move to History (D63); controls
 are **earned** by a table in SPEC (D64, `Core/Gates.swift`); and a **colour per day** in four
 places (D65, `Core/DayColour.swift`, chosen go the same day). Nothing in it touches
 `Core/Persistence.swift`, the pipeline, the format, the prompts or the Workout screen. The Today
-mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T4 are built and green on
+mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T5 are built and green on
 `v1.7-today` off `main` now that pull request #2 has merged: Today is one card (`HomeStart.message`
 and `.alternatives` are Core data, `TodayTests` T1–T4), and the empty card offers **Choose a
 plan**. The tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, pinned to SPEC §4.0 by
@@ -119,7 +119,10 @@ both tabs (`settingsGear`). The calendar and the week's line open History
 has no Start this, because a workout starts on Today. Controls are earned (T4): `Core/Gates.swift`
 has one function per row of SPEC §6.40's table, pinned by T21, and the views ask it — Month waits
 for a workout older than this week, and Metrics, Find an exercise, the search field and Goals
-for the first workout. T5 is next.
+for the first workout. Each day has a colour (T5): `Core/DayColour.swift` gives a day its colour by
+its place in the plan's day list, derived and never stored, and `DaySquare.swift` draws it in
+SPEC §6.41's four places — Today, the calendar, History's rows, and the workout header with the
+Lock Screen — and nowhere else. T6 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -373,6 +376,7 @@ Rewritten in v1.1's R2 milestone. The v1 text is kept underneath each rule that 
 - **Large numbers are for values you act on right now**: the input values, a running countdown, a running timer. A number you are only being told about — a set's duration, a block's duration, a volume total — is body text. *(v1: "The most important number on a screen is the largest thing on it", which made the between-exercise block duration the hero of its own screen — D19, P1.)*
 - Show a line only when it has content (no "Notes: none", no empty "Last time").
 - **A control appears when it first has something to do**, and stays (v1.7, D64, §6.40). Nothing is removed by this, only delayed: §6.40's table lists every gated control and when it appears, and a control not in it is there from the first launch. Settings is never gated (D56).
+- **Colour says which day; the accent says tappable** (v1.7, D65, §6.41). Each day of a plan has a colour by its place in the day list, drawn in four places — a square before the day's name on Today, the calendar's finished and planned days, a square leading each History row, and a square leading the workout header and the Lock Screen's title — and nowhere else: not Start, not the tab bar, not a background. No day is the accent, red or yellow.
 - Tab bar with two tabs: **Today · History** (v1.7, D62, §6.38). Today's bar carries a gear and a ···, nothing else; History's carries the same gear in the same place. Plans is Today's ··· → **Change plan** and Settings is the gear, both pushed (§4.2, §4.11). *(v1–v1.6: "Home · Plans · History · Settings. No other navigation chrome on Home." v1.7's T1 kept four — Today · Plans · History · Settings — until D62 settled how many.)*
 - **Zones do not move.** Within one task, a control keeps its position across every state of that task: nothing appears, disappears or shifts under the thumb between working, resting and timed work (§4.5, D22, P1).
 - **The app speaks in words, and keeps the notation behind a switch** (v1.6, D58, §6.36). A target reads *"Aim 4–6 reps · 100 kg"*, a past set *"Last time 10 × 100 kg"* on its own line and never with "@", an exercise *"3 sets of 8–12 reps · 60 kg"*, a superset member *"paired with Tricep Pushdown"* rather than a bare **A**, a drop *"lighter set 1 of 2"* and, on the exercise's line, *"then lighter, as many as you can"*; "AMRAP" is *"as many reps as you can"*, an effort target *"stop 2 short of failure"*, and every button says the thing rather than the term — **Use this plan**, *"repeats every 7 days"* (D59). **Settings → Compact notation** restores v1.5's forms everywhere at once. Only rendered strings have two grammars: the engine, the plan format, the prompts (§7), the exports and the fixtures know nothing about this.
@@ -380,7 +384,7 @@ Rewritten in v1.1's R2 milestone. The v1 text is kept underneath each rule that 
 
 ### 4.1 Today (D61, rewritten in v1.7's T1)
 Today is the day's card and nothing else. Top to bottom, on every day of the plan, the same five zones:
-1. **The day's name**, `largeTitle`, in ink: "Push". On a rest day, the next workout's name (D57, unchanged).
+1. **The day's name**, `largeTitle`, in ink: "Push", after a small square in the day's colour (v1.7, D65, §6.41) — the square carries the colour, never the name. On a rest day, the next workout's name (D57, unchanged).
 2. **One subtitle**, the fragments that have data, in this order: "Push Pull Legs · 5 exercises · 48 min last time · step 3 of 8"; on a rest day, "Planned for Thu ·" in front (D57). "In progress · 5 of 16 sets · 23 min" replaces it while a session is open.
 3. **The exercise names**, the first five and "and N more" — and the block is one tappable row with a trailing chevron that opens the day in Plan detail. This is the preview; there is no Preview button (P5: Start is never blind). VoiceOver reads it as "Exercises: Bench Press, …, and 2 more. Opens Push".
 4. **At most one message line**, with its own actions, chosen in this order and never two at once: the missed workout ("Push was due Monday" · **Do it now** · **Dismiss**, D37) > the progression that has run its course ("Your progression has run its course." · **Plan the next one**, D44) > notifications off (D57). Dismissing the first lets the next speak for this run. Each reads as it read in v1.6; nothing else joins the list without a decision.
@@ -426,7 +430,7 @@ One screen, five fixed zones, top to bottom, identical across every state below.
 
 > **Build status**: built in R2. `WorkoutScreen.model(active:history:now:)` resolves the whole screen — zones, set rows, prefilled inputs, strip and primary action — as a `WorkoutScreenModel`, and the view only renders it, which is what makes "the zones never move" a unit test (O50) rather than a convention.
 
-1. **Header** (v1.2, D34): the **stage** the workout is in, said in words, above a progress bar of the whole day — **Warm-up**, **Exercise 2 of 5 · Set 2 of 3**, **Resting**, **Between exercises**. Then elapsed time · progress ("Exercise 2 of 5 · Set 2 of 3", or "· drop 1 of 2", or "A · round 2 of 3" for a superset member; **v1.6 (D56)**: omitted when it would only repeat the stage, which while working it did) · **Exercises** (opens the Overview sheet, §4.8, reachable in every state including rest) · minimize (returns to the tabs; the session and its timers keep running; Home shows "<Day> in progress · <elapsed>" with **Resume**) · "···" (Skip set, Skip exercise, Do later, **Change exercise** — v1.3, D42 — Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one).
+1. **Header** (v1.2, D34): the **stage** the workout is in, said in words, above a progress bar of the whole day — **Warm-up**, **Exercise 2 of 5 · Set 2 of 3**, **Resting**, **Between exercises** — led by a small square in the day's colour (v1.7, D65, §6.41), the header's one mark of which day it is. Then elapsed time · progress ("Exercise 2 of 5 · Set 2 of 3", or "· drop 1 of 2", or "A · round 2 of 3" for a superset member; **v1.6 (D56)**: omitted when it would only repeat the stage, which while working it did) · **Exercises** (opens the Overview sheet, §4.8, reachable in every state including rest) · minimize (returns to the tabs; the session and its timers keep running; Home shows "<Day> in progress · <elapsed>" with **Resume**) · "···" (Skip set, Skip exercise, Do later, **Change exercise** — v1.3, D42 — Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one).
 2. **Exercise block**: the exercise's name (opens its history) and target line (with notes, truncated to one line), then the current exercise's set rows: finished rows show what was logged ("✓ 10 @ 80") and never how long it took (D19), the current row is highlighted with its target and last-time value, upcoming rows show their targets. A row carries the set's own target only — the exercise's notes appear once, on the target line above, rather than repeating on every row. In a block holding more than one exercise (a superset round) each row names its exercise instead of repeating the shared group tag, which would otherwise make two rows read identically. A superset shows the current round's members. Tapping a finished row opens the edit sheet; tapping an upcoming row jumps to it (§6.6 `jumpTo`).
 3. **Inputs**: small-caps labels **REPS** and the unit (**KG**/**LB**) above the − value + rows; the weight row is omitted for bodyweight exercises (D21); an empty weight field reads *tap to type* in the secondary colour inside a soft outline, so a plan without weights (D46) does not show a blank gap between − and + (v1.6, D56), and while the field is empty and the exercise has no history one line under it says why — *"Type the weight you lift. The app remembers it from then on."* (`InputDefaults.weightHint`, v1.6, D57); a "72.5 suggested" chip appears under the weight when §6.11 produced one. Timed sets replace the reps row with the timer block described below; the weight row stays unless bodyweight.
 4. **Status strip** (always present; its content depends on phase, per §4.6/§4.7 below). **v1.6 (D56)**: while a field is focused its trailing slot holds **Done**, which closes the keyboard — the system keyboard toolbar drew Done as a floating pill over the lower half of the primary button on iOS 26. At accessibility text sizes the strip drops its next-set line and the set list shows the current row only, so the inputs and the button are on screen together.
@@ -463,9 +467,9 @@ Leads with "**Workout saved**", then one line of what happened — "Push · 48 m
 **v1.5 (D54, §6.30)**: a goal this workout was the first to reach is said under the headline — "Goal reached: Barbell Bench Press 100 kg × 5" — in the reserved green, like a record.
 
 ### 4.10 History
-**The calendar first (v1.7, D63, §6.39).** History opens with the calendar that was Home's until v1.7, its drawing unchanged: a **7-day strip of the current week**, with **Month** — once a workout is older than this week (D64, §6.40) — disclosing the full grid (7 columns, weeks as rows, ‹ › to change month) and **Week** collapsing it again; cells at least 44 pt in both (P6). A finished day is filled and named in the colour reserved for "this happened"; a day the plan expects is named in the accent (§6.12: the active plan only, never more than 62 days ahead); a scheduled rest day is a short dash; a day the plan says nothing about is its number alone; today is outlined in ink. Tapping a day shows one line under the grid: "Wed 10 · Legs · 52 min ›", the way into that workout — pushed onto History like its row below, a chooser first when the day holds two — "Sat 13 · Push · planned", or "Sun 14 · Rest day"; tapping the same day again opens a finished one and otherwise clears the line. A day the plan says nothing about shows no line. There is no **Start this**: a workout starts on Today (§4.1). Under the calendar, **the week's line**: "2 workouts this week · 1 h 32 min", or "No workouts yet this week" — this week is the calendar week containing today, the seven days the strip shows. With no workouts at all the strip still shows the plan's week — worth seeing on day one — with "No workouts yet" under it, then **Import from another app** (D45) with "Finished workouts appear here." Below the calendar, as before: Metrics and Find an exercise, Goals, and the months — the first three, and the search field, from the first workout (D64, §6.40). A search replaces all of it, calendar included, with the exercises it finds.
+**The calendar first (v1.7, D63, §6.39).** History opens with the calendar that was Home's until v1.7, its drawing unchanged: a **7-day strip of the current week**, with **Month** — once a workout is older than this week (D64, §6.40) — disclosing the full grid (7 columns, weeks as rows, ‹ › to change month) and **Week** collapsing it again; cells at least 44 pt in both (P6). A finished day is filled and named in its day's colour, where v1.6 used the reserved green, and a day the plan expects is named in its day's colour, where v1.6 used the accent (D65, §6.41; §6.12: the active plan only, never more than 62 days ahead); a scheduled rest day is a short dash; a day the plan says nothing about is its number alone; today is outlined in ink. Tapping a day shows one line under the grid: "Wed 10 · Legs · 52 min ›", the way into that workout — pushed onto History like its row below, a chooser first when the day holds two — "Sat 13 · Push · planned", or "Sun 14 · Rest day"; tapping the same day again opens a finished one and otherwise clears the line. A day the plan says nothing about shows no line. There is no **Start this**: a workout starts on Today (§4.1). Under the calendar, **the week's line**: "2 workouts this week · 1 h 32 min", or "No workouts yet this week" — this week is the calendar week containing today, the seven days the strip shows. With no workouts at all the strip still shows the plan's week — worth seeing on day one — with "No workouts yet" under it, then **Import from another app** (D45) with "Finished workouts appear here." Below the calendar, as before: Metrics and Find an exercise, Goals, and the months — the first three, and the search field, from the first workout (D64, §6.40). A search replaces all of it, calendar included, with the exercises it finds.
 
-Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly (**v1.6, D59**: also a **Find an exercise** row under Metrics, listing every exercise most recent first, because the search field is not drawn on every iOS; and a session's row reads "28 min · 16 sets · 13,920 kg lifted", not "28:08 · 16 sets · 13,920 kg"). Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1). **v1.5 (D54, §6.30)**: a **Goals** section at the top, under Metrics — each goal's exercise, its line ("100 kg × 5 · best 82.5 kg × 5 · by 1 Dec", or "reached 3 Sep" in green) and a bar of how far along it is; **Set a goal**; swipe to remove. An exercise's own screen has **Set a goal** too.
+Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly (**v1.6, D59**: also a **Find an exercise** row under Metrics, listing every exercise most recent first, because the search field is not drawn on every iOS; and a session's row reads "28 min · 16 sets · 13,920 kg lifted", not "28:08 · 16 sets · 13,920 kg"; **v1.7, D65, §6.41**: each row leads with a small square in its day's colour, grey for a workout whose day is in no plan). Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1). **v1.5 (D54, §6.30)**: a **Goals** section at the top, under Metrics — each goal's exercise, its line ("100 kg × 5 · best 82.5 kg × 5 · by 1 Dec", or "reached 3 Sep" in green) and a bar of how far along it is; **Set a goal**; swipe to remove. An exercise's own screen has **Set a goal** too.
 
 ### 4.11 Settings
 Reached from the gear at the top-left of Today and of History, and pushed (v1.7, D62, §6.38 — it was a tab until then). Units, default rest, **warm-up length** (D32, v1.2), **between exercises** (D33, v1.2) — each with a row of preset buttons (Off · 1 · 2 · 3 · 5 min; 60 · 90 · 120 · 180 s) beside its stepper since v1.6 (D59) — sound, vibration, notifications state, keep awake, weight step, **smallest weight change** (D35, v1.2), Export backup, **Import backup** (D31, v1.1), **Export history (CSV)** and **Import history (CSV)** (D45, v1.3), Delete all data, About — the version, the counts, and **How the app works** (D47, v1.4, §6.24), which reopens the introduction with **Done** in place of Choose a plan. (The home-chart metric row went with the sparkline in v1.1's R3.)
@@ -668,7 +672,8 @@ Everything is a `Metric`: a label, an already-formatted value, and a one-line no
 A **Live Activity** runs for as long as a workout does. It shows the stage (Warm-up, Rest, Between exercises, or the exercise's name), the line under it ("Bench Press · set 2 of 4 · 8–12 · 60 kg"), the timer, and a bar of the day's progress. In the Dynamic Island it is the same three states compact, expanded and minimal.
 
 - **The countdown is drawn by the system**, from a `Date`, exactly as §6.4's rest timer is. The app does not push an update per second and does not have to be awake for the number to be right.
-- **`WorkoutActivityState` is resolved in Core** from the same `ActiveSession` the workout screen reads, so the Island and the app cannot disagree. `WorkoutActivityState.swift` is the one file compiled into both the app and the widget extension — it is the contract between them, and depends on nothing but Foundation.
+- **`WorkoutActivityState` is resolved in Core** from the same `ActiveSession` the workout screen reads, so the Island and the app cannot disagree. `WorkoutActivityState.swift` is compiled into both the app and the widget extension — it is the contract between them, and depends on nothing but Foundation. *(v1.2–v1.6: "the one file compiled into both".)*
+- **The day's colour rides along** (v1.7, D65, §6.41): `WorkoutActivityState.dayColour`, resolved with the plans, draws a square before the title on the Lock Screen and in the expanded Island, and the compact Island's figure takes it while working. `DayColour.swift` (a name, Foundation only) and `DaySquare.swift` (the one mapping to a `Color`) are compiled into the extension alongside it.
 - **ActivityKit lives behind `ActivityPresenting`**, injected exactly as `NotificationScheduling` is, so what the Lock Screen would show is a unit test rather than something only a phone can answer.
 - A state that has not changed is not pushed. A per-second tick that woke the system sixty times a minute would cost battery for no new information.
 - The activity ends when the workout does — finished **or discarded**. A countdown for a workout that no longer exists is worse than none. **The app never assumes it is the process that started it** (D60, §6.35).
@@ -924,7 +929,7 @@ The 2026-09-09 audit's largest finding was not a defect. "5 (4–6) · 100 kg ·
 
 Home's **Next up** and the ring on the grid read the same function (`PlanSchedule.next(_:today:)`), so they cannot disagree. In v1.1 they were computed two different ways, which is the other half of why the calendar felt clunky.
 
-**D38 (v1.2): what a cell says.** v1.1 drew every day as the same 5 pt dot — filled for done, outlined for planned, grey for rest — so a month of training looked like a month of anything else, and the shape of a week could not be read off the grid ("the spacing … is not perfectly clear"). A cell now carries the day's short name under its number, a finished day is filled in the reserved green, a planned day is outlined in the accent, and a rest day is a dash: a visible gap rather than another kind of dot. **v1.6 (D55)**: the short name is chosen *within the plan* — the first word when it is the only day of the plan that starts with it, else the initials of every word, else the day's number — so Full Body A and Full Body B read "FBA" and "FBB" rather than both "Full…", and Upper A / Lower B read "UA" / "LB". The spoken cell always says the whole name. Each cell reads as one VoiceOver sentence ("Monday 7 September. Planned: Push").
+**D38 (v1.2): what a cell says.** v1.1 drew every day as the same 5 pt dot — filled for done, outlined for planned, grey for rest — so a month of training looked like a month of anything else, and the shape of a week could not be read off the grid ("the spacing … is not perfectly clear"). A cell now carries the day's short name under its number, a finished day is filled in the reserved green, a planned day is outlined in the accent, and a rest day is a dash: a visible gap rather than another kind of dot. **v1.6 (D55)**: the short name is chosen *within the plan* — the first word when it is the only day of the plan that starts with it, else the initials of every word, else the day's number — so Full Body A and Full Body B read "FBA" and "FBB" rather than both "Full…", and Upper A / Lower B read "UA" / "LB". The spoken cell always says the whole name. Each cell reads as one VoiceOver sentence ("Monday 7 September. Planned: Push"). **v1.7 (D65, §6.41)**: a finished day is filled, and a planned day named, in its day's colour; the reserved green and the accent gave way to it.
 
 ### 6.7 Stats
 - Session duration = `endedAt − startedAt` wall clock. No pause feature. Elapsed time is shown in the workout header and on the rest overlay.
@@ -1006,6 +1011,19 @@ The rule behind §6.37, made a table (`docs/ITERATION_8_PLAN.md`, T4, which prop
 - **Nothing is stored.** Each gate is a function of the sessions, the plans and the date (`Core/Gates.swift`), and those only grow with time and use, so "once shown it stays" needs no flag and no field in `Settings` — the on-disk contract is untouched. Deleting what earned a control takes it back: Delete all data returns the app to its first day.
 - **Week stays while the month grid is open**, so the grid can always be closed, even when the history that earned Month has been deleted under it.
 - **A control that is not there from the first launch adds its row here first**, and its function to `Gates`; the views ask `Gates` rather than counting for themselves, and a test holds the table and the type together (T21).
+
+### 6.41 A colour per day (D65, v1.7)
+Parked from iteration 7 and chosen with v1.7's plan (`docs/ITERATION_8_PLAN.md`, T5) — the one addition in a release of subtractions. History was a column of identical grey rows, and a five-year-old reads a colour before a word. **Colour says which day; the accent says tappable** (§4.0).
+
+- **A day's colour is its place in the plan's day list**: the first day green, then orange, purple, pink, teal and indigo, and the seventh green again (`DayColour.index(dayIndex:)`, `Core/DayColour.swift`). Six system colours, so they follow dark mode; none is the accent (tappable, D59), red (destructive) or yellow (a warning), and a test holds the palette to that (T23).
+- **Derived, never stored.** Nothing joins `Plan`, `Session` or `Settings`, so no file on the phone changes shape; reordering a plan's days recolours them, which is the price of leaving the on-disk contract alone. A workout's colour is its day's in its plan as the plan is now, found by the plan's id and the day's name, as the calendar finds its label (`DayColour.of(session:plans:)`); a workout whose plan is gone, or whose day was renamed, has none.
+- **Exactly four places**, each saying *which day* and none saying *tap here*:
+  1. **Today**: a small filled square before the day's name — never the name itself, which is ink (§4.1).
+  2. **The calendar**: a finished day is filled, and a planned day named, in its day's colour, where the reserved green and the accent were (§4.10, D38). A day with two workouts takes the first's, the one its label names; a finished day with no colour is grey.
+  3. **History**: the same square leading each workout's row, grey for a workout with no colour, so the column stays a column (§4.10).
+  4. **The workout header**: the square leads the stage line — the header names no day, since D34 made it the stage — and the Lock Screen activity carries it too, before its title there and in the expanded Island; the compact Island, which has room for a colour and nothing else (D41), draws its figure in it while working, and a break keeps the accent (§4.5, §6.17).
+- **Nowhere else**: not Start, not the tab bar, not a background, not the Summary. Core decides the colour — `HomeStart.dayColour`, `DayEntry.dayColour(plans:)`, `DayColour.of(session:plans:)`, `WorkoutActivityState.dayColour` — and the view layer owns the mapping to a `Color` in one file, `DaySquare.swift`, compiled into the app and the widget extension alike (T23 reads it).
+- **Green is also the colour reserved for "this happened"** (§4.0, v1.1) — a logged set, a record, a goal reached. The palette keeps it for the first day, as the plan chose: in the calendar the fill now says *happened* and the colour says *which day*, so a plan's first day reads as it did in v1.6.
 
 ## 7. Data model (Core, Codable, no UI imports)
 
@@ -2610,6 +2628,17 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | T19 | unit | (D64, v1.7) `Gates.planProgression` | False with no sessions, or with a session of another exercise only; true once every exercise on the day has one; false again once the plan carries a progression; false for an index past the plan's days |
 | T20 | unit | (D64, v1.7) `Gates.notificationsOff` | False before the first Log set whatever the answer would be; after it, true when refused and false when allowed; through `AppModel`, Start leaves the line off and the first Log set with the permission refused turns it on |
 | T21 | unit | (D64, v1.7) The table is SPEC's | Every `static func` in `Core/Gates.swift` is named in a row of SPEC §6.40's table, every row names one, and there are as many rows as functions (the SPEC and source reads run on the host routes and skip on the simulator) |
+
+### T5 — A colour per day (D65)
+
+`JimmsBroTests/DayColourTests.swift`. The plan's T22–T24 kept their ids; T25 is new, so that T24 on the phone checks the drawing rather than the arithmetic. SPEC's section is §6.41, after T4's §6.40.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| T22 | unit | (D65, v1.7) `DayColour.index(dayIndex:)` | Six days take positions 0–5 — green, orange, purple, pink, teal, indigo — and the seventh wraps to green; the fourteenth is orange; a negative index is still in range |
+| T23 | unit | (D65, v1.7) The palette is not the accent, red or yellow | `DayColour.allCases` is the plan's six and no name contains accent, blue, red or yellow; `DaySquare.swift` draws each as the system colour of its own name and names no `accentColor`, `.red`, `.yellow`, `.blue`, `.tint` or `Color.done` (the source read runs on the host routes and skips on the simulator) |
+| T24 | ui | (D65, v1.7) One day, one colour, on the phone | The same day is the same colour on Today, in the calendar, on its History rows, in the workout header and on the Lock Screen, in light and in dark, and nothing else took a colour (device; `DEVICE_CHECKLIST.md` T24) |
+| T25 | unit | (D65, v1.7) One day, one colour, in Core | `HomeStart.dayColour` is the colour of the day the card names, the running session's mid-workout (Legs: purple), and nil on the empty card; `DayEntry.dayColour` is the day's for a planned day and the first workout's for a finished one, nil for a rest day and an empty one; `DayColour.of(session:plans:)` finds the day by the plan's id and the normalized name, is nil when the plan is gone or the day renamed, and follows the day when the days are reordered; `WorkoutActivityState.of(…, plans:)` carries the day's colour working and resting, and none without the plans |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -4854,7 +4883,7 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 # Build status
 
 Updated 2026-09-13. **v1.7 is in progress on branch `v1.7-today` (off `main`, which holds
-v1.6 since pull request #2 merged): T0–T4 are built and green; T5–T6 follow.** v1.6 and
+v1.6 since pull request #2 merged): T0–T5 are built and green; T6 follows.** v1.6 and
 everything before it are below, unchanged except where a later milestone corrected them; the
 device checklist, the Developer Program, a release Xcode and the submission itself are the
 owner's.
@@ -4867,16 +4896,16 @@ milestones were the owner's call and were chosen on 2026-09-13: T2 is Reading A 
 History) and T5 (a colour per day) is go. Each milestone ends with the whole suite green on all
 three routes, a Release build and `tools/check_release.py`, and one commit on `v1.7-today`.
 
-After T4:
+After T5:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **328 tests, 9 skipped, 0 failures** — the eighth skip is T7 and the ninth T21, which read SPEC and a source file and so run on the host routes |
-| `swift test` | **327 tests, 0 failures** |
-| `python3 tools/check_core.py` | **327 bodies, 6,106 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **332 tests, 10 skipped, 0 failures** — the eighth skip is T7, the ninth T21 and the tenth T23's read of `DaySquare.swift`, which read SPEC or a source file and so run on the host routes |
+| `swift test` | **331 tests, 0 failures** |
+| `python3 tools/check_core.py` | **331 bodies, 6,156 assertions, 0 failures** |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.5 (1); T6 makes it 1.7 |
-| `python3 tools/check_bundle.py` | **current** (regenerated in T0–T4) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in T0–T5) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -4885,9 +4914,9 @@ After T4:
 | T2 | How many tabs (D62) — Reading A: the tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, drawn as `AppTab.allCases` and held to SPEC §4.0 by T7); Plans is pushed from Today's ··· → Change plan and Settings from a gear top-left on both tabs (`settingsGear`), both keeping large titles; Y13 re-run as T8; `-uiScreen plans` and `settings` land on Today and push the screen. The README's landing section names no tabs, so it did not change | Done |
 | T3 | The calendar lives in History (D63): the week strip, **Month**, the tapped-day line and the week's line open History, above Metrics, Find an exercise, Goals and the months (`Features/History/CalendarView.swift`, drawing unchanged). The tapped-day line is Core's (`CalendarText.line` → `DayLine`): "planned", not "projected", and no **Start this**; a finished day opens pushed onto History's stack. With no workouts the strip still shows the plan's week above "No workouts yet" and Import from another app. O66 re-homed as T10, T11–T12 in `HistoryTests`; the seeder takes `--no-history` (`SEED_NO_HISTORY=1`) | Done |
 | T4 | Controls are earned (D64): `Core/Gates.swift` has one function per row of SPEC §6.40's table (the plan's §6.39, which T3 took), and the views and `HomeStart` ask it rather than counting. New on screen: **Month** waits for a workout older than this week, and History's search field waits with Metrics and Find an exercise for the first workout. Another day, Change plan, Plan a progression, Goals and the notifications-off line go through `Gates` with their behaviour unchanged. Nothing is stored; each gate is a function of the data. T14–T21 in `GatesTests`, and T21 pins the table to the type | Done |
-| T5 | A colour per day (D65) | Next |
-| T6 | Docs, checklist, bundle, screenshots, 1.7 | — |
-| — | The v1.7 device rows (T5, T9, T13 so far) | **Written, not run** — need the phone |
+| T5 | A colour per day (D65): every day of a plan takes a colour by its place in the day list — green, orange, purple, pink, teal, indigo, then round again (`Core/DayColour.swift`), derived and never stored — drawn in four places and nowhere else: a square before the day's name on Today, the calendar's finished fill and planned name (where the reserved green and the accent were), a square leading each History row, and a square leading the workout header and the Lock Screen's title, with the compact Island's figure in it while working. Core decides the colour (`HomeStart.dayColour`, `DayEntry.dayColour`, `DayColour.of(session:plans:)`, `WorkoutActivityState.dayColour`); `DaySquare.swift` is the one mapping to a `Color`, in both targets. T22, T23 and T25 in `DayColourTests`; SPEC §6.41 | Done |
+| T6 | Docs, checklist, bundle, screenshots, 1.7 | Next |
+| — | The v1.7 device rows (T5, T9, T13, T24 so far) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.7)
 
@@ -5699,6 +5728,14 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.7 T4 (D64): **Week stays while the month grid is open**, even if Month is no longer earned (the history deleted with the grid open), so the grid can always be closed.
 - v1.7 T4 (D64): **the notifications-off line is decided where D57 asks**, in `SessionRunner` at the first Log set: `Gates.notificationsOff(askedAtLogSet:allowed:)` sets `showNotificationBanner`, which `HomeStart` still takes as `notificationsOff`. The flag stays stored rather than computed from `askedForNotifications`, because `-uiNoAsk` marks the permission asked without asking.
 - v1.7 T4 (D64): **one function per row**: Metrics and Find an exercise share `metricsAndFind`, and Goals has its own `goals` with the same rule today, because the plan gave them separate rows.
+- v1.7 T5 (D65): **the colour is SPEC §6.41**, after T4's §6.40.
+- v1.7 T5 (D65): **the workout header names no day** — D34 made its first line the stage — so the square leads the stage line rather than a name. The Lock Screen's title names the exercise or the rest, not the day, and its square leads that line likewise.
+- v1.7 T5 (D65): **the compact Island's colour is its figure**, drawn in the day's colour while working — the reading of "room for a colour and nothing else" that adds no width (D41). A break keeps the accent hourglass: a break is not a day.
+- v1.7 T5 (D65): **the colour travels in `WorkoutActivityState`**, the content state, not in `WorkoutActivityAttributes`: the attributes are fixed when the activity is requested and their `dayName` is never drawn, while the state is what updates and what the Lock Screen draws. `DayColour.swift` and `DaySquare.swift` join the widget extension; the field is optional, so a state from v1.6 decodes with none.
+- v1.7 T5 (D65): **a workout's day is found by its plan's id and its day's name**, normalized, exactly as `CalendarText.label` finds its label. With no match — the plan deleted, the day renamed, a CSV import with no plan — there is no colour: History's square and the calendar's fill are grey, and Today, the header and the Lock Screen draw no square.
+- v1.7 T5 (D65): **a calendar day with two workouts takes the first's colour**, the one its label already names.
+- v1.7 T5 (D65): **green stays the first day's colour**, as the plan chose, though §4.0 reserves it for "this happened": in the calendar the fill says happened and the colour says which day, so day one reads as it did in v1.6. Flagged to the owner rather than changed.
+- v1.7 T5 (D65): **T25 is new**: Today's card, the calendar's planned and finished days, a History row and the activity state agree in Core, so T24 on the phone checks the drawing, not the arithmetic.
 `````
 
 ---
@@ -5880,13 +5917,14 @@ and `PlanSchedule.missed`; on U23 at `WorkoutScreen.primary(resting:)`; on U28 a
 `AppModel.load`'s closing `refreshActivity(force: true)`; on U37 at `Settings.wording` and
 whichever screen still calls a text function without passing it.
 
-## v1.7 rows (new or changed in T1–T3)
+## v1.7 rows (new or changed in T1–T5)
 
 | Case | What to do | Expected | Result | Notes |
 |---|---|---|---|---|
 | **T5** | Settings → Accessibility → Larger Text at the largest size, then Today in each state — a workout day, a rest day, mid-workout, the empty card | The day's name, the subtitle and Start stay on screen without scrolling; the exercise list is what scrolls; the ··· sits top-right on every state that has one, and Discard from it is an alert with **Keep going** |  |  |
 | **T9** | With a plan, on Today: tap the ···, then **Change plan**; open a plan, then go back twice. Tap the gear on Today and go back; switch to History and tap its gear. Then delete every plan from the Plans list and look at Today | The tab bar shows **Today** and **History** and nothing else. Plans is two taps from Today and a plan's detail one more; back returns to Today each time. The gear sits top-left in the same place on both tabs and opens Settings with a back button. With no plan, Today still has its gear (Import backup is in Settings) |  |  |
 | **T13** | With a plan and a few finished workouts, open History. Tap **Month**, then **Week**. Tap a done day once, then again; go back. Tap today when it is a planned day. Then, on a fresh install with a built-in plan chosen and nothing done, open History | History opens with the week strip and the week's line ("2 workouts this week · …") above Metrics. Month and Week switch the grid. A done day's first tap shows "… · Legs · 52 min ›", its second opens the workout pushed onto History, and back returns to History. Today's planned day shows "… · planned" and no button. The fresh install shows the plan's week — its days named, rest days as dashes — above "No workouts yet" and **Import from another app** |  |  |
+| **T24** | With a plan of three or more days and two different days done, look at Today; open History (the strip, then **Month**); start the day Today shows, lock the phone during a rest, then unlock and open the Dynamic Island. Then Settings → Display & Brightness → Dark, and look at each again | The square before the day's name on Today, that day's fill and name in the calendar, the square on its History rows, the square leading the workout header, and the square before the title on the Lock Screen and in the expanded Island are one colour, and the compact Island's figure is that colour while working; every other day has a different colour. Start, the tab bar and the backgrounds have none. In dark mode each is still the same colour as the others, and every calendar label is legible |  |  |
 
 ## When you are done
 
@@ -7974,7 +8012,7 @@ on 2026-09-13); the calendar and the week's line move to History (D63); controls
 are **earned** by a table in SPEC (D64, `Core/Gates.swift`); and a **colour per day** in four
 places (D65, `Core/DayColour.swift`, chosen go the same day). Nothing in it touches
 `Core/Persistence.swift`, the pipeline, the format, the prompts or the Workout screen. The Today
-mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T4 are built and green on
+mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T5 are built and green on
 `v1.7-today` off `main` now that pull request #2 has merged: Today is one card (`HomeStart.message`
 and `.alternatives` are Core data, `TodayTests` T1–T4), and the empty card offers **Choose a
 plan**. The tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, pinned to SPEC §4.0 by
@@ -7984,7 +8022,10 @@ both tabs (`settingsGear`). The calendar and the week's line open History
 has no Start this, because a workout starts on Today. Controls are earned (T4): `Core/Gates.swift`
 has one function per row of SPEC §6.40's table, pinned by T21, and the views ask it — Month waits
 for a workout older than this week, and Metrics, Find an exercise, the search field and Goals
-for the first workout. T5 is next.
+for the first workout. Each day has a colour (T5): `Core/DayColour.swift` gives a day its colour by
+its place in the plan's day list, derived and never stored, and `DaySquare.swift` draws it in
+SPEC §6.41's four places — Today, the calendar, History's rows, and the workout header with the
+Lock Screen — and nowhere else. T6 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 

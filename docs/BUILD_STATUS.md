@@ -1,7 +1,7 @@
 # Build status
 
 Updated 2026-09-13. **v1.7 is in progress on branch `v1.7-today` (off `main`, which holds
-v1.6 since pull request #2 merged): T0–T4 are built and green; T5–T6 follow.** v1.6 and
+v1.6 since pull request #2 merged): T0–T5 are built and green; T6 follows.** v1.6 and
 everything before it are below, unchanged except where a later milestone corrected them; the
 device checklist, the Developer Program, a release Xcode and the submission itself are the
 owner's.
@@ -14,16 +14,16 @@ milestones were the owner's call and were chosen on 2026-09-13: T2 is Reading A 
 History) and T5 (a colour per day) is go. Each milestone ends with the whole suite green on all
 three routes, a Release build and `tools/check_release.py`, and one commit on `v1.7-today`.
 
-After T4:
+After T5:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **328 tests, 9 skipped, 0 failures** — the eighth skip is T7 and the ninth T21, which read SPEC and a source file and so run on the host routes |
-| `swift test` | **327 tests, 0 failures** |
-| `python3 tools/check_core.py` | **327 bodies, 6,106 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **332 tests, 10 skipped, 0 failures** — the eighth skip is T7, the ninth T21 and the tenth T23's read of `DaySquare.swift`, which read SPEC or a source file and so run on the host routes |
+| `swift test` | **331 tests, 0 failures** |
+| `python3 tools/check_core.py` | **331 bodies, 6,156 assertions, 0 failures** |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.5 (1); T6 makes it 1.7 |
-| `python3 tools/check_bundle.py` | **current** (regenerated in T0–T4) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in T0–T5) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -32,9 +32,9 @@ After T4:
 | T2 | How many tabs (D62) — Reading A: the tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, drawn as `AppTab.allCases` and held to SPEC §4.0 by T7); Plans is pushed from Today's ··· → Change plan and Settings from a gear top-left on both tabs (`settingsGear`), both keeping large titles; Y13 re-run as T8; `-uiScreen plans` and `settings` land on Today and push the screen. The README's landing section names no tabs, so it did not change | Done |
 | T3 | The calendar lives in History (D63): the week strip, **Month**, the tapped-day line and the week's line open History, above Metrics, Find an exercise, Goals and the months (`Features/History/CalendarView.swift`, drawing unchanged). The tapped-day line is Core's (`CalendarText.line` → `DayLine`): "planned", not "projected", and no **Start this**; a finished day opens pushed onto History's stack. With no workouts the strip still shows the plan's week above "No workouts yet" and Import from another app. O66 re-homed as T10, T11–T12 in `HistoryTests`; the seeder takes `--no-history` (`SEED_NO_HISTORY=1`) | Done |
 | T4 | Controls are earned (D64): `Core/Gates.swift` has one function per row of SPEC §6.40's table (the plan's §6.39, which T3 took), and the views and `HomeStart` ask it rather than counting. New on screen: **Month** waits for a workout older than this week, and History's search field waits with Metrics and Find an exercise for the first workout. Another day, Change plan, Plan a progression, Goals and the notifications-off line go through `Gates` with their behaviour unchanged. Nothing is stored; each gate is a function of the data. T14–T21 in `GatesTests`, and T21 pins the table to the type | Done |
-| T5 | A colour per day (D65) | Next |
-| T6 | Docs, checklist, bundle, screenshots, 1.7 | — |
-| — | The v1.7 device rows (T5, T9, T13 so far) | **Written, not run** — need the phone |
+| T5 | A colour per day (D65): every day of a plan takes a colour by its place in the day list — green, orange, purple, pink, teal, indigo, then round again (`Core/DayColour.swift`), derived and never stored — drawn in four places and nowhere else: a square before the day's name on Today, the calendar's finished fill and planned name (where the reserved green and the accent were), a square leading each History row, and a square leading the workout header and the Lock Screen's title, with the compact Island's figure in it while working. Core decides the colour (`HomeStart.dayColour`, `DayEntry.dayColour`, `DayColour.of(session:plans:)`, `WorkoutActivityState.dayColour`); `DaySquare.swift` is the one mapping to a `Color`, in both targets. T22, T23 and T25 in `DayColourTests`; SPEC §6.41 | Done |
+| T6 | Docs, checklist, bundle, screenshots, 1.7 | Next |
+| — | The v1.7 device rows (T5, T9, T13, T24 so far) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.7)
 

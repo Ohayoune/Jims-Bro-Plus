@@ -31,9 +31,14 @@ struct HomeView: View {
                                      missedDismissed: dismissedMissed)
         NavigationStack(path: $path) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(card.title)
-                    .font(.largeTitle.weight(.semibold))
-                    .fixedSize(horizontal: false, vertical: true)
+                // D65 (v1.7): the day's colour is a small square before its name, never the
+                // name itself — headers are ink (D59).
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    if let colour = card.dayColour { DaySquare(colour: colour, size: 16) }
+                    Text(card.title)
+                        .font(.largeTitle.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let subtitle = card.subtitle {
                     Text(subtitle)
                         .font(.subheadline)

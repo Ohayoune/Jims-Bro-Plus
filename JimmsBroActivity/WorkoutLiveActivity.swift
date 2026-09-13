@@ -22,10 +22,13 @@ struct WorkoutLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Text(context.state.title)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(context.state.isBreak ? Color.accentColor : .primary)
-                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        if let colour = context.state.dayColour { DaySquare(colour: colour, size: 8) }
+                        Text(context.state.title)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(context.state.isBreak ? Color.accentColor : .primary)
+                            .lineLimit(1)
+                    }
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     timer(context.state)
@@ -42,9 +45,12 @@ struct WorkoutLiveActivity: Widget {
                     }
                 }
             } compactLeading: {
+                // D65 (v1.7): besides the timer this form has room for a colour and nothing
+                // else, so the figure takes the day's while working; a break keeps its own.
                 Image(systemName: context.state.isBreak ? "hourglass" : "figure.strengthtraining.traditional")
                     .font(.caption)
-                    .foregroundStyle(context.state.isBreak ? Color.accentColor : .primary)
+                    .foregroundStyle(context.state.isBreak ? Color.accentColor
+                                     : (context.state.dayColour?.color ?? .primary))
             } compactTrailing: {
                 compactTimer(context.state, width: 42, font: .caption)
             } minimal: {
@@ -57,6 +63,8 @@ struct WorkoutLiveActivity: Widget {
     @ViewBuilder private func lockScreen(_ state: WorkoutActivityState) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
+                // D65 (v1.7): the day's square, as it leads the workout header in the app.
+                if let colour = state.dayColour { DaySquare(colour: colour) }
                 Text(state.title)
                     .font(.headline)
                     .foregroundStyle(state.isBreak ? Color.accentColor : .primary)
