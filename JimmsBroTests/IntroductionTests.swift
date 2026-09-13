@@ -44,10 +44,14 @@ final class IntroductionTests: XCTestCase {
         let screen = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [], now: now,
                                                        settings: CoreTestSupport.classic))
         XCTAssertEqual(screen.primary.title, "Log set")
+        // "History" is a tab's title, which is Core's since v1.7 (D62): `RootView` draws
+        // `AppTab.allCases` (T7). T8 is this test, re-run for T2.
+        XCTAssertEqual(AppTab.history.title, "History")
+        XCTAssertTrue(AppTab.allCases.contains(.history))
+        XCTAssertTrue(Introduction.namedControls.contains(AppTab.history.title))
 
         let literals: [(control: String, file: String, literal: String)] = [
             ("Create with a chatbot", "JimmsBro/Features/Import/ImportView.swift", "Text(\"Create with a chatbot\")"),
-            ("History", "JimmsBro/RootView.swift", "Label(\"History\""),
             ("Progression", "JimmsBro/Features/PlanDetail/PlanDetailView.swift", "Text(\"Progression\")"),
             ("built-in plan", "JimmsBro/Features/Import/ImportView.swift", "Label(\"Choose a built-in plan\""),
             ("Add plan", "JimmsBro/Features/Plans/PlansView.swift", "PrimaryButton(title: \"Add plan\")"),

@@ -91,11 +91,13 @@ on 2026-09-13); the calendar and the week's line move to History (D63); controls
 are **earned** by a table in SPEC (D64, `Core/Gates.swift`); and a **colour per day** in four
 places (D65, `Core/DayColour.swift`, chosen go the same day). Nothing in it touches
 `Core/Persistence.swift`, the pipeline, the format, the prompts or the Workout screen. The Today
-mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0 and T1 are built and green on
+mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T2 are built and green on
 `v1.7-today` off `main` now that pull request #2 has merged: Today is one card (`HomeStart.message`
 and `.alternatives` are Core data, `TodayTests` T1–T4), the calendar is off Today and waits in
 `Features/Home/CalendarView.swift` for T3 to re-home it in History, and the empty card offers
-**Choose a plan**. T2 is next.
+**Choose a plan**. The tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, pinned to SPEC
+§4.0 by T7): Plans is pushed from Today's ··· → Change plan, and Settings from a gear at the
+top-left of both tabs (`settingsGear`). T3 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 

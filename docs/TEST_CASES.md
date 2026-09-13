@@ -921,6 +921,16 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | T5 | ui | (D61, v1.7) Today at accessibility XL | On the smallest supported iPhone, in every state — a workout day, a rest day, mid-workout, the empty card — the name, the subtitle and Start stay visible without scrolling, and the exercise list is what scrolls (device; `DEVICE_CHECKLIST.md` T5) |
 | T6 | ui | (D61, v1.7) The screenshot hook | `tools/shot.sh build/today.png -uiScreen today` shows Today: the name, the subtitle, the exercise block with its chevron, the ··· top-right, Start in the bottom slot; no calendar, no week line, no small buttons under the names |
 
+### T2 — How many tabs (D62)
+
+`JimmsBroTests/TodayTests.swift` (T7) and `JimmsBroTests/IntroductionTests.swift` (T8 is Y13, whose History pin moved from `RootView.swift`'s literal to `AppTab`).
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| T7 | unit | (D62, v1.7) The tab bar is SPEC's list | `AppTab.allCases` is Today, History, in that order, and equals the bold list on SPEC §4.0's "Tab bar with" line; `RootView.swift` draws `ForEach(AppTab.allCases` and has one `.tabItem`, so no tab is drawn outside the list (the SPEC and source reads run on the host routes and skip on the simulator) |
+| T8 | unit | (D62, v1.7) The intro's controls still exist (Y13, re-run) | Every `Introduction.namedControls` entry exists by that name: **Choose a plan** and **Start …** on Today's cards, **Log set** on the workout, **History** as `AppTab.history.title`, and the view literals — Create with a chatbot, Progression, built-in plan, and **Add plan** on the Plans list, which Today now pushes |
+| T9 | ui | (D62, v1.7) Plans and Settings from Today | With a plan: Plans is two taps from Today (··· → Change plan) and a plan's detail one more; Settings is one (the gear, top-left); the gear sits in the same place on Today and History; back returns to the tab it left; the tab bar shows Today and History and nothing else (device; `DEVICE_CHECKLIST.md` T9) |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

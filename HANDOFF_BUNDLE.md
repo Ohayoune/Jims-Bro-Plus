@@ -109,11 +109,13 @@ on 2026-09-13); the calendar and the week's line move to History (D63); controls
 are **earned** by a table in SPEC (D64, `Core/Gates.swift`); and a **colour per day** in four
 places (D65, `Core/DayColour.swift`, chosen go the same day). Nothing in it touches
 `Core/Persistence.swift`, the pipeline, the format, the prompts or the Workout screen. The Today
-mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0 and T1 are built and green on
+mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T2 are built and green on
 `v1.7-today` off `main` now that pull request #2 has merged: Today is one card (`HomeStart.message`
 and `.alternatives` are Core data, `TodayTests` T1–T4), the calendar is off Today and waits in
 `Features/Home/CalendarView.swift` for T3 to re-home it in History, and the empty card offers
-**Choose a plan**. T2 is next.
+**Choose a plan**. The tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, pinned to SPEC
+§4.0 by T7): Plans is pushed from Today's ··· → Change plan, and Settings from a gear at the
+top-left of both tabs (`settingsGear`). T3 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -366,7 +368,7 @@ Rewritten in v1.1's R2 milestone. The v1 text is kept underneath each rule that 
 - No decorative dividers, cards inside cards, or badges. Group with whitespace, or with one grouped/inset list style used consistently on every screen (R4).
 - **Large numbers are for values you act on right now**: the input values, a running countdown, a running timer. A number you are only being told about — a set's duration, a block's duration, a volume total — is body text. *(v1: "The most important number on a screen is the largest thing on it", which made the between-exercise block duration the hero of its own screen — D19, P1.)*
 - Show a line only when it has content (no "Notes: none", no empty "Last time").
-- Tab bar with four tabs: **Today · Plans · History · Settings**. Today's bar carries its ··· and nothing else (v1.7, D61; T2's D62 settles how many tabs there are). *(v1–v1.6: "Home · Plans · History · Settings. No other navigation chrome on Home.")*
+- Tab bar with two tabs: **Today · History** (v1.7, D62, §6.38). Today's bar carries a gear and a ···, nothing else; History's carries the same gear in the same place. Plans is Today's ··· → **Change plan** and Settings is the gear, both pushed (§4.2, §4.11). *(v1–v1.6: "Home · Plans · History · Settings. No other navigation chrome on Home." v1.7's T1 kept four — Today · Plans · History · Settings — until D62 settled how many.)*
 - **Zones do not move.** Within one task, a control keeps its position across every state of that task: nothing appears, disappears or shifts under the thumb between working, resting and timed work (§4.5, D22, P1).
 - **The app speaks in words, and keeps the notation behind a switch** (v1.6, D58, §6.36). A target reads *"Aim 4–6 reps · 100 kg"*, a past set *"Last time 10 × 100 kg"* on its own line and never with "@", an exercise *"3 sets of 8–12 reps · 60 kg"*, a superset member *"paired with Tricep Pushdown"* rather than a bare **A**, a drop *"lighter set 1 of 2"* and, on the exercise's line, *"then lighter, as many as you can"*; "AMRAP" is *"as many reps as you can"*, an effort target *"stop 2 short of failure"*, and every button says the thing rather than the term — **Use this plan**, *"repeats every 7 days"* (D59). **Settings → Compact notation** restores v1.5's forms everywhere at once. Only rendered strings have two grammars: the engine, the plan format, the prompts (§7), the exports and the fixtures know nothing about this.
 - **Every confirmation shows its way out** (v1.6, D56). A confirmation presented from a menu is an alert with two named buttons, never a `confirmationDialog`: from a menu anchor a dialog draws as a popover on iOS 26 and drops its cancel-role button. Finish is never red — it saves; only Discard and Delete are.
@@ -381,7 +383,7 @@ Today is the day's card and nothing else. Top to bottom, on every day of the pla
 
 Nothing on Today moves between visits. The screen does not scroll unless Dynamic Type makes it, and then the exercise list is what scrolls while the name, the subtitle and Start hold (the rule U13 set for the workout in v1.6).
 
-**The ···**, top-right, is the only place the day's alternatives live, in this order: **Another day** (the plan's other days, the existing chooser — only when the plan has another day), **Change plan** (the Plans list), **Plan a progression** while D50 offers it (§6.26), and, while a session is open, **Discard workout** with its alert (D56). Nothing in the menu is itself a confirmation. There is no ··· until there is a plan to have alternatives for.
+**The ···**, top-right, is the only place the day's alternatives live, in this order: **Another day** (the plan's other days, the existing chooser — only when the plan has another day), **Change plan** (the Plans list, pushed onto Today — §4.2, D62), **Plan a progression** while D50 offers it (§6.26), and, while a session is open, **Discard workout** with its alert (D56). Nothing in the menu is itself a confirmation. There is no ··· until there is a plan to have alternatives for.
 
 **No plans yet**: "No plan yet" as the headline; one sentence beneath — "Choose a built-in plan to start today, or have a chatbot write yours."; **Choose a plan** in the bottom slot — the intro's words (D47) — opening Add plan on the built-in picker (D46, §6.23, with its **Start here** badge and, one tap back, **Create with a chatbot** and **Paste plan**); and one quiet bordered button, **Try a short practice workout**. Two choices where there were three.
 
@@ -390,7 +392,7 @@ Gone from the screen in v1.7: the calendar and the week's line (to History, D63)
 *(v1.6 — "4.1 Home (D18, rewritten in v1.1's R3)": three things, top to bottom, nothing else. **1.** **Start card**, which leads with the workout rather than with the calendar: the day's name as the headline ("Push"), a subtitle of the fragments that have data ("Push Pull Legs · 5 exercises · 48 min last time"), the day's first five exercise names and "and N more", then one button that says what it does — **Start Push**, **Resume Push · 23 min**, or, on a rest day, a "Rest day" headline with "Lower is next, Thu" and **Start Lower early**. **v1.6 (D57)*: the workout is the headline on a rest day too — "Lower" — the button is **Start Lower**, and the schedule is one quiet subtitle fragment in front of the rest, *"Planned for Thu · Upper Lower · 5 exercises"*; "Rest day" and "early" were schedule-speak to someone standing in a gym, and the calendar still shows the rest day. **Preview** opens the day in Plan detail; **Another day** offers the plan's other days (**v1.6, D59**: the Start button sits in the bottom slot every other screen keeps for its primary action, above the tab bar, and these small actions are bordered buttons that wrap, so only tappable text is blue); **Plan a progression** (D50, v1.5, §6.26) joins them only while the plan has no progression and every exercise on the day has a logged session, and opens the Progression screen. **v1.3 (D44)*: when the plan carries a progression, the subtitle also says where it is — "· week 3 of 8", or since v1.5 (D53) "· step 3 of 8", the lowest step among the day's exercises still climbing; when it has run its course, one line says so with **Plan the next one**, which opens the plan. Nothing else on Home moves. No plans yet → "No plan yet" with **Add plan**, plus "Choose a built-in plan" (D46, v1.4, §6.23) and "Try a short practice workout". (v1: "Next up · Pull" and a bare Start, which never said what you were about to do. v1.1–v1.3 offered "Try the sample plan" here — the owner's own Push Pull Legs, weights included, which is exactly wrong for a stranger.) **2.** **Calendar**: a **7-day strip of the current week** by default, with **Month** disclosing the full grid (7 columns, weeks as rows, ‹ › to change month, today outlined) and **Week** collapsing it again. Cells are at least 44 pt in both (P6). A day with a completed session shows a filled accent dot; a future day with a projected workout (§6.12) shows a hollow accent dot (**v1.6, D59**: its label in the accent and no box — twenty outlined boxes in a six-day month shouted as loudly as the done days and Start — while today is outlined in ink and the section header is ink, not accent); a scheduled rest day shows a filled grey dot; a day the plan says nothing about shows no dot at all. Tapping a day shows one line under the grid: "Wed 10 · Legs · 52 min" (tap again → session detail), "Sat 13 · Push · projected" with a small **Start this** if it's today, or "Sun 14 · Rest day". Days with no dot show no line. **3.** **One activity line**: "2 workouts this week · 1 h 32 min", or "No workouts yet this week". "This week" is the calendar week containing today, the same seven days the strip above shows. (v1 had a 44 pt sparkline whose metric changed on an undocumented tap. Both v1.1 reviews called it undiscoverable rather than quiet; `Sparkline`, `HomeMetric` and the Settings row that picked the metric were removed with it. `ExerciseHistory.series` — the per-exercise data behind the chart of D13/§10 — is untouched.))*
 
 ### 4.2 Plans
-List of plans (active one marked). Tap → Plan detail. Primary action: **Add plan** (§4.4). Swipe to delete, with a confirmation dialog (D25 v1.1) — swiping no longer deletes immediately.
+List of plans (active one marked), reached from Today's ··· → **Change plan** and pushed onto Today (v1.7, D62, §6.38 — it was a tab until then). Tap → Plan detail. Primary action: **Add plan** (§4.4). Swipe to delete, with a confirmation dialog (D25 v1.1) — swiping no longer deletes immediately.
 
 ### 4.3 Plan detail
 - Name, units, schedule, and the **repeat block**: the cycle as a row of chips, `Push · Pull · Legs · Push · Pull · Legs · Rest`, with "repeats every 7 days" beneath and the current position highlighted. **v1.6 (D59)**: the line reads "kg · repeats every 7 days" (never "rotation", the format's word), the chips wrap instead of scrolling off the edge, each day ends with an **Add exercise** row and a bordered **Start** button rather than a text link, and the menu's "Set as active" reads **Use this plan**. Weekday plans show Mon…Sun with the day name or "rest" under each.
@@ -459,7 +461,7 @@ Leads with "**Workout saved**", then one line of what happened — "Push · 48 m
 Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly (**v1.6, D59**: also a **Find an exercise** row under Metrics, listing every exercise most recent first, because the search field is not drawn on every iOS; and a session's row reads "28 min · 16 sets · 13,920 kg lifted", not "28:08 · 16 sets · 13,920 kg"). Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1). **v1.5 (D54, §6.30)**: a **Goals** section at the top, under Metrics — each goal's exercise, its line ("100 kg × 5 · best 82.5 kg × 5 · by 1 Dec", or "reached 3 Sep" in green) and a bar of how far along it is; **Set a goal**; swipe to remove. An exercise's own screen has **Set a goal** too.
 
 ### 4.11 Settings
-Units, default rest, **warm-up length** (D32, v1.2), **between exercises** (D33, v1.2) — each with a row of preset buttons (Off · 1 · 2 · 3 · 5 min; 60 · 90 · 120 · 180 s) beside its stepper since v1.6 (D59) — sound, vibration, notifications state, keep awake, weight step, **smallest weight change** (D35, v1.2), Export backup, **Import backup** (D31, v1.1), **Export history (CSV)** and **Import history (CSV)** (D45, v1.3), Delete all data, About — the version, the counts, and **How the app works** (D47, v1.4, §6.24), which reopens the introduction with **Done** in place of Choose a plan. (The home-chart metric row went with the sparkline in v1.1's R3.)
+Reached from the gear at the top-left of Today and of History, and pushed (v1.7, D62, §6.38 — it was a tab until then). Units, default rest, **warm-up length** (D32, v1.2), **between exercises** (D33, v1.2) — each with a row of preset buttons (Off · 1 · 2 · 3 · 5 min; 60 · 90 · 120 · 180 s) beside its stepper since v1.6 (D59) — sound, vibration, notifications state, keep awake, weight step, **smallest weight change** (D35, v1.2), Export backup, **Import backup** (D31, v1.1), **Export history (CSV)** and **Import history (CSV)** (D45, v1.3), Delete all data, About — the version, the counts, and **How the app works** (D47, v1.4, §6.24), which reopens the introduction with **Done** in place of Choose a plan. (The home-chart metric row went with the sparkline in v1.1's R3.)
 
 The three v1.2 rows, in the owner's words:
 
@@ -957,7 +959,17 @@ The app decides the **order**, never the **availability**:
 - **The empty card makes two offers, not three**: the built-in picker in the button (**Choose a plan**, the intro's own words, with the chatbot and paste routes one tap back inside the sheet, D57) and the practice workout in a quiet link.
 - **In progress, nothing leaves.** The block shows the session's exercises and opens its plan; the subtitle counts the session's steps ("5 of 16 sets"); Resume still goes to the session.
 
-Home became **Today** in the tab bar. `RootView.Tab.today` replaces `.home` (`-uiScreen today`; `home` still resolves for older scripts); how many tabs there are is D62's (T2).
+Home became **Today** in the tab bar. `RootView.Tab.today` replaces `.home` (`-uiScreen today`; `home` still resolves for older scripts); how many tabs there are is D62's (§6.38 — two, and the list moved to Core as `AppTab`).
+
+### 6.38 Two tabs (D62, v1.7)
+The tab bar read as a settings menu from the first screen because two of its four tabs were not daily destinations: Plans is visited when a plan changes, every few weeks, and Settings a handful of times in the app's life, yet both sat as peers of the workout. Three readings were put to the owner on 2026-09-13 (`docs/ITERATION_8_PLAN.md`, T2): two tabs, Today · History (A); three, keeping Plans because the chatbot round trip is the app's premise (B); or none, with History, Plans and Settings behind Today's ··· (C — which fails D56, because a menu is not a visible way out, and History is the second screen people use). **A was chosen.**
+
+- **The tab bar says what the app is**: a workout to do and a record of the ones done. `AppTab` (`Core/Tabs.swift`) is the list, in order; `RootView` draws `AppTab.allCases` and nothing else, and a test holds the list to §4.0's (T7).
+- **Plans is Today's ··· → Change plan**, pushed onto Today's stack; a plan's detail pushes onto the same stack, and back returns to Today. With no plan there is no ··· (D61) and no list to reach — it would offer only Add plan, which the empty card's **Choose a plan** opens.
+- **Settings is the gear**, top-left, on Today and on History — one control in one place on both (P1) — and it is pushed, not presented, so what Settings presents, and the introduction that Delete all data makes due again, present over the tabs as they did when Settings was a tab. The gear is there with no plan too: Import backup is how a new phone gets its data back.
+- **Deferred, never unreachable** (§6.37): Add plan is one tap further from launch than in v1.6 (··· → Change plan → Add plan). The owner judged that the coach notices once and the stranger never does, because the introduction and the empty Today lead to Add plan by the hand.
+
+The screenshot hook still takes `-uiScreen plans` and `-uiScreen settings`: both land on Today, which pushes the screen.
 
 ## 7. Data model (Core, Codable, no UI imports)
 
@@ -2526,6 +2538,16 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | T4 | unit | (D61, v1.7) The empty card | "No plan yet"; "Choose a built-in plan to start today, or have a chatbot write yours."; **Choose a plan** — `Introduction.choosePlan`, the same words as the intro's button — and the one link **Try a short practice workout**; no ···, no message, no exercises; the link is on no other card |
 | T5 | ui | (D61, v1.7) Today at accessibility XL | On the smallest supported iPhone, in every state — a workout day, a rest day, mid-workout, the empty card — the name, the subtitle and Start stay visible without scrolling, and the exercise list is what scrolls (device; `DEVICE_CHECKLIST.md` T5) |
 | T6 | ui | (D61, v1.7) The screenshot hook | `tools/shot.sh build/today.png -uiScreen today` shows Today: the name, the subtitle, the exercise block with its chevron, the ··· top-right, Start in the bottom slot; no calendar, no week line, no small buttons under the names |
+
+### T2 — How many tabs (D62)
+
+`JimmsBroTests/TodayTests.swift` (T7) and `JimmsBroTests/IntroductionTests.swift` (T8 is Y13, whose History pin moved from `RootView.swift`'s literal to `AppTab`).
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| T7 | unit | (D62, v1.7) The tab bar is SPEC's list | `AppTab.allCases` is Today, History, in that order, and equals the bold list on SPEC §4.0's "Tab bar with" line; `RootView.swift` draws `ForEach(AppTab.allCases` and has one `.tabItem`, so no tab is drawn outside the list (the SPEC and source reads run on the host routes and skip on the simulator) |
+| T8 | unit | (D62, v1.7) The intro's controls still exist (Y13, re-run) | Every `Introduction.namedControls` entry exists by that name: **Choose a plan** and **Start …** on Today's cards, **Log set** on the workout, **History** as `AppTab.history.title`, and the view literals — Create with a chatbot, Progression, built-in plan, and **Add plan** on the Plans list, which Today now pushes |
+| T9 | ui | (D62, v1.7) Plans and Settings from Today | With a plan: Plans is two taps from Today (··· → Change plan) and a plan's detail one more; Settings is one (the gear, top-left); the gear sits in the same place on Today and History; back returns to the tab it left; the tab bar shows Today and History and nothing else (device; `DEVICE_CHECKLIST.md` T9) |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -4770,7 +4792,7 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 # Build status
 
 Updated 2026-09-13. **v1.7 is in progress on branch `v1.7-today` (off `main`, which holds
-v1.6 since pull request #2 merged): T0 and T1 are built and green; T2–T6 follow.** v1.6 and
+v1.6 since pull request #2 merged): T0–T2 are built and green; T3–T6 follow.** v1.6 and
 everything before it are below, unchanged except where a later milestone corrected them; the
 device checklist, the Developer Program, a release Xcode and the submission itself are the
 owner's.
@@ -4783,37 +4805,42 @@ milestones were the owner's call and were chosen on 2026-09-13: T2 is Reading A 
 History) and T5 (a colour per day) is go. Each milestone ends with the whole suite green on all
 three routes, a Release build and `tools/check_release.py`, and one commit on `v1.7-today`.
 
-After T1:
+After T2:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **316 tests, 7 skipped, 0 failures** |
-| `swift test` | **315 tests, 0 failures** |
-| `python3 tools/check_core.py` | **315 bodies, 6,039 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **317 tests, 8 skipped, 0 failures** — the eighth skip is T7, which reads SPEC and `RootView.swift` and so runs on the host routes |
+| `swift test` | **316 tests, 0 failures** |
+| `python3 tools/check_core.py` | **316 bodies, 6,047 assertions, 0 failures** |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.5 (1); T6 makes it 1.7 |
-| `python3 tools/check_bundle.py` | **current** (regenerated in T0 and T1) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in T0, T1 and T2) |
 
 | Milestone | What it did | State |
 |---|---|---|
 | T0 | The plan, the branch, the mock (the "Jimm's Bro+ Today" artifact, not committed) | Done |
 | T1 | Today is one card (D61): the day's name, one subtitle, the exercise block as the preview, at most one message, Start — and the day's alternatives in one ···. `HomeStart.message` and `.alternatives` are Core data (T1–T4 in `TodayTests`); the calendar, the week's line, Preview, the Week/Month control and the small buttons left the screen; the empty card offers **Choose a plan** and the practice link; Home's tab is Today | Done |
-| T2 | How many tabs (D62) — Reading A | Next |
-| T3 | The calendar lives in History (D63) | — |
+| T2 | How many tabs (D62) — Reading A: the tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, drawn as `AppTab.allCases` and held to SPEC §4.0 by T7); Plans is pushed from Today's ··· → Change plan and Settings from a gear top-left on both tabs (`settingsGear`), both keeping large titles; Y13 re-run as T8; `-uiScreen plans` and `settings` land on Today and push the screen. The README's landing section names no tabs, so it did not change | Done |
+| T3 | The calendar lives in History (D63) | Next |
 | T4 | Controls are earned (D64) | — |
 | T5 | A colour per day (D65) | — |
 | T6 | Docs, checklist, bundle, screenshots, 1.7 | — |
-| — | The v1.7 device rows (T5 so far) | **Written, not run** — need the phone |
+| — | The v1.7 device rows (T5, T9 so far) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.7)
 
 | Screenshot | What it shows |
 |---|---|
 | `build/today.png` | Today on the seeded plan, from `SEED=1 tools/shot.sh build/today.png -uiScreen today -uiNoAsk` (T6): "Push", "Planned for Mon · Push Pull Legs · 5 exercises · 39 min last time", the five names with a chevron, the ··· top-right, **Start Push** in the bottom slot; no calendar, no week line, no buttons under the names |
+| `build/t2-today.png` | Today after T2, from `SEED=1 tools/shot.sh build/t2-today.png -uiScreen today -uiNoAsk`: the gear top-left, the ··· top-right, and a tab bar of **Today** and **History** and nothing else |
+| `build/t2-plans.png` | `-uiScreen plans`: the Plans list pushed onto Today — a back button, the large title, the plan in use marked, **Add plan** in the bottom slot, Today still selected in the tab bar |
+| `build/t2-settings.png` | `-uiScreen settings`: Settings pushed onto Today, with a back button and its large title |
+| `build/t2-history.png` | `-uiScreen history`: the same gear at the same point as Today's, top-left, above the large title |
 
-What T1 could not check without the phone: T5 (Today at accessibility XL, every state, on the
-smallest supported iPhone). The calendar is off Today and not yet on History until T3; that gap
-is one commit wide and deliberate (`DECISIONS_LOG.md`).
+What T1 and T2 could not check without the phone: T5 (Today at accessibility XL, every state, on
+the smallest supported iPhone) and T9 (Plans and Settings reached from Today by hand, back to the
+tab each left, and the gear in the same place on both tabs). The calendar is off Today and not
+yet on History until T3; that gap is one commit wide and deliberate (`DECISIONS_LOG.md`).
 
 ## v1.6 (U0–U7): built and green (merged as pull request #2)
 
@@ -5585,6 +5612,13 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.7 T1 (D61): **Dismiss on the missed workout is still per run** (D37) and is now an input to Core (`missedDismissed`), as is the declined permission (`notificationsOff`), so the message under it can take the line and the choice is a unit test.
 - v1.7 T1 (D61): **the empty card's button opens the picker** (`AddPlanRequest.builtIns`), not the plain sheet, and says **Choose a plan** — `Introduction.choosePlan`, so the intro and Today use the same words; Y13's "Add plan" pin moved to the Plans list, where the button still is.
 - v1.7 T1 (D61): **Nothing scheduled** (a plan with days but no day to start) offers Another day and Change plan in its ···, since the chooser is the one way to start from it.
+- v1.7 T2 (D62): **the tab list is Core's** (`AppTab`, `Core/Tabs.swift`), not `RootView.Tab`. The pin to SPEC §4.0 (T7) can read the checkout only on the host routes, and those compile Core, not views. `RootView` draws `AppTab.allCases` and nothing else, so the list is what is drawn; Y13's History pin moved from the view literal to `AppTab.history.title`.
+- v1.7 T2 (D62): **Settings is pushed, not a sheet.** A sheet from `RootView` would sit where the introduction's cover is presented from, and Delete all data makes the introduction due again — the cover would be lost under the sheet. Pushed, Settings is a screen inside a tab as it was, and everything it presents presents as before.
+- v1.7 T2 (D62): **one gear modifier** (`settingsGear`, beside `bottomAction` in `RootView.swift`) on both tabs, so the gear cannot drift between them. It is there on the empty Today and the empty History too: Import backup is in Settings, and it is how a new phone gets its data back.
+- v1.7 T2 (D62): **with no plan, the Plans list is not reachable, and need not be.** Today has no ··· without a plan (D61), and the list would only offer Add plan, which **Choose a plan** opens (one tap back to Create with a chatbot and Paste plan).
+- v1.7 T2 (D62): **Plans and Settings keep large titles** when pushed (`.navigationBarTitleDisplayMode(.large)`). Pushed from Today's inline bar they would inherit an inline title and read as detail pages rather than places.
+- v1.7 T2 (D62): **Today's stack has a path** (`NavigationPath`) so Change plan pushes Plans as a value and a plan's detail follows it as one; the gear uses `navigationDestination(isPresented:)` because Settings pushes nothing of its own.
+- v1.7 T2 (D62): **`-uiScreen plans` and `-uiScreen settings` still resolve.** Both land on Today, which pushes the screen (`-uiPlanDetail` then pushes the first plan), so the screenshot scripts written for the tabs keep working.
 `````
 
 ---
@@ -5766,11 +5800,12 @@ and `PlanSchedule.missed`; on U23 at `WorkoutScreen.primary(resting:)`; on U28 a
 `AppModel.load`'s closing `refreshActivity(force: true)`; on U37 at `Settings.wording` and
 whichever screen still calls a text function without passing it.
 
-## v1.7 rows (new or changed in T1)
+## v1.7 rows (new or changed in T1–T2)
 
 | Case | What to do | Expected | Result | Notes |
 |---|---|---|---|---|
 | **T5** | Settings → Accessibility → Larger Text at the largest size, then Today in each state — a workout day, a rest day, mid-workout, the empty card | The day's name, the subtitle and Start stay on screen without scrolling; the exercise list is what scrolls; the ··· sits top-right on every state that has one, and Discard from it is an alert with **Keep going** |  |  |
+| **T9** | With a plan, on Today: tap the ···, then **Change plan**; open a plan, then go back twice. Tap the gear on Today and go back; switch to History and tap its gear. Then delete every plan from the Plans list and look at Today | The tab bar shows **Today** and **History** and nothing else. Plans is two taps from Today and a plan's detail one more; back returns to Today each time. The gear sits top-left in the same place on both tabs and opens Settings with a back button. With no plan, Today still has its gear (Import backup is in Settings) |  |  |
 
 ## When you are done
 
@@ -7858,11 +7893,13 @@ on 2026-09-13); the calendar and the week's line move to History (D63); controls
 are **earned** by a table in SPEC (D64, `Core/Gates.swift`); and a **colour per day** in four
 places (D65, `Core/DayColour.swift`, chosen go the same day). Nothing in it touches
 `Core/Persistence.swift`, the pipeline, the format, the prompts or the Workout screen. The Today
-mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0 and T1 are built and green on
+mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T2 are built and green on
 `v1.7-today` off `main` now that pull request #2 has merged: Today is one card (`HomeStart.message`
 and `.alternatives` are Core data, `TodayTests` T1–T4), the calendar is off Today and waits in
 `Features/Home/CalendarView.swift` for T3 to re-home it in History, and the empty card offers
-**Choose a plan**. T2 is next.
+**Choose a plan**. The tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, pinned to SPEC
+§4.0 by T7): Plans is pushed from Today's ··· → Change plan, and Settings from a gear at the
+top-left of both tabs (`settingsGear`). T3 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 

@@ -185,4 +185,22 @@ final class TodayTests: XCTestCase {
         // Only the empty card has the link.
         XCTAssertNil(card(library(rotation()), on: 9).link)
     }
+
+    // T7 (D62): the tab bar is SPEC §4.0's list — Today · History, in that order — and the app
+    // draws `AppTab.allCases` and nothing else, so a third tab needs SPEC's word first.
+    func testTheTabsAreSpecsList() throws {
+        XCTAssertEqual(AppTab.allCases.map(\.title), ["Today", "History"])
+        XCTAssertEqual(AppTab.allCases.map(\.rawValue), ["today", "history"])
+        guard let spec = FixtureLoader.doc("docs/SPEC.md"),
+              let root = FixtureLoader.doc("JimmsBro/RootView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        let rule = try XCTUnwrap(spec.components(separatedBy: "\n").first(where: { $0.hasPrefix("- Tab bar with ") }),
+                                 "SPEC §4.0 no longer has its tab rule")
+        // The rule's first bold run is the list.
+        let list = try XCTUnwrap(rule.components(separatedBy: "**").dropFirst().first)
+        XCTAssertEqual(list.components(separatedBy: " · "), AppTab.allCases.map(\.title))
+        XCTAssertTrue(root.contains("ForEach(AppTab.allCases"), "RootView no longer draws AppTab's list")
+        XCTAssertEqual(root.components(separatedBy: ".tabItem").count, 2, "a tab drawn outside AppTab's list")
+    }
 }

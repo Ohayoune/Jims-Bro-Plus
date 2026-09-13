@@ -11,6 +11,8 @@ struct HistoryView: View {
     @State private var query = ""
     /// D45 (v1.3): the picker behind "Import from another app".
     @State private var choosingHistory = false
+    /// D62 (v1.7): the gear, top-left, pushes Settings — the same place as on Today.
+    @State private var showingSettings = false
 
     private var matches: [String] { ExerciseText.search(query, sessions: model.sessions) }
 
@@ -86,6 +88,8 @@ struct HistoryView: View {
                 }
             }
             .navigationTitle("History")
+            // D62 (v1.7): Settings, from the same gear as Today's, in the same place.
+            .settingsGear($showingSettings)
             .searchable(text: $query, prompt: "Find an exercise")
             .historyImportFlow(choosing: $choosingHistory)
             .confirmationDialog("Delete this workout?", isPresented: Binding(

@@ -1,7 +1,6 @@
 import SwiftUI
 import UIKit
 
-/// The tabs of SPEC §4.0. Today's bar carries only its ··· (D61, v1.7).
 /// Why Add plan is opening: the ordinary sheet, or the sheet with the built-in picker already
 /// on it (D46, v1.4). An item rather than a Bool and a flag, because a sheet's content closure
 /// runs with the state it captured before the tap that presented it — a flag set in the same
@@ -14,12 +13,10 @@ enum AddPlanRequest: Identifiable, Equatable {
 }
 
 struct RootView: View {
-    enum Tab: String { case today, plans, history, settings }
-
     @State private var model: AppModel
     @State private var addPlan: AddPlanRequest?
     @State private var showWorkout = false
-    @State private var tab: Tab = .today
+    @State private var tab: AppTab = .today
     /// D47 (v1.4): the intro's primary action was tapped, so Add plan opens on the picker
     /// once the cover is down — presenting a sheet while a cover is dismissing loses one.
     @State private var introChosePlan = false
@@ -27,20 +24,15 @@ struct RootView: View {
     init(model: AppModel) { _model = State(initialValue: model) }
 
     var body: some View {
+        // D62 (v1.7): two tabs, Today · History — `AppTab`, in its order and nothing else, so
+        // the bar is the list a test holds to SPEC §4.0 (T7). Plans is Today's ··· → Change
+        // plan; Settings is the gear on both tabs (`settingsGear`).
         TabView(selection: $tab) {
-            // D61 (v1.7): Home became Today — one card. ··· → Change plan reaches Plans.
-            HomeView(addPlan: $addPlan, showWorkout: $showWorkout, changePlan: { tab = .plans })
-                .tabItem { Label("Today", systemImage: "calendar") }
-                .tag(Tab.today)
-            PlansView(addPlan: $addPlan, showWorkout: $showWorkout)
-                .tabItem { Label("Plans", systemImage: "list.bullet") }
-                .tag(Tab.plans)
-            HistoryView()
-                .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
-                .tag(Tab.history)
-            SettingsView()
-                .tabItem { Label("Settings", systemImage: "gearshape") }
-                .tag(Tab.settings)
+            ForEach(AppTab.allCases, id: \.self) { item in
+                screen(item)
+                    .tabItem { Label(item.title, systemImage: item.symbol) }
+                    .tag(item)
+            }
         }
         // D47 (v1.4): the introduction, over the tabs, on a launch with no plans where it has
         // not been dismissed (SPEC §5.1). `introDue` is the model's, so dismissing is a
@@ -155,11 +147,21 @@ struct RootView: View {
                     }
                 }
             }
-        } else if let requested = Tab(rawValue: name) ?? (name == "home" ? .today : nil) {
-            // `home` is kept for the scripts written before T1 renamed the tab (v1.7).
+        } else if let requested = AppTab(rawValue: name)
+                    ?? (["home", "plans", "settings"].contains(name) ? .today : nil) {
+            // `home` is kept for the scripts written before T1 renamed the tab; `plans` and
+            // `settings` stopped being tabs in T2 (D62) and land on Today, which pushes them.
             tab = requested
         }
         #endif
+    }
+
+    /// Each tab's screen. D61 (v1.7): Home became Today — one card.
+    @ViewBuilder private func screen(_ tab: AppTab) -> some View {
+        switch tab {
+        case .today: HomeView(addPlan: $addPlan, showWorkout: $showWorkout)
+        case .history: HistoryView()
+        }
     }
 }
 
@@ -182,6 +184,24 @@ extension View {
             Button("Retry") { Task { await model.retrySaveFailure(failure) } }
             Button("Later", role: .cancel) {}
         }
+    }
+}
+
+extension View {
+    /// D62 (v1.7): Settings is not a tab. The same gear, in the same place — top-left — on
+    /// Today and on History pushes it (P1: zones do not move). Pushed rather than presented, so
+    /// what Settings presents, and the introduction that Delete all data makes due again,
+    /// present over the tabs as they did when Settings was one.
+    func settingsGear(_ isPresented: Binding<Bool>) -> some View {
+        toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button { isPresented.wrappedValue = true } label: {
+                    Image(systemName: "gearshape")
+                }
+                .accessibilityLabel("Settings")
+            }
+        }
+        .navigationDestination(isPresented: isPresented) { SettingsView() }
     }
 }
 

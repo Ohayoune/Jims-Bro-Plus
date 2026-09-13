@@ -22,22 +22,25 @@ struct SettingsView: View {
     @State private var showIntro = false
 
     var body: some View {
-        NavigationStack {
-            Form {
-                unitsSection
-                restSection
-                alertsSection
-                screenSection
-                wordingSection
-                homeSection
-                dataSection
-                aboutSection
-            }
-            .navigationTitle("Settings")
-            .task { await model.refreshNotificationState() }
-            .sheet(isPresented: $showIntro) {
-                IntroductionView(purpose: .reference, dismiss: { showIntro = false })
-            }
+        // D62 (v1.7): no longer a tab. The gear on Today and on History pushes it
+        // (`settingsGear`), so it has no stack of its own.
+        Form {
+            unitsSection
+            restSection
+            alertsSection
+            screenSection
+            wordingSection
+            homeSection
+            dataSection
+            aboutSection
+        }
+        .navigationTitle("Settings")
+        // Pushed from Today's inline bar it would inherit an inline title; it is a place, not a
+        // detail page, so it keeps the large title it had as a tab.
+        .navigationBarTitleDisplayMode(.large)
+        .task { await model.refreshNotificationState() }
+        .sheet(isPresented: $showIntro) {
+            IntroductionView(purpose: .reference, dismiss: { showIntro = false })
         }
     }
 

@@ -172,11 +172,12 @@ and `PlanSchedule.missed`; on U23 at `WorkoutScreen.primary(resting:)`; on U28 a
 `AppModel.load`'s closing `refreshActivity(force: true)`; on U37 at `Settings.wording` and
 whichever screen still calls a text function without passing it.
 
-## v1.7 rows (new or changed in T1)
+## v1.7 rows (new or changed in T1–T2)
 
 | Case | What to do | Expected | Result | Notes |
 |---|---|---|---|---|
 | **T5** | Settings → Accessibility → Larger Text at the largest size, then Today in each state — a workout day, a rest day, mid-workout, the empty card | The day's name, the subtitle and Start stay on screen without scrolling; the exercise list is what scrolls; the ··· sits top-right on every state that has one, and Discard from it is an alert with **Keep going** |  |  |
+| **T9** | With a plan, on Today: tap the ···, then **Change plan**; open a plan, then go back twice. Tap the gear on Today and go back; switch to History and tap its gear. Then delete every plan from the Plans list and look at Today | The tab bar shows **Today** and **History** and nothing else. Plans is two taps from Today and a plan's detail one more; back returns to Today each time. The gear sits top-left in the same place on both tabs and opens Settings with a back button. With no plan, Today still has its gear (Import backup is in Settings) |  |  |
 
 ## When you are done
 

@@ -9,8 +9,11 @@ struct HomeView: View {
     /// Opens Add plan — on the built-in picker when the empty card asks (D46, v1.4).
     @Binding var addPlan: AddPlanRequest?
     @Binding var showWorkout: Bool
-    /// ··· → Change plan: the Plans list. A tab switch until T2 pushes the list from here.
-    var changePlan: () -> Void
+    /// D62 (v1.7): Plans is not a tab. ··· → Change plan pushes the list here, and the list
+    /// pushes a plan's detail onto the same stack.
+    @State private var path = NavigationPath()
+    /// D62 (v1.7): the gear, top-left, pushes Settings — the same place as on History.
+    @State private var showingSettings = false
 
     @State private var showDiscardConfirm = false
     @State private var previewing: PlanRoute?
@@ -26,7 +29,7 @@ struct HomeView: View {
         let card = HomeStart.current(library: model.library,
                                      notificationsOff: model.showNotificationBanner,
                                      missedDismissed: dismissedMissed)
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack(alignment: .leading, spacing: 14) {
                 Text(card.title)
                     .font(.largeTitle.weight(.semibold))
@@ -107,6 +110,33 @@ struct HomeView: View {
             .sheet(item: $planningProgression) { route in
                 ProgressionView(planId: route.id).environment(model)
             }
+            // D62 (v1.7): Settings from the gear, top-left, as on History; Plans from ··· →
+            // Change plan, pushed onto this stack.
+            .settingsGear($showingSettings)
+            .navigationDestination(for: TodayRoute.self) { route in
+                switch route {
+                case .plans: PlansView(addPlan: $addPlan, showWorkout: $showWorkout)
+                }
+            }
+        }
+        .task {
+            #if DEBUG
+            // Debug-only: Plans and Settings stopped being tabs in T2 (D62), so the screenshot
+            // runs that ask for them land here and push the screen. On the stack rather than on
+            // its root, so going back does not run this again.
+            let arguments = ProcessInfo.processInfo.arguments
+            guard let index = arguments.firstIndex(of: "-uiScreen"),
+                  let name = arguments[safe: index + 1], path.isEmpty, !showingSettings else { return }
+            if name == "settings" { showingSettings = true }
+            guard name == "plans" else { return }
+            path.append(TodayRoute.plans)
+            // The store loads asynchronously, and a plan's destination is declared by the list,
+            // so the list goes on first.
+            guard arguments.contains("-uiPlanDetail") else { return }
+            await model.waitUntilLoaded()
+            try? await Task.sleep(for: .milliseconds(300))
+            if let first = model.plans.first { path.append(first.id) }
+            #endif
         }
     }
 
@@ -193,7 +223,7 @@ struct HomeView: View {
         case .anotherDay:
             Button(alternative.title) { choosingDay = true }
         case .changePlan:
-            Button(alternative.title, action: changePlan)
+            Button(alternative.title) { path.append(TodayRoute.plans) }
         case .planProgression:
             Button(alternative.title) {
                 if let planId = card.planId {
@@ -224,4 +254,11 @@ struct HomeView: View {
 private struct PlanRoute: Identifiable {
     let id: UUID
     let dayIndex: Int
+}
+
+/// D62 (v1.7): what Today's stack pushes. A plan's detail follows the list as its `UUID`,
+/// with the destination declared by the list itself.
+private enum TodayRoute: Hashable {
+    /// ··· → Change plan: the Plans list, which was a tab until T2.
+    case plans
 }

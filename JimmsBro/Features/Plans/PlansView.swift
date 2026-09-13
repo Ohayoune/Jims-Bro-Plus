@@ -2,61 +2,54 @@ import SwiftUI
 
 /// SPEC §4.2: the list, the active one marked, **Add plan** as the primary action (D26,
 /// v1.1 — the JSON editor is no longer the front door), swipe to delete with a confirmation.
+/// D62 (v1.7): no longer a tab. Today's ··· → Change plan pushes it, so it has no stack of its
+/// own; its rows push a plan's detail onto Today's.
 struct PlansView: View {
     @Environment(AppModel.self) private var model
     @Binding var addPlan: AddPlanRequest?
     @Binding var showWorkout: Bool
-    @State private var path: [UUID] = []
     /// D25 (v1.1): swipe-to-delete confirms, matching every other delete path.
     @State private var confirmDeleteId: UUID?
 
     var body: some View {
-        NavigationStack(path: $path) {
-            Group {
-                if model.plans.isEmpty {
-                    ContentUnavailableView {
-                        Label("No plans yet", systemImage: "list.bullet")
-                    } description: {
-                        Text("Get one from a chatbot in three steps, paste one you already have, or open a file.")
-                    } actions: {
-                        Button("Add plan") { addPlan = .plan }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.large)
+        Group {
+            if model.plans.isEmpty {
+                ContentUnavailableView {
+                    Label("No plans yet", systemImage: "list.bullet")
+                } description: {
+                    Text("Get one from a chatbot in three steps, paste one you already have, or open a file.")
+                } actions: {
+                    Button("Add plan") { addPlan = .plan }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                }
+            } else {
+                List {
+                    ForEach(model.plans) { plan in
+                        NavigationLink(value: plan.id) { row(plan) }
                     }
-                } else {
-                    List {
-                        ForEach(model.plans) { plan in
-                            NavigationLink(value: plan.id) { row(plan) }
-                        }
-                        .onDelete { offsets in
-                            confirmDeleteId = offsets.first.map { model.plans[$0].id }
-                        }
-                    }
-                    .navigationDestination(for: UUID.self) { PlanDetailView(planId: $0, showWorkout: $showWorkout) }
-                    .bottomAction {
-                        PrimaryButton(title: "Add plan") { addPlan = .plan }
+                    .onDelete { offsets in
+                        confirmDeleteId = offsets.first.map { model.plans[$0].id }
                     }
                 }
-            }
-            .navigationTitle("Plans")
-            .confirmationDialog(deletePrompt, isPresented: Binding(
-                get: { confirmDeleteId != nil }, set: { if !$0 { confirmDeleteId = nil } }),
-                                titleVisibility: .visible) {
-                Button("Delete", role: .destructive) {
-                    if let id = confirmDeleteId { Task { await model.deletePlan(id) } }
-                    confirmDeleteId = nil
+                .navigationDestination(for: UUID.self) { PlanDetailView(planId: $0, showWorkout: $showWorkout) }
+                .bottomAction {
+                    PrimaryButton(title: "Add plan") { addPlan = .plan }
                 }
-                Button("Cancel", role: .cancel) { confirmDeleteId = nil }
             }
-            .task {
-                #if DEBUG
-                // Debug-only: open the first plan directly for screenshot runs. The store
-                // loads asynchronously, so wait for it rather than reading an empty list.
-                guard ProcessInfo.processInfo.arguments.contains("-uiPlanDetail") else { return }
-                while !model.loaded { try? await Task.sleep(for: .milliseconds(50)) }
-                if path.isEmpty, let first = model.plans.first { path = [first.id] }
-                #endif
+        }
+        .navigationTitle("Plans")
+        // Pushed from Today's inline bar it would inherit an inline title; it is a place, not a
+        // detail page, so it keeps the large title it had as a tab (D62).
+        .navigationBarTitleDisplayMode(.large)
+        .confirmationDialog(deletePrompt, isPresented: Binding(
+            get: { confirmDeleteId != nil }, set: { if !$0 { confirmDeleteId = nil } }),
+                            titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                if let id = confirmDeleteId { Task { await model.deletePlan(id) } }
+                confirmDeleteId = nil
             }
+            Button("Cancel", role: .cancel) { confirmDeleteId = nil }
         }
     }
 
