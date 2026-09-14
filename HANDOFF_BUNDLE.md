@@ -72,8 +72,8 @@ the plan format — `inReserve`, reps or seconds short of failure (D51, `SetTarg
 four fixtures) — **a plan in several pastes** for free chatbot tiers: the outline first, then one
 day per paste, through the ordinary importer (D52, `Core/PlanDraft.swift`, `draft.json`,
 PROMPT.md §4–5), **progression as steps you earn** by performance with the calendar kept as a
-mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** (D54,
-`Core/Goals.swift`, `goals.json`). Everything through Z6 is built and green; the v1.5 device
+mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** (D54 —
+removed in v1.7's review, D68). Everything through Z6 is built and green; the v1.5 device
 rows (Z4, Z10, Z17, Z25, Z31) join the checklist. The reading of "a history for each exercise"
 as typed current numbers is parked by the owner's decision (the plan's last section).
 
@@ -118,13 +118,18 @@ both tabs (`settingsGear`). The calendar and the week's line open History
 (`Features/History/CalendarView.swift`); the tapped-day line is Core's (`CalendarText.line`) and
 has no Start this, because a workout starts on Today. Controls are earned (T4): `Core/Gates.swift`
 has one function per row of SPEC §6.40's table, pinned by T21, and the views ask it — Month waits
-for a workout older than this week, and Metrics, Find an exercise and Goals
+for a workout older than this week, and Metrics and Find an exercise
 for the first workout. Each day has a colour (T5): `Core/DayColour.swift` gives a day its colour by
 its place in the plan's day list, derived and never stored, and `DaySquare.swift` draws it in
 SPEC §6.41's four places — Today, the calendar, History's rows, and the workout header with the
 Lock Screen — and nowhere else. T6 made the documents say so: version 1.7 on every target,
 Today and History's month as the README's screenshots, SPEC's remaining Homes made Today, and the
-v1.7 device rows (T5, T9, T13, T24) in the checklist that still needs the phone.
+v1.7 device rows (T5, T9, T13, T24) in the checklist that still needs the phone. Before the push the
+owner reviewed T0–T6 (SPEC §6.42; T7 in TEST_CASES): History lost its search field — **Find an
+exercise** is the way (D66); the **Progression** row moved from Plan detail into History's block
+with Metrics and Find an exercise, for the active plan, and Today's **Plan the next one** opens it
+(D67); and **goals are removed** (D68) — `goals.json` is no longer read or written, a file left on
+the phone stays unread, and a backup that carries goals still restores. Its device row is T29.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -184,7 +189,7 @@ An iPhone app that runs your workout for you. Pick a plan and tap Start; it walk
 - **Runs the workout.** The card shows the exercise, the target and the weight you used last time. Log what you did and the rest timer starts on its own — on the Lock Screen and in the Dynamic Island, with a notification when the phone is in your pocket. Warm-up, timed holds, supersets, drop sets, a walk between exercises.
 - **Remembers.** Next time the weight is already filled in. Hit the top of your rep range and it suggests the next weight, snapped to what your plates can make. Every set is kept: a calendar with each day in its own colour, history, personal records, a chart per exercise, metrics over time.
 - **Gets plans from a chatbot.** Copy the prompt, paste it into ChatGPT or Claude, paste the reply back. Long plans come in one day at a time. Four built-in routines — Full Body, Upper Lower, Push Pull Legs, At Home — to start from.
-- **Progresses.** Ask the chatbot for a progression from what you actually lifted, then earn each step by hitting it. Set a goal per exercise and watch it climb.
+- **Progresses.** Ask the chatbot for a progression from what you actually lifted, then earn each step by hitting it.
 - **Keeps your data on the phone.** Back up to a file, export history as a spreadsheet, import from Strong or Hevy. Nothing leaves the phone unless you send it. [Privacy policy](docs/PRIVACY.md).
 
 ## Status
@@ -217,7 +222,7 @@ Run the iOS tests from this folder:
 xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-That is **332 tests** (10 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity, v1.3's Island timer range, exercise substitution, JSON splices, history CSV and Progression, v1.4's start-before-the-side-effects rule, the four built-in plans and the introduction, v1.5's effort target, the outline-then-days draft, the progression's earned steps and the goals, and v1.6's usability rules — the missed-workout guard, the chip and calendar-label rules, the first-five-minutes defaults, the Summary's next line and plain words, and v1.7's Today card, tab list, calendar line, earned controls and day colours. Imports use the 115 fixtures and the manifest verbatim (the original 111, plus four for the effort target). There are no third-party dependencies, and the signing team is already set for both targets.
+That is **329 tests** (12 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity, v1.3's Island timer range, exercise substitution, JSON splices, history CSV and Progression, v1.4's start-before-the-side-effects rule, the four built-in plans and the introduction, v1.5's effort target, the outline-then-days draft, the progression's earned steps and the goals, and v1.6's usability rules — the missed-workout guard, the chip and calendar-label rules, the first-five-minutes defaults, the Summary's next line and plain words, and v1.7's Today card, tab list, calendar line, earned controls and day colours. Imports use the 115 fixtures and the manifest verbatim (the original 111, plus four for the effort target). There are no third-party dependencies, and the signing team is already set for both targets.
 
 Core can also be checked with the independently installed Command Line Tools:
 
@@ -467,12 +472,12 @@ Leads with "**Workout saved**", then one line of what happened — "Push · 48 m
 
 *(v1 printed both sessions' raw sets — "10, 8@60 · last 10, 9@60 · kg" — and left the reader to do the subtraction, with the block duration beside it as if it mattered as much.)*
 
-**v1.5 (D54, §6.30)**: a goal this workout was the first to reach is said under the headline — "Goal reached: Barbell Bench Press 100 kg × 5" — in the reserved green, like a record.
+*(v1.5–v1.7's T6, D54, §6.30: a goal this workout was the first to reach was said under the headline — "Goal reached: Barbell Bench Press 100 kg × 5" — in the reserved green, like a record. D68 removed goals, §6.42.)*
 
 ### 4.10 History
-**The calendar first (v1.7, D63, §6.39).** History opens with the calendar that was Home's until v1.7, its drawing unchanged: a **7-day strip of the current week**, with **Month** — once a workout is older than this week (D64, §6.40) — disclosing the full grid (7 columns, weeks as rows, ‹ › to change month) and **Week** collapsing it again; cells at least 44 pt in both (P6). A finished day is filled and named in its day's colour, where v1.6 used the reserved green, and a day the plan expects is named in its day's colour, where v1.6 used the accent (D65, §6.41; §6.12: the active plan only, never more than 62 days ahead); a scheduled rest day is a short dash; a day the plan says nothing about is its number alone; today is outlined in ink. Tapping a day shows one line under the grid: "Wed 10 · Legs · 52 min ›", the way into that workout — pushed onto History like its row below, a chooser first when the day holds two — "Sat 13 · Push · planned", or "Sun 14 · Rest day"; tapping the same day again opens a finished one and otherwise clears the line. A day the plan says nothing about shows no line. There is no **Start this**: a workout starts on Today (§4.1). Under the calendar, **the week's line**: "2 workouts this week · 1 h 32 min", or "No workouts yet this week" — this week is the calendar week containing today, the seven days the strip shows. With no workouts at all the strip still shows the plan's week — worth seeing on day one — with "No workouts yet" under it, then **Import from another app** (D45) with "Finished workouts appear here." Below the calendar, as before: one block of Metrics, Find an exercise and — since D67 (§6.42), for the active plan — **Progression**, the row Plan detail had (§4.3), opening the same screen; then Goals, then the months — the block and Goals from the first workout (D64, §6.40). There is no search field (D66, §6.42): **Find an exercise** is the way to an exercise's history.
+**The calendar first (v1.7, D63, §6.39).** History opens with the calendar that was Home's until v1.7, its drawing unchanged: a **7-day strip of the current week**, with **Month** — once a workout is older than this week (D64, §6.40) — disclosing the full grid (7 columns, weeks as rows, ‹ › to change month) and **Week** collapsing it again; cells at least 44 pt in both (P6). A finished day is filled and named in its day's colour, where v1.6 used the reserved green, and a day the plan expects is named in its day's colour, where v1.6 used the accent (D65, §6.41; §6.12: the active plan only, never more than 62 days ahead); a scheduled rest day is a short dash; a day the plan says nothing about is its number alone; today is outlined in ink. Tapping a day shows one line under the grid: "Wed 10 · Legs · 52 min ›", the way into that workout — pushed onto History like its row below, a chooser first when the day holds two — "Sat 13 · Push · planned", or "Sun 14 · Rest day"; tapping the same day again opens a finished one and otherwise clears the line. A day the plan says nothing about shows no line. There is no **Start this**: a workout starts on Today (§4.1). Under the calendar, **the week's line**: "2 workouts this week · 1 h 32 min", or "No workouts yet this week" — this week is the calendar week containing today, the seven days the strip shows. With no workouts at all the strip still shows the plan's week — worth seeing on day one — with "No workouts yet" under it, then **Import from another app** (D45) with "Finished workouts appear here." Below the calendar, as before: one block of Metrics, Find an exercise and — since D67 (§6.42), for the active plan — **Progression**, the row Plan detail had (§4.3), opening the same screen; then the months — the block from the first workout (D64, §6.40). *(v1.5–v1.7's T6: a Goals section between them, D54; D68 removed goals, §6.42.)* There is no search field (D66, §6.42): **Find an exercise** is the way to an exercise's history.
 
-Sessions newest first by month, and under Metrics a **Find an exercise** row listing every exercise, most recently trained first, each opening its history (D59, v1.6) — since v1.7 the only way to find one. *(v1.1–v1.7's T6: also a **search box** that found an exercise by name, D30; D66 removed it, §6.42 — a second way to the list the row opens.)* (**v1.6, D59**: a session's row reads "28 min · 16 sets · 13,920 kg lifted", not "28:08 · 16 sets · 13,920 kg"; **v1.7, D65, §6.41**: each row leads with a small square in its day's colour, grey for a workout whose day is in no plan). Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1). **v1.5 (D54, §6.30)**: a **Goals** section at the top, under Metrics — each goal's exercise, its line ("100 kg × 5 · best 82.5 kg × 5 · by 1 Dec", or "reached 3 Sep" in green) and a bar of how far along it is; **Set a goal**; swipe to remove. An exercise's own screen has **Set a goal** too.
+Sessions newest first by month, and under Metrics a **Find an exercise** row listing every exercise, most recently trained first, each opening its history (D59, v1.6) — since v1.7 the only way to find one. *(v1.1–v1.7's T6: also a **search box** that found an exercise by name, D30; D66 removed it, §6.42 — a second way to the list the row opens.)* (**v1.6, D59**: a session's row reads "28 min · 16 sets · 13,920 kg lifted", not "28:08 · 16 sets · 13,920 kg"; **v1.7, D65, §6.41**: each row leads with a small square in its day's colour, grey for a workout whose day is in no plan). Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1). *(v1.5–v1.7's T6, D54, §6.30: a **Goals** section at the top, under Metrics — each goal's exercise, its line ("100 kg × 5 · best 82.5 kg × 5 · by 1 Dec", or "reached 3 Sep" in green) and a bar of how far along it is; **Set a goal**; swipe to remove. An exercise's own screen had **Set a goal** too. D68 removed goals, §6.42.)*
 
 ### 4.11 Settings
 Reached from the gear at the top-left of Today and of History, and pushed (v1.7, D62, §6.38 — it was a tab until then). Units, default rest, **warm-up length** (D32, v1.2), **between exercises** (D33, v1.2) — each with a row of preset buttons (Off · 1 · 2 · 3 · 5 min; 60 · 90 · 120 · 180 s) beside its stepper since v1.6 (D59) — sound, vibration, notifications state, keep awake, weight step, **smallest weight change** (D35, v1.2), Export backup, **Import backup** (D31, v1.1), **Export history (CSV)** and **Import history (CSV)** (D45, v1.3), Delete all data, About — the version, the counts, and **How the app works** (D47, v1.4, §6.24), which reopens the introduction with **Done** in place of Choose a plan. (The home-chart metric row went with the sparkline in v1.1's R3.)
@@ -816,8 +821,10 @@ A v1.2 defect fixed here, because the splice goes through the same `apply`: a pl
 - **The prompt** (PROMPT.md §3) plans *steps* and carries a cadence sentence by mode: *one step is one workout's targets; I move to the next step only when I hit the current one, so make each step a small, achievable increase* — or *one step is one calendar week, starting the day I save it*. **The reply** (PROGRESSION_FORMAT.md) says `steps`; `weeks` is read as the alias with a cleanup warning. Paths say `steps[…]` and the sentences say "step".
 - **Planning**: the screen asks how many steps (4 / 6 / 8 / 12) and how to advance — **When I hit the target** (default) or **Every week** — and the choice is the progression's mode; the reply never sets it.
 
-### 6.30 Goals (D54, v1.5)
-"Goals or milestones — also be a feature." A goal per exercise: a target you name — a weight for so many reps, a hold of so long, or a number of reps — with an optional date.
+### 6.30 Goals (D54, v1.5 — removed in v1.7, D68)
+**Removed before v1.7 shipped (D68, §6.42)**: the owner took goals out on 2026-09-13. Nothing below is in the app any more; it stays as the record of what v1.5 to v1.7's T6 had. What goals left behind is harmless: a `goals.json` on the phone is not read (§8.1), and a backup that carries goals restores everything else (§8.5).
+
+*(v1.5–v1.7's T6:)* "Goals or milestones — also be a feature." A goal per exercise: a target you name — a weight for so many reps, a hold of so long, or a number of reps — with an optional date.
 
 - **`Goal`** (`Core/Goals.swift`): the exercise (matched by §6.9), its units (sessions in the other unit never count, D10), the target, an optional date (said, never enforced), and — once reached — the date and the workout that did it. Kept in `goals.json` (§8.1), all of them rewritten when one changes, and in the backup (§8.5). Independent of any plan: a goal outlives the plan and the progression it was reached under.
 - **Progress** (`Goals.progress`): the best logged set that counts, and the fraction of the target. For a weight goal only sets at or above its reps count — a heavier set for fewer reps is not the goal; for a hold the longest; for reps the most.
@@ -866,7 +873,7 @@ Where the eye lands, and what looks tappable. The audit's great-grandparent tapp
 - **The workout** (§4.5, §4.6): Undo on the logged row; the idle strip names what the button will start; Plan detail's Start is a button.
 - **Plans** (§4.3, §4.4): "kg · repeats every 7 days"; chips that wrap; an Add exercise row per day; **Use this plan** for "Set as current plan" and "Set as active"; the plan in use marked with a check in the list.
 - **History** (§4.10): labelled rows; a Find an exercise row.
-- **Settings** (§4.11, §8.6): duration presets; sentences without "prompt", "imports" or "Xcode"; the goal sheet says the app never nags.
+- **Settings** (§4.11, §8.6): duration presets; sentences without "prompt", "imports" or "Xcode"; the goal sheet said the app never nags (the sheet went with goals, D68).
 
 ### 6.35 An activity outlives the app (D60, v1.6)
 "After starting a workout the popup in the Dynamic Island and on the Lock Screen never goes away — I had to uninstall the app." Found on the phone, invisible to the simulator suite, and the first defect in this app that the user could not clear at all.
@@ -1003,7 +1010,6 @@ The rule behind §6.37, made a table (`docs/ITERATION_8_PLAN.md`, T4, which prop
 |---|---|---|
 | **Month** (History's calendar) | a session exists that is older than the current week — the calendar week the strip shows | `Gates.month` |
 | **Metrics**, **Find an exercise** and **Progression** (History) | at least one session — and, for Progression, an active plan, whose progression it opens | `Gates.metricsAndFind` |
-| **Goals** section (History) | at least one session | `Gates.goals` |
 | **Another day** (Today's ···) | the plan has more than one day — or any day, when nothing is scheduled and the chooser is the only way to a workout | `Gates.anotherDay` |
 | **Change plan** (Today's ···) | at least one plan | `Gates.changePlan` |
 | **Plan a progression** (Today's ···) | as D50: every exercise on the day has a session, and no progression is attached | `Gates.planProgression` |
@@ -1026,13 +1032,14 @@ Parked from iteration 7 and chosen with v1.7's plan (`docs/ITERATION_8_PLAN.md`,
   3. **History**: the same square leading each workout's row, grey for a workout with no colour, so the column stays a column (§4.10).
   4. **The workout header**: the square leads the stage line — the header names no day, since D34 made it the stage — and the Lock Screen activity carries it too, before its title there and in the expanded Island; the compact Island, which has room for a colour and nothing else (D41), draws its figure in it while working, and a break keeps the accent (§4.5, §6.17).
 - **Nowhere else**: not Start, not the tab bar, not a background, not the Summary. Core decides the colour — `HomeStart.dayColour`, `DayEntry.dayColour(plans:)`, `DayColour.of(session:plans:)`, `WorkoutActivityState.dayColour` — and the view layer owns the mapping to a `Color` in one file, `DaySquare.swift`, compiled into the app and the widget extension alike (T23 reads it).
-- **Green is also the colour reserved for "this happened"** (§4.0, v1.1) — a logged set, a record, a goal reached. The palette keeps it for the first day, as the plan chose: in the calendar the fill now says *happened* and the colour says *which day*, so a plan's first day reads as it did in v1.6.
+- **Green is also the colour reserved for "this happened"** (§4.0, v1.1) — a logged set, a record. The palette keeps it for the first day, as the plan chose: in the calendar the fill now says *happened* and the colour says *which day*, so a plan's first day reads as it did in v1.6.
 
 ### 6.42 Before v1.7 shipped: the owner's review (D66–D68)
 The owner walked v1.7 on 2026-09-13, before it went to `main`, and asked for the release's own rule once more — one way to a thing, in the place it belongs.
 
 - **One way to find an exercise (D66).** History's search field is gone. It and the **Find an exercise** row (D59) led to the same exercises, and the field was the screen's top control, above the calendar it was meant to sit under. The row stays, under Metrics, from the first workout (§6.40); `ExerciseText.search` still orders its list, most recently trained first (J28). A pin holds `HistoryView` to no search field (T27).
 - **Progression lives in History (D67).** The Progression row (D44, D50) left Plan detail for History's block, under Metrics and Find an exercise: a progression is planned from what was lifted, which is History's, while Plan detail is the plan's contents. The row is unchanged — its second line, its step or "Plan it", the accent chevron — and opens the same screen as a sheet, for the **active plan**, the plan Today runs. So it needs an active plan as well as the block's first workout (§6.40); another plan's progression is planned by making it the active plan first (Plan detail's ··· → **Use this plan**). Before the first workout there is no Progression row anywhere — nothing lifted to plan from, which is also when D50's offer stays away. Today's **Plan the next one** opens the Progression screen itself, since Plan detail no longer leads there; Today's ··· keeps **Plan a progression** while D50 offers it. Pins hold the row to `HistoryView` and out of `PlanDetailView` (T28; Z3's and Y13's pins moved with it).
+- **No goals (D68).** Goals (D54, §6.30) are removed: History's Goals section, **Set a goal** on an exercise's screen, the Summary's "Goal reached" line and the progression prompt's MY GOALS block, with `Core/Goals.swift` and `Gates.goals` (§6.40 lost its row). The on-disk contract holds the other way round. `goals.json` is no longer read or written, and a file v1.5–v1.7 left on the phone stays where it is, unread — the Store sets aside what it cannot read and deletes nothing, and a file it does not open is neither — until Delete all data removes the folder (§8.1). A backup that carries `goals` still restores; the key is ignored (§8.5). T30 holds both, and that the prompt carries no MY GOALS.
 
 ## 7. Data model (Core, Codable, no UI imports)
 
@@ -1101,7 +1108,7 @@ struct Issue: Codable, Equatable { var severity: Severity; var code: String; var
   plans.json               { "fileVersion": 1, "activePlanId": UUID?, "plans": [Plan] }
   active-session.json      { "fileVersion": 1, ...ActiveSession }   present only during a workout
   draft.json               { "fileVersion": 1, ...PlanDraft }       present only while a plan is built day by day (D52, v1.5)
-  goals.json               { "fileVersion": 1, "goals": [Goal] }      present once a goal is set (D54, v1.5)
+  goals.json               v1.5–v1.7 only (D54): no longer read or written (D68); a file left there stays, unread
   sessions/<uuid>.json     { "fileVersion": 1, ...Session }          one file per completed session
 ```
 Application Support is included in iCloud/iTunes device backups by default. Set file protection to `.completeUntilFirstUserAuthentication` so background writes never fail on a locked phone.
@@ -1116,7 +1123,7 @@ On launch, load settings, plans, active session, and all session files into memo
 Every logged set carries `loggedAt`, reps or seconds, weight and the session's unit, and sessions are immutable snapshots. A per-exercise chart over time (D13) is `ExerciseHistory.series` over the in-memory session list. No index, no migration, no extra file.
 
 ### 8.5 Export and restore
-`{ "exportedAt", "appVersion", "fileVersion": 1, "settings", "plans", "sessions": [...], "activePlanId", "goals" }` written to a temp file and offered via ShareLink. `activePlanId` was added in v1.1 and is optional, so a v1 backup still restores — it just leaves the first plan active. `goals` (D54, v1.5) is optional too: Replace all takes the backup's, Merge adds the ones not already here by id, and a backup without any restores with none.
+`{ "exportedAt", "appVersion", "fileVersion": 1, "settings", "plans", "sessions": [...], "activePlanId" }` written to a temp file and offered via ShareLink. `activePlanId` was added in v1.1 and is optional, so a v1 backup still restores — it just leaves the first plan active. *(v1.5–v1.7 also wrote `goals`, D54: Replace all took the backup's, Merge added the new ones.)* Since D68 (§6.42) the key is ignored — a backup that carries it restores everything else, and nothing about goals.
 
 **Restoring** (D31, v1.1): Settings → Import backup reads the file and reports its date, its app version, how many plans and workouts it holds, and how many of each a Merge would actually add. Nothing is written until **Merge** or **Replace all** is chosen. Merge adds only ids not already on disk and leaves the current settings, the active plan and anything edited since the backup untouched; Replace all empties the store first and takes the backup's settings and active plan. A running workout is discarded before either. A file that isn't a backup, or whose `fileVersion` is newer than this app's, is refused with a message before anything is written.
 
@@ -1487,7 +1494,7 @@ Fix them and reply with the complete corrected JSON only, in one code block tagg
 
 ## 3. Progression prompt (History → Progression → Copy prompt)
 
-**v1.5 (D53).** The progression is a ladder of *steps*; `{{cadence}}` says what a step is — in performance mode (the default) one workout's targets, earned by hitting them; in calendar mode one calendar week, as in v1.3. `{{steps}}` is the number chosen on the screen. The reply's `weeks` key is still read, as an alias. `{{goals}}` (D54) is the plan's unreached goals as a MY GOALS block, or nothing.
+**v1.5 (D53).** The progression is a ladder of *steps*; `{{cadence}}` says what a step is — in performance mode (the default) one workout's targets, earned by hitting them; in calendar mode one calendar week, as in v1.3. `{{steps}}` is the number chosen on the screen. The reply's `weeks` key is still read, as an alias. *(v1.5–v1.7: `{{goals}}`, the plan's unreached goals as a MY GOALS block; D68 removed goals.)*
 
 The line `JIMMSBRO-PROGRESSION-PROMPT-V1` is this prompt's marker, with the same rule as §1: the marker and no fenced code block means the prompt itself was pasted (`E_PROMPT_PASTED`). `{{weeks}}` is the period the owner picked (4, 6, 8 or 12), `{{units}}` and `{{increment}}` come from the plan and Settings, `{{plan}}` is the plan as a compact listing — one line per exercise, not its JSON — and `{{history}}` is empty or a block headed `MY HISTORY (most recent last)` with one line per exercise: its last sessions (up to six, within 90 days) and the advice the most recent one earned. The history is shortened first, never the plan, to stay under 9,000 characters (`COPY_PASTE_NOTES.md`).
 
@@ -1513,7 +1520,7 @@ RULES
 - Return ALL JSON, never abbreviate with "...".
 
 MY PLAN
-{{plan}}{{goals}}{{history}}
+{{plan}}{{history}}
 
 ```
 
@@ -2503,18 +2510,20 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | Z24 | unit | (D53, v1.5) The prompt | "as 8 steps", `"steps": 8`, the performance cadence sentence, the calendar one in calendar mode, no placeholder left, under the bound; §3 of PROMPT.md matches the code (W37) |
 | Z25 | manual | (D53, v1.5) Plan a progression with **When I hit the target**, run a day hitting one exercise and missing another | The chip reads "Step 1 of 4 of your progression"; after Finish, the Progression screen shows the first exercise at step 2 and the other at "Step 1 of 4 · 1 try" with ▸ on its ladder; Home reads "step 1 of 4" until every exercise of the day moves |
 
-### Z5 — goals (D54)
+### Z5 — goals (D54) — removed in v1.7 (D68)
+
+*Goals went before v1.7 shipped (SPEC §6.42), and `GoalTests.swift` with them: the rows below are marked removed and kept for the record. T30 is what remains.*
 
 `JimmsBroTests/GoalTests.swift`.
 
 | ID | Kind | Case | Expected |
 |---|---|---|---|
-| Z26 | unit | (D54, v1.5) `Goals.progress` and `meets` | Nothing logged is nil at 0; the best set at or above the goal's reps counts and a heavier set for fewer reps does not; the fraction and reached; other units and other exercises never count; a hold's longest and reps' most |
-| Z27 | unit | (D54, v1.5) A workout that meets a goal, through the model | The goal is marked with that workout and the Summary can name it; a far goal and a goal in the other unit are untouched; reached stays reached and a later workout is not credited; the file is written, read back, a goal removed, and Delete all data removes the file |
-| Z28 | unit | (D54, v1.5) The decoder and the backup | A file with only the identity decodes with defaults; a full goal round-trips; the backup carries the goals; Merge adds only what is new and the same backup twice adds nothing; Replace all takes the backup's; a backup without goals restores with none |
-| Z29 | unit | (D54, v1.5) The progression prompt | Carries the plan's unreached goals as MY GOALS after the plan, in the plan's units; not a reached one, not another exercise's; nothing when there are none |
+| Z26 | removed | (D54, v1.5) `Goals.progress` and `meets` | Nothing logged is nil at 0; the best set at or above the goal's reps counts and a heavier set for fewer reps does not; the fraction and reached; other units and other exercises never count; a hold's longest and reps' most |
+| Z27 | removed | (D54, v1.5) A workout that meets a goal, through the model | The goal is marked with that workout and the Summary can name it; a far goal and a goal in the other unit are untouched; reached stays reached and a later workout is not credited; the file is written, read back, a goal removed, and Delete all data removes the file |
+| Z28 | removed | (D54, v1.5) The decoder and the backup | A file with only the identity decodes with defaults; a full goal round-trips; the backup carries the goals; Merge adds only what is new and the same backup twice adds nothing; Replace all takes the backup's; a backup without goals restores with none |
+| Z29 | removed | (D54, v1.5) The progression prompt | Carries the plan's unreached goals as MY GOALS after the plan, in the plan's units; not a reached one, not another exercise's; nothing when there are none |
 | Z30 | unit | (D54, v1.5) The words | "100 kg × 5", "1:30", "1 rep"; the line with best and by, with nothing logged yet, and with reached; the prompt's line with and without a date |
-| Z31 | manual | (D54, v1.5) History → **Set a goal** for an exercise you do, then a workout that meets it | The Goals section shows the line and the bar climbing; the Summary says "Goal reached: …" in green; the goal reads "reached" with the date; Progression's prompt has MY GOALS |
+| Z31 | removed | (D54, v1.5) History → **Set a goal** for an exercise you do, then a workout that meets it | The Goals section shows the line and the bar climbing; the Summary says "Goal reached: …" in green; the goal reads "reached" with the date; Progression's prompt has MY GOALS |
 
 ## U. v1.6 — nothing untrue, nothing unreachable, the first five minutes, hierarchy
 
@@ -2631,7 +2640,7 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 |---|---|---|---|
 | T14 | unit | (D64, v1.7) `Gates.month` | False with no workouts; true on a Monday for a workout six days old (last Tuesday); on a Sunday, the same age (last Monday) is false when the week starts on Monday — it is this week, the strip's first day — and true when it starts on Sunday; still true a day and a month later; a workout still running earns nothing |
 | T15 | unit | (D64, v1.7) `Gates.metricsAndFind` | False with no workouts, true with one, false with only a running one |
-| T16 | unit | (D64, v1.7) `Gates.goals` | False with no workouts, true with one, false with only a running one |
+| T16 | removed | (D64, v1.7) `Gates.goals` — removed with goals (D68) | False with no workouts, true with one, false with only a running one |
 | T17 | unit | (D64, v1.7) `Gates.anotherDay` | Showing a day: true for a two-day plan, false for a one-day plan; with nothing scheduled: true for a one-day plan, false for a plan with no days |
 | T18 | unit | (D64, v1.7) `Gates.changePlan` | False with no plans, true with one |
 | T19 | unit | (D64, v1.7) `Gates.planProgression` | False with no sessions, or with a session of another exercise only; true once every exercise on the day has one; false again once the plan carries a progression; false for an index past the plan's days |
@@ -2665,7 +2674,8 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 |---|---|---|---|
 | T27 | unit | (D66, v1.7) One way to find an exercise | `HistoryView.swift` draws no `.searchable` field and keeps the **Find an exercise** row |
 | T28 | unit | (D67, v1.7) Progression is History's | `HistoryView.swift` has the row — `Text("Progression")`, `PromptText.progressionRow` — and opens `ProgressionView`; `PlanDetailView.swift` has neither; Today's **Plan the next one** sets the Progression sheet, not the plan preview. Z3's and Y13's pins point at `HistoryView.swift` |
-| T29 | ui | (D66, D67, v1.7) History's block on the phone | As DEVICE_CHECKLIST T29: no search field; Metrics, Find an exercise and Progression in one block from the first workout; Progression opens the active plan's screen; Plan detail has no Progression row |
+| T29 | ui | (D66–D68, v1.7) History's block on the phone | As DEVICE_CHECKLIST T29: no search field; Metrics, Find an exercise and Progression in one block from the first workout; Progression opens the active plan's screen; Plan detail has no Progression row; no Goals section and no **Set a goal** |
+| T30 | unit | (D68, v1.7) What goals left behind is harmless | A store holding a `goals.json` loads with nothing set aside and the file untouched; a backup that carries `goals` reads and restores its plans and sessions by Replace all and by Merge; the progression template has no `{{goals}}` and the prompt no MY GOALS |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -4910,12 +4920,12 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 # Build status
 
 Updated 2026-09-13. **v1.7 is built and green on branch `v1.7-today` (off `main`, which holds
-v1.6 since pull request #2 merged): T0–T6.** v1.6 and
+v1.6 since pull request #2 merged): T0–T6, then T7 — the owner's review before the push (D66–D68).** v1.6 and
 everything before it are below, unchanged except where a later milestone corrected them; the
 device checklist, the Developer Program, a release Xcode and the submission itself are the
 owner's.
 
-## v1.7 (T0–T6): built and green
+## v1.7 (T0–T7): built and green
 
 `docs/ITERATION_8_PLAN.md` is the v1.7 plan, written from the owner's note after living with
 v1.6 — *"sensory overload… less choices… more forcing… feels like a settings menu"*. Two
@@ -4923,17 +4933,17 @@ milestones were the owner's call and were chosen on 2026-09-13: T2 is Reading A 
 History) and T5 (a colour per day) is go. Each milestone ends with the whole suite green on all
 three routes, a Release build and `tools/check_release.py`, and one commit on `v1.7-today`.
 
-After T6:
+After T7:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **332 tests, 10 skipped, 0 failures** — the eighth skip is T7, the ninth T21 and the tenth T23's read of `DaySquare.swift`, which read SPEC or a source file and so run on the host routes. T6's first run never reached a test — "the test runner hung before establishing connection" — and this is the rerun, after restarting the iPhone 17 simulator |
-| `swift test` | **331 tests, 0 failures** |
-| `python3 tools/check_core.py` | **331 bodies, 6,156 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **329 tests, 12 skipped, 0 failures** on iPhone 16 (T7, below) — the skips include T7, T21, T27, T28 and T23's read of `DaySquare.swift`, which read SPEC or a source file and so run on the host routes. T6's first run never reached a test — "the test runner hung before establishing connection" — and this is the rerun, after restarting the iPhone 17 simulator |
+| `swift test` | **328 tests, 0 failures** |
+| `python3 tools/check_core.py` | **328 bodies, 6,122 assertions, 0 failures** |
 | `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.7 (1) |
-| `python3 tools/check_bundle.py` | **current** (regenerated in T0–T6) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in T0–T7) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -4944,7 +4954,8 @@ After T6:
 | T4 | Controls are earned (D64): `Core/Gates.swift` has one function per row of SPEC §6.40's table (the plan's §6.39, which T3 took), and the views and `HomeStart` ask it rather than counting. New on screen: **Month** waits for a workout older than this week, and History's search field waits with Metrics and Find an exercise for the first workout. Another day, Change plan, Plan a progression, Goals and the notifications-off line go through `Gates` with their behaviour unchanged. Nothing is stored; each gate is a function of the data. T14–T21 in `GatesTests`, and T21 pins the table to the type | Done |
 | T5 | A colour per day (D65): every day of a plan takes a colour by its place in the day list — green, orange, purple, pink, teal, indigo, then round again (`Core/DayColour.swift`), derived and never stored — drawn in four places and nowhere else: a square before the day's name on Today, the calendar's finished fill and planned name (where the reserved green and the accent were), a square leading each History row, and a square leading the workout header and the Lock Screen's title, with the compact Island's figure in it while working. Core decides the colour (`HomeStart.dayColour`, `DayEntry.dayColour`, `DayColour.of(session:plans:)`, `WorkoutActivityState.dayColour`); `DaySquare.swift` is the one mapping to a `Color`, in both targets. T22, T23 and T25 in `DayColourTests`; SPEC §6.41 | Done |
 | T6 | Docs, checklist, bundle, screenshots, 1.7: SPEC's remaining Homes made Today, with D18's row, §5.1's button, the progression link and v1.6's hierarchy line keeping their older text in italics; T26, the version check; the v1.7 device rows' failure pointers; the README's landing screenshots (`today.png` for `home.png`, `history.png` retaken on the month), its status, agent paragraph, test counts and document table; version **1.7** on the app, the extension and the tests and in `docs/APP_STORE.md`; the bundle regenerated | Done |
-| — | The v1.7 device rows (T5, T9, T13, T24) | **Written, not run** — need the phone |
+| T7 | The owner's review before the push (SPEC §6.42), three commits: History's search field went — **Find an exercise** is the way (D66, T27); the **Progression** row moved from Plan detail into History's block with Metrics and Find an exercise, for the active plan, and Today's **Plan the next one** opens it (D67, T28); goals were removed — `goals.json` is left unread and a backup that carries goals still restores (D68, T30). Checked on the simulator: History's block and the Progression sheet opened from it. The suite ran on iPhone 16: on iPhone 17 the test host launched and XCTest never connected, four runs in a row and across a simulator restart — the simulator's, not the app's (the same build passed on iPhone 16, and the Release build for iPhone 17 succeeded) | Done |
+| — | The v1.7 device rows (T5, T9, T13, T24, T29) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.7)
 
@@ -5780,6 +5791,7 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.7 T6: **the store screenshots are not retaken.** `APP_STORE.md` §5 names Today and History as they now are; its 1320 × 2868 captures are taken with the submission, which is the owner's.
 - v1.7 review (D66): **one way to find an exercise.** The owner's call on 2026-09-13, before the push: History's search field went and the **Find an exercise** row stayed. The two led to the same list, and the field was History's top control. `ExerciseText.search` stays — it orders the row's list (J28) — and T27 pins `HistoryView` to no `.searchable`.
 - v1.7 review (D67): **Progression is History's, for the active plan.** The owner's call on 2026-09-13: the row left Plan detail for the block with Metrics and Find an exercise. The docs did not say which plan a row outside any plan opens; the active one is the simplest reading — the plan Today runs — and another plan's is one **Use this plan** away. The row took the block's gate (the first workout) rather than a new one, so `Gates` stays one function per §6.40 row. **Plan the next one** had opened the plan so its row could be tapped; it opens the Progression sheet now. The ··· offer (D50) is unchanged, and the `-uiProgression` screenshot hook moved with the row.
+- v1.7 review (D68): **goals are removed.** The owner's call on 2026-09-13, before the push: the Goals section, **Set a goal**, the Summary's "Goal reached" line and the prompt's MY GOALS block went, with `Core/Goals.swift`, `GoalsModel`, `GoalsView`, `GoalTests` and `Gates.goals` (§6.40 lost its row, T16 its test; Z26–Z29 and Z31 are marked removed). **`goals.json` is left on the phone, unread**, rather than deleted: the Store never deletes a file it did not write in this run, and an unread file costs nothing; Delete all data removes it with the folder. **A backup with `goals` still restores** — `ExportDocument` lost the field and the synthesized decoder ignores the key. The seeder's `--goals` and `shot.sh`'s `SEED_GOALS` went too. T30 holds the store, the backup and the prompt.
 `````
 
 ---
@@ -5936,7 +5948,7 @@ Mark each row **pass**, **fail** or **n/a**, and put anything surprising in Note
 | **Z10** | Paste a plan with `"inReserve": 2` on an exercise (or add it in the exercise's edit sheet), then start it | The review and Plan detail read "… · 2 in reserve" once for the exercise; the card reads "6–8 · 80 kg · 2 in reserve" under the target; VoiceOver says it |  |  |
 | **Z17** | Add plan → Create with a chatbot → **Build it day by day**, with a free ChatGPT tab | Copy outline prompt; paste the reply into Paste outline — one slot per day; Copy day prompt per slot, paste each reply; a slot refused says which day and why; leave the app and come back to "Continue · 2 of 3 days pasted"; Review plan, Save plan; the plan is on Home and the draft is gone |  |  |
 | **Z25** | Plan → Progression → **When I hit the target**, paste the reply, Save; run a day hitting one exercise and missing another | The chip reads "Step 1 of N of your progression"; after Finish, the Progression screen shows the hit exercise at step 2 with ▸ moved and the other at "Step 1 of N · 1 try"; Home's subtitle reads "step 1 of N" until every exercise of the day moves |  |  |
-| **Z31** | History → **Set a goal** for an exercise you do (a weight you can lift for the reps), then run a workout that meets it | The Goals section shows the line and the bar; the Summary says "Goal reached: …" in green; the goal reads "reached" with the date; Plan → Progression → Copy prompt has a MY GOALS block |  |  |
+| **Z31** | *Removed in v1.7 (D68): goals went — skip this row.* History → **Set a goal** for an exercise you do (a weight you can lift for the reps), then run a workout that meets it | The Goals section shows the line and the bar; the Summary says "Goal reached: …" in green; the goal reads "reached" with the date; Plan → Progression → Copy prompt has a MY GOALS block |  |  |
 
 ## v1.6 rows (new or changed in U1–U5, U7, U4)
 
@@ -5969,7 +5981,7 @@ whichever screen still calls a text function without passing it.
 | **T9** | With a plan, on Today: tap the ···, then **Change plan**; open a plan, then go back twice. Tap the gear on Today and go back; switch to History and tap its gear. Then delete every plan from the Plans list and look at Today | The tab bar shows **Today** and **History** and nothing else. Plans is two taps from Today and a plan's detail one more; back returns to Today each time. The gear sits top-left in the same place on both tabs and opens Settings with a back button. With no plan, Today still has its gear (Import backup is in Settings) |  |  |
 | **T13** | With a plan and a few finished workouts, open History. Tap **Month**, then **Week**. Tap a done day once, then again; go back. Tap today when it is a planned day. Then, on a fresh install with a built-in plan chosen and nothing done, open History | History opens with the week strip and the week's line ("2 workouts this week · …") above Metrics. Month and Week switch the grid. A done day's first tap shows "… · Legs · 52 min ›", its second opens the workout pushed onto History, and back returns to History. Today's planned day shows "… · planned" and no button. The fresh install shows the plan's week — its days named, rest days as dashes — above "No workouts yet" and **Import from another app** |  |  |
 | **T24** | With a plan of three or more days and two different days done, look at Today; open History (the strip, then **Month**); start the day Today shows, lock the phone during a rest, then unlock and open the Dynamic Island. Then Settings → Display & Brightness → Dark, and look at each again | The square before the day's name on Today, that day's fill and name in the calendar, the square on its History rows, the square leading the workout header, and the square before the title on the Lock Screen and in the expanded Island are one colour, and the compact Island's figure is that colour while working; every other day has a different colour. Start, the tab bar and the backgrounds have none. In dark mode each is still the same colour as the others, and every calendar label is legible |  |  |
-| **T29** | With a plan and one finished workout, open History and look between the calendar and the months; tap **Progression**, then close it. Open the plan from Today's ··· → **Change plan**. If a progression has run its course, tap Today's **Plan the next one** | No search field anywhere on History. One block of **Metrics**, **Find an exercise** and **Progression**; Progression has its second line, "Plan it" or its step, and an accent chevron, and opens the active plan's Progression screen. Plan detail has no Progression row. **Plan the next one** opens the Progression screen, not the plan |  |  |
+| **T29** | With a plan and one finished workout, open History and look between the calendar and the months; tap **Progression**, then close it. Open the plan from Today's ··· → **Change plan**. If a progression has run its course, tap Today's **Plan the next one** | No search field anywhere on History. One block of **Metrics**, **Find an exercise** and **Progression**; Progression has its second line, "Plan it" or its step, and an accent chevron, and opens the active plan's Progression screen. Plan detail has no Progression row. **Plan the next one** opens the Progression screen, not the plan. No Goals section on History, and no **Set a goal** on an exercise's screen (D68) |  |  |
 
 For the v1.7 rows: a `fail` on T5 points at `HomeView` (`Features/Home/HomeView.swift`) — SPEC §4.1
 lets only the exercise list scroll; on T9 at `AppTab` (`Core/Tabs.swift`), `settingsGear` in
@@ -6000,8 +6012,7 @@ or `AppModel.loadBuiltInPlan`; on Y16 at `AppModel.introDue` and the cover's bin
 
 For the v1.5 rows: a `fail` on Z4 points at `PromptText` and the views pinned to it; on Z10 at
 `PlanImport`'s `reserve` and `TargetText`; on Z17 at `PlanDrafting` or `DraftPlanView`; on Z25 at
-`ProgressionSteps.achieved` / `advance` and `PlanLibrary.completeSession`; on Z31 at
-`Goals.markReached` and `GoalsSection`.
+`ProgressionSteps.achieved` / `advance` and `PlanLibrary.completeSession`. Z31 went with goals (D68).
 `````
 
 ---
@@ -8029,8 +8040,8 @@ the plan format — `inReserve`, reps or seconds short of failure (D51, `SetTarg
 four fixtures) — **a plan in several pastes** for free chatbot tiers: the outline first, then one
 day per paste, through the ordinary importer (D52, `Core/PlanDraft.swift`, `draft.json`,
 PROMPT.md §4–5), **progression as steps you earn** by performance with the calendar kept as a
-mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** (D54,
-`Core/Goals.swift`, `goals.json`). Everything through Z6 is built and green; the v1.5 device
+mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** (D54 —
+removed in v1.7's review, D68). Everything through Z6 is built and green; the v1.5 device
 rows (Z4, Z10, Z17, Z25, Z31) join the checklist. The reading of "a history for each exercise"
 as typed current numbers is parked by the owner's decision (the plan's last section).
 
@@ -8075,13 +8086,18 @@ both tabs (`settingsGear`). The calendar and the week's line open History
 (`Features/History/CalendarView.swift`); the tapped-day line is Core's (`CalendarText.line`) and
 has no Start this, because a workout starts on Today. Controls are earned (T4): `Core/Gates.swift`
 has one function per row of SPEC §6.40's table, pinned by T21, and the views ask it — Month waits
-for a workout older than this week, and Metrics, Find an exercise and Goals
+for a workout older than this week, and Metrics and Find an exercise
 for the first workout. Each day has a colour (T5): `Core/DayColour.swift` gives a day its colour by
 its place in the plan's day list, derived and never stored, and `DaySquare.swift` draws it in
 SPEC §6.41's four places — Today, the calendar, History's rows, and the workout header with the
 Lock Screen — and nowhere else. T6 made the documents say so: version 1.7 on every target,
 Today and History's month as the README's screenshots, SPEC's remaining Homes made Today, and the
-v1.7 device rows (T5, T9, T13, T24) in the checklist that still needs the phone.
+v1.7 device rows (T5, T9, T13, T24) in the checklist that still needs the phone. Before the push the
+owner reviewed T0–T6 (SPEC §6.42; T7 in TEST_CASES): History lost its search field — **Find an
+exercise** is the way (D66); the **Progression** row moved from Plan detail into History's block
+with Metrics and Find an exercise, for the active plan, and Today's **Plan the next one** opens it
+(D67); and **goals are removed** (D68) — `goals.json` is no longer read or written, a file left on
+the phone stays unread, and a backup that carries goals still restores. Its device row is T29.
 
 Three v1.2 rules are worth knowing before touching anything:
 

@@ -5,7 +5,8 @@ import XCTest
 #endif
 
 /// T4 (v1.7) — controls are earned (D64): one test per row of SPEC §6.40's table, each at its
-/// boundary, and the pin that holds the table and `Gates` together. T14–T21.
+/// boundary, and the pin that holds the table and `Gates` together. T14–T21 (T16, the Goals
+/// section's, went with goals in D68), and T27–T28 from the owner's review.
 final class GatesTests: XCTestCase {
     private func day(_ n: Int) -> Date { CoreTestSupport.date(n) }
 
@@ -60,13 +61,6 @@ final class GatesTests: XCTestCase {
         XCTAssertFalse(Gates.metricsAndFind(sessions: []))
         XCTAssertTrue(Gates.metricsAndFind(sessions: [finished(on: 8)]))
         XCTAssertFalse(Gates.metricsAndFind(sessions: [running(on: 8)]), "a running workout is not in History")
-    }
-
-    // T16: the Goals section, from the first workout.
-    func testGoalsFromTheFirstWorkout() {
-        XCTAssertFalse(Gates.goals(sessions: []))
-        XCTAssertTrue(Gates.goals(sessions: [finished(on: 8)]))
-        XCTAssertFalse(Gates.goals(sessions: [running(on: 8)]), "a running workout is not in History")
     }
 
     // T17: Another day, when the plan has another day — or, with nothing scheduled, any day.
@@ -160,7 +154,7 @@ final class GatesTests: XCTestCase {
             guard trimmed.hasPrefix("static func ") else { return nil }
             return String(trimmed.dropFirst("static func ".count).prefix { $0.isLetter || $0.isNumber })
         }
-        XCTAssertEqual(functions.count, 7, "one function per row of the plan's table")
+        XCTAssertEqual(functions.count, 6, "one function per row of the plan's table")
 
         let lines = spec.components(separatedBy: "\n")
         let heading = try XCTUnwrap(lines.firstIndex { $0.hasPrefix("### 6.40 ") }, "SPEC has no §6.40")

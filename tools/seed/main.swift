@@ -79,15 +79,4 @@ if arguments.contains("--progression") {
 try await store.save(settings: Settings())
 try await store.save(plans: [plan], activePlanId: plan.id)
 for session in sessions { try await store.save(session: session) }
-// v1.5 (D54): `--goals` sets two goals — one the seeded history has already met, one still
-// climbing — and marks the met one the way a completed workout would.
-if arguments.contains("--goals") {
-    var goals = [
-        Goal(exerciseName: "Deadlift", units: .kg, target: .weight(120, reps: 5), createdAt: now.addingTimeInterval(-20 * 86_400)),
-        Goal(exerciseName: "Barbell Bench Press", units: .kg, target: .weight(90, reps: 5),
-             by: Calendar.current.date(byAdding: .month, value: 2, to: now), createdAt: now.addingTimeInterval(-20 * 86_400)),
-    ]
-    for session in sessions.sorted(by: { $0.startedAt < $1.startedAt }) { Goals.markReached(&goals, after: session) }
-    try await store.save(goals: goals)
-}
 print("seeded \(sessions.count) sessions into \(root.path)")

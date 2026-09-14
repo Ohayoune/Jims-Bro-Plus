@@ -65,11 +65,6 @@ struct HistoryView: View {
                         }
                     }
                 }
-                // D54 (v1.5): the goals, and how close each is — once there is a workout
-                // to measure them against (D64, §6.40).
-                if Gates.goals(sessions: model.sessions) {
-                    GoalsSection()
-                }
                 ForEach(model.historyMonths) { month in
                     Section(month.title) {
                         ForEach(month.sessions) { session in

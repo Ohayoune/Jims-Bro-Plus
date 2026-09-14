@@ -18,7 +18,7 @@ extension AppModel {
                            mode: ProgressionMode = .performance) -> String? {
         guard let plan = plans.first(where: { $0.id == planId }) else { return nil }
         return Prompts.progression(plan: plan, history: sessions, weeks: weeks, includeHistory: includeHistory,
-                                   settings: settings, now: now, mode: mode, goals: goals)
+                                   settings: settings, now: now, mode: mode)
     }
 
     /// The reply, read against this plan, in the mode chosen on the screen (D53). Nothing is

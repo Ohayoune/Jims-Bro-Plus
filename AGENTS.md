@@ -54,8 +54,8 @@ the plan format — `inReserve`, reps or seconds short of failure (D51, `SetTarg
 four fixtures) — **a plan in several pastes** for free chatbot tiers: the outline first, then one
 day per paste, through the ordinary importer (D52, `Core/PlanDraft.swift`, `draft.json`,
 PROMPT.md §4–5), **progression as steps you earn** by performance with the calendar kept as a
-mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** (D54,
-`Core/Goals.swift`, `goals.json`). Everything through Z6 is built and green; the v1.5 device
+mode (D53, `ProgressionSteps`, `Progression.mode`), and **a goal per exercise** (D54 —
+removed in v1.7's review, D68). Everything through Z6 is built and green; the v1.5 device
 rows (Z4, Z10, Z17, Z25, Z31) join the checklist. The reading of "a history for each exercise"
 as typed current numbers is parked by the owner's decision (the plan's last section).
 
@@ -100,13 +100,18 @@ both tabs (`settingsGear`). The calendar and the week's line open History
 (`Features/History/CalendarView.swift`); the tapped-day line is Core's (`CalendarText.line`) and
 has no Start this, because a workout starts on Today. Controls are earned (T4): `Core/Gates.swift`
 has one function per row of SPEC §6.40's table, pinned by T21, and the views ask it — Month waits
-for a workout older than this week, and Metrics, Find an exercise and Goals
+for a workout older than this week, and Metrics and Find an exercise
 for the first workout. Each day has a colour (T5): `Core/DayColour.swift` gives a day its colour by
 its place in the plan's day list, derived and never stored, and `DaySquare.swift` draws it in
 SPEC §6.41's four places — Today, the calendar, History's rows, and the workout header with the
 Lock Screen — and nowhere else. T6 made the documents say so: version 1.7 on every target,
 Today and History's month as the README's screenshots, SPEC's remaining Homes made Today, and the
-v1.7 device rows (T5, T9, T13, T24) in the checklist that still needs the phone.
+v1.7 device rows (T5, T9, T13, T24) in the checklist that still needs the phone. Before the push the
+owner reviewed T0–T6 (SPEC §6.42; T7 in TEST_CASES): History lost its search field — **Find an
+exercise** is the way (D66); the **Progression** row moved from Plan detail into History's block
+with Metrics and Find an exercise, for the active plan, and Today's **Plan the next one** opens it
+(D67); and **goals are removed** (D68) — `goals.json` is no longer read or written, a file left on
+the phone stays unread, and a backup that carries goals still restores. Its device row is T29.
 
 Three v1.2 rules are worth knowing before touching anything:
 

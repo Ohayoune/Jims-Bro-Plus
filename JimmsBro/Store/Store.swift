@@ -9,8 +9,6 @@ struct StoreSnapshot: Equatable {
     var active: ActiveSession?
     /// D52 (v1.5): the plan being built day by day, if one was left mid-way.
     var draft: PlanDraft?
-    /// D54 (v1.5): the goals.
-    var goals: [Goal] = []
     var corruptFiles: [String] = []
     /// False on a first launch, so the caller knows to write the defaults it just used (N10).
     var hasSettingsFile = false
@@ -40,8 +38,8 @@ actor Store {
     var activeSessionURL: URL { root.appendingPathComponent("active-session.json") }
     /// D52 (v1.5): present only while a plan is being built day by day.
     var draftURL: URL { root.appendingPathComponent("draft.json") }
-    /// D54 (v1.5): the goals, absent until the first is set.
-    var goalsURL: URL { root.appendingPathComponent("goals.json") }
+    // `goals.json` (D54, v1.5–v1.7) is no longer read or written: D68 removed goals. A file left
+    // by those versions stays where it is, unread, until Delete all data removes the folder.
     var sessionsDirectory: URL { root.appendingPathComponent("sessions", isDirectory: true) }
     func sessionURL(_ id: UUID) -> URL {
         sessionsDirectory.appendingPathComponent("\(id.uuidString).json")
@@ -75,9 +73,6 @@ actor Store {
         }
         if let draft: PlanDraft = read(draftURL, into: &snapshot) {
             snapshot.draft = draft
-        }
-        if let goals: GoalsPayload = read(goalsURL, into: &snapshot) {
-            snapshot.goals = goals.goals
         }
         let files = (try? manager.contentsOfDirectory(at: sessionsDirectory, includingPropertiesForKeys: nil)) ?? []
         for file in files where file.pathExtension == "json" {
@@ -149,12 +144,6 @@ actor Store {
     func save(draft: PlanDraft) throws { try write(StoreCoder.encode(draft), to: draftURL) }
     func clearDraft() throws { try remove(draftURL) }
 
-    /// D54 (v1.5): the goals, all of them, every time one changes.
-    func save(goals: [Goal]) throws {
-        guard !goals.isEmpty else { try remove(goalsURL); return }
-        try write(StoreCoder.encode(GoalsPayload(goals: goals)), to: goalsURL)
-    }
-
     func save(session: Session) throws {
         try write(StoreCoder.encode(session), to: sessionURL(session.id))
     }
@@ -222,8 +211,7 @@ actor Store {
         let document = ExportDocument(exportedAt: now, appVersion: appVersion,
                                       settings: snapshot.settings, plans: snapshot.plans,
                                       sessions: snapshot.sessions,
-                                      activePlanId: snapshot.activePlanId,
-                                      goals: snapshot.goals)
+                                      activePlanId: snapshot.activePlanId)
         return try? StoreCoder.encoder.encode(document)
     }
 
@@ -269,8 +257,6 @@ actor Store {
             try save(settings: document.settings)
             try save(plans: document.plans, activePlanId: document.activePlanId ?? document.plans.first?.id)
             for session in document.sessions { try save(session: session) }
-            // D54 (v1.5): a backup written before goals existed has none to restore.
-            try save(goals: document.goals ?? [])
         case .merge:
             let knownPlans = Set(snapshot.plans.map(\.id))
             let knownSessions = Set(snapshot.sessions.map(\.id))
@@ -279,9 +265,6 @@ actor Store {
             for session in document.sessions where !knownSessions.contains(session.id) {
                 try save(session: session)
             }
-            let knownGoals = Set(snapshot.goals.map(\.id))
-            let added = (document.goals ?? []).filter { !knownGoals.contains($0.id) }
-            if !added.isEmpty { try save(goals: snapshot.goals + added) }
         }
     }
 

@@ -52,7 +52,6 @@ let package = Package(
                       "JimmsBroTests/InReserveTests.swift",
                       "JimmsBroTests/DraftPlanTests.swift",
                       "JimmsBroTests/StepProgressionTests.swift",
-                      "JimmsBroTests/GoalTests.swift",
                       "JimmsBroTests/UsabilityTests.swift",
                       "JimmsBroTests/TodayTests.swift",
                       "JimmsBroTests/GatesTests.swift",

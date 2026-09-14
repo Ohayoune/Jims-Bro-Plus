@@ -12,14 +12,11 @@ enum SaveFailure: Equatable {
     case deleteSession(UUID)
     /// D52 (v1.5): the draft's file.
     case draft
-    /// D54 (v1.5): the goals' file.
-    case goals
 
     var message: String {
         switch self {
         case .session: return "Couldn't save the workout. It's still here — try again."
         case .draft: return "Couldn't save the draft. It's still here — try again."
-        case .goals: return "Couldn't save the goal. It's still here — try again."
         case .activeSessionWrite: return "Couldn't save your progress. The workout keeps running; try again."
         case .activeSessionClear, .plans: return "Couldn't finish saving. Nothing was lost; try again."
         case .settings: return "Couldn't save that setting. Try again."
@@ -125,7 +122,6 @@ enum SaveFailure: Equatable {
         library.activePlanId = snapshot.activePlanId
         library.sessions = snapshot.sessions
         persistedSessionIds = Set(snapshot.sessions.map(\.id))
-        library.goals = snapshot.goals
         draft = snapshot.draft
         corruptFiles = snapshot.corruptFiles
         showCorruptAlert = !snapshot.corruptFiles.isEmpty
@@ -409,8 +405,6 @@ enum SaveFailure: Equatable {
             do { try await store.deleteSession(id: id) } catch { saveFailure = .deleteSession(id) }
         case .draft:
             await persistDraft()
-        case .goals:
-            await persistGoals()
         }
     }
 

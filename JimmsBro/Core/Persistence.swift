@@ -136,22 +136,6 @@ extension Session {
     }
 }
 
-extension Goal {
-    /// D54 (v1.5): what makes it this goal — the exercise, the units, the target — is required;
-    /// the date, the timestamps and which workout reached it have defaults.
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(id: container.value(.id, or: UUID()),
-                  exerciseName: try container.decode(String.self, forKey: .exerciseName),
-                  units: try container.decode(WeightUnit.self, forKey: .units),
-                  target: try container.decode(GoalTarget.self, forKey: .target),
-                  by: container.optional(.by),
-                  createdAt: container.value(.createdAt, or: Date(timeIntervalSince1970: 0)),
-                  reachedAt: container.optional(.reachedAt),
-                  reachedSessionId: container.optional(.reachedSessionId))
-    }
-}
-
 extension Progression {
     /// D53 (v1.5): `mode` is new; a progression written by v1.3 is a calendar one.
     public init(from decoder: Decoder) throws {

@@ -9,8 +9,6 @@ struct ExerciseHistoryView: View {
     let units: WeightUnit
 
     private var points: [ExercisePoint] { model.history(for: name, units: units) }
-    /// D54 (v1.5): a goal for this exercise, from where its history is.
-    @State private var settingGoal = false
     private var allSteps: [SessionStep] {
         model.sessions.filter { $0.units == units }.flatMap { ExerciseHistory.steps(name: name, session: $0) }
     }
@@ -25,8 +23,6 @@ struct ExerciseHistoryView: View {
                     if let best = ExerciseText.best(steps: allSteps, units: units) {
                         Section {
                             Text(best).font(.title3.weight(.semibold))
-                            Button("Set a goal") { settingGoal = true }
-                                .font(.footnote)
                         }
                     }
                     // D13: top weight over time, with the reps behind each point. Two points
@@ -45,7 +41,6 @@ struct ExerciseHistoryView: View {
         }
         .navigationTitle(name)
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $settingGoal) { GoalSheet(name: name, units: units) }
     }
 
     /// The points that have a weight to plot. A bodyweight or timed exercise has none, and

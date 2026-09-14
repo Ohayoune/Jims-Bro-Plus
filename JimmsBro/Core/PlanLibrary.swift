@@ -7,8 +7,6 @@ struct PlanLibrary {
     var plans: [Plan] = []
     var activePlanId: UUID?
     var sessions: [Session] = []
-    /// D54 (v1.5): the goals, independent of any plan.
-    var goals: [Goal] = []
     var engine: SessionEngine?
     var settings = Settings()
     var activePlan: Plan? { plans.first { $0.id == activePlanId } }
@@ -91,8 +89,6 @@ struct PlanLibrary {
                     ProgressionSteps.advance(&plans[index].progression!, after: completed)
                 }
             }
-            // D54 (v1.5): the first workout to meet a goal is the one that reached it.
-            Goals.markReached(&goals, after: completed)
         }
         engine = nil
     }

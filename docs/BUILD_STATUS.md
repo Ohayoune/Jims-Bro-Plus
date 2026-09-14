@@ -1,12 +1,12 @@
 # Build status
 
 Updated 2026-09-13. **v1.7 is built and green on branch `v1.7-today` (off `main`, which holds
-v1.6 since pull request #2 merged): T0–T6.** v1.6 and
+v1.6 since pull request #2 merged): T0–T6, then T7 — the owner's review before the push (D66–D68).** v1.6 and
 everything before it are below, unchanged except where a later milestone corrected them; the
 device checklist, the Developer Program, a release Xcode and the submission itself are the
 owner's.
 
-## v1.7 (T0–T6): built and green
+## v1.7 (T0–T7): built and green
 
 `docs/ITERATION_8_PLAN.md` is the v1.7 plan, written from the owner's note after living with
 v1.6 — *"sensory overload… less choices… more forcing… feels like a settings menu"*. Two
@@ -14,17 +14,17 @@ milestones were the owner's call and were chosen on 2026-09-13: T2 is Reading A 
 History) and T5 (a colour per day) is go. Each milestone ends with the whole suite green on all
 three routes, a Release build and `tools/check_release.py`, and one commit on `v1.7-today`.
 
-After T6:
+After T7:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **332 tests, 10 skipped, 0 failures** — the eighth skip is T7, the ninth T21 and the tenth T23's read of `DaySquare.swift`, which read SPEC or a source file and so run on the host routes. T6's first run never reached a test — "the test runner hung before establishing connection" — and this is the rerun, after restarting the iPhone 17 simulator |
-| `swift test` | **331 tests, 0 failures** |
-| `python3 tools/check_core.py` | **331 bodies, 6,156 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **329 tests, 12 skipped, 0 failures** on iPhone 16 (T7, below) — the skips include T7, T21, T27, T28 and T23's read of `DaySquare.swift`, which read SPEC or a source file and so run on the host routes. T6's first run never reached a test — "the test runner hung before establishing connection" — and this is the rerun, after restarting the iPhone 17 simulator |
+| `swift test` | **328 tests, 0 failures** |
+| `python3 tools/check_core.py` | **328 bodies, 6,122 assertions, 0 failures** |
 | `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.7 (1) |
-| `python3 tools/check_bundle.py` | **current** (regenerated in T0–T6) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in T0–T7) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -35,7 +35,8 @@ After T6:
 | T4 | Controls are earned (D64): `Core/Gates.swift` has one function per row of SPEC §6.40's table (the plan's §6.39, which T3 took), and the views and `HomeStart` ask it rather than counting. New on screen: **Month** waits for a workout older than this week, and History's search field waits with Metrics and Find an exercise for the first workout. Another day, Change plan, Plan a progression, Goals and the notifications-off line go through `Gates` with their behaviour unchanged. Nothing is stored; each gate is a function of the data. T14–T21 in `GatesTests`, and T21 pins the table to the type | Done |
 | T5 | A colour per day (D65): every day of a plan takes a colour by its place in the day list — green, orange, purple, pink, teal, indigo, then round again (`Core/DayColour.swift`), derived and never stored — drawn in four places and nowhere else: a square before the day's name on Today, the calendar's finished fill and planned name (where the reserved green and the accent were), a square leading each History row, and a square leading the workout header and the Lock Screen's title, with the compact Island's figure in it while working. Core decides the colour (`HomeStart.dayColour`, `DayEntry.dayColour`, `DayColour.of(session:plans:)`, `WorkoutActivityState.dayColour`); `DaySquare.swift` is the one mapping to a `Color`, in both targets. T22, T23 and T25 in `DayColourTests`; SPEC §6.41 | Done |
 | T6 | Docs, checklist, bundle, screenshots, 1.7: SPEC's remaining Homes made Today, with D18's row, §5.1's button, the progression link and v1.6's hierarchy line keeping their older text in italics; T26, the version check; the v1.7 device rows' failure pointers; the README's landing screenshots (`today.png` for `home.png`, `history.png` retaken on the month), its status, agent paragraph, test counts and document table; version **1.7** on the app, the extension and the tests and in `docs/APP_STORE.md`; the bundle regenerated | Done |
-| — | The v1.7 device rows (T5, T9, T13, T24) | **Written, not run** — need the phone |
+| T7 | The owner's review before the push (SPEC §6.42), three commits: History's search field went — **Find an exercise** is the way (D66, T27); the **Progression** row moved from Plan detail into History's block with Metrics and Find an exercise, for the active plan, and Today's **Plan the next one** opens it (D67, T28); goals were removed — `goals.json` is left unread and a backup that carries goals still restores (D68, T30). Checked on the simulator: History's block and the Progression sheet opened from it. The suite ran on iPhone 16: on iPhone 17 the test host launched and XCTest never connected, four runs in a row and across a simulator restart — the simulator's, not the app's (the same build passed on iPhone 16, and the Release build for iPhone 17 succeeded) | Done |
+| — | The v1.7 device rows (T5, T9, T13, T24, T29) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.7)
 

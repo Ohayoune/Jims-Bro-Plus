@@ -172,8 +172,6 @@ extension AppModel {
         }
         await tryClearActiveSession()
         await persistPlans()
-        // D54 (v1.5): a goal the workout reached was marked in memory when it completed.
-        if !library.goals.isEmpty { await persistGoals() }
     }
 
     func persistActiveSession() async throws {

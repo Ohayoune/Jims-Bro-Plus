@@ -128,4 +128,55 @@ final class StoreMigrationTests: XCTestCase {
         XCTAssertEqual(snapshot.sessions.count, 1)
         XCTAssertNotNil(snapshot.active)
     }
+
+    // T30 (D68, v1.7): goals are gone, and what v1.5–v1.7 left behind is harmless. A store
+    // holding `goals.json` loads with nothing set aside and the file untouched; a backup that
+    // carries `goals` still reads and restores its plans and sessions, by Replace all and by
+    // Merge; and the progression prompt has no MY GOALS block.
+    func testWhatGoalsLeftBehindIsHarmless() async throws {
+        let root = CoreTestSupport.makeRoot("T30")
+        defer { CoreTestSupport.discard(root) }
+        let store = Store(root: root)
+        let plan = CoreTestSupport.plan()
+        let session = CoreTestSupport.completed(plan: plan)
+        try await store.save(plans: [plan], activePlanId: plan.id)
+        try await store.save(session: session)
+
+        // A goals.json as v1.5–v1.7 left it. Its shape no longer matters: nothing reads it.
+        let goals = root.appendingPathComponent("goals.json")
+        let written = Data(#"{ "fileVersion": 1, "goals": [ { "exerciseName": "Bench Press", "units": "kg" } ] }"#.utf8)
+        try written.write(to: goals)
+        let snapshot = await store.load()
+        XCTAssertEqual(snapshot.corruptFiles, [], "an unread goals.json is not corrupt")
+        XCTAssertEqual(snapshot.plans.map(\.id), [plan.id])
+        XCTAssertEqual(snapshot.sessions.map(\.id), [session.id])
+        let kept = try Data(contentsOf: goals)
+        XCTAssertEqual(kept, written, "the file is left as it was")
+
+        // A backup written by v1.5–v1.7, goals and all.
+        let exported = await store.exportData(appVersion: "1.7")
+        let parsed = try JSONSerialization.jsonObject(with: try XCTUnwrap(exported))
+        var object = try XCTUnwrap(parsed as? [String: Any])
+        object["goals"] = [["exerciseName": "Bench Press", "units": "kg"]]
+        let backup = try JSONSerialization.data(withJSONObject: object)
+        for mode in [RestoreMode.replaceAll, .merge] {
+            let otherRoot = CoreTestSupport.makeRoot("T30-\(mode)")
+            defer { CoreTestSupport.discard(otherRoot) }
+            let other = Store(root: otherRoot)
+            let (document, summary) = try await other.readBackup(backup)
+            XCTAssertEqual(summary.plans, 1)
+            XCTAssertEqual(summary.sessions, 1)
+            try await other.restore(document, mode: mode)
+            let restored = await other.load()
+            XCTAssertEqual(restored.plans.map(\.id), [plan.id], "\(mode)")
+            XCTAssertEqual(restored.sessions.map(\.id), [session.id], "\(mode)")
+            XCTAssertEqual(restored.corruptFiles, [], "\(mode)")
+        }
+
+        // The chatbot is told nothing about goals, and no placeholder is left for them.
+        XCTAssertFalse(Prompts.progressionTemplate.contains("{{goals}}"))
+        let prompt = Prompts.progression(plan: plan, history: [session], weeks: 4, includeHistory: true,
+                                         settings: Settings())
+        XCTAssertFalse(prompt.contains("MY GOALS"))
+    }
 }

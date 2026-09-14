@@ -23,9 +23,6 @@ enum Gates {
     /// progression from. (Until D66 the search field came with them; it went.)
     static func metricsAndFind(sessions: [Session]) -> Bool { !finished(sessions).isEmpty }
 
-    /// History's **Goals** section, once there is a workout for a goal to be measured against.
-    static func goals(sessions: [Session]) -> Bool { !finished(sessions).isEmpty }
-
     /// **Another day**, in Today's ···: when the plan has a day besides the one Today shows —
     /// more than one day — or, when nothing is scheduled (`showing` is nil), any day at all,
     /// because then the chooser is the only way to a workout.

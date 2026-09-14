@@ -10,10 +10,6 @@
 		8B873C0ED783406EADB72E7F /* TodayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 116E02F6C8CC4045BCF3B05F /* TodayTests.swift */; };
 		91B4F25683904A3BB2BA15F7 /* GatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A47BBF57B74FE383D3E2A2 /* GatesTests.swift */; };
 		3E9381121D5F4776974B78C4 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 612199622A504012982B21D4 /* CalendarView.swift */; };
-		8EC0D3F5FF374BC28D71BCDF /* GoalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9833F12841D4DCFB6BD7AD2 /* GoalTests.swift */; };
-		7C5684A9F24D40EB89F9F4E9 /* GoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6024227A461A4433A1E43A87 /* GoalsView.swift */; };
-		E97523CD2B19481A82A471FA /* GoalsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82C67797DFA2479ABD3AA9FC /* GoalsModel.swift */; };
-		734F1603E1EF4558A1C0FD8F /* Goals.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A952D2EB8B426DB3290340 /* Goals.swift */; };
 		5D4BD5877ADF40B59A8911E7 /* StepProgressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B7999AD7451470B9EF55A69 /* StepProgressionTests.swift */; };
 		DB098ECF90B343CFB99C0C47 /* DraftPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 439CE55246D549E1A020FA0E /* DraftPlanTests.swift */; };
 		D1EA62BA895143DEB49130B8 /* DraftPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C680AFEE3D8467CBE5D18A7 /* DraftPlanView.swift */; };
@@ -171,10 +167,6 @@
 		116E02F6C8CC4045BCF3B05F /* TodayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayTests.swift; sourceTree = "<group>"; };
 		52A47BBF57B74FE383D3E2A2 /* GatesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatesTests.swift; sourceTree = "<group>"; };
 		612199622A504012982B21D4 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
-		A9833F12841D4DCFB6BD7AD2 /* GoalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalTests.swift; sourceTree = "<group>"; };
-		6024227A461A4433A1E43A87 /* GoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalsView.swift; sourceTree = "<group>"; };
-		82C67797DFA2479ABD3AA9FC /* GoalsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalsModel.swift; sourceTree = "<group>"; };
-		E2A952D2EB8B426DB3290340 /* Goals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Goals.swift; sourceTree = "<group>"; };
 		3B7999AD7451470B9EF55A69 /* StepProgressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepProgressionTests.swift; sourceTree = "<group>"; };
 		439CE55246D549E1A020FA0E /* DraftPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftPlanTests.swift; sourceTree = "<group>"; };
 		3C680AFEE3D8467CBE5D18A7 /* DraftPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftPlanView.swift; sourceTree = "<group>"; };
@@ -363,7 +355,6 @@
 		3A21295D813C26EB287FC6B5 /* Store */ = {
 			isa = PBXGroup;
 			children = (
-				82C67797DFA2479ABD3AA9FC /* GoalsModel.swift */,
 				8A15660A070849DD9F150CE6 /* DraftModel.swift */,
 				4FBD27D2E11B430C937A1579 /* ProgressionModel.swift */,
 				CD9927C3B8D84753A38D46D3 /* HistoryTransfer.swift */,
@@ -440,7 +431,6 @@
 				8E9046A86F1E4F4DB9240423 /* DayColourTests.swift */,
 				116E02F6C8CC4045BCF3B05F /* TodayTests.swift */,
 				52A47BBF57B74FE383D3E2A2 /* GatesTests.swift */,
-				A9833F12841D4DCFB6BD7AD2 /* GoalTests.swift */,
 				3B7999AD7451470B9EF55A69 /* StepProgressionTests.swift */,
 				439CE55246D549E1A020FA0E /* DraftPlanTests.swift */,
 				7CF89143A6A24A11AD257E08 /* InReserveTests.swift */,
@@ -497,7 +487,6 @@
 			isa = PBXGroup;
 			children = (
 				612199622A504012982B21D4 /* CalendarView.swift */,
-				6024227A461A4433A1E43A87 /* GoalsView.swift */,
 				90E451936EF7424D9B04AEE3 /* MetricsView.swift */,
 				B0E13F6504754DBDB320FBF3 /* HistoryView.swift */,
 			);
@@ -508,7 +497,6 @@
 			isa = PBXGroup;
 			children = (
 				7305E5F001F54DC3ACF882A1 /* DayColour.swift */,
-				E2A952D2EB8B426DB3290340 /* Goals.swift */,
 				AB6D6F6D20E64623A6844375 /* PlanDraft.swift */,
 				296E62D52FE147DC91EFCE6F /* Introduction.swift */,
 				D3ECF487372748A5AE1E91CB /* BuiltInPlans.swift */,
@@ -747,9 +735,6 @@
 				8736004A97C5433B89EB271A /* DaySquare.swift in Sources */,
 				4166F4BBA24D47E79D240C27 /* DayColour.swift in Sources */,
 				3E9381121D5F4776974B78C4 /* CalendarView.swift in Sources */,
-				7C5684A9F24D40EB89F9F4E9 /* GoalsView.swift in Sources */,
-				E97523CD2B19481A82A471FA /* GoalsModel.swift in Sources */,
-				734F1603E1EF4558A1C0FD8F /* Goals.swift in Sources */,
 				D1EA62BA895143DEB49130B8 /* DraftPlanView.swift in Sources */,
 				712A4760F26A4AB3B14B5C50 /* DraftModel.swift in Sources */,
 				F1E2D78EB69B4D84BB7235FF /* PlanDraft.swift in Sources */,
@@ -821,7 +806,6 @@
 				239C9EE5C7004FFE94A5AFE6 /* DayColourTests.swift in Sources */,
 				8B873C0ED783406EADB72E7F /* TodayTests.swift in Sources */,
 				91B4F25683904A3BB2BA15F7 /* GatesTests.swift in Sources */,
-				8EC0D3F5FF374BC28D71BCDF /* GoalTests.swift in Sources */,
 				5D4BD5877ADF40B59A8911E7 /* StepProgressionTests.swift in Sources */,
 				DB098ECF90B343CFB99C0C47 /* DraftPlanTests.swift in Sources */,
 				71D355C1D4494A1AAAF29773 /* InReserveTests.swift in Sources */,
