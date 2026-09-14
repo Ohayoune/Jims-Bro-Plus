@@ -5,24 +5,24 @@ v1.8): Q0–Q5 built and green, Q6–Q7 not started.** v1.8 and everything befor
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
 
-## v1.9 (Q0–Q7): Q0–Q5 built and green
+## v1.9 (Q0–Q7): Q0–Q6 built and green
 
 `docs/ITERATION_10_PLAN.md` is the v1.9 plan, written from the owner's notes after living with
 v1.8's strip — *"shift today's colour to the colour of the other day (without changing the plan
 itself)"*. Each milestone ends with the whole suite green on all three routes, a Release build and
 `tools/check_release.py`, and one commit on `v1.9-swaps`.
 
-After Q5:
+After Q6:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **364 tests, 17 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; Q5 adds none. The first run stopped at a new test's missing `min:max:` labels; the second was clean |
-| `swift test` | **363 tests, 0 failures** |
-| `python3 tools/check_core.py` | **363 bodies, 7,289 assertions, 0 failures** |
-| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q5 reads fragments exactly as before and changes nothing in the importer) |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **368 tests, 18 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; Q6 adds one, TQ37 |
+| `swift test` | **367 tests, 0 failures** |
+| `python3 tools/check_core.py` | **367 bodies, 7,345 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q6 touches nothing in the importer) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — still version 1.8 (1); Q7 turns it to 1.9 |
-| `python3 tools/check_bundle.py` | **current** (regenerated in Q5) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in Q6) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -32,7 +32,8 @@ After Q5:
 | Q3 | The ··· speaks in squares (D75): **Change plan** beside the active plan's cycle drawn as one symbol (`CycleSymbol` in `DaySquare.swift`, its colours from `DayColour.cycle(of:)`, its fourteen-and-a-mark cut from `CycleGlyph`) and **Change *day*'s exercises**, named by the strip's own when, beside the shown day's square — both handed to the SwiftUI `Menu` as pictures in their own colours (`ImageRenderer`, `.alwaysOriginal`), and `HomeStart.Alternative` carrying what each symbol draws. On any day's card with no session open, but not today's once its workout is done; Change plan alone on Nothing scheduled; Change plan and Discard workout while a session is open. Until Q4 the second item opens the active plan in Plan detail. Progression left Today's menu — Plan a progression, the step line, `HomeStart.offersProgression`, `stepLine` and `previewPlanId`, `Gates.planProgression` and `PromptText.planProgression` are gone, and History's Progression row is the way — and the rows are the preview and nothing more. TQ21–TQ23 in `TodayTests` and `DayColourTests`; T2, T3, T21 (four gates), TS2, W39, Z1, Z3, Z22 and Z25 rewritten; T19, TS4 and Z2 removed. SPEC §4.1, §6.26, §6.37, §6.40, §6.42–§6.45 and the new §6.49 | Done |
 | Q4 | Change *day*'s exercises (D76): the ···'s second item pushes a picker for the shown date (`ChangeDayView`; `DayChoices` from `PlanLibrary.dayChoices(for:now:)` in the new `Core/ChangeDay.swift`) — this plan's days, every other plan's, and **Write a day just for Wednesday** — and a tap writes a swap for that date alone (`choose(_:for:now:)`: answered and asked by nobody; the pattern's own day removes it; a date carrying a question is answered instead). A borrowed day projects as its own plan's day (`CalendarProjection` and `WeekStrip.days` take `plans:`), is drawn **outlined in that plan's colour**, starts as that plan's day, and its finished session moves neither plan (`isBorrowed`). A day just for the date goes through `JSONFragmentSheet` (Save **Use for Wednesday**, `saveTitle`) and the importer (`ownDay(_:named:units:settings:now:)`), is held by the swap, is drawn **outlined in ink**, and starts as the active plan's session under its own name (`startOwnDay`). `StartCard.own`, `HomeStart.ownDay` and `.isOutlined`, `MissedWorkout.planId` and `.own` (Do it now starts either), `WeekStrip.Square.planId` and `.own`, `DaySquare(outlined:)`. TQ25–TQ28 in `SwapTests`; no earlier case changed. SPEC §4.1, §6.41, §6.44, §6.46, §6.49 and the new §6.50 | Done |
 | Q5 | The JSON sheet, redone (D77), at its five points — an exercise, a day, exercises to add, a day to add, and Q4's day just for a date — by a `JSONPoint` (`Core/JSONPoint.swift`) that `FragmentTarget` maps to and `DayChoices.point` hands over (in place of Q4's `ownFooter` and `saveTitle`): **named** — One exercise, One day, Exercises to add, A day to add, A day just for Wednesday, with the place beneath ("Bench Press, exercise 3 of 5 in Push", "Added at the end of Push", "For Wednesday 16 September. Not saved to Push Pull Legs."); **pre-filled** — an edit on the part's own text, an addition on a Push-up that saves as it stands (a free weekday on a weekday plan); **the error at the line** — `Core/JSONLocator.swift` walks the text as strict JSON to the path's line, through the origins `PlanEdit.located` keeps (`fragment(_:as:)` is it without them), or answers nothing, and the box, now a TextKit 1 `UITextView`, tints the line with a bar at its edge and puts the sentence in a gap beneath it, while an edit unmarks until the next Save; and **a Save that says its effect** — Replace Bench Press, Replace Push, Add to Push, Add to Push Pull Legs, Use for Wednesday. Smart quotes are off in the box. TQ30–TQ32 in `JSONEditTests`; TQ25 reads Save from the point; W17's message changed. SPEC §4.3, §6.19 and §6.50 | Done |
-| Q6–Q7 | Plans in squares (D78), docs and 1.9 | Not started |
+| Q6 | Plans speak in squares (D78). **The list**: a row is the accent chevron at its left, the plan's `CycleSymbol`, its name with **how often** beneath (`PlanText.howOften` — 6 days a week, 3 days every 10, Every day — counted from the symbol's own squares) and a circle at its right; the filled circle is the mark, the active plan's until another is tapped, and a marked plan that is not active puts **Use *name*** in the bottom slot (`PlanText.toUse`, `.useTitle`), which makes it active and empties Today's stack (`PlansView` takes Today's path). Add plan moved to the top right; the mark is never stored. **The page**: the repeat block's chips became squares, names beneath and the entry Next up would start in ink (`RepeatBlock.squares`), and the days became the whole cycle again as rows (`PlanPage.rows`) — repeats included, a rest with nothing to open, any day the cycle never reaches after it — each closed until tapped, an open day v1.8's section with the day's menu on its row. **Use this plan** left Plan detail's ···; nothing else did. `Core/PlanPage.swift`; the seeder's `--plans` (`SEED_PLANS=1` in `tools/shot.sh`). TQ34–TQ37 in `PlansTests`; Y13's Add plan pin reads the top-right button. SPEC §4.2, §4.3, §6.49 and the new §6.51 | Done |
+| Q7 | Docs, checklist, bundle, 1.9 | Not started |
 
 ### Checked on the simulator (v1.9)
 
@@ -57,9 +58,22 @@ After Q5:
   **▶ Start Today's Pull**. The last row opened the sheet on a day to fill in, its footer naming
   *Monday's own day* and its Save **Use for Today**. With one plan there was no borrowed day to
   see; the outlined squares at the strip's size are TQ29's, on the phone.
+- Q6, on the iPhone 17 simulator with `SEED=1 SEED_PLANS=1 DEVICE="iPhone 17" tools/shot.sh <png>
+  -uiScreen plans` (and `-uiPlanDetail` for the page): three plans — Push Pull Legs, seven squares,
+  *6 days a week*; Upper Lower, a weekday plan, *4 days a week*; Full Body's fourteen squares, *6
+  days every 14* — each behind the accent chevron at its left, the active plan's circle filled and
+  the others empty, **Add plan** at the top right and nothing in the bottom slot. The page: *kg ·
+  repeats every 7 days* over seven squares with their names beneath and **Push** in ink, then Push,
+  Pull, Legs, Push, Pull, Legs as closed rows with grey chevrons, and Rest with none.
 
 ### Not run in v1.9 (so far)
 
+- **Q6's taps.** The simulator tool refused taps again ("stopped retrying after repeated
+  crashes"), and no launch argument opens a day or marks a circle, so an open day — its exercises,
+  Add exercise, Start and the menu on its row — the circle's **Use Upper Lower**, and the tap that
+  makes it active and lands on Today were not seen. To look: `SEED=1 SEED_PLANS=1 DEVICE="iPhone
+  17" tools/shot.sh <png> -uiScreen plans`, tap Upper Lower's circle, then the button. On the phone
+  these are TQ38 and TQ39.
 - **Q5's sheet on the simulator.** `SEED=1 DEVICE="iPhone 17" tools/shot.sh` brought the app up on
   the seeded rest day (seen in a `simctl` screenshot), but the simulator tool then crashed on every
   screenshot and afterwards refused taps as well ("stopped retrying after repeated crashes"), and no

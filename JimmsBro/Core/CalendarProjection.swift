@@ -34,7 +34,8 @@ extension DayColour {
     }
 
     /// D75 (v1.9, §6.49): a plan's cycle as colours — a square per entry, its day's colour and
-    /// nil for rest — for the ···'s Change plan and, from Q6 (D78), the Plans list. A rotation's
+    /// nil for rest — for the ···'s Change plan, the Plans list's rows and Plan detail's squares
+    /// (D78). A rotation's
     /// is its repeat block as written, from its first entry rather than from today: the plan's
     /// shape, where the strip is this week. A weekday plan's is Monday to Sunday, as Plan detail
     /// lays it out, a weekday with no day nil. An entry pointing at a day the plan no longer

@@ -60,8 +60,8 @@ struct DaySquare: View {
 /// D75 (v1.9, §6.49): a plan's cycle as one symbol — its squares in one row, all one size, each
 /// its day's colour and grey for rest, and past fourteen a trailing mark (`CycleGlyph` says
 /// where it cuts). It says *which plan* by its shape, as a day's square says which day; the
-/// words beside it name it, so VoiceOver skips it. The ···'s Change plan draws it, and the
-/// Plans list will (D78).
+/// words beside it name it, so VoiceOver skips it. The ···'s Change plan draws it, and so does
+/// each row of the Plans list (D78).
 struct CycleSymbol: View {
     let cycle: [DayColour?]
     /// A square's side at the default text size; it grows with Dynamic Type.

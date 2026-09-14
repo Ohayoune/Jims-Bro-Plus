@@ -156,13 +156,16 @@ date (D76), **the JSON sheet redone** at every fragment point — named, pre-fil
 line, a Save that says its effect (D77) — and **Plans that speak in squares** (D78 — a circle to
 mark and a button to confirm, the page with the cycle as squares and every day closed until
 tapped). The requirements were settled in two rounds on the "Swapping Days" artifact linked from
-the plan. Q0–Q5 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
+the plan. Q0–Q6 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
 Today, Q3 the ··· in squares with progression left to History, Q4 a day's exercises changed for one
 date — a day of this plan, a day borrowed from another plan (outlined in its colour) or a day
-written just for the date (outlined in ink), `Core/ChangeDay.swift` and `ChangeDayView` — and Q5
+written just for the date (outlined in ink), `Core/ChangeDay.swift` and `ChangeDayView` — Q5
 the JSON sheet redone at its five points: named, pre-filled with an example that saves as it
 stands, the error marked at its line or nowhere (`Core/JSONPoint.swift`, `Core/JSONLocator.swift`),
-and a Save that says its effect. `docs/BUILD_STATUS.md` says what was run; Q6 is next.
+and a Save that says its effect — and Q6 Plans in squares: on the list a chevron at the left, the
+cycle's symbol, how often, and a circle that marks while **Use *name*** confirms (now the one way
+to change plan), and on the plan's page the cycle as squares, then as rows each closed until
+tapped (`Core/PlanPage.swift`). `docs/BUILD_STATUS.md` says what was run; Q7 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 

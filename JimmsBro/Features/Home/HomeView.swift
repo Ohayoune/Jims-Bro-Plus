@@ -184,7 +184,7 @@ struct HomeView: View {
             .settingsGear($showingSettings)
             .navigationDestination(for: TodayRoute.self) { route in
                 switch route {
-                case .plans: PlansView(addPlan: $addPlan, showWorkout: $showWorkout)
+                case .plans: PlansView(path: $path, addPlan: $addPlan, showWorkout: $showWorkout)
                 case let .changeExercises(date): ChangeDayView(date: date)
                 }
             }

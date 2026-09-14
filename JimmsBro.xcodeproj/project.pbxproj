@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		5C1A2EF8492A449394CC0E32 /* JSONPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D63DF0BBB984DE9BCD80A16 /* JSONPoint.swift */; };
+		B810218950EC57C9DA7A71F1 /* PlanPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 023EB36E39C406CC8BA45A11 /* PlanPage.swift */; };
 		AFA84798DF75402CA760BCF1 /* JSONLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BA5E71739BE44C69373F820 /* JSONLocator.swift */; };
 		F69F47C90CB946688B922D06 /* SwapQuestionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AF6D2A2A934919AAE328C6 /* SwapQuestionView.swift */; };
 		06B92B29FAA44F848634ACFF /* ChangeDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE8B170CD22B4192A8888D7F /* ChangeDay.swift */; };
@@ -43,6 +44,7 @@
 		B7C60316184D462A9466602B /* HistoryTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9927C3B8D84753A38D46D3 /* HistoryTransfer.swift */; };
 		40D7674A880D4945A56B2B10 /* HistoryCSV.swift in Sources */ = {isa = PBXBuildFile; fileRef = D785BE8793B4406986BDBEE7 /* HistoryCSV.swift */; };
 		BFF32C02BE544CED9F319F4E /* JSONEditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B42BB5F37D4577BB31378A /* JSONEditTests.swift */; };
+		AF711A231BFD81286109980E /* PlansTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C582AB7AC0E41121EE72453 /* PlansTests.swift */; };
 		485BB3B824174DB98FA62F4A /* JSONFragmentSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E6EBAEA094407981604FCE /* JSONFragmentSheet.swift */; };
 		DF1A119FAD2849449B70E433 /* ChangeExerciseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1374E419EAD343B697A28F06 /* ChangeExerciseTests.swift */; };
 		8C433778AA4F41A9B54DD924 /* ChangeExerciseSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B213B7B0ED784B51A6EF7592 /* ChangeExerciseSheet.swift */; };
@@ -173,6 +175,7 @@
 
 /* Begin PBXFileReference section */
 		1D63DF0BBB984DE9BCD80A16 /* JSONPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONPoint.swift; sourceTree = "<group>"; };
+		023EB36E39C406CC8BA45A11 /* PlanPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPage.swift; sourceTree = "<group>"; };
 		6BA5E71739BE44C69373F820 /* JSONLocator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONLocator.swift; sourceTree = "<group>"; };
 		02AF6D2A2A934919AAE328C6 /* SwapQuestionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapQuestionView.swift; sourceTree = "<group>"; };
 		BE8B170CD22B4192A8888D7F /* ChangeDay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeDay.swift; sourceTree = "<group>"; };
@@ -208,6 +211,7 @@
 		CD9927C3B8D84753A38D46D3 /* HistoryTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryTransfer.swift; sourceTree = "<group>"; };
 		D785BE8793B4406986BDBEE7 /* HistoryCSV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryCSV.swift; sourceTree = "<group>"; };
 		F3B42BB5F37D4577BB31378A /* JSONEditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONEditTests.swift; sourceTree = "<group>"; };
+		2C582AB7AC0E41121EE72453 /* PlansTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlansTests.swift; sourceTree = "<group>"; };
 		B2E6EBAEA094407981604FCE /* JSONFragmentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONFragmentSheet.swift; sourceTree = "<group>"; };
 		1374E419EAD343B697A28F06 /* ChangeExerciseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeExerciseTests.swift; sourceTree = "<group>"; };
 		B213B7B0ED784B51A6EF7592 /* ChangeExerciseSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeExerciseSheet.swift; sourceTree = "<group>"; };
@@ -459,6 +463,7 @@
 				E9E6A382E1EE403A84C759E7 /* ProgressionTests.swift */,
 				E5AC840139EE42C7BD4BAC83 /* HistoryCSVTests.swift */,
 				F3B42BB5F37D4577BB31378A /* JSONEditTests.swift */,
+				2C582AB7AC0E41121EE72453 /* PlansTests.swift */,
 				1374E419EAD343B697A28F06 /* ChangeExerciseTests.swift */,
 				5418E891D2194939B62AE34D /* ActivityTests.swift */,
 				E48DE3944FA443E88F409422 /* MetricsTests.swift */,
@@ -516,6 +521,7 @@
 			isa = PBXGroup;
 			children = (
 				1D63DF0BBB984DE9BCD80A16 /* JSONPoint.swift */,
+				023EB36E39C406CC8BA45A11 /* PlanPage.swift */,
 				6BA5E71739BE44C69373F820 /* JSONLocator.swift */,
 				80D16661141C43ECB3877B14 /* DaySwap.swift */,
 				BE8B170CD22B4192A8888D7F /* ChangeDay.swift */,
@@ -757,6 +763,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5C1A2EF8492A449394CC0E32 /* JSONPoint.swift in Sources */,
+				B810218950EC57C9DA7A71F1 /* PlanPage.swift in Sources */,
 				AFA84798DF75402CA760BCF1 /* JSONLocator.swift in Sources */,
 				F69F47C90CB946688B922D06 /* SwapQuestionView.swift in Sources */,
 				06B92B29FAA44F848634ACFF /* ChangeDay.swift in Sources */,
@@ -849,6 +856,7 @@
 				22596811096049DE8D43B0DA /* ProgressionTests.swift in Sources */,
 				A739B83332FE43A580221FEE /* HistoryCSVTests.swift in Sources */,
 				BFF32C02BE544CED9F319F4E /* JSONEditTests.swift in Sources */,
+				AF711A231BFD81286109980E /* PlansTests.swift in Sources */,
 				DF1A119FAD2849449B70E433 /* ChangeExerciseTests.swift in Sources */,
 				5CF563E7589A4C9DB7E6FABC /* ActivityTests.swift in Sources */,
 				3F695B4C1054440FA19BD4A5 /* MetricsTests.swift in Sources */,

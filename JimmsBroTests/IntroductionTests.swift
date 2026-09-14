@@ -55,7 +55,8 @@ final class IntroductionTests: XCTestCase {
             // D67 (v1.7): History's row since the owner's review.
             ("Progression", "JimmsBro/Features/History/HistoryView.swift", "Text(\"Progression\")"),
             ("built-in plan", "JimmsBro/Features/Import/ImportView.swift", "Label(\"Choose a built-in plan\""),
-            ("Add plan", "JimmsBro/Features/Plans/PlansView.swift", "PrimaryButton(title: \"Add plan\")"),
+            // D78 (v1.9): at the list's top right, since the bottom slot is the circle's Use.
+            ("Add plan", "JimmsBro/Features/Plans/PlansView.swift", "Button(\"Add plan\") { addPlan = .plan }"),
         ]
         for pin in literals {
             guard let source = FixtureLoader.doc(pin.file) else {

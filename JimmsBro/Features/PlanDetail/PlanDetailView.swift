@@ -1,6 +1,8 @@
 import SwiftUI
 
-/// SPEC §4.3: the repeat block, the days, and the secondary actions behind "···".
+/// SPEC §4.3: the repeat block, the days, and the secondary actions behind "···". Since D78
+/// (v1.9, §6.51) the repeat block is the cycle as squares, and the days are the whole cycle again
+/// as rows, each closed until tapped.
 struct PlanDetailView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
@@ -11,6 +13,8 @@ struct PlanDetailView: View {
     @State private var draftName = ""
     @State private var copied = false
     @State private var switching: Int?
+    /// D78 (v1.9): the rows open, by their place on the page — the screen's, never stored.
+    @State private var open: Set<Int> = []
     /// D25/D26 (v1.1): Replace opens Import pre-filled with this plan's JSON, targeting its id.
     @State private var replacing = false
     /// D25 (v1.1): Delete now confirms here too, matching every other delete path.
@@ -33,56 +37,28 @@ struct PlanDetailView: View {
                     // D67 (v1.7): no Progression row here since the owner's review — it is
                     // History's, beside the numbers a progression is planned from (§6.42).
                     Section { repeatBlock(plan) }
-                    ForEach(Array(plan.days.enumerated()), id: \.element.id) { index, day in
+                    // D78 (v1.9): the whole cycle again as rows, repeats included, each day closed
+                    // until tapped. An open day is v1.8's section — its exercises and their sheet,
+                    // Edit mode's reorder and delete (D29), Add exercise, Start — with the day's
+                    // menu on its row. A rest is a row with nothing to open.
+                    ForEach(PlanPage.rows(plan)) { row in
                         Section {
-                            ForEach(Array(day.exercises.enumerated()), id: \.element.id) { position, exercise in
-                                Button {
-                                    editing = ExerciseAddress(day: index, exercise: position)
-                                } label: {
-                                    ExerciseRow(exercise: exercise, units: plan.units)
+                            if let index = row.dayIndex, let day = plan.days[safe: index] {
+                                let isOpen = open.contains(row.id)
+                                HStack(spacing: 4) {
+                                    Button { toggle(row.id) } label: { rowLabel(row, isOpen: isOpen) }
+                                        .buttonStyle(PressableRow())
+                                        .accessibilityValue(isOpen ? "Open" : "Closed")
+                                    if isOpen { dayMenu(day, index) }
                                 }
-                                .buttonStyle(PressableRow())
-                            }
-                            .onMove { offsets, destination in
-                                guard let from = offsets.first else { return }
-                                // SwiftUI's destination is the gap; an index is what we move to.
-                                let to = destination > from ? destination - 1 : destination
-                                edit(.moveExercise(day: index, from: from, to: to))
-                            }
-                            .onDelete { offsets in
-                                guard let position = offsets.first else { return }
-                                edit(.deleteExercise(day: index, exercise: position))
-                            }
-                            // D59 (v1.6): Add exercise as a row, not only behind the day's ···;
-                            // Start as a button, not a text link at the end of a list.
-                            Button { fragment = .addExercise(day: index) } label: {
-                                Label("Add exercise", systemImage: "plus")
-                            }
-                            Button("Start \(day.name)") { start(plan, index) }
-                                .buttonStyle(.bordered)
-                                .buttonBorderShape(.capsule)
-                                .tint(Color.accentColor)
-                        } header: {
-                            HStack {
-                                Text(day.name)
-                                Spacer()
-                                Menu {
-                                    Button("Rename day") {
-                                        draftDayName = day.name
-                                        renamingDay = index
-                                    }
-                                    Button("Duplicate day") { edit(.duplicateDay(day: index)) }
-                                    // D43 (v1.3): the day as text, and a new exercise typed in.
-                                    Button("Add exercise") { fragment = .addExercise(day: index) }
-                                    Button("Edit day as JSON") { fragment = .day(index) }
-                                } label: {
-                                    Image(systemName: "ellipsis")
-                                }
-                                .accessibilityLabel("Edit \(day.name)")
+                                if isOpen { dayContent(plan, day, index) }
+                            } else {
+                                rowLabel(row, isOpen: nil)
                             }
                         }
                     }
                 }
+                .listSectionSpacing(.compact)
                 .navigationTitle(plan.name)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -172,33 +148,122 @@ struct PlanDetailView: View {
     private func repeatBlock(_ plan: Plan) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             // D59 (v1.6): "kg · repeats every 7 days" — "rotation" was the format's word, not
-            // the person's — and chips that wrap instead of scrolling off the edge.
+            // the person's.
             Text([plan.units.rawValue, RepeatBlock.caption(plan)?.lowercased()].compactMap { $0 }
                 .joined(separator: " · "))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            WrapLayout(spacing: 6) {
-                ForEach(Array(RepeatBlock.chips(plan).enumerated()), id: \.offset) { index, name in
-                    let highlighted = RepeatBlock.highlighted(plan) == index
-                    Text(name)
-                        .font(.caption)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(highlighted ? Color.accentColor : Color.secondary.opacity(0.15),
-                                    in: Capsule())
-                        .foregroundStyle(highlighted ? .white : .primary)
+            // D78 (v1.9): the cycle as squares where D59's chips were, wrapping as they did —
+            // each its day's colour with its name beneath, the entry Next up would start named
+            // in ink, and a weekday plan's weekday above each.
+            WrapLayout(spacing: 10, lineSpacing: 10) {
+                ForEach(Array(RepeatBlock.squares(plan).enumerated()), id: \.offset) { _, square in
+                    VStack(spacing: 4) {
+                        if let weekday = square.weekday {
+                            Text(weekday)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        DaySquare(colour: square.colour, size: 18)
+                        Text(square.name)
+                            .font(.caption2.weight(square.isNow ? .semibold : .regular))
+                            .foregroundStyle(square.isNow ? .primary : .secondary)
+                            .lineLimit(1)
+                            .frame(maxWidth: 88)
+                    }
                 }
             }
+            .accessibilityElement(children: .combine)
         }
         .padding(.vertical, 4)
+    }
+
+    /// A row of the cycle: the day's square and name, a weekday plan's weekday beside it, and on
+    /// a day a chevron that turns down while it is open. A day opens in place rather than onto a
+    /// screen, so its chevron is grey, not the accent of a row that opens one.
+    private func rowLabel(_ row: PlanPage.Row, isOpen: Bool?) -> some View {
+        HStack(spacing: 12) {
+            DaySquare(colour: row.colour, size: 14)
+            Text(row.name)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            if let weekday = row.weekday {
+                Text(weekday).foregroundStyle(.secondary)
+            }
+            if let isOpen {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .rotationEffect(.degrees(isOpen ? 90 : 0))
+            }
+        }
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+    }
+
+    private func toggle(_ id: Int) {
+        withAnimation(.easeOut(duration: 0.2)) {
+            if open.contains(id) { open.remove(id) } else { open.insert(id) }
+        }
+    }
+
+    /// The day's menu, on its row while the day is open — v1.8's header menu, the same four items.
+    private func dayMenu(_ day: Day, _ index: Int) -> some View {
+        Menu {
+            Button("Rename day") {
+                draftDayName = day.name
+                renamingDay = index
+            }
+            Button("Duplicate day") { edit(.duplicateDay(day: index)) }
+            // D43 (v1.3): the day as text, and a new exercise typed in.
+            Button("Add exercise") { fragment = .addExercise(day: index) }
+            Button("Edit day as JSON") { fragment = .day(index) }
+        } label: {
+            Image(systemName: "ellipsis")
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .accessibilityLabel("Edit \(day.name)")
+    }
+
+    /// An open day: v1.8's section, unchanged — its exercises and their sheet, Edit mode's
+    /// reorder and delete (D29), Add exercise and Start.
+    @ViewBuilder private func dayContent(_ plan: Plan, _ day: Day, _ index: Int) -> some View {
+        ForEach(Array(day.exercises.enumerated()), id: \.element.id) { position, exercise in
+            Button {
+                editing = ExerciseAddress(day: index, exercise: position)
+            } label: {
+                ExerciseRow(exercise: exercise, units: plan.units)
+            }
+            .buttonStyle(PressableRow())
+        }
+        .onMove { offsets, destination in
+            guard let from = offsets.first else { return }
+            // SwiftUI's destination is the gap; an index is what we move to.
+            let to = destination > from ? destination - 1 : destination
+            edit(.moveExercise(day: index, from: from, to: to))
+        }
+        .onDelete { offsets in
+            guard let position = offsets.first else { return }
+            edit(.deleteExercise(day: index, exercise: position))
+        }
+        // D59 (v1.6): Add exercise as a row, not only behind the day's ···;
+        // Start as a button, not a text link at the end of a list.
+        Button { fragment = .addExercise(day: index) } label: {
+            Label("Add exercise", systemImage: "plus")
+        }
+        Button("Start \(day.name)") { start(plan, index) }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .tint(Color.accentColor)
     }
 
     @ToolbarContentBuilder private func menu(_ plan: Plan) -> some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
-                if plan.id != model.activePlanId {
-                    Button("Use this plan") { Task { await model.setActivePlan(planId) } }
-                }
+                // D78 (v1.9): the plan is changed from the Plans list's circle, the one way.
                 Button("Rename") { draftName = plan.name; renaming = true }
                 Button(copied ? "Copied" : "Copy JSON") { Clipboard.write(plan.sourceText); copied = true }
                 // D43 (v1.3): the plan's text, editable; and a day pasted in whole — the way

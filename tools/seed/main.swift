@@ -104,8 +104,19 @@ if arguments.contains("--progression") {
     }
 }
 
+// v1.9 (D78): `--plans` adds two built-in plans beside the seeded one, neither active, so the
+// Plans list has symbols and "how often" lines to compare and a circle to mark.
+var others: [Plan] = []
+if arguments.contains("--plans") {
+    let folder = URL(fileURLWithPath: arguments[2]).deletingLastPathComponent()
+    for name in ["UpperLower", "FullBody"] {
+        let other = try String(contentsOf: folder.appendingPathComponent("\(name).json"), encoding: .utf8)
+        if let imported = PlanImport.run(other, settings: Settings(), now: now).plan { others.append(imported) }
+    }
+}
+
 try await store.save(settings: Settings())
-try await store.save(plans: [plan], activePlanId: plan.id)
+try await store.save(plans: [plan] + others, activePlanId: plan.id)
 for session in sessions { try await store.save(session: session) }
 if !swaps.isEmpty { try await store.save(swaps: swaps) }
 print("seeded \(sessions.count) sessions into \(root.path)")
