@@ -4,9 +4,9 @@ Every `manual` case from `TEST_CASES.md`, to run on the owner's iPhone. The simu
 notifications while locked, real haptics, the silent switch, or the free-account expiry, which is why
 these are here rather than automated.
 
-Everything else — 304 automated tests plus the simulator screen checks — is green; see
+Everything else — 332 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
-**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, and **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37. Y19 needs a TestFlight build, which needs the paid
+**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37, and **v1.7** T5, T9, T13 and T24. Y19 needs a TestFlight build, which needs the paid
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
@@ -180,6 +180,13 @@ whichever screen still calls a text function without passing it.
 | **T9** | With a plan, on Today: tap the ···, then **Change plan**; open a plan, then go back twice. Tap the gear on Today and go back; switch to History and tap its gear. Then delete every plan from the Plans list and look at Today | The tab bar shows **Today** and **History** and nothing else. Plans is two taps from Today and a plan's detail one more; back returns to Today each time. The gear sits top-left in the same place on both tabs and opens Settings with a back button. With no plan, Today still has its gear (Import backup is in Settings) |  |  |
 | **T13** | With a plan and a few finished workouts, open History. Tap **Month**, then **Week**. Tap a done day once, then again; go back. Tap today when it is a planned day. Then, on a fresh install with a built-in plan chosen and nothing done, open History | History opens with the week strip and the week's line ("2 workouts this week · …") above Metrics. Month and Week switch the grid. A done day's first tap shows "… · Legs · 52 min ›", its second opens the workout pushed onto History, and back returns to History. Today's planned day shows "… · planned" and no button. The fresh install shows the plan's week — its days named, rest days as dashes — above "No workouts yet" and **Import from another app** |  |  |
 | **T24** | With a plan of three or more days and two different days done, look at Today; open History (the strip, then **Month**); start the day Today shows, lock the phone during a rest, then unlock and open the Dynamic Island. Then Settings → Display & Brightness → Dark, and look at each again | The square before the day's name on Today, that day's fill and name in the calendar, the square on its History rows, the square leading the workout header, and the square before the title on the Lock Screen and in the expanded Island are one colour, and the compact Island's figure is that colour while working; every other day has a different colour. Start, the tab bar and the backgrounds have none. In dark mode each is still the same colour as the others, and every calendar label is legible |  |  |
+
+For the v1.7 rows: a `fail` on T5 points at `HomeView` (`Features/Home/HomeView.swift`) — SPEC §4.1
+lets only the exercise list scroll; on T9 at `AppTab` (`Core/Tabs.swift`), `settingsGear` in
+`RootView.swift` and Today's `NavigationPath`; on T13 at `Features/History/CalendarView.swift`,
+`CalendarText.line` and `Gates.month`; on T24 at `DaySquare.swift`, which both targets compile and
+which is the only mapping from a `DayColour` to a `Color`, then at `DayColour.of(session:plans:)`
+and `WorkoutActivityState.dayColour` for the Lock Screen and the Island.
 
 ## When you are done
 

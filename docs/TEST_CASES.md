@@ -968,6 +968,14 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | T24 | ui | (D65, v1.7) One day, one colour, on the phone | The same day is the same colour on Today, in the calendar, on its History rows, in the workout header and on the Lock Screen, in light and in dark, and nothing else took a colour (device; `DEVICE_CHECKLIST.md` T24) |
 | T25 | unit | (D65, v1.7) One day, one colour, in Core | `HomeStart.dayColour` is the colour of the day the card names, the running session's mid-workout (Legs: purple), and nil on the empty card; `DayEntry.dayColour` is the day's for a planned day and the first workout's for a finished one, nil for a rest day and an empty one; `DayColour.of(session:plans:)` finds the day by the plan's id and the normalized name, is nil when the plan is gone or the day renamed, and follows the day when the days are reordered; `WorkoutActivityState.of(…, plans:)` carries the day's colour working and resting, and none without the plans |
 
+### T6 — Docs, checklist, bundle, screenshots, 1.7
+
+No app code beyond the version; the check is the script's, as U7 was for v1.6.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| T26 | check | (v1.7) `tools/check_release.py` | Version 1.7, build 1, on every target and in `docs/APP_STORE.md` |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

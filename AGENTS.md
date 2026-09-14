@@ -85,14 +85,14 @@ Screen (`refreshActivity(force:)`). U0–U7 are built and green on `v1.6-refinem
 
 `docs/ITERATION_8_PLAN.md` is the v1.7 plan (milestones **T0–T6**), written 2026-09-13 from the
 owner's note after living with v1.6 — *"sensory overload… less choices… more forcing… feels like a
-settings menu"*. Home becomes **Today**, one card with the same five zones every day and its
-alternatives in one ··· (D61); the tab bar shrinks (D62 — the owner chose **Reading A: Today · History**
-on 2026-09-13); the calendar and the week's line move to History (D63); controls
-are **earned** by a table in SPEC (D64, `Core/Gates.swift`); and a **colour per day** in four
-places (D65, `Core/DayColour.swift`, chosen go the same day). Nothing in it touches
+settings menu"*. Home became **Today**, one card with the same five zones every day and its
+alternatives in one ··· (D61); the tab bar shrank (D62 — the owner chose **Reading A: Today · History**
+on 2026-09-13); the calendar and the week's line moved to History (D63); controls
+became **earned** by a table in SPEC (D64, `Core/Gates.swift`); and each day took a **colour** in
+four places (D65, `Core/DayColour.swift`, chosen go the same day). Nothing in it touched
 `Core/Persistence.swift`, the pipeline, the format, the prompts or the Workout screen. The Today
-mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T5 are built and green on
-`v1.7-today` off `main` now that pull request #2 has merged: Today is one card (`HomeStart.message`
+mock is the "Jimm's Bro+ Today" artifact linked from the plan. T0–T6 are built and green on
+`v1.7-today`, off `main`, which holds v1.6 since pull request #2 merged: Today is one card (`HomeStart.message`
 and `.alternatives` are Core data, `TodayTests` T1–T4), and the empty card offers **Choose a
 plan**. The tab bar is **Today · History** (`AppTab`, `Core/Tabs.swift`, pinned to SPEC §4.0 by
 T7): Plans is pushed from Today's ··· → Change plan, and Settings from a gear at the top-left of
@@ -104,7 +104,9 @@ for a workout older than this week, and Metrics, Find an exercise, the search fi
 for the first workout. Each day has a colour (T5): `Core/DayColour.swift` gives a day its colour by
 its place in the plan's day list, derived and never stored, and `DaySquare.swift` draws it in
 SPEC §6.41's four places — Today, the calendar, History's rows, and the workout header with the
-Lock Screen — and nowhere else. T6 is next.
+Lock Screen — and nowhere else. T6 made the documents say so: version 1.7 on every target,
+Today and History's month as the README's screenshots, SPEC's remaining Homes made Today, and the
+v1.7 device rows (T5, T9, T13, T24) in the checklist that still needs the phone.
 
 Three v1.2 rules are worth knowing before touching anything:
 

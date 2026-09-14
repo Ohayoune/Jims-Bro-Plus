@@ -1,12 +1,12 @@
 # Build status
 
-Updated 2026-09-13. **v1.7 is in progress on branch `v1.7-today` (off `main`, which holds
-v1.6 since pull request #2 merged): T0–T5 are built and green; T6 follows.** v1.6 and
+Updated 2026-09-13. **v1.7 is built and green on branch `v1.7-today` (off `main`, which holds
+v1.6 since pull request #2 merged): T0–T6.** v1.6 and
 everything before it are below, unchanged except where a later milestone corrected them; the
 device checklist, the Developer Program, a release Xcode and the submission itself are the
 owner's.
 
-## v1.7 (T0–T6): in progress
+## v1.7 (T0–T6): built and green
 
 `docs/ITERATION_8_PLAN.md` is the v1.7 plan, written from the owner's note after living with
 v1.6 — *"sensory overload… less choices… more forcing… feels like a settings menu"*. Two
@@ -14,16 +14,17 @@ milestones were the owner's call and were chosen on 2026-09-13: T2 is Reading A 
 History) and T5 (a colour per day) is go. Each milestone ends with the whole suite green on all
 three routes, a Release build and `tools/check_release.py`, and one commit on `v1.7-today`.
 
-After T5:
+After T6:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **332 tests, 10 skipped, 0 failures** — the eighth skip is T7, the ninth T21 and the tenth T23's read of `DaySquare.swift`, which read SPEC or a source file and so run on the host routes |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **332 tests, 10 skipped, 0 failures** — the eighth skip is T7, the ninth T21 and the tenth T23's read of `DaySquare.swift`, which read SPEC or a source file and so run on the host routes. T6's first run never reached a test — "the test runner hung before establishing connection" — and this is the rerun, after restarting the iPhone 17 simulator |
 | `swift test` | **331 tests, 0 failures** |
 | `python3 tools/check_core.py` | **331 bodies, 6,156 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
-| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.5 (1); T6 makes it 1.7 |
-| `python3 tools/check_bundle.py` | **current** (regenerated in T0–T5) |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.7 (1) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in T0–T6) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -33,8 +34,8 @@ After T5:
 | T3 | The calendar lives in History (D63): the week strip, **Month**, the tapped-day line and the week's line open History, above Metrics, Find an exercise, Goals and the months (`Features/History/CalendarView.swift`, drawing unchanged). The tapped-day line is Core's (`CalendarText.line` → `DayLine`): "planned", not "projected", and no **Start this**; a finished day opens pushed onto History's stack. With no workouts the strip still shows the plan's week above "No workouts yet" and Import from another app. O66 re-homed as T10, T11–T12 in `HistoryTests`; the seeder takes `--no-history` (`SEED_NO_HISTORY=1`) | Done |
 | T4 | Controls are earned (D64): `Core/Gates.swift` has one function per row of SPEC §6.40's table (the plan's §6.39, which T3 took), and the views and `HomeStart` ask it rather than counting. New on screen: **Month** waits for a workout older than this week, and History's search field waits with Metrics and Find an exercise for the first workout. Another day, Change plan, Plan a progression, Goals and the notifications-off line go through `Gates` with their behaviour unchanged. Nothing is stored; each gate is a function of the data. T14–T21 in `GatesTests`, and T21 pins the table to the type | Done |
 | T5 | A colour per day (D65): every day of a plan takes a colour by its place in the day list — green, orange, purple, pink, teal, indigo, then round again (`Core/DayColour.swift`), derived and never stored — drawn in four places and nowhere else: a square before the day's name on Today, the calendar's finished fill and planned name (where the reserved green and the accent were), a square leading each History row, and a square leading the workout header and the Lock Screen's title, with the compact Island's figure in it while working. Core decides the colour (`HomeStart.dayColour`, `DayEntry.dayColour`, `DayColour.of(session:plans:)`, `WorkoutActivityState.dayColour`); `DaySquare.swift` is the one mapping to a `Color`, in both targets. T22, T23 and T25 in `DayColourTests`; SPEC §6.41 | Done |
-| T6 | Docs, checklist, bundle, screenshots, 1.7 | Next |
-| — | The v1.7 device rows (T5, T9, T13, T24 so far) | **Written, not run** — need the phone |
+| T6 | Docs, checklist, bundle, screenshots, 1.7: SPEC's remaining Homes made Today, with D18's row, §5.1's button, the progression link and v1.6's hierarchy line keeping their older text in italics; T26, the version check; the v1.7 device rows' failure pointers; the README's landing screenshots (`today.png` for `home.png`, `history.png` retaken on the month), its status, agent paragraph, test counts and document table; version **1.7** on the app, the extension and the tests and in `docs/APP_STORE.md`; the bundle regenerated | Done |
+| — | The v1.7 device rows (T5, T9, T13, T24) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.7)
 
@@ -49,12 +50,21 @@ After T5:
 | `build/t3-history-empty.png` | `SEED=1 SEED_NO_HISTORY=1 tools/shot.sh … -uiScreen history -uiNoAsk`: the plan and no workouts — the plan's week in the strip (Push today, outlined; Saturday a rest dash), "No workouts yet" under it, then **Import from another app** with "Finished workouts appear here." |
 | `build/t4-history.png` | History after T4, from `SEED=1 tools/shot.sh build/t4-history.png -uiScreen history -uiNoAsk`: the seeded six workouts are all older than this week, so **Month** is earned, and the search field, Metrics, Find an exercise, Goals and September 2026 are there — the screen T3 left |
 | `build/t4-history-empty.png` | `SEED=1 SEED_NO_HISTORY=1 tools/shot.sh … -uiScreen history -uiNoAsk`: the plan and no workouts — **This week** with no Month beside it, no search field under the title, the plan's week in the strip, "No workouts yet" and **Import from another app**; no Metrics, Find an exercise or Goals |
+| `build/t6-today.png` → `docs/screenshots/today.png` | Today for the README, from `SEED=1 tools/shot.sh build/t6-today.png -uiScreen today -uiNoAsk` after T5: the green square before "Push", "Planned for Mon · Push Pull Legs · 5 exercises · 39 min last time", the five names with their chevron, the gear and the ···, **Start Push**, and a tab bar of Today and History |
+| `build/t6-history-week.png` | `SEED=1 SEED_GOALS=1 SKIP_BUILD=1 tools/shot.sh build/t6-history-week.png -uiScreen history -uiNoAsk`: the strip's planned days named in their colours (Push green, Pull orange, Legs purple), "No workouts yet this week", Metrics, Find an exercise, the two goals, and a Legs row led by its purple square |
+| `build/t6-history-month.png` → `docs/screenshots/history.png` | The same after tapping **Month**: September 2026 with the six finished days filled in their days' colours — Push on the 1st and 8th, Pull on the 3rd and 10th, Legs on the 5th and 12th — the planned days named in the same colours, today outlined, Sundays as rest dashes. Both README shots downscaled to 720 px high with `sips -Z 720`, like the other three |
 
-What T1–T3 could not check without the phone: T5 (Today at accessibility XL, every state, on
-the smallest supported iPhone), T9 (Plans and Settings reached from Today by hand, back to the
-tab each left, and the gear in the same place on both tabs) and T13 (History's calendar by hand —
-Month and Week, a done day tapped twice landing on its session, and back). The one-commit gap T1
-left — the calendar off Today and not yet on History — closed in T3.
+### Not run in v1.7
+
+- The four device rows, which need the phone: T5 (Today at accessibility XL, every state, on the
+  smallest supported iPhone), T9 (Plans and Settings reached from Today by hand, back to the tab
+  each left, and the gear in the same place on both tabs), T13 (History's calendar by hand —
+  Month and Week, a done day tapped twice landing on its session, and back) and T24 (one day, one
+  colour, in all four places and on the Lock Screen, in light and in dark).
+- The App Store's 1320 × 2868 screenshots (`APP_STORE.md` §5): the table names Today and History
+  as they now are; the captures are taken with the submission.
+
+The one-commit gap T1 left — the calendar off Today and not yet on History — closed in T3.
 
 ## v1.6 (U0–U7): built and green (merged as pull request #2)
 
