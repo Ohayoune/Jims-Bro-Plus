@@ -87,8 +87,10 @@ final class SwapTests: XCTestCase {
                        today: day(n), calendar: calendar)
     }
 
-    private func card(_ library: PlanLibrary, on n: Int, showing: Int = 0) -> HomeStart {
-        HomeStart.current(library: library, now: day(n), calendar: calendar, showing: showing)
+    private func card(_ library: PlanLibrary, on n: Int, showing: Int = 0,
+                      reopened: Bool = false) -> HomeStart {
+        HomeStart.current(library: library, now: day(n), calendar: calendar, showing: showing,
+                          reopened: reopened)
     }
 
     /// The plan's example: Legs on Monday the 14th, which expected Push.
@@ -543,6 +545,169 @@ final class SwapTests: XCTestCase {
         library.write(DaySwap(planId: other.id, date: start(15), original: .day(name: "Pull"),
                               replacement: .rest, askedOn: nil, answered: true))
         XCTAssertEqual(week(library, from: 14)[1], .projected(planId: plan.id, dayIndex: 1))
+    }
+
+    // MARK: - Q2 (v1.9): Today shows it (D74, SPEC §6.48)
+
+    // TQ14: the strip's marks after TQ1 — the dot and its words, the ring, and what a long
+    // press does — then answered, then past; and a done date asks nothing.
+    func testTheStripCarriesTheSwapsMarks() throws {
+        let library = try legsOnMonday()
+        let squares = strip(library, on: 14)
+        XCTAssertTrue(squares[0].hasDot)
+        XCTAssertEqual(squares[0].original, .green)
+        XCTAssertEqual(squares[0].was, "was Push")
+        XCTAssertEqual(squares[0].ring, .none)
+        XCTAssertEqual(squares[0].hold, .was, "a long press on today's square shows what it was")
+        XCTAssertEqual(squares[2].ring, .asking)
+        XCTAssertEqual(squares[2].was, "was Legs")
+        XCTAssertEqual(squares[2].hold, .question)
+        for plain in [1, 3, 4, 5, 6] {
+            XCTAssertFalse(squares[plain].hasDot, "square \(plain)")
+            XCTAssertEqual(squares[plain].ring, .none, "square \(plain)")
+            XCTAssertNil(squares[plain].was, "square \(plain)")
+            XCTAssertEqual(squares[plain].hold, .tap, "square \(plain)")
+        }
+
+        var answered = library
+        answered.answer(swap: try XCTUnwrap(squares[2].swapId), with: .day(name: "Push"))
+        XCTAssertEqual(strip(answered, on: 14)[2].ring, .answered)
+        XCTAssertEqual(strip(answered, on: 14)[2].hold, .question, "a long press reopens it")
+
+        // Thursday: Monday and Wednesday are past, and nothing on the strip is marked.
+        XCTAssertFalse(strip(library, on: 17).contains { $0.hasDot || $0.ring != .none || $0.was != nil })
+
+        // Wednesday, its Push done with the question still open: the day is done and no answer
+        // could change it, so the ring and the block go; the dot stays, which is still true.
+        var done = library
+        try complete(&done, dayIndex: 0, on: 16)
+        let wednesday = strip(done, on: 16)[0]
+        XCTAssertEqual(wednesday.ring, .none)
+        XCTAssertTrue(wednesday.hasDot)
+        XCTAssertEqual(wednesday.was, "was Legs")
+        XCTAssertNil(card(done, on: 16).question)
+        XCTAssertFalse(card(done, on: 16).showsQuestion)
+    }
+
+    // TQ15: the block's words and squares for a workout day and a rest day, and Slide's three
+    // squares are the pattern Slide makes.
+    func testTheQuestionBlockSaysItInWordsAndSquares() throws {
+        let library = try legsOnMonday()
+        let question = try XCTUnwrap(card(library, on: 14, showing: 2).question)
+        XCTAssertEqual(question.heading, "Wednesday's Legs is done. Make Wednesday:")
+        XCTAssertEqual(question.squares.map(\.title), ["Rest", "Push", "Legs"])
+        XCTAssertEqual(question.squares.map(\.colour), [nil, .green, .purple])
+        XCTAssertEqual(question.squares.map(\.isChosen), [false, true, false], "the default, applied at once")
+        XCTAssertEqual(question.slideOption?.isChosen, false)
+        let slide = try XCTUnwrap(question.slide)
+        XCTAssertEqual(slide.colours, [.green, .orange, .purple], "Wednesday Push, Thursday Pull, Friday Legs")
+        XCTAssertEqual(slide.spoken, "Slide: Push, Pull, Legs")
+        XCTAssertEqual(library.activePlan?.cycleAnchor, start(7), "previewing a slide moves nothing")
+
+        var slid = library
+        slid.answer(swap: question.swapId, with: .slide)
+        XCTAssertEqual(slide.colours, strip(slid, on: 14)[2...4].map(\.colour),
+                       "the preview is the answer's own projection")
+        // Reopened after the slide, the question offers what it first offered, Slide checked.
+        let after = try XCTUnwrap(card(slid, on: 14, showing: 2, reopened: true).question)
+        XCTAssertEqual(after.squares.map(\.title), ["Rest", "Push", "Legs"])
+        XCTAssertEqual(after.squares.map(\.isChosen), [false, false, false])
+        XCTAssertEqual(after.slideOption?.isChosen, true)
+        XCTAssertEqual(after.slide, slide, "once slid, the preview is the pattern as it is")
+
+        // A rest day: Legs on Thursday takes Sunday's, and today's day is rest, so rest is chosen.
+        var rest = self.library(rotation())
+        try complete(&rest, dayIndex: 2, on: 17)
+        let sunday = try XCTUnwrap(card(rest, on: 17, showing: 3).question)
+        XCTAssertEqual(sunday.heading, "Sunday's Legs is done. Make Sunday:")
+        XCTAssertEqual(sunday.squares.map(\.title), ["Rest", "Legs"])
+        XCTAssertEqual(sunday.squares.map(\.colour), [nil, .purple])
+        XCTAssertEqual(sunday.squares.map(\.isChosen), [true, false])
+        var slidRest = rest
+        slidRest.answer(swap: sunday.swapId, with: .slide)
+        XCTAssertEqual(sunday.slide?.colours, strip(slidRest, on: 17)[3...5].map(\.colour))
+
+        // A weekday plan has no Slide, so no row.
+        var weekdays = self.library(weekdayPlan())
+        try complete(&weekdays, dayIndex: 2, on: 14)
+        let friday = try XCTUnwrap(card(weekdays, on: 14, showing: 4).question)
+        XCTAssertEqual(friday.heading, "Friday's Legs is done. Make Friday:")
+        XCTAssertEqual(friday.squares.map(\.title), ["Rest", "Push", "Legs"])
+        XCTAssertNil(friday.slide)
+        XCTAssertNil(friday.slideOption)
+    }
+
+    // TQ16: the shown card's button follows each option; one tap closes the block and a long
+    // press reopens it with nothing else changed; on the question's own day the block is on
+    // today's card — and never on the card of an open session.
+    func testTheShownCardFollowsTheChoice() throws {
+        let asked = try legsOnMonday()
+        let id = try XCTUnwrap(swap(asked, on: 16)).id
+        let asking = card(asked, on: 14, showing: 2)
+        XCTAssertTrue(asking.showsQuestion, "the block stands while the question asks")
+        XCTAssertEqual(asking.title, "Push")
+        XCTAssertEqual(asking.dayColour, .green)
+        XCTAssertEqual(asking.buttonTitle, "Start Wednesday's Push")
+        XCTAssertEqual(asking.buttonMark, .play)
+        XCTAssertTrue(asking.buttonEnabled)
+        XCTAssertFalse(card(asked, on: 14, showing: 1).showsQuestion, "Tuesday carries no question")
+        XCTAssertFalse(card(asked, on: 14, showing: 1, reopened: true).showsQuestion)
+
+        let answers: [(DaySwap.Slot, String, String, HomeStart.Mark)] = [
+            (.rest, HomeStart.restTitle, "No exercise Wednesday", .moon),
+            (.day(name: "Push"), "Push", "Start Wednesday's Push", .play),
+            (.day(name: "Legs"), "Legs", "Start Wednesday's Legs", .play),
+            (.slide, "Push", "Start Wednesday's Push", .play),
+        ]
+        for (slot, title, button, mark) in answers {
+            var library = asked
+            library.answer(swap: id, with: slot)
+            let shown = card(library, on: 14, showing: 2)
+            XCTAssertEqual(shown.title, title, "\(slot)")
+            XCTAssertEqual(shown.buttonTitle, button, "\(slot)")
+            XCTAssertEqual(shown.buttonMark, mark, "\(slot)")
+            XCTAssertEqual(shown.buttonEnabled, mark == .play, "\(slot)")
+            XCTAssertFalse(shown.showsQuestion, "one tap chooses and closes: \(slot)")
+            let reopened = card(library, on: 14, showing: 2, reopened: true)
+            XCTAssertTrue(reopened.showsQuestion, "a long press brings it back: \(slot)")
+            XCTAssertEqual(reopened.question?.chosen, slot)
+            XCTAssertEqual(reopened.buttonTitle, button, "reopening changes nothing but the block")
+        }
+
+        // On Wednesday itself the question is on today's card.
+        let today = card(asked, on: 16)
+        XCTAssertTrue(today.showsQuestion)
+        XCTAssertEqual(today.buttonTitle, "Start Today's Push")
+
+        // Never on the card of an open session (the owner's 11): the question waits on its square.
+        var running = asked
+        let plan = try XCTUnwrap(running.activePlan)
+        let session = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: day(16)))
+        running.engine = SessionEngine(active: ActiveSession(session: session, phase: .working(step: 0)),
+                                       settings: running.settings)
+        let open = card(running, on: 16)
+        XCTAssertTrue(open.isInProgress)
+        XCTAssertFalse(open.showsQuestion)
+        XCTAssertEqual(strip(running, on: 16)[0].ring, .asking, "the ring still asks")
+    }
+
+    // TQ17: VoiceOver reads the question on the square, and the dot as the square's value.
+    func testTheSquareSaysItsQuestion() throws {
+        let library = try legsOnMonday()
+        let squares = strip(library, on: 14)
+        XCTAssertEqual(squares[2].spoken, "Wednesday, Push, question")
+        XCTAssertEqual(squares[0].spoken, "Today, Legs")
+        XCTAssertEqual(squares[0].was, "was Push")
+        var answered = library
+        answered.answer(swap: try XCTUnwrap(squares[2].swapId), with: .day(name: "Push"))
+        XCTAssertEqual(strip(answered, on: 14)[2].spoken, "Wednesday, Push", "answered, it asks nothing")
+
+        var rest = self.library(rotation())
+        try complete(&rest, dayIndex: 2, on: 17)
+        let thursday = strip(rest, on: 17)
+        XCTAssertEqual(thursday[0].was, "was rest")
+        XCTAssertEqual(thursday[3].spoken, "Sunday, rest, question")
+        XCTAssertEqual(thursday[3].was, "was Legs")
     }
 }
 

@@ -164,6 +164,10 @@ struct HomeStart: Equatable {
     /// D72 (v1.9, §6.46): the question the shown square's date carries, if it carries one —
     /// Q2's block under the strip.
     var question: SwapQuestion?
+    /// D74 (v1.9, §6.48): the question's block stands where the rows would be — while the
+    /// question asks, or once a long press reopened it — on a day's card, never on the card of
+    /// an open session (the owner's 11).
+    var showsQuestion = false
     /// D44 (v1.3): the plan's progression has run its course, so Today offers the next one.
     var progressionFinished = false
     /// D50 (v1.5): the quiet link to plan one — only when the plan has no progression and
@@ -316,9 +320,12 @@ struct HomeStart: Equatable {
     ///     next message in the order takes the line.
     ///   - showing: D70 (v1.8): the strip's square the view is showing — 0, today, unless one
     ///     was tapped. Clamped to the strip; with no plan there is no strip.
+    ///   - reopened: D74 (v1.9): a long press on the shown square reopened its answered
+    ///     question, so the block stands again with the current choice marked. The view's value,
+    ///     as `showing` is, and never stored.
     static func current(library: PlanLibrary, now: Date = Date(), calendar: Calendar = .current,
                         notificationsOff: Bool = false, missedDismissed: Bool = false,
-                        showing offset: Int = 0) -> HomeStart {
+                        showing offset: Int = 0, reopened: Bool = false) -> HomeStart {
         let card = StartCard.current(library: library, now: now, calendar: calendar)
         var start = HomeStart(title: card.title, rows: [], more: 0,
                               isInProgress: false, isEmpty: false)
@@ -332,9 +339,12 @@ struct HomeStart: Equatable {
                                          today: now, calendar: calendar)
         }
         start.shownOffset = start.strip.isEmpty ? 0 : min(max(offset, 0), start.strip.count - 1)
-        // D72 (v1.9, §6.46): the question the shown square's date carries, for Q2's block.
-        if let id = start.strip[safe: start.shownOffset]?.swapId {
-            start.question = library.question(for: id, now: now)
+        // D72/D74 (v1.9, §6.46, §6.48): the question the shown square's date carries, and
+        // whether its block stands where the rows would — while it asks, or once reopened.
+        if let id = start.strip[safe: start.shownOffset]?.swapId,
+           let question = library.question(for: id, now: now) {
+            start.question = question
+            start.showsQuestion = !question.answered || reopened
         }
 
         // D37 (v1.2): the training day the schedule put before today that never happened, said
@@ -386,6 +396,9 @@ struct HomeStart: Equatable {
                 start.buttonTitle = "Resume \(dayName) · \(Int(elapsed) / 60) min"
                 start.buttonMark = .play
                 start.isInProgress = true
+                // D74 (v1.9): what Today shows while a session is open is untouched (the owner's
+                // 11) — the question waits on its square until the workout is over.
+                start.showsQuestion = false
                 // D69 (v1.8): the clock says "so far", and the blocks fill as sets are logged —
                 // the card shows progress without a fraction, in the same zones as on any other
                 // day.

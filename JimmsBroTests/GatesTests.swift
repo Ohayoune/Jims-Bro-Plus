@@ -148,11 +148,13 @@ final class GatesTests: XCTestCase {
             guard let start = row.range(of: "`Gates.") else { return nil }
             return String(row[start.upperBound...].prefix { $0.isLetter || $0.isNumber })
         }
-        // D70 (v1.8): a row whose Core cell is "—" records a control the table leaves ungated
-        // on purpose — the strip and its tap, live from the first plan — and it is the only one.
+        // D70 (v1.8): a row whose Core cell is "—" records what the table leaves ungated on
+        // purpose — the strip and its tap, live from the first plan, and since v1.9 (D74) the
+        // swap's marks, which are facts drawn from `swaps.json` rather than controls to earn.
         let ungated = rows.filter { $0.hasSuffix("| — |") }
-        XCTAssertEqual(ungated.count, 1, "§6.40 records one deliberately ungated control, the strip")
-        XCTAssertTrue(ungated.first?.contains("strip") ?? false, "the ungated row is not the strip's")
+        XCTAssertEqual(ungated.count, 2, "§6.40 records two deliberately ungated rows, the strip and the swap's marks")
+        XCTAssertTrue(ungated.contains { $0.contains("strip and its tap") }, "no ungated row is the strip's")
+        XCTAssertTrue(ungated.contains { $0.contains("question") }, "no ungated row is the swap's marks")
         XCTAssertEqual(named.count + ungated.count, rows.count, "a row of §6.40 names no Gates function")
         XCTAssertEqual(named.sorted(), functions.sorted(), "§6.40's table and Gates disagree")
     }

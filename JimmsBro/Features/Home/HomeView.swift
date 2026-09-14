@@ -5,7 +5,9 @@ import SwiftUI
 /// strip at its left, a clock and the minutes at its right), the exercises with their sets as
 /// blocks (which are the preview), at most one message, and Start in the bottom slot. No words
 /// without a cue: every line of words sits beside a mark that says the same. A tap on the strip
-/// shows that day (§6.44); the day's other alternatives live in one ··· and nowhere else.
+/// shows that day (§6.44); the day's other alternatives live in one ··· and nowhere else. D74
+/// (v1.9, §6.48): a swapped day's dot, a question's ring, and the question's block where the
+/// rows would be.
 struct HomeView: View {
     @Environment(AppModel.self) private var model
     /// Opens Add plan — on the built-in picker when the empty card asks (D46, v1.4).
@@ -23,6 +25,9 @@ struct HomeView: View {
     /// Not stored: put down and picked up again the phone shows the tapped day; a relaunch
     /// shows today; a started workout resets it (the tap was the choice, and it was taken).
     @State private var shownOffset = 0
+    /// D74 (v1.9, §6.48): a long press on a ringed square reopened its answered question. The
+    /// view's, like the shown square; a tap, an answer or a started workout ends it.
+    @State private var reopened = false
     /// D17 (O36): a day started from the strip while a session is open — the switch popup's
     /// target, as on Plan detail. Today never needed the popup before the strip: its only
     /// mid-session button was Resume.
@@ -38,7 +43,8 @@ struct HomeView: View {
         // Core chooses the one message and the ··· items (D61); this view only draws them.
         let card = HomeStart.current(library: model.library,
                                      notificationsOff: model.showNotificationBanner,
-                                     missedDismissed: dismissedMissed, showing: shownOffset)
+                                     missedDismissed: dismissedMissed, showing: shownOffset,
+                                     reopened: reopened)
         NavigationStack(path: $path) {
             VStack(alignment: .leading, spacing: 14) {
                 // D65 (v1.7): the day's colour is a square before its name, never the name
@@ -60,7 +66,22 @@ struct HomeView: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                if card.isRest {
+                if card.showsQuestion, let question = card.question {
+                    // D74 (v1.9, §6.48): the question's block stands where the rows — or a rest
+                    // card's z's — would be, and scrolls under Dynamic Type as they do while the
+                    // name, the meta row and the button hold. The button already follows the
+                    // choice; the message keeps its own zone beneath.
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 14) {
+                            SwapQuestionView(question: question) { answer(question, with: $0) }
+                            if let message = card.message {
+                                messageLine(message, card: card)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
+                } else if card.isRest {
                     // D71 (v1.8, §6.45): where the rows would be, the system's z's in the
                     // accent, centred in the card's empty half — the one blue thing above a
                     // button that does nothing, and it says *do something*: tap the strip. A
@@ -151,7 +172,7 @@ struct HomeView: View {
             }
             // D70 (v1.8): a workout started from anywhere — the strip, Do it now, Plan detail —
             // takes the tapped day with it; Today shows today behind the cover and after it.
-            .onChange(of: model.startedWorkouts) { _, _ in shownOffset = 0 }
+            .onChange(of: model.startedWorkouts) { _, _ in shownOffset = 0; reopened = false }
             .sheet(item: $previewing) { route in
                 NavigationStack { PlanDetailView(planId: route.id, showWorkout: $showWorkout) }
                     .environment(model)
@@ -196,7 +217,9 @@ struct HomeView: View {
     private func metaRow(_ card: HomeStart) -> some View {
         HStack(alignment: .center, spacing: 8) {
             if !card.strip.isEmpty {
-                WeekStripView(squares: card.strip, shown: card.shownOffset) { shownOffset = $0 }
+                WeekStripView(squares: card.strip, shown: card.shownOffset,
+                              onTap: { shownOffset = $0; reopened = false },
+                              onReopen: { shownOffset = $0; reopened = true })
             }
             Spacer(minLength: 0)
             if card.isRest {
@@ -366,6 +389,14 @@ struct HomeView: View {
         switching = nil
         start(planId: route.id, dayIndex: route.dayIndex, switching: choice)
     }
+
+    /// D74 (v1.9, §6.48): one tap chooses and closes — the ring turns faint and the ordinary
+    /// card returns, its button already following the choice. The answer lands before the
+    /// write behind it (D48).
+    private func answer(_ question: SwapQuestion, with slot: DaySwap.Slot) {
+        reopened = false
+        Task { await model.answerSwap(question.swapId, with: slot) }
+    }
 }
 
 /// D70 (v1.8, §6.44): the week as a strip — seven squares, today first, each a button that
@@ -374,38 +405,117 @@ struct HomeView: View {
 /// shown, the button under the card says the day in words, and VoiceOver reads each square as
 /// its day, the shown one as selected. The squares are the size of page dots and the tap area
 /// is the row's height — the plan's centimetre.
+///
+/// D74 (v1.9, §6.48): a swap's marks, all Core's — under a square whose day is not the
+/// pattern's, a dot in the pattern's colour (grey for rest); around a date that carries a
+/// question, a yellow ring, breathing while it asks and faint once answered. A long press does
+/// what `Square.hold` says: reopens the question, shows what the day was in a small callout, or
+/// is a tap.
 private struct WeekStripView: View {
     let squares: [WeekStrip.Square]
     let shown: Int
     let onTap: (Int) -> Void
+    let onReopen: (Int) -> Void
     @ScaledMetric(relativeTo: .subheadline) private var small: CGFloat = 10
     @ScaledMetric(relativeTo: .subheadline) private var large: CGFloat = 14
     @ScaledMetric(relativeTo: .subheadline) private var cell: CGFloat = 20
+    @ScaledMetric(relativeTo: .subheadline) private var dot: CGFloat = 5
+    /// D74: the square whose "was Push" callout is up — the view's own, like the shown square.
+    @State private var callout: Int?
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(squares, id: \.offset) { square in
-                let isShown = square.offset == shown
-                let side = isShown ? large : small
-                Button { onTap(square.offset) } label: {
-                    RoundedRectangle(cornerRadius: side / 4, style: .continuous)
-                        .fill(fill(square, shown: isShown))
-                        .frame(width: side, height: side)
-                        .frame(width: cell, height: cell + 4)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(square.spoken)
-                .accessibilityAddTraits(isShown ? .isSelected : [])
+                cellView(square)
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Seven days")
+        // D74: the dots hang beneath the squares, so the row's centre stays the squares' centre
+        // and the clock still sits level with them.
+        .alignmentGuide(VerticalAlignment.center) { _ in (cell + 4) / 2 }
+    }
+
+    private func cellView(_ square: WeekStrip.Square) -> some View {
+        let isShown = square.offset == shown
+        let side = isShown ? large : small
+        return VStack(spacing: 1) {
+            ZStack {
+                RoundedRectangle(cornerRadius: side / 4, style: .continuous)
+                    .fill(fill(square, shown: isShown))
+                    .frame(width: side, height: side)
+                if square.ring != .none {
+                    QuestionRing(asking: square.ring == .asking, side: side + 6)
+                }
+            }
+            .frame(width: cell, height: cell + 4)
+            Circle()
+                .fill(square.original?.color ?? Color.secondary)
+                .frame(width: dot, height: dot)
+                .opacity(square.hasDot ? 1 : 0)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { onTap(square.offset) }
+        .onLongPressGesture(minimumDuration: 0.4) { hold(square) }
+        .popover(isPresented: Binding(get: { callout == square.offset },
+                                      set: { if !$0 { callout = nil } })) {
+            // The pattern's square and "was Push" — or grey and "was rest".
+            HStack(spacing: 8) {
+                DaySquare(colour: square.original, size: 14, relativeTo: .subheadline)
+                Text(square.was ?? "")
+            }
+            .font(.subheadline)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .presentationCompactAdaptation(.popover)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(square.spoken)
+        .accessibilityValue(square.was ?? "")
+        .accessibilityAddTraits(isShown ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAction { onTap(square.offset) }
+        .accessibilityActions {
+            if square.hold == .question {
+                Button("Reopen the question") { onReopen(square.offset) }
+            }
+        }
+    }
+
+    /// `Square.hold`, drawn: reopen the question, raise the callout, or tap.
+    private func hold(_ square: WeekStrip.Square) {
+        switch square.hold {
+        case .question: onReopen(square.offset)
+        case .was: callout = square.offset
+        case .tap: onTap(square.offset)
+        }
     }
 
     private func fill(_ square: WeekStrip.Square, shown: Bool) -> Color {
         guard let colour = square.colour else { return Color.secondary.opacity(shown ? 0.55 : 0.3) }
         return colour.color.opacity(shown ? 1 : 0.5)
+    }
+}
+
+/// D74 (v1.9, §6.48): the ring of a question, in yellow — the warning colour, and no day's
+/// (§6.41). It breathes slowly, 2.4 s a breath, while the question asks; under Reduce Motion it
+/// holds still at full strength; once answered it is faint and still until the date is past.
+/// A mark, not words: the square's spoken label says "question".
+private struct QuestionRing: View {
+    let asking: Bool
+    let side: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let ring = RoundedRectangle(cornerRadius: side / 4, style: .continuous)
+            .strokeBorder(Color.yellow, lineWidth: 2)
+            .frame(width: side, height: side)
+        if asking && !reduceMotion {
+            ring.phaseAnimator([1.0, 0.25]) { view, opacity in
+                view.opacity(opacity)
+            } animation: { _ in .easeInOut(duration: 1.2) }
+        } else {
+            ring.opacity(asking ? 1 : 0.35)
+        }
     }
 }
 

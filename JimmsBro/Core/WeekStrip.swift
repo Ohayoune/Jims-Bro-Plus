@@ -34,9 +34,14 @@ enum WeekStrip {
         var ring: Ring = .none
         /// The swap on this date, if one was written; `PlanLibrary.question(for:now:)` reads it.
         var swapId: UUID? = nil
+        /// D74 (v1.9, §6.48): the dot in words — "was Push", or "was rest" when the pattern
+        /// said rest — for the long press's callout and VoiceOver. Nil without a dot.
+        var was: String? = nil
 
         /// A grey square: nothing to start on this day.
         var isRest: Bool { dayName == nil }
+        /// D74: what a long press on the square does.
+        var hold: Hold { ring != .none ? .question : (hasDot ? .was : .tap) }
         /// What VoiceOver reads for the square: "Today, Push", "Tomorrow, rest" — and
         /// "Wednesday, Push, question" while the ring asks.
         var spoken: String {
@@ -46,6 +51,11 @@ enum WeekStrip {
 
     /// The yellow ring of a question (D74): none, pulsing while unanswered, faint once answered.
     enum Ring: Equatable { case none, asking, answered }
+
+    /// D74 (v1.9, §6.48): a long press reopens a ringed square's question, shows what a dotted
+    /// square's day was, and is a tap anywhere else — never a double tap, which fights the
+    /// single tap and VoiceOver's activate gesture.
+    enum Hold: Equatable { case question, was, tap }
 
     /// The seven squares, today first. A weekday plan's come from its days' weekdays and a
     /// rotation's from the anchored projection — both by way of `CalendarProjection`, so the
@@ -81,16 +91,25 @@ enum WeekStrip {
                 break
             }
             // D72 (v1.9, §6.46): the marks of a swap, from the same slots the squares are.
+            var isDone = false
+            if case .completed = entry { isDone = true }
             if let plan,
                let date = calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: today)) {
                 let base = PlanSchedule.base(plan, on: date, today: today, calendar: calendar)
                 let slot = PlanSchedule.slot(plan, on: date, swaps: swaps, today: today, calendar: calendar)
                 if let swap = PlanSchedule.swap(plan, on: date, swaps: swaps, calendar: calendar) {
                     square.swapId = swap.id
-                    if swap.isQuestion { square.ring = swap.answered ? .answered : .asking }
+                    // D74 (§6.48): a date whose workout is done asks nothing — no answer could
+                    // change it — so its ring goes; its dot stays, which is still true.
+                    if swap.isQuestion, !isDone { square.ring = swap.answered ? .answered : .asking }
                     if slot != base {
                         square.hasDot = true
-                        if case let .day(index) = base { square.original = DayColour.of(dayIndex: index) }
+                        if case let .day(index) = base {
+                            square.original = DayColour.of(dayIndex: index)
+                            square.was = plan.days[safe: index].map { "was \($0.name)" }
+                        } else {
+                            square.was = "was rest"
+                        }
                     }
                 }
                 if case .borrowed = slot { square.outline = true }

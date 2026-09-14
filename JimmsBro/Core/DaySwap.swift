@@ -120,6 +120,13 @@ enum DaySlot: Equatable {
     func matches(_ dayName: String, in plan: Plan) -> Bool {
         name(in: plan).map { normalized($0) == normalized(dayName) } ?? false
     }
+
+    /// The slot's colour (§6.41): a plan day's, by its place in the list; nil — grey — for rest
+    /// and nothing, and for an own or borrowed day until Q4 draws them (D76).
+    var colour: DayColour? {
+        if case let .day(index) = self { return DayColour.of(dayIndex: index) }
+        return nil
+    }
 }
 
 extension PlanSchedule {
@@ -219,26 +226,49 @@ struct MissedDay: Equatable {
 }
 
 /// SPEC §6.46: the question a taken day carries — Wednesday's Legs was done on Monday; what is
-/// Wednesday now? Core data for Q2's block on Today: the options in order, which is the
-/// default, and what was chosen.
+/// Wednesday now? Core data for the block on Today (D74, §6.48): the heading, the options in
+/// order with their squares, which is the default, what was chosen, and Slide's row.
 struct SwapQuestion: Equatable {
     enum Kind: Equatable { case rest, todays, keep, slide }
     struct Option: Equatable {
         var kind: Kind
         var slot: DaySwap.Slot
-        /// "Rest", the day's name, or "Slide".
+        /// "Rest", the day's name, or "Slide" — the word beneath the option's square.
         var title: String
         /// The option completion wrote when it raised the question (today's day, or rest).
         var isDefault: Bool
+        /// D74 (v1.9): the option's square — the day's colour (§6.41); nil is rest's grey.
+        var colour: DayColour? = nil
+        /// D74: what the date says now, marked with a check.
+        var isChosen = false
+    }
+
+    /// D74 (v1.9): Slide's row beneath the squares — the date and the two after it as Slide
+    /// would make them, so the choice is seen before it is made.
+    struct SlidePreview: Equatable {
+        /// Three squares; nil is grey, a rest day.
+        var colours: [DayColour?]
+        /// What VoiceOver reads for the row: "Slide: Push, Pull, Legs".
+        var spoken: String
     }
 
     var swapId: UUID
     var date: Date
     /// The day whose workout was taken — what the pattern said for the date.
     var originalName: String
+    /// D74: "Wednesday's Legs is done. Make Wednesday:"
+    var heading: String
     var options: [Option]
     var chosen: DaySwap.Slot
     var answered: Bool
+    /// D74: on rotations only, as Slide is (D73).
+    var slide: SlidePreview?
+
+    /// The options drawn as large squares with their word beneath: every one but Slide, which
+    /// is its own row.
+    var squares: [Option] { options.filter { $0.kind != .slide } }
+    /// Slide's option, for its row's check and its answer.
+    var slideOption: Option? { options.first { $0.kind == .slide } }
 }
 
 extension PlanLibrary {
@@ -350,17 +380,30 @@ extension PlanLibrary {
         swaps[i].answered = true
     }
 
-    /// The question a swap carries, or nil for a swap that is not one (today's own record) or
-    /// whose date is past. The options, in order: Rest; today's day (unless today was a rest
-    /// day, when it *is* Rest, or today's own day was done first, when today's colour is
-    /// taken); keep; and Slide on rotations.
+    /// The question a swap carries, or nil for a swap that is not one (today's own record),
+    /// whose date is past, or — D74 (v1.9, §6.48) — whose date has a finished workout on it:
+    /// the day is done, and no answer could change it (the calendar's own test for a done day).
+    /// The options, in order: Rest; today's day (unless today was a rest day, when it *is*
+    /// Rest, or today's own day was done first, when today's colour is taken); keep; and Slide
+    /// on rotations. Each carries its square's colour and whether it is what the date says now;
+    /// the heading names the date by its weekday, and Slide's row previews what it would make.
     func question(for id: UUID, now: Date) -> SwapQuestion? {
         guard let swap = swaps.first(where: { $0.id == id }), let askedOn = swap.askedOn,
               let plan = plans.first(where: { $0.id == swap.planId }),
               case let .day(originalName) = swap.original,
-              swap.date >= calendar.startOfDay(for: now) else { return nil }
+              swap.date >= calendar.startOfDay(for: now),
+              !sessions.contains(where: {
+                  $0.endedAt != nil && calendar.isDate($0.startedAt, inSameDayAs: swap.date)
+              }) else { return nil }
         var options: [SwapQuestion.Option] = []
-        let base = PlanSchedule.base(plan, on: askedOn, today: askedOn, calendar: calendar)
+        // Today's day as the pattern said when the question was asked — before a slide (D73)
+        // moved the anchor — so a reopened question offers what it first offered (D74).
+        var pattern = plan
+        if let undo = swap.slideUndo {
+            pattern.cyclePosition = undo.cyclePosition
+            pattern.cycleAnchor = undo.cycleAnchor
+        }
+        let base = PlanSchedule.base(pattern, on: askedOn, today: askedOn, calendar: calendar)
         var todays: String?
         if case let .day(index) = base, let name = plan.days[safe: index]?.name {
             let doneOnAskedOn = sessions.contains {
@@ -379,8 +422,37 @@ extension PlanLibrary {
         if plan.schedule == .rotation {
             options.append(.init(kind: .slide, slot: .slide, title: "Slide", isDefault: false))
         }
+        // D74: each option's square — the day's colour by name, grey for rest — and the check
+        // on what the date says now.
+        for index in options.indices {
+            options[index].colour = PlanSchedule.resolve(options[index].slot, in: plan, base: .none).colour
+            options[index].isChosen = options[index].slot == swap.replacement
+        }
+        // By its weekday even when the date is today or tomorrow: it is that day's Legs that
+        // was done, earlier, and the strip never reaches a day a weekday would misname (D55).
+        let weekday = calendar.component(.weekday, from: swap.date)
+        let day = Weekday.allCases.first { $0.calendarValue == weekday }.map(WeekdayText.full) ?? "That day"
         return SwapQuestion(swapId: swap.id, date: swap.date, originalName: originalName,
-                            options: options, chosen: swap.replacement, answered: swap.answered)
+                            heading: "\(day)'s \(originalName) is done. Make \(day):",
+                            options: options, chosen: swap.replacement, answered: swap.answered,
+                            slide: plan.schedule == .rotation ? slidePreview(of: swap, now: now) : nil)
+    }
+
+    /// D74 (v1.9, §6.48): Slide's row — the date and the two after it, read from the projection
+    /// exactly as answering Slide would leave it, on a copy of the library, so the preview and
+    /// the answer cannot disagree. Once slid, it is the pattern as it is.
+    private func slidePreview(of swap: DaySwap, now: Date) -> SwapQuestion.SlidePreview? {
+        var slid = self
+        slid.answer(swap: swap.id, with: .slide)
+        guard let plan = slid.plans.first(where: { $0.id == swap.planId }) else { return nil }
+        let slots = (0..<3).compactMap { offset -> DaySlot? in
+            calendar.date(byAdding: .day, value: offset, to: swap.date).map {
+                PlanSchedule.slot(plan, on: $0, swaps: slid.swaps, today: now, calendar: calendar)
+            }
+        }
+        return SwapQuestion.SlidePreview(
+            colours: slots.map(\.colour),
+            spoken: "Slide: " + slots.map { $0.name(in: plan) ?? "rest" }.joined(separator: ", "))
     }
 }
 

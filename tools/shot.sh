@@ -40,7 +40,8 @@ if [[ -n "$SEED" ]]; then
   # v1.3: SEED_PROGRESSION=1 attaches a four-week progression to the seeded plan (D44).
   # v1.5: SEED_STEPS=1 makes that progression one of steps you earn (D53).
   # v1.7: SEED_NO_HISTORY=1 seeds the plan and no workouts, for History's empty state (D63).
-  build/seed/seed "$CONTAINER" JimmsBro/Resources/SamplePlan.json ${SEED_PROGRESSION:+--progression} ${SEED_STEPS:+--steps} ${SEED_NO_HISTORY:+--no-history} >/dev/null
+  # v1.9: SEED_SWAP=1 finishes an unexpected workout today, so Today shows a swap's marks (D74).
+  build/seed/seed "$CONTAINER" JimmsBro/Resources/SamplePlan.json ${SEED_PROGRESSION:+--progression} ${SEED_STEPS:+--steps} ${SEED_NO_HISTORY:+--no-history} ${SEED_SWAP:+--swap} >/dev/null
 fi
 
 xcrun simctl terminate "$DEVICE" com.ohayoune.jimmsbro 2>/dev/null || true

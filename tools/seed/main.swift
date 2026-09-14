@@ -24,9 +24,9 @@ plan = library.plans[0]
 var sessions: [Session] = []
 let history: [(Int, Int)] = arguments.contains("--no-history")
     ? [] : [(12, 0), (10, 1), (8, 2), (5, 0), (3, 1), (1, 2)]
-for (offset, dayIndex) in history {
-    let start = Calendar.current.date(byAdding: .day, value: -offset, to: now)!
-    guard var session = Session.start(plan: plan, dayIndex: dayIndex, now: start) else { continue }
+/// A workout of `plan`'s `dayIndex`-th day begun at `start`, every set logged.
+func finished(_ plan: Plan, _ dayIndex: Int, at start: Date, lighter: Bool) -> Session? {
+    guard var session = Session.start(plan: plan, dayIndex: dayIndex, now: start) else { return nil }
     for index in session.steps.indices {
         session.steps[index].status = .logged
         let target = session.target(at: index)
@@ -36,16 +36,44 @@ for (offset, dayIndex) in history {
         default:
             // The older week is lighter, so the chart climbs and the newer week sets records.
             let base = target?.weight ?? 40
-            session.steps[index].result = .reps(count: 10, weight: offset > 6 ? max(0, base - 5) : base)
+            session.steps[index].result = .reps(count: 10, weight: lighter ? max(0, base - 5) : base)
         }
         session.steps[index].startedAt = start.addingTimeInterval(Double(index) * 110)
         session.steps[index].loggedAt = start.addingTimeInterval(Double(index) * 110 + 38)
     }
     session.endedAt = session.steps.last?.loggedAt
+    return session
+}
+for (offset, dayIndex) in history {
+    let start = Calendar.current.date(byAdding: .day, value: -offset, to: now)!
+    guard let session = finished(plan, dayIndex, at: start, lighter: offset > 6) else { continue }
     sessions.append(session)
     // v1.2: on the day it happened, so the seeded plan's cycle anchor (D37) is real and the
     // calendar the screenshots show is the one a phone with this history would show.
     PlanSchedule.advance(&plan, completedDayName: session.dayName, on: start)
+}
+
+// v1.9 (D72, D74): `--swap` finishes a workout today that the pattern did not expect — two
+// days on from the one it did, as the plan's example finishes Legs on a Push day — through the
+// library's own completion, so Today has a dotted square and, further along the strip, a
+// ringed one carrying the question.
+var swaps: [DaySwap] = []
+if arguments.contains("--swap"), plan.days.count > 1 {
+    var dayIndex = 2 % plan.days.count
+    if case let .day(expected) = PlanSchedule.base(plan, on: now, today: now) {
+        dayIndex = (expected + 2) % plan.days.count
+        if dayIndex == expected { dayIndex = (expected + 1) % plan.days.count }
+    }
+    let start = max(Calendar.current.startOfDay(for: now), now.addingTimeInterval(-3600))
+    if let session = finished(plan, dayIndex, at: start, lighter: false) {
+        var swapping = PlanLibrary()
+        swapping.save(plan, makeActive: true)
+        swapping.sessions = sessions + [session]
+        swapping.settle(session)
+        plan = swapping.plans[0]
+        sessions.append(session)
+        swaps = swapping.swaps
+    }
 }
 
 // v1.3 (D44): `seed <container> <plan.json> --progression` attaches a four-week progression
@@ -79,4 +107,5 @@ if arguments.contains("--progression") {
 try await store.save(settings: Settings())
 try await store.save(plans: [plan], activePlanId: plan.id)
 for session in sessions { try await store.save(session: session) }
+if !swaps.isEmpty { try await store.save(swaps: swaps) }
 print("seeded \(sessions.count) sessions into \(root.path)")

@@ -1,39 +1,53 @@
 # Build status
 
 Updated 2026-09-14. **v1.9 is in progress on branch `v1.9-swaps` (off `main`, which holds
-v1.8): Q0–Q1 built and green, Q2–Q7 not started.** v1.8 and everything before it are below,
+v1.8): Q0–Q2 built and green, Q3–Q7 not started.** v1.8 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
 
-## v1.9 (Q0–Q7): Q0–Q1 built and green
+## v1.9 (Q0–Q7): Q0–Q2 built and green
 
 `docs/ITERATION_10_PLAN.md` is the v1.9 plan, written from the owner's notes after living with
 v1.8's strip — *"shift today's colour to the colour of the other day (without changing the plan
 itself)"*. Each milestone ends with the whole suite green on all three routes, a Release build and
 `tools/check_release.py`, and one commit on `v1.9-swaps`.
 
-After Q1:
+After Q2:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **354 tests, 15 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see (TQ12 joins them) |
-| `swift test` | **353 tests, 0 failures** |
-| `python3 tools/check_core.py` | **353 bodies, 6,881 assertions, 0 failures** |
-| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q1 touches no import code) |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **358 tests, 15 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see. The first two runs stopped before any test (the runner hung; then the simulator could not launch the host app); the app itself launched by hand, and the third run, on a restarted simulator, was clean |
+| `swift test` | **357 tests, 0 failures** |
+| `python3 tools/check_core.py` | **357 bodies, 7,018 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q2 touches no import code) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — still version 1.8 (1); Q7 turns it to 1.9 |
-| `python3 tools/check_bundle.py` | **current** (regenerated in Q1) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in Q2) |
 
 | Milestone | What it did | State |
 |---|---|---|
 | Q0 | The plan, the branch, the mock (the "Swapping Days" artifact, not committed) | Done |
 | Q1 | A day swapped, not a plan changed (D72) and Slide (D73), in Core: `Core/DaySwap.swift` — `DaySwap` with its five-kind `Slot`, `swaps.json` beside `plans.json` (a missing file is no swaps; an unreadable one is set aside), `PlanLibrary.swaps`, `settle` (the three completion cases: the expected day re-anchors at the projected entry and keeps the grid; what the date said writes nothing; anything else writes today's record and a question on the day whose workout was taken, with today's day as the default), `answer` (Rest, today's day, Keep, and Slide on rotations, which re-anchors as D37 did and remembers what it replaced), `question` (the options in order, the default, what was chosen); `PlanSchedule.base`/`slot` — one slot per date, swaps read — under `CalendarProjection`'s three functions (`swaps:` with no default), `WeekStrip.days` (the dot, the outline, the ring, the question on the shown square's card), `PlanSchedule.next(_:today:swaps:)` for Today's card on both schedules and the Summary's next line, and `PlanSchedule.missed`, which never misses a swapped-to-rest day and names the swapped day for Do it now; `DayEntry.own` drawn in ink on the grid; the backup's optional `swaps`; `examples/store/v1/` gains `swaps.json`, `backup-1.9.json` and `backup-1.7.json`. Nothing in the pipeline, the format, the prompts, the Workout screen, the rest or the Live Activity changed, and nothing is drawn yet: Q2 draws the marks. TQ1–TQ13 in `SwapTests`; L7 and one `LibraryCalendarPromptTests` assertion rewritten for D72. SPEC §6.8, §6.12, §6.41, §7, §8.1, §8.5 and the new §6.46 and §6.47 | Done |
-| Q2–Q7 | Today's marks (D74), the ··· in squares (D75), Change day's exercises (D76), the JSON sheet (D77), Plans in squares (D78), docs and 1.9 | Not started |
+| Q2 | Today shows the swap (D74): under a square whose day is not the pattern's, a dot in the pattern's colour (grey for rest); a yellow ring on a date carrying a question, breathing while it asks (still under Reduce Motion) and faint once answered; a long press that reopens a ringed square's question or shows a "was Push" callout on a dotted one (`WeekStrip.Square.was` and `.hold`); and the question's block where the rows would be — `SwapQuestionView`: the heading, the options as large squares with their word beneath and a check on the chosen one, and on a rotation the Slide row previewing three days — with the button following the choice through the projection (`SwapQuestion.heading` and `.slide`, each option's `colour` and `isChosen`; `HomeStart.showsQuestion` and `current(…reopened:)`). A date whose workout is done asks nothing; the block is never on an open session's card; a question reopened after a slide offers what it first offered (a Q1 gap, fixed here). The seeder's `--swap` (`SEED_SWAP=1` in `tools/shot.sh`). TQ14–TQ17 in `SwapTests`; T21 counts two ungated rows. SPEC §4.1, §6.40, §6.44 and the new §6.48 | Done |
+| Q3–Q7 | The ··· in squares (D75), Change day's exercises (D76), the JSON sheet (D77), Plans in squares (D78), docs and 1.9 | Not started |
+
+### Checked on the simulator (v1.9)
+
+- Q2, on the iPhone 17 simulator with `SEED=1 SEED_SWAP=1 DEVICE="iPhone 17" tools/shot.sh` — Legs
+  finished today, which the sample plan's pattern made a rest day: today's square purple with a
+  grey dot; Thursday's grey, ringed in yellow, with a purple dot; the moon level with the squares.
+  A tap on Thursday opened its card — Rest, the moon, **No exercise Thursday** — with the block:
+  *"Thursday's Legs is done. Make Thursday:"*, Rest (checked) and Legs as large squares, and the
+  Slide row. Choosing Legs closed it: Thursday's card became Legs with **▶ Start Thursday's Legs**,
+  its square purple, its ring faint, no dot. A long press on Thursday brought the block back with
+  Legs checked; a long press on today's square raised the callout — a grey square and "was rest" —
+  and left the shown day alone.
 
 ### Not run in v1.9 (so far)
 
-- Nothing on the simulator or the phone shows a swap yet: Q1 is Core and the store, and Q2 draws
-  the dot, the ring and the question block. The marks are held in Core (TQ2–TQ6) and not yet seen.
+- The ring's breathing and Reduce Motion, the long press under a finger, and the block at
+  accessibility XL are TQ18–TQ20, for the phone; Q7 adds them to `docs/DEVICE_CHECKLIST.md`.
+  VoiceOver's words are held in Core (TQ17) and not yet heard.
 
 ## v1.8 (S0–S4): built and green
 
