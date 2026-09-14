@@ -142,6 +142,22 @@ built and green. What remains is the owner's: the device checklist (the v1.7 and
 need the phone), the Developer Program, a release Xcode and the submission
 (`docs/APP_STORE.md` §1 and §6).
 
+`docs/ITERATION_10_PLAN.md` is the v1.9 plan (milestones **Q0–Q7**), written 2026-09-14 from the
+owner's notes after living with v1.8's strip: **a day swapped, not a plan changed** (D72 — an
+off-day workout writes two dates to `swaps.json`, a new file beside `plans.json`, and leaves the
+plan's cycle, position and anchor alone; the day whose workout was taken carries a question on the
+strip: Rest, today's day, keep, or **Slide**, which is D37's re-anchor chosen on purpose and offered
+on rotations only, D73), **the marks on Today** (D74 — a dot in the pattern's colour under a
+swapped square, a yellow ring for a question, a long press for "was Push", the question block with
+words beneath its squares and a button that follows the choice), **a ··· of two items** with squares
+for symbols and no progression in it (D75 — History's Progression row is the way), **Change a day's
+exercises** from this plan, another plan (outlined in its colour) or a day written just for that
+date (D76), **the JSON sheet redone** at every fragment point — named, pre-filled, the error at the
+line, a Save that says its effect (D77) — and **Plans that speak in squares** (D78 — a circle to
+mark and a button to confirm, the page with the cycle as squares and every day closed until
+tapped). The requirements were settled in two rounds on the "Swapping Days" artifact linked from
+the plan. Q0 is written; nothing else is built.
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
