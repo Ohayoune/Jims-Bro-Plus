@@ -9,6 +9,10 @@ import Foundation
 /// Nothing is stored. Each gate is a function of the data, and the data only grows with time
 /// and use, so a control once shown stays; deleting what earned it takes it back (Delete all
 /// data returns the app to its first day). The one control that leaves on its own is D50's.
+///
+/// D70 (v1.8): the week strip and its tap are deliberately *not* here — live from the first
+/// plan, recorded as such in §6.40's table — and **Another day**'s gate went with the chooser
+/// the strip replaced (§6.44).
 enum Gates {
     /// **Month**, on History's calendar: once a workout is older than the current week. Until
     /// then the strip is the whole record. "This week" is the calendar week the strip shows
@@ -22,13 +26,6 @@ enum Gates {
     /// block on History, once there is a workout to count, to find an exercise in, or to plan a
     /// progression from. (Until D66 the search field came with them; it went.)
     static func metricsAndFind(sessions: [Session]) -> Bool { !finished(sessions).isEmpty }
-
-    /// **Another day**, in Today's ···: when the plan has a day besides the one Today shows —
-    /// more than one day — or, when nothing is scheduled (`showing` is nil), any day at all,
-    /// because then the chooser is the only way to a workout.
-    static func anotherDay(plan: Plan, showing dayIndex: Int?) -> Bool {
-        plan.days.count > (dayIndex == nil ? 0 : 1)
-    }
 
     /// **Change plan**, in Today's ···: once there is a plan, and so a list to change it in.
     static func changePlan(plans: [Plan]) -> Bool { !plans.isEmpty }

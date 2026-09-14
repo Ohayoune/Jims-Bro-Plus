@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// SPEC §4.1 (D61, v1.7; D69, v1.8): Today is the day's card and nothing else — the same five
-/// zones on every day of the plan: the day's colour and name, the meta row (a clock and the
-/// minutes), the exercises with their sets as blocks (which are the preview), at most one
-/// message, and Start in the bottom slot. No words without a cue: every line of words sits
-/// beside a mark that says the same. The day's alternatives live in one ··· and nowhere else.
+/// SPEC §4.1 (D61, v1.7; D69, D70, v1.8): Today is the day's card and nothing else — the same
+/// five zones on every day of the plan: the day's colour and name, the meta row (the week as a
+/// strip at its left, a clock and the minutes at its right), the exercises with their sets as
+/// blocks (which are the preview), at most one message, and Start in the bottom slot. No words
+/// without a cue: every line of words sits beside a mark that says the same. A tap on the strip
+/// shows that day (§6.44); the day's other alternatives live in one ··· and nowhere else.
 struct HomeView: View {
     @Environment(AppModel.self) private var model
     /// Opens Add plan — on the built-in picker when the empty card asks (D46, v1.4).
@@ -18,7 +19,14 @@ struct HomeView: View {
 
     @State private var showDiscardConfirm = false
     @State private var previewing: PlanRoute?
-    @State private var choosingDay = false
+    /// D70 (v1.8, §6.44): the strip's square the card shows — 0, today, until one is tapped.
+    /// Not stored: put down and picked up again the phone shows the tapped day; a relaunch
+    /// shows today; a started workout resets it (the tap was the choice, and it was taken).
+    @State private var shownOffset = 0
+    /// D17 (O36): a day started from the strip while a session is open — the switch popup's
+    /// target, as on Plan detail. Today never needed the popup before the strip: its only
+    /// mid-session button was Resume.
+    @State private var switching: PlanRoute?
     /// D50 (v1.5): the plan whose progression the ··· item opens — and, since D67 (v1.7),
     /// **Plan the next one**.
     @State private var planningProgression: PlanRoute?
@@ -30,21 +38,22 @@ struct HomeView: View {
         // Core chooses the one message and the ··· items (D61); this view only draws them.
         let card = HomeStart.current(library: model.library,
                                      notificationsOff: model.showNotificationBanner,
-                                     missedDismissed: dismissedMissed)
+                                     missedDismissed: dismissedMissed, showing: shownOffset)
         NavigationStack(path: $path) {
             VStack(alignment: .leading, spacing: 14) {
                 // D65 (v1.7): the day's colour is a square before its name, never the name
                 // itself — headers are ink (D59). D69 (v1.8): the square stands as tall as the
                 // title's capitals, so the colour is read before the word.
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    if let colour = card.dayColour {
-                        DaySquare(colour: colour, size: 24, relativeTo: .largeTitle)
+                    // D71 (v1.8): a rest day's square is grey, and still there.
+                    if card.dayColour != nil || card.isRest {
+                        DaySquare(colour: card.dayColour, size: 24, relativeTo: .largeTitle)
                     }
                     Text(card.title)
                         .font(.largeTitle.weight(.semibold))
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                if let clock = card.clock { metaRow(clock) }
+                if !card.strip.isEmpty || card.clock != nil || card.isRest { metaRow(card) }
                 if let sentence = card.sentence {
                     Text(sentence)
                         .font(.subheadline)
@@ -103,9 +112,11 @@ struct HomeView: View {
             // under the thumb, above the tab bar.
             // D69 (v1.8): the play mark says the button starts something; the empty card's opens
             // a picker, and has none.
+            // D70 (v1.8): Core says which mark — play, or the moon on the button that does
+            // nothing — and whether the button is enabled.
             .bottomAction(if: card.buttonTitle != nil) {
-                PrimaryButton(title: card.buttonTitle ?? "",
-                              systemImage: card.isEmpty ? nil : "play.fill") { act(card) }
+                PrimaryButton(title: card.buttonTitle ?? "", systemImage: mark(card.buttonMark),
+                              enabled: card.buttonEnabled) { act(card) }
             }
             // D56 (v1.6): a confirmation reached from a menu is an alert with two named
             // buttons, never a dialog — from a menu anchor a dialog can draw as a popover and
@@ -114,14 +125,17 @@ struct HomeView: View {
                 Button("Discard", role: .destructive) { Task { await model.discardSession() } }
                 Button("Keep going", role: .cancel) {}
             }
-            .confirmationDialog("Which day?", isPresented: $choosingDay, titleVisibility: .visible) {
-                if let plan = model.activePlan {
-                    ForEach(Array(plan.days.enumerated()), id: \.offset) { index, day in
-                        Button(day.name) { start(planId: plan.id, dayIndex: index) }
-                    }
-                }
-                Button("Cancel", role: .cancel) {}
+            // D17 (O36): starting a day from the strip mid-session asks rather than switching
+            // silently — the same alert, with the same three answers, as Plan detail's.
+            .alert(switchPrompt, isPresented: Binding(get: { switching != nil },
+                                                      set: { if !$0 { switching = nil } })) {
+                Button("Keep going", role: .cancel) { switching = nil }
+                Button("Finish and start") { switchDay(.finish) }
+                Button("Discard and start", role: .destructive) { switchDay(.discard) }
             }
+            // D70 (v1.8): a workout started from anywhere — the strip, Do it now, Plan detail —
+            // takes the tapped day with it; Today shows today behind the cover and after it.
+            .onChange(of: model.startedWorkouts) { _, _ in shownOffset = 0 }
             .sheet(item: $previewing) { route in
                 NavigationStack { PlanDetailView(planId: route.id, showWorkout: $showWorkout) }
                     .environment(model)
@@ -159,20 +173,50 @@ struct HomeView: View {
         }
     }
 
-    /// D69 (v1.8): the meta row — a clock, the minutes in ink, then the two grey words that
-    /// say which minutes: "39 min last time", "23 min so far". At the row's right end; the left
-    /// end is the week strip's (D70).
-    private func metaRow(_ clock: HomeStart.Clock) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
+    /// D69/D70 (v1.8): the meta row — the week as a strip at its left end (§6.44), and at its
+    /// right a clock, the minutes in ink, then the two grey words that say which minutes: "39
+    /// min last time", "23 min so far". On a rest day's card a moon stands where the clock
+    /// would (D71), and no minutes.
+    private func metaRow(_ card: HomeStart) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            if !card.strip.isEmpty {
+                WeekStripView(squares: card.strip, shown: card.shownOffset) { shownOffset = $0 }
+            }
             Spacer(minLength: 0)
-            Image(systemName: "clock")
-                .foregroundStyle(.secondary)
-            Text(clock.minutes)
-            Text(clock.caption)
-                .foregroundStyle(.secondary)
+            if card.isRest {
+                Image(systemName: "moon.fill")
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Rest day")
+            } else if let clock = card.clock {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Image(systemName: "clock")
+                        .foregroundStyle(.secondary)
+                    Text(clock.minutes)
+                    Text(clock.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+            }
         }
         .font(.subheadline)
-        .accessibilityElement(children: .combine)
+    }
+
+    /// The SF Symbol for Core's mark: the play mark on Start and Resume, the moon on the button
+    /// that does nothing, none on Choose a plan.
+    private func mark(_ mark: HomeStart.Mark?) -> String? {
+        switch mark {
+        case .play: return "play.fill"
+        case .moon: return "moon.fill"
+        case nil: return nil
+        }
+    }
+
+    /// D17: the switch popup's words, as Plan detail says them.
+    private var switchPrompt: String {
+        guard let session = model.session else { return "Switch workout?" }
+        let logged = SessionStats.loggedCount(session)
+        return "You're in the middle of \(session.dayName) (\(logged) of \(session.steps.count) sets). "
+            + "Switching workouts mid-session isn't recommended."
     }
 
     /// P5: Start is never blind — the day's exercises are named before you tap it. D61
@@ -259,8 +303,6 @@ struct HomeView: View {
     @ViewBuilder private func alternativeButton(_ alternative: HomeStart.Alternative,
                                                 card: HomeStart) -> some View {
         switch alternative {
-        case .anotherDay:
-            Button(alternative.title) { choosingDay = true }
         case .changePlan:
             Button(alternative.title) { path.append(TodayRoute.plans) }
         case .planProgression:
@@ -283,9 +325,65 @@ struct HomeView: View {
     }
 
     /// D48 (v1.4): the cover opens on `startedWorkouts`, the moment the engine exists; this
-    /// task carries on telling the system behind it.
-    private func start(planId: UUID, dayIndex: Int) {
-        Task { try? await model.startDay(planId: planId, dayIndex: dayIndex) }
+    /// task carries on telling the system behind it. D70 (v1.8): a day started from the strip
+    /// while a session is open is refused before anything changes, and that raises the popup.
+    private func start(planId: UUID, dayIndex: Int, switching choice: SessionSwitch? = nil) {
+        Task {
+            do {
+                try await model.startDay(planId: planId, dayIndex: dayIndex, switching: choice)
+            } catch LibraryError.sessionInProgress {
+                switching = PlanRoute(id: planId, dayIndex: dayIndex)
+            } catch {
+                switching = nil
+            }
+        }
+    }
+
+    private func switchDay(_ choice: SessionSwitch) {
+        guard let route = switching else { return }
+        switching = nil
+        start(planId: route.id, dayIndex: route.dayIndex, switching: choice)
+    }
+}
+
+/// D70 (v1.8, §6.44): the week as a strip — seven squares, today first, each a button that
+/// shows its day. The shown square is larger and at full strength; the others at half, as the
+/// set blocks are; a rest day's is grey. Colour is never the only cue: the size says which is
+/// shown, the button under the card says the day in words, and VoiceOver reads each square as
+/// its day, the shown one as selected. The squares are the size of page dots and the tap area
+/// is the row's height — the plan's centimetre.
+private struct WeekStripView: View {
+    let squares: [WeekStrip.Square]
+    let shown: Int
+    let onTap: (Int) -> Void
+    @ScaledMetric(relativeTo: .subheadline) private var small: CGFloat = 10
+    @ScaledMetric(relativeTo: .subheadline) private var large: CGFloat = 14
+    @ScaledMetric(relativeTo: .subheadline) private var cell: CGFloat = 20
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(squares, id: \.offset) { square in
+                let isShown = square.offset == shown
+                let side = isShown ? large : small
+                Button { onTap(square.offset) } label: {
+                    RoundedRectangle(cornerRadius: side / 4, style: .continuous)
+                        .fill(fill(square, shown: isShown))
+                        .frame(width: side, height: side)
+                        .frame(width: cell, height: cell + 4)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(square.spoken)
+                .accessibilityAddTraits(isShown ? .isSelected : [])
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Seven days")
+    }
+
+    private func fill(_ square: WeekStrip.Square, shown: Bool) -> Color {
+        guard let colour = square.colour else { return Color.secondary.opacity(shown ? 0.55 : 0.3) }
+        return colour.color.opacity(shown ? 1 : 0.5)
     }
 }
 

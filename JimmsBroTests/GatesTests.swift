@@ -6,7 +6,8 @@ import XCTest
 
 /// T4 (v1.7) — controls are earned (D64): one test per row of SPEC §6.40's table, each at its
 /// boundary, and the pin that holds the table and `Gates` together. T14–T21 (T16, the Goals
-/// section's, went with goals in D68), and T27–T28 from the owner's review.
+/// section's, went with goals in D68; T17, Another day's, with the chooser the week strip
+/// replaced in v1.8, D70), and T27–T28 from the owner's review.
 final class GatesTests: XCTestCase {
     private func day(_ n: Int) -> Date { CoreTestSupport.date(n) }
 
@@ -61,25 +62,6 @@ final class GatesTests: XCTestCase {
         XCTAssertFalse(Gates.metricsAndFind(sessions: []))
         XCTAssertTrue(Gates.metricsAndFind(sessions: [finished(on: 8)]))
         XCTAssertFalse(Gates.metricsAndFind(sessions: [running(on: 8)]), "a running workout is not in History")
-    }
-
-    // T17: Another day, when the plan has another day — or, with nothing scheduled, any day.
-    func testAnotherDayWhenThereIsAnother() {
-        let one = CoreTestSupport.plan()
-        XCTAssertEqual(one.days.count, 1)
-        var two = one
-        var legs = one.days[0]
-        legs.name = "Legs"
-        two.days.append(legs)
-        XCTAssertTrue(Gates.anotherDay(plan: two, showing: 0))
-        XCTAssertTrue(Gates.anotherDay(plan: two, showing: 1))
-        XCTAssertFalse(Gates.anotherDay(plan: one, showing: 0), "a one-day plan has no other day")
-
-        // Nothing scheduled: Today shows no day, so the plan's one day is the way to a workout.
-        XCTAssertTrue(Gates.anotherDay(plan: one, showing: nil))
-        var empty = one
-        empty.days = []
-        XCTAssertFalse(Gates.anotherDay(plan: empty, showing: nil))
     }
 
     // T18: Change plan, once there is a plan.
@@ -154,7 +136,8 @@ final class GatesTests: XCTestCase {
             guard trimmed.hasPrefix("static func ") else { return nil }
             return String(trimmed.dropFirst("static func ".count).prefix { $0.isLetter || $0.isNumber })
         }
-        XCTAssertEqual(functions.count, 6, "one function per row of the plan's table")
+        // Five since v1.8 (D70): Another day's gate went with the chooser the strip replaced.
+        XCTAssertEqual(functions.count, 5, "one function per row of the plan's table")
 
         let lines = spec.components(separatedBy: "\n")
         let heading = try XCTUnwrap(lines.firstIndex { $0.hasPrefix("### 6.40 ") }, "SPEC has no §6.40")
@@ -164,7 +147,12 @@ final class GatesTests: XCTestCase {
             guard let start = row.range(of: "`Gates.") else { return nil }
             return String(row[start.upperBound...].prefix { $0.isLetter || $0.isNumber })
         }
-        XCTAssertEqual(named.count, rows.count, "a row of §6.40 names no Gates function")
+        // D70 (v1.8): a row whose Core cell is "—" records a control the table leaves ungated
+        // on purpose — the strip and its tap, live from the first plan — and it is the only one.
+        let ungated = rows.filter { $0.hasSuffix("| — |") }
+        XCTAssertEqual(ungated.count, 1, "§6.40 records one deliberately ungated control, the strip")
+        XCTAssertTrue(ungated.first?.contains("strip") ?? false, "the ungated row is not the strip's")
+        XCTAssertEqual(named.count + ungated.count, rows.count, "a row of §6.40 names no Gates function")
         XCTAssertEqual(named.sorted(), functions.sorted(), "§6.40's table and Gates disagree")
     }
 

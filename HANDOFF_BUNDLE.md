@@ -139,11 +139,16 @@ without words, or it leaves the card. The week becomes a seven-square strip that
 **Another day** (D70, S2), and a rest day says rest instead of naming the next workout (D71, S3).
 Nothing in it touches `Core/Persistence.swift`, the pipeline, the format, the prompts, the
 Workout screen, the rest, the Live Activity, History, or the empty card. The mock is the "Today,
-Simpler" artifact linked from the plan. S0 and S1 are built, on `v1.8-cues` off `main`: a day's
+Simpler" artifact linked from the plan. S0–S2 are built, on `v1.8-cues` off `main`: a day's
 card has no sentence (`HomeStart` has no `subtitle`, TS1) — a clock and the minutes, the
 exercises with their sets as blocks (`HomeStart.rows`, `PreviewRow`), the step as the ···'s last
 line (`stepLine`), **▶ Start Today's Push** (`HomeStart.startTitle`, D70's words), and a lighter
-gear and ··· (`QuietGlyph`). S2, the strip, is next.
+gear and ··· (`QuietGlyph`); and the week is a strip (S2, D70, SPEC §6.44): seven squares at the
+left of the meta row from the calendar's own projection (`Core/WeekStrip.swift`,
+`CalendarProjection.next(days:from:)`), a tap shows that day (`HomeStart.current(showing:)`, the
+view's `shownOffset`, never stored) with a button that says when, a tapped grey square shows
+D71's rest card early, and **Another day** left the ··· with its chooser and `Gates.anotherDay`
+(§6.40's table records the strip as the one ungated control). S3, a rest day says rest, is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -407,18 +412,18 @@ Rewritten in v1.1's R2 milestone. The v1 text is kept underneath each rule that 
 ### 4.1 Today (D61, rewritten in v1.7's T1; D69, v1.8's S1)
 Today is the day's card and nothing else, and **nothing on it is words without a cue** (v1.8, D69, §6.43): every line of words sits beside a mark that says the same thing without words, and what has no mark and does not help you press Start is not on the card. Top to bottom, on every day of the plan, the same five zones:
 1. **The day's name**, `largeTitle`, in ink: "Push", after a square in the day's colour (v1.7, D65, §6.41) that stands as tall as the title's capitals, so the colour is read before the word — the square carries the colour, never the name. On a rest day, the next workout's name (D57, unchanged).
-2. **The meta row**: at its right end a clock and **39 min** *last time* — the minutes in ink and the two words in grey, because it is a fact about last time and not a forecast (D55), there only when this day has a finished workout of a minute or more — and the clock and **23 min** *so far* while a session is open. Its left end is kept for the week strip (`docs/ITERATION_9_PLAN.md` S2, D70).
+2. **The meta row**: at its right end a clock and **39 min** *last time* — the minutes in ink and the two words in grey, because it is a fact about last time and not a forecast (D55), there only when this day has a finished workout of a minute or more — and the clock and **23 min** *so far* while a session is open. At its left end, **the week as a strip** (v1.8, D70, §6.44): seven small squares, the next seven days with today first, each in its day's colour and grey for a rest day, the day the card shows drawn larger and the others at half strength — no dates, no letters, no done-marks. Tap a square and the card shows that day; the tap is what **Another day** was.
 3. **The exercise rows**, the first five and "and N more", at body size in ink, each with **its sets as small blocks** at the row's right edge, in the day's colour at half strength: four blocks, four sets, and a drop set is one block (a set is a set). While a session is open the rows are the session's, and a logged set's block fills to full strength, so the card shows progress without a fraction. The rows are one tappable block that opens the day in Plan detail, with no chevron — the list is the thing to tap. This is the preview; there is no Preview button (P5: Start is never blind). VoiceOver reads it as "Exercises: Bench Press, …, and 2 more. Opens Push"; the blocks are hidden from it.
 4. **At most one message line** — D69's one exception: it exists to be read, it is rare, and it carries its own buttons — with its own actions, chosen in this order and never two at once: the missed workout ("Push was due Monday" · **Do it now** · **Dismiss**, D37) > the progression that has run its course ("Your progression has run its course." · **Plan the next one**, D44 — since D67 it opens the Progression screen, where it opened the plan) > notifications off (D57). Dismissing the first lets the next speak for this run. Each reads as it read in v1.6; nothing else joins the list without a decision.
 5. **Start**, in the bottom slot (D59), with a play mark before the words (D69) and words that say when (D70's): **▶ Start Today's Push**; on a rest day **▶ Start Tomorrow's Lower** or **▶ Start Thursday's Lower** — the weekday in full within the next six days, and the day alone past them, where a weekday would name this week's (D55); **▶ Resume Push · 23 min** while a session is open. The empty card's **Choose a plan** opens a picker, and has no play mark.
 
 Nothing on Today moves between visits. The screen does not scroll unless Dynamic Type makes it, and then the exercise rows are what scroll while the name, the meta row and Start hold (the rule U13 set for the workout in v1.6).
 
-**The ···**, top-right, and the gear, top-left, are grey glyphs in a hairline circle rather than the system's filled circles (D69), so the title is the heaviest thing at the top of the screen; History's gear is the same one (§4.0: zones do not move). The ··· is the only place the day's alternatives live, in this order: **Another day** (the plan's other days, the existing chooser — only when the plan has another day), **Change plan** (the Plans list, pushed onto Today — §4.2, D62), **Plan a progression** while D50 offers it (§6.26), and, while a session is open, **Discard workout** with its alert (D56). While the plan carries a progression that is still running, the menu ends with where it is — *"Step 3 of 8"*, or *"Week 3 of 8"* by the calendar (D44, D53) — a line and not a control (D69). Nothing in the menu is itself a confirmation. There is no ··· until there is a plan to have alternatives for; when each item appears is §6.40's table (D64).
+**The ···**, top-right, and the gear, top-left, are grey glyphs in a hairline circle rather than the system's filled circles (D69), so the title is the heaviest thing at the top of the screen; History's gear is the same one (§4.0: zones do not move). The ··· is the only place the day's alternatives live, in this order: **Change plan** (the Plans list, pushed onto Today — §4.2, D62), **Plan a progression** while D50 offers it (§6.26), and, while a session is open, **Discard workout** with its alert (D56). While the plan carries a progression that is still running, the menu ends with where it is — *"Step 3 of 8"*, or *"Week 3 of 8"* by the calendar (D44, D53) — a line and not a control (D69). Nothing in the menu is itself a confirmation. There is no ··· until there is a plan to have alternatives for; when each item appears is §6.40's table (D64).
 
 **No plans yet**: "No plan yet" as the headline; one sentence beneath — "Choose a built-in plan to start today, or have a chatbot write yours."; **Choose a plan** in the bottom slot — the intro's words (D47) — opening Add plan on the built-in picker (D46, §6.23, with its **Start here** badge and, one tap back, **Create with a chatbot** and **Paste plan**); and one quiet bordered button, **Try a short practice workout**. Two choices where there were three.
 
-Gone from the card in v1.8 (D69): the subtitle — the plan's name (one tap away, ··· → **Change plan**), "Planned for Thu" (the button says when), the exercise count (the rows are the count) and the step (the ···'s last line) — and the chevron on the list. The empty card and **Nothing scheduled** ("This plan has no day to start. Open it in Plans to check its repeat block.") keep their one sentence: neither is a day of the plan, and D57 chose the empty card's words for a stranger. `HomeStart` (`Core/HomeCard.swift`) resolves all of it — the wording per schedule state, the rows and their sets, the clock's minutes, the button's words, the one message, the ··· items and the step line, the block's spoken label — and the view draws what it is handed and decides nothing (§6.37, §6.43).
+Gone from the card in v1.8 (D69): the subtitle — the plan's name (one tap away, ··· → **Change plan**), "Planned for Thu" (the button says when), the exercise count (the rows are the count) and the step (the ···'s last line) — and the chevron on the list; and, with S2 (D70), **Another day** from the ···, whose chooser is deleted — the strip is the way to another day. The empty card and **Nothing scheduled** ("This plan has no day to start. Open it in Plans to check its repeat block.", under seven grey squares and a disabled **No exercise Today**) keep their one sentence: neither is a day of the plan, and D57 chose the empty card's words for a stranger. `HomeStart` (`Core/HomeCard.swift`) resolves all of it — the wording per schedule state, the rows and their sets, the clock's minutes, the button's words, the one message, the ··· items and the step line, the block's spoken label — and the view draws what it is handed and decides nothing (§6.37, §6.43).
 
 *(v1.7 — "4.1 Today (D61, rewritten in v1.7's T1)": the same five zones, with words where v1.8 has marks. **1.** "Push" after a small square in the day's colour (D65). **2.** **One subtitle**, the fragments that have data, in this order: "Push Pull Legs · 5 exercises · 48 min last time · step 3 of 8"; on a rest day, "Planned for Thu ·" in front (D57). "In progress · 5 of 16 sets · 23 min" replaced it while a session was open. **3.** **The exercise names**, the first five and "and N more" in grey footnote type — and the block was one tappable row with a trailing chevron that opened the day in Plan detail. **4.** The message line, unchanged in v1.8. **5.** **Start Push**, **Resume Push · 23 min**, **Start Lower** on a rest day. Under Dynamic Type the exercise list scrolled while the name, the subtitle and Start held. The gear and the ··· sat in the system's filled circles, and the ··· had no step line. Gone from the screen in v1.7: the calendar and the week's line (to History, D63); **Preview** (the exercise block does it); **Another day** and **Plan a progression** as buttons (to the ···); the Week/Month control; the tapped-day line.)*
 
@@ -992,7 +997,7 @@ The owner's note after living with v1.6 — *"sensory overload… less choices�
 The app decides the **order**, never the **availability**:
 
 - **Today's workout is the screen.** The same five zones on every day of the plan (§4.1); nothing moves between visits; the calendar and the week's line leave for History (D63).
-- **Everything else is one tap away, in one place.** The exercise block is the preview; Another day, Change plan, Plan a progression and, mid-workout, Discard are the ···. `HomeStart.alternatives` lists the items in order — Another day only when the plan has another day, Plan a progression only while D50 offers it, Discard last and only while a session is open, nothing at all with no plan — and the view draws the list.
+- **Everything else is one tap away, in one place.** The exercise block is the preview; Change plan, Plan a progression and, mid-workout, Discard are the ··· (*until v1.8, Another day too — D70 made the week strip the way to another day, and the chooser went, §6.44*). `HomeStart.alternatives` lists the items in order — Plan a progression only while D50 offers it, Discard last and only while a session is open, nothing at all with no plan — and the view draws the list.
 - **One message at a time.** `HomeStart.message` is chosen by priority — the missed workout (the only one with a date on it) > the progression that has run its course > notifications off — and Dismiss on the first lets the next speak. Two never share the screen. The view's per-run dismissal (D37) is an input to Core (`missedDismissed`), as is the declined permission (`notificationsOff`, D57), so the choice is a unit test.
 - **The empty card makes two offers, not three**: the built-in picker in the button (**Choose a plan**, the intro's own words, with the chatbot and paste routes one tap back inside the sheet, D57) and the practice workout in a quiet link.
 - **In progress, nothing leaves.** The block shows the session's exercises and opens its plan; the subtitle counts the session's steps ("5 of 16 sets"); Resume still goes to the session. *v1.8 (D69)*: there is no subtitle — each row's set blocks fill as its sets are logged, and the clock says "23 min" *so far*.
@@ -1026,7 +1031,7 @@ The rule behind §6.37, made a table (`docs/ITERATION_8_PLAN.md`, T4, which prop
 |---|---|---|
 | **Month** (History's calendar) | a session exists that is older than the current week — the calendar week the strip shows | `Gates.month` |
 | **Metrics**, **Find an exercise** and **Progression** (History) | at least one session — and, for Progression, an active plan, whose progression it opens | `Gates.metricsAndFind` |
-| **Another day** (Today's ···) | the plan has more than one day — or any day, when nothing is scheduled and the chooser is the only way to a workout | `Gates.anotherDay` |
+| **The strip and its tap** (Today's meta row) | from the first plan — deliberately *not* earned (v1.8, D70, §6.44): a square you can see but cannot tap is worse than no square, the tap starts nothing (Start still does), and the button names what the tap chose. Should the owner want the tap earned after the first workout, that is a condition in this cell and one function in `Gates` | — |
 | **Change plan** (Today's ···) | at least one plan | `Gates.changePlan` |
 | **Plan a progression** (Today's ···) | as D50: every exercise on the day has a session, and no progression is attached | `Gates.planProgression` |
 | The notifications-off line (Today) | as D57: after the first **Log set** of the run has asked for the permission, and the answer was no | `Gates.notificationsOff` |
@@ -1035,7 +1040,7 @@ The rule behind §6.37, made a table (`docs/ITERATION_8_PLAN.md`, T4, which prop
 - **A session is a finished one.** A workout still running earns nothing; History does not list it.
 - **Nothing is stored.** Each gate is a function of the sessions, the plans and the date (`Core/Gates.swift`), and those only grow with time and use, so "once shown it stays" needs no flag and no field in `Settings` — the on-disk contract is untouched. Deleting what earned a control takes it back: Delete all data returns the app to its first day.
 - **Week stays while the month grid is open**, so the grid can always be closed, even when the history that earned Month has been deleted under it.
-- **A control that is not there from the first launch adds its row here first**, and its function to `Gates`; the views ask `Gates` rather than counting for themselves, and a test holds the table and the type together (T21).
+- **A control that is not there from the first launch adds its row here first**, and its function to `Gates`; the views ask `Gates` rather than counting for themselves, and a test holds the table and the type together (T21). A row whose Core cell is `—` records a control the table deliberately leaves ungated — the strip is the one — and T21 counts it as such.
 
 ### 6.41 A colour per day (D65, v1.7)
 Parked from iteration 7 and chosen with v1.7's plan (`docs/ITERATION_8_PLAN.md`, T5) — the one addition in a release of subtractions. History was a column of identical grey rows, and a five-year-old reads a colour before a word. **Colour says which day; the accent says tappable** (§4.0).
@@ -1078,6 +1083,18 @@ The owner's note on 2026-09-13, after looking at v1.7's Today: *"too much text, 
 - **The exceptions are the cards that are not a day** — the empty card keeps the sentence D57 chose for a stranger, and Nothing scheduled keeps its one — **and the message line** (§4.1's fourth zone), which is read because it is rare.
 - **The blocks take the day's colour** (§6.41): half strength for a set to do, full once logged — still *which day*, never *tap here*. If five rows of blocks read as noise on the phone, the fallback is one square per row, decided on the device (the plan's Parked list).
 - **Core hands the view the facts** — `HomeStart.rows` (`PreviewRow`: a name, a set count and, mid-session, the engine's count of logged sets), `lastDuration` and `elapsed` behind `clock`, `stepLine`, and `startTitle` for the button's words — and the view draws them and computes nothing (§6.37). `HomeStart` has no `subtitle`, and a test holds it so (TS1).
+
+### 6.44 The week is the strip (D70, v1.8)
+Under the name, at the left of the meta row, **seven small squares: the next seven days, today first.** Each square is its day's colour (§6.41), grey for a rest day; the day the card shows is drawn larger, the others at half strength, as the set blocks are (§6.43). No dates, no letters, no month, no done-marks: this is not the calendar, which stays in History (D63) — it is the page dots under a carousel, and it says *where in the week* in a centimetre.
+
+- **Tap a square and the card shows that day**: the name, the colour, the rows, the minutes and the button follow it, and the button names *when*, so nobody has to count squares — **Start Today's Push**, **Start Tomorrow's Pull**, **Start Friday's Legs** (the weekday in full). A grey square's button is **No exercise Today** / **Tomorrow** / **Thursday**, disabled, with a moon before the words (D71), and its card is D71's: a grey square and **Rest** as the title, the moon in the meta row where the clock would be, no rows. The message line (§4.1's fourth zone) does not follow the square — it is about the plan, not the day shown. *Until S3 lands D71, the first square on a rest day is grey while the card behind it is still D57's, the next workout's.*
+- **The tap is the choice.** Starting from a square other than today's is what **Another day** did from the ··· in v1.7, without the chooser: Another day left the ···, the chooser is deleted, and `Gates.anotherDay` went with its row in §6.40's table. Change plan, Plan a progression and Discard workout stay where they are. Starting a different day while a session is open raises the switch popup (D17, O36: *Keep going · Finish and start · Discard and start*) on Today, as it does on Plan detail — the strip is just a second way in.
+- **Not stored.** The shown day is a value in the view (`shownOffset`, beside the missed notice's per-run dismissal) and dies with the process: the phone put down and picked up again still shows the tapped day; a relaunch shows today. Starting a workout resets it to today. Nothing joins `Settings`, and TS10 holds the decoder to it.
+- **Live from the first plan.** A deliberate exception to §6.40's table, recorded there: a square you can see but cannot tap is worse than no square, the tap is harmless (it starts nothing; Start still does), and the button names what the tap chose. The ··· keeps its gates.
+- **Drawn from the calendar's own projection** (D37: Today and the grid can never disagree). A weekday plan's seven days come from its days' weekdays; a rotation's from the anchored projection — `CalendarProjection.next(days:from:)` projects a run of days exactly as `entries(month:)` projects a month, across a month boundary — and `WeekStrip.days(plan:sessions:today:)` (`Core/WeekStrip.swift`) hands the view seven squares of *day or rest*, colour by `DayColour`, each with its **when** in words. Today's square after today's workout is that workout's colour, as the calendar draws it; the card behind the first square is always Today's own. A plan with no resolvable day (Nothing scheduled) draws seven grey squares and the disabled button, and the ··· still offers Change plan.
+- **Colour is never the only cue.** The shown square is larger and the button names the day in words, so the strip works in monochrome and for anyone who cannot tell green from orange. VoiceOver reads each square as its day — "Today, Push", "Tomorrow, rest", "Thursday, Legs" — and the shown one as selected.
+
+`HomeStart.current(library:now:calendar:notificationsOff:missedDismissed:showing:)` takes the shown offset and resolves the card for it: `strip`, `shownOffset`, `isRest`, `buttonMark` (play or moon) and `buttonEnabled` join the card, `WeekStrip.buttonTitle(dayName:offset:weekday:)` says the words, and the view draws them and decides nothing (TS6–TS10).
 
 ## 7. Data model (Core, Codable, no UI imports)
 
@@ -2503,7 +2520,7 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 |---|---|---|---|
 | Z1 | unit | (D50, v1.5) `PromptText` | Four sentences, none empty; the step names the prompt and the reply, the footer says the app never talks to the chatbot, the row line names the chatbot and lifting, the link reads "Plan a progression" |
 | Z2 | unit | (D50, v1.5) `HomeStart.offersProgression` | False with no plan, with a plan whose day has an exercise never logged, with a progression attached, and while a workout is running; true once every exercise on the day has a logged session; a second day's history does not count for the first |
-| Z3 | unit | (D50, v1.5) The views that show the sentences | Add plan, Progression and Plan detail's source reference `PromptText.copyStep`, `.mechanism` and `.progressionRow`, Home's references `.planProgression` — read from the checkout on the host routes, skipped on the simulator |
+| Z3 | unit | (D50, v1.5) The views that show the sentences | Add plan, Progression and Plan detail's source reference `PromptText.copyStep`, `.mechanism` and `.progressionRow`, Home's references `.planProgression` and Core's one list of ··· items offers it only while D50 does (`(offersProgression ? [.planProgression] : [])`, since v1.8's S2) — read from the checkout on the host routes, skipped on the simulator |
 | Z4 | manual | (D50, v1.5) Add plan and Plan detail on the phone | Copy prompt is the filled accent button beside the sentence; the footer is under the steps; the Progression row has its line and an accent chevron; Home shows **Plan a progression** only on a day whose every exercise has history, and not once one is attached |
 
 ### Z2 — the effort target (D51)
@@ -2643,7 +2660,7 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | ID | Kind | Case | Expected |
 |---|---|---|---|
 | T1 | unit | (D61, v1.7) `HomeStart.message` | Nil with no plan and on an ordinary day; `.notificationsOff` when the permission was declined; `.progressionFinished` outranks it; `.missed` outranks both; with the missed workout dismissed the next in the order speaks; never two. Each reads as it read in v1.6: "… was due …" · Do it now · Dismiss; "Your progression has run its course." · Plan the next one; the notifications sentence with no actions |
-| T2 | unit | (D61, v1.7) `HomeStart.alternatives` | Empty with no plan; Another day, Change plan on a three-day plan; Change plan alone on a one-day plan; Plan a progression joins last while D50 offers it and leaves when the plan carries a progression; while a session is open Change plan, Discard workout — ending with Discard, without Another day; the titles are Another day, Change plan, Plan a progression, Discard workout |
+| T2 | unit | (D61, v1.7) `HomeStart.alternatives` | Empty with no plan; Change plan on a three-day plan and on a one-day plan (until v1.8 the three-day plan's list began with Another day — since S2, D70, the strip is the way to another day and the item is gone, TS9); Plan a progression joins last while D50 offers it and leaves when the plan carries a progression; while a session is open Change plan, Discard workout — ending with Discard; the titles are Change plan, Plan a progression, Discard workout |
 | T3 | unit | (D61, v1.7) The exercise block is the preview | `exerciseLabel` reads "Exercises: Bench Press, Incline Press, Lateral Raise, Tricep Pushdown, Plank, and 2 more. Opens Push", and "Exercises: Squat. Opens Legs" with fewer than five; in progress the block comes from the session with the same label, `previewPlanId` is the session's plan, the clock reads "23 min" *so far* (v1.7: the subtitle "In progress · 0 of 7 sets · 23 min"; D69) and `planId` stays nil |
 | T4 | unit | (D61, v1.7) The empty card | "No plan yet"; "Choose a built-in plan to start today, or have a chatbot write yours."; **Choose a plan** — `Introduction.choosePlan`, the same words as the intro's button — and the one link **Try a short practice workout**; no ···, no message, no exercises; the link is on no other card |
 | T5 | ui | (D61, v1.7) Today at accessibility XL | On the smallest supported iPhone, in every state — a workout day, a rest day, mid-workout, the empty card — the name, the subtitle and Start stay visible without scrolling, and the exercise list is what scrolls (device; `DEVICE_CHECKLIST.md` T5) |
@@ -2679,11 +2696,11 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | T14 | unit | (D64, v1.7) `Gates.month` | False with no workouts; true on a Monday for a workout six days old (last Tuesday); on a Sunday, the same age (last Monday) is false when the week starts on Monday — it is this week, the strip's first day — and true when it starts on Sunday; still true a day and a month later; a workout still running earns nothing |
 | T15 | unit | (D64, v1.7) `Gates.metricsAndFind` | False with no workouts, true with one, false with only a running one |
 | T16 | removed | (D64, v1.7) `Gates.goals` — removed with goals (D68) | False with no workouts, true with one, false with only a running one |
-| T17 | unit | (D64, v1.7) `Gates.anotherDay` | Showing a day: true for a two-day plan, false for a one-day plan; with nothing scheduled: true for a one-day plan, false for a plan with no days |
+| T17 | removed | (D64, v1.7) `Gates.anotherDay` — removed with the chooser in v1.8 (S2, D70): the strip's tap is not earned, and TS9 pins the gate's absence | Showing a day: true for a two-day plan, false for a one-day plan; with nothing scheduled: true for a one-day plan, false for a plan with no days |
 | T18 | unit | (D64, v1.7) `Gates.changePlan` | False with no plans, true with one |
 | T19 | unit | (D64, v1.7) `Gates.planProgression` | False with no sessions, or with a session of another exercise only; true once every exercise on the day has one; false again once the plan carries a progression; false for an index past the plan's days |
 | T20 | unit | (D64, v1.7) `Gates.notificationsOff` | False before the first Log set whatever the answer would be; after it, true when refused and false when allowed; through `AppModel`, Start leaves the line off and the first Log set with the permission refused turns it on |
-| T21 | unit | (D64, v1.7) The table is SPEC's | Every `static func` in `Core/Gates.swift` is named in a row of SPEC §6.40's table, every row names one, and there are as many rows as functions (the SPEC and source reads run on the host routes and skip on the simulator) |
+| T21 | unit | (D64, v1.7) The table is SPEC's | Every `static func` in `Core/Gates.swift` is named in a row of SPEC §6.40's table, every row names one, and there are as many rows as functions — five since v1.8 — except the one row whose Core cell is `—`, the strip's, which the table records as deliberately ungated (S2, D70) and the test counts as such (the SPEC and source reads run on the host routes and skip on the simulator) |
 
 ### T5 — A colour per day (D65)
 
@@ -2730,6 +2747,20 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 | TS3 | unit | (D69, v1.8) Mid-session, the filled blocks are the engine's | Two exercises of two drop sets each; with Bench Press's first set and its drop logged through the engine, the rows read Bench Press 2 sets, 1 logged, and Row 2 sets, 0 logged — the engine's count of logged first steps — and the clock "2 min" *so far* |
 | TS4 | unit | (D69, v1.8) The step line | Nil without a progression; "Week 2 of 4" by the calendar in week 2, with a ··· there to hold it; "Step 1 of 4" by performance; nil once the progression has run its course, when the message says so instead |
 | TS5 | ui | (D69, v1.8) Today at accessibility XL | On the smallest supported iPhone: the name, the meta row, the list and Start on screen, the list scrolling (U13's rule), and the set blocks grown with the text (device; `DEVICE_CHECKLIST.md`'s v1.8 rows, written with S4) |
+
+### S2 — The week is the strip (D70)
+
+`JimmsBroTests/TodayTests.swift` (TS6–TS10) and `GatesTests` (T21 counts the strip's ungated row; T17 went with `Gates.anotherDay`). T2 lost Another day, and Z3's pin follows the ··· list into `HomeStart.alternatives(plans:offersProgression:running:)`.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| TS6 | unit | (D70, v1.8) Seven squares, today first, on a weekday plan | Mon Push, Wed Pull, Fri Legs from a Monday: `WeekStrip.days` is Push rest Pull rest Legs rest rest — offsets 0–6, day indices 0 · nil · 1 · nil · 2 · nil · nil, colours green · nil · orange · nil · purple · nil · nil, *when* Today, Tomorrow, Wednesday … Sunday, spoken "Today, Push" / "Tomorrow, rest"; from a Thursday the week wraps (rest Legs rest rest Push rest Pull); the card's `strip` is the same with `shownOffset` 0; the empty card has no strip and no button mark; a plan whose days have no weekday is Nothing scheduled with seven grey squares, **No exercise Today** under a moon and disabled, Change plan in the ···, and its sentence kept |
+| TS7 | unit | (D70, v1.8) The strip agrees with the calendar | On a rotation anchored on the 7th, from the 9th and from the 28th: `CalendarProjection.next(days:from:)` hands seven days whose entries equal the month grid's for the same dates, and each square's index, name and colour are the entry's (`.projected`) or nil (`.rest`); the 9th reads Legs rest Push Pull Legs rest Push and the 28th, across the month's end, Pull Legs rest Push Pull Legs rest; with Push done on the 9th, today's square is Push, green, and the other six unchanged |
+| TS8 | unit | (D70, v1.8) The button names when, and a tap shows that day | `WeekStrip.buttonTitle`: **Start Today's Push**, **Start Tomorrow's Pull**, **Start Friday's Legs**; for a rest square **No exercise Today** / **Tomorrow** / **Friday**. Through the card on a Monday with a two-minute Pull behind it, showing 2: Pull, orange, Row's one block, the clock "2 min" *last time*, **Start Wednesday's Pull** with the play mark and enabled, the plan and day 1 as target and preview, no sentence, not a rest, Change plan alone; showing 1: **Rest**, `isRest`, no colour, no rows, no clock, no sentence, **No exercise Tomorrow** with the moon and disabled, no target, Change plan alone, the same strip; showing 0 equals the card with nothing shown (Push, **Start Today's Push**); 9 clamps to 6 and −1 to 0; with a session open the first square is the Resume card and a tapped square is that day's card with its Start and Change plan, Discard workout |
+| TS9 | unit | (D70, v1.8) Another day left the ··· | No card — a rotation, a weekday plan on a workout day and a rest day, nothing scheduled, a tapped square — lists an item titled Another day; the rotation's and nothing-scheduled's ··· is Change plan alone; `HomeCard.swift` has no `case anotherDay`, `Gates.swift` no `func anotherDay`, and Today no "Which day?" chooser but a `WeekStripView` (the source reads run on the host routes) |
+| TS10 | unit | (D70, v1.8) The shown day is not stored | `examples/store/v1/settings.json` decodes with its rest of 90 s and round-trips equal; no field of `Settings` and no key the decoder in `Core/Persistence.swift` reads (thirteen, unchanged) contains *shown*, *strip*, *offset* or *week*, and every key it reads is a field; `HomeStart` does carry `shownOffset` |
+| TS11 | ui | (D70, v1.8) The strip at accessibility XL | The strip wraps nothing and stays one row beside the clock (device; `DEVICE_CHECKLIST.md`'s v1.8 rows, written with S4) |
+| TS12 | ui | (D70, v1.8) The shown day dies with the process | Tap Pull on a Tuesday, background the app, return: the card still shows Pull; kill and relaunch: it shows Tuesday (device; the checklist's v1.8 rows) |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -5257,35 +5288,35 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 # Build status
 
 Updated 2026-09-13. **v1.8 is in progress on branch `v1.8-cues` (off `main`, which holds v1.7):
-S0 and S1 are built and green; S2–S4 are next.** v1.7 and everything before it are below,
+S0–S2 are built and green; S3 and S4 are next.** v1.7 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
 
-## v1.8 (S0–S4): S0–S1 built and green
+## v1.8 (S0–S4): S0–S2 built and green
 
 `docs/ITERATION_9_PLAN.md` is the v1.8 plan, written from the owner's note after looking at
 v1.7's Today — *"too much text, and too little use of visual cues"*. Each milestone ends with the
 whole suite green on all three routes, a Release build and `tools/check_release.py`, and one
 commit on `v1.8-cues`.
 
-After S1:
+After S2:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'` | **333 tests, 12 skipped, 0 failures** — the skips are the pins that read SPEC or a source file, which run on the host routes. iPhone 16, as in T7, where iPhone 17's test runner never connected |
-| `swift test` | **332 tests, 0 failures** |
-| `python3 tools/check_core.py` | **332 bodies, 6,203 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'` | **337 tests, 14 skipped, 0 failures** — the skips are the pins that read SPEC or a source file, which run on the host routes (TS9 and TS10 joined them). iPhone 16, as in T7, where iPhone 17's test runner never connected |
+| `swift test` | **336 tests, 0 failures** |
+| `python3 tools/check_core.py` | **336 bodies, 6,503 assertions, 0 failures** |
 | `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.7 (1); 1.8 is S4's |
-| `python3 tools/check_bundle.py` | **current** (regenerated in S1) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in S2) |
 
 | Milestone | What it did | State |
 |---|---|---|
 | S0 | The plan, the branch, the mock (the "Today, Simpler" artifact, not committed) | Done |
 | S1 | Nothing without a cue (D69): a day's card carries no sentence. The colour square stands as tall as the title's capitals; a meta row with a clock and **39 min** *last time* (**23 min** *so far* mid-session); the exercises at body size, each with its sets as blocks in the day's colour at half strength that fill as they are logged; the step as the ···'s last line; **▶ Start Today's Push** in D70's words (**Start Tomorrow's Push**, **Start Thursday's Lower** on a rest day); the gear and the ··· as grey glyphs in hairline circles, on History too. `HomeStart` traded `subtitle` and `exercises` for `sentence` (the empty and nothing-scheduled cards only), `rows`, `lastDuration`, `elapsed`, `stepLine` and `startTitle`. TS1–TS4 in `TodayTests`; T3, T4, O63/O64, U20, W39, Z22, Y13 and the built-in plan's card rewritten for them. SPEC §4.1 (v1.7's text in italics) and §6.43 | Done |
-| S2 | The week is the strip (D70) | Next |
-| S3 | A rest day says rest (D71) | — |
+| S2 | The week is the strip (D70): seven small squares at the left of the meta row — the next seven days, today first, each in its day's colour and grey for rest, the shown one larger and the others at half strength — drawn from the calendar's own projection (`Core/WeekStrip.swift`, `CalendarProjection.next(days:from:)`). A tap shows that day (`HomeStart.current(showing:)`; the view's `shownOffset`, never stored, reset when a workout starts) and the button says when — **Start Wednesday's Legs**; a tapped grey square shows D71's rest card early (**Rest**, the moon in the meta row, a disabled moon button); Nothing scheduled draws seven grey squares under **No exercise Today**. **Another day** left the ··· with its chooser and `Gates.anotherDay`; the strip is recorded in §6.40's table as the one control that is not earned; a day started from the strip mid-session raises the switch popup on Today. TS6–TS10 in `TodayTests`; T2, T21 and Z3's pin rewritten, T17 removed. SPEC §4.1, §6.37, §6.40 and the new §6.44 | Done |
+| S3 | A rest day says rest (D71) | Next |
 | S4 | Docs, checklist, bundle, screenshots, 1.8 | — |
 
 ### Checked on the simulator (v1.8)
@@ -5293,10 +5324,18 @@ After S1:
 | Screenshot | What it shows |
 |---|---|
 | `build/s1-today.png` | Today on the seeded plan on a Sunday — a rest day, so the card headlines Monday's Push (D57, until S3) — from `SEED=1 tools/shot.sh build/s1-today.png -uiScreen today -uiNoAsk`: the green square as tall as "Push"; the clock and "39 min last time" at the right; five names at body size, each with its sets as pale green blocks (four for the bench, three for the rest) and no chevron; the gear and the ··· as grey glyphs in hairline circles; **▶ Start Tomorrow's Push** |
+| `build/s2-today.png` | Today on the seeded plan on the same Sunday, from `SEED=1 tools/shot.sh build/s2-today.png -uiScreen today -uiNoAsk`: the strip under "Push" — a grey square first, larger, for today's rest entry, then Push, Pull, Legs, Push, Pull, Legs in their colours at half strength, the seven-day cycle as the calendar draws it — with the clock at the row's right; the card behind the first square still headlines Monday's Push (D57, until S3), **▶ Start Tomorrow's Push** |
+| `build/s2-today-pull.png` | The same screen after tapping the fourth square (through the simulator, not a launch argument): **Legs** after a purple square, the tapped square drawn larger and at full colour, **28 min** *last time*, Legs' five exercises with their blocks in purple, and **▶ Start Wednesday's Legs** — the card followed the tap and the button said when |
 
 ### Not run in v1.8
 
 - TS5, Today at accessibility XL on the phone; it joins the checklist with S4's v1.8 rows.
+- TS11 and TS12, the strip at accessibility XL and the shown day surviving a background but not
+  a relaunch — both on the phone, with S4's v1.8 rows. On the simulator the tap was seen to show
+  the day (above); backgrounding and relaunching were not walked.
+- A tapped grey square's rest card, and the switch popup raised from the strip mid-session: the
+  seeded cycle has no rest day in the next six, and no session was opened on the simulator; both
+  are held in Core (TS8) and not yet seen drawn.
 - The ··· with its step line open on screen: the seeded plan carries no progression, so the line
   is held in Core (TS4) and not yet seen drawn.
 
@@ -6175,6 +6214,14 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.8 S1: **the clock is whole minutes**, as v1.7's "39 min last time" and "Resume Push · 23 min" were, so the clock and Resume agree; an hour reads "72 min". Neither ticks while Today is on screen, as in v1.7.
 - v1.8 S1: **History's gear is drawn lighter too.** `settingsGear` is one definition for both tabs (D62: the same gear in the same place), so two looks would be drift. The glass iOS 26 draws behind a toolbar item is hidden with `sharedBackgroundVisibility(.hidden)` behind `#available`; iOS 17–25 draw none.
 - v1.8 S1: **the step line is a disabled button in its own section, last in the ···.** A menu's plain `Text` looks like an item that does nothing; a disabled one reads as not a control. The ··· needs no new condition to hold it: every card with a plan offers Change plan (TS4 asserts the ··· is there).
+- v1.8 S2 (D70): **the week is the strip.** Seven small squares at the left of Today's meta row — the next seven days, today first, each in its day's colour and grey for rest, the shown one larger — and a tap on a square shows that day, with a button that says when (**Start Tomorrow's Pull**, **Start Friday's Legs**). What Another day did from the ···, without the chooser: the item, its dialog and `Gates.anotherDay` are gone. SPEC §4.1, §6.37, §6.40, §6.44; TS6–TS10.
+- v1.8 S2: **the shown square is the view's `@State`, not the model's.** The plan says "a value in the view model"; the app's one view-model is `AppModel`, and the missed notice's per-run dismissal already lives as `@State` in `HomeView` (D37) for the same reason — it costs a tap to redo and must die with the process. So `shownOffset` sits beside it, and `HomeStart.current(showing:)` takes it as an input, like `missedDismissed`. Backgrounding keeps it; a relaunch loses it; nothing joins `Settings` (TS10).
+- v1.8 S2: **a started workout resets the shown square**, from wherever it was started — the strip's Start, Do it now, Plan detail — by watching `startedWorkouts` (D48's counter). The tap was the choice and the workout took it; without this, a day tapped on the strip and then started from Plan detail would leave the tapped card behind the cover and after it.
+- v1.8 S2: **the first square is always Today's own card, unchanged from S1.** A tapped square's card is resolved from the strip; offset 0 is still `StartCard`'s — so on a weekday plan's rest day the first square is grey while the card behind it still headlines the next workout (D57), until S3 lands D71 and turns that card too. A tapped grey square already shows D71's card (a grey square, **Rest**, the moon in the meta row, no rows, the disabled moon button), so S3 has one card to change, not two.
+- v1.8 S2: **§6.40's table keeps a row for the strip, with `—` in its Core column.** The plan says the table gains the row, and T21 says every row names a `Gates` function; a row that names none is the honest record of a control deliberately left ungated, so T21 now counts a `—` row as such and insists there is exactly one. The alternative — a bullet under the table — would have hidden the exception from the test that holds the table.
+- v1.8 S2: **the strip is live while a session is open**, and a tapped day's Start raises the switch popup (D17, O36) on Today — new there: Today's only mid-session button was Resume, and `try?` swallowed the refusal. The alert is Plan detail's, with the same three answers; the tapped card's ··· keeps Discard workout last, so the way out D56 promises is there on every card while a session runs.
+- v1.8 S2: **the strip's other squares are at half strength**, as the set blocks are (D69), so the shown square is the only full colour in the meta row; a rest square is grey, darker when shown. Each square's tap area is 20 pt wide and the row's height — the plan's "centimetre" — and VoiceOver reads each as its day ("Tomorrow, rest"), the shown one as selected, inside a container named "Seven days".
+- v1.8 S2: **the ··· items come from one list**, `HomeStart.alternatives(plans:offersProgression:running:)` — Change plan, Plan a progression, Discard — for every card, since a tapped card needs the same rule as the in-progress one. Z3's pin follows it there.
 `````
 
 ---
@@ -8490,11 +8537,16 @@ without words, or it leaves the card. The week becomes a seven-square strip that
 **Another day** (D70, S2), and a rest day says rest instead of naming the next workout (D71, S3).
 Nothing in it touches `Core/Persistence.swift`, the pipeline, the format, the prompts, the
 Workout screen, the rest, the Live Activity, History, or the empty card. The mock is the "Today,
-Simpler" artifact linked from the plan. S0 and S1 are built, on `v1.8-cues` off `main`: a day's
+Simpler" artifact linked from the plan. S0–S2 are built, on `v1.8-cues` off `main`: a day's
 card has no sentence (`HomeStart` has no `subtitle`, TS1) — a clock and the minutes, the
 exercises with their sets as blocks (`HomeStart.rows`, `PreviewRow`), the step as the ···'s last
 line (`stepLine`), **▶ Start Today's Push** (`HomeStart.startTitle`, D70's words), and a lighter
-gear and ··· (`QuietGlyph`). S2, the strip, is next.
+gear and ··· (`QuietGlyph`); and the week is a strip (S2, D70, SPEC §6.44): seven squares at the
+left of the meta row from the calendar's own projection (`Core/WeekStrip.swift`,
+`CalendarProjection.next(days:from:)`), a tap shows that day (`HomeStart.current(showing:)`, the
+view's `shownOffset`, never stored) with a button that says when, a tapped grey square shows
+D71's rest card early, and **Another day** left the ··· with its chooser and `Gates.anotherDay`
+(§6.40's table records the strip as the one ungated control). S3, a rest day says rest, is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 

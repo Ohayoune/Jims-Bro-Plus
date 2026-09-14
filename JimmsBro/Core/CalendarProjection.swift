@@ -167,6 +167,28 @@ enum CalendarProjection {
             return CalendarDay(date:date,entry:entry)
         }
     }
+    /// SPEC §6.44 (D70, v1.8): a run of `count` days from `start`, for Today's week strip — the
+    /// same entries as `entries(month:)`, across a month boundary, so the strip and the grid can
+    /// never disagree (D37). `today` is the calendar's today, as for `entries`; the run usually
+    /// starts there.
+    static func next(days count: Int, from start: Date, activePlan: Plan?, sessions: [Session],
+                     today: Date, calendar: Calendar = .current) -> [CalendarDay] {
+        let first = calendar.startOfDay(for: start)
+        guard count > 0,
+              let last = calendar.date(byAdding: .day, value: count - 1, to: first) else { return [] }
+        var all = entries(month: first, activePlan: activePlan, sessions: sessions, today: today,
+                          calendar: calendar)
+        if !calendar.isDate(first, equalTo: last, toGranularity: .month) {
+            all += entries(month: last, activePlan: activePlan, sessions: sessions, today: today,
+                           calendar: calendar)
+        }
+        return (0..<count).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: first) else { return nil }
+            return all.first { calendar.isDate($0.date, inSameDayAs: day) }
+                ?? CalendarDay(date: day, entry: .none)
+        }
+    }
+
     /// SPEC §4.10 (D18, v1.1): the seven days of the calendar week containing `date`, so the
     /// strip and the week's line under it describe the same days — Home's until v1.7, History's
     /// since (D63). Same entries as `entries(month:)`.

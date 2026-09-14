@@ -121,7 +121,9 @@ enum RepeatBlock {
 /// the wording per schedule state is a unit test (O63) rather than a screenshot — and since
 /// v1.7 the one message and the ··· items are chosen here too (T1, T2): the view stops deciding
 /// either. Since v1.8 (D69) a day's card carries no sentence: every fact on it is also a mark —
-/// a colour, a clock, a block per set — and the view draws what it is handed.
+/// a colour, a clock, a block per set — and the view draws what it is handed. And since D70 the
+/// week is a strip of seven squares under the name, resolved here from the calendar's own
+/// projection (`WeekStrip`), and a tapped square's card is resolved here too (`showing:`).
 struct HomeStart: Equatable {
     /// The day, big: "Push", "No plan yet".
     var title: String
@@ -177,6 +179,26 @@ struct HomeStart: Equatable {
     var previewPlanId: UUID?
     /// D61 (v1.7): the empty card's one quiet link, under the sentence.
     var link: String?
+    /// D70 (v1.8, §6.44): the week as a strip — seven squares, today first, from the calendar's
+    /// own projection. Empty on the empty card, which has no week to show.
+    var strip: [WeekStrip.Square] = []
+    /// D70 (v1.8): the square drawn larger — the day the card shows. 0 is today; the view's
+    /// value, clamped to the strip, and never stored.
+    var shownOffset = 0
+    /// D71 (v1.8): the card is a rest day's — a grey square, "Rest", no rows, and a disabled
+    /// button with a moon before its words. In S2 a tapped grey square's card; S3 makes it
+    /// today's too.
+    var isRest = false
+    /// D69/D70 (v1.8): the mark before the button's words — play on Start and Resume, a moon on
+    /// the disabled "No exercise …". None on Choose a plan, which opens a picker.
+    var buttonMark: Mark?
+
+    enum Mark: Equatable { case play, moon }
+
+    /// The moon's button does nothing; every other button does.
+    var buttonEnabled: Bool { buttonMark != .moon }
+
+    static let restTitle = "Rest"
 
     static let previewLimit = 5
     static let chooseButton = "Choose a plan"
@@ -259,10 +281,10 @@ struct HomeStart: Equatable {
         }
     }
 
-    /// D61 (v1.7): the day's alternatives, which live in Today's ··· and nowhere else.
+    /// D61 (v1.7): the day's alternatives, which live in Today's ··· and nowhere else. D70
+    /// (v1.8): Another day left — the strip is the way to another day, and its chooser is gone
+    /// (§6.44).
     enum Alternative: Hashable {
-        /// The plan's other days, in the existing chooser.
-        case anotherDay
         /// The Plans list.
         case changePlan
         /// D50: while the plan has none and every exercise on the day has history.
@@ -272,7 +294,6 @@ struct HomeStart: Equatable {
 
         var title: String {
             switch self {
-            case .anotherDay: return "Another day"
             case .changePlan: return "Change plan"
             case .planProgression: return PromptText.planProgression
             case .discardWorkout: return "Discard workout"
@@ -284,71 +305,28 @@ struct HomeStart: Equatable {
     ///   - notificationsOff: the permission was declined this run (D57), the lowest message.
     ///   - missedDismissed: Dismiss was tapped on the missed workout this run (D37), so the
     ///     next message in the order takes the line.
+    ///   - showing: D70 (v1.8): the strip's square the view is showing — 0, today, unless one
+    ///     was tapped. Clamped to the strip; with no plan there is no strip.
     static func current(library: PlanLibrary, now: Date = Date(), calendar: Calendar = .current,
-                        notificationsOff: Bool = false, missedDismissed: Bool = false) -> HomeStart {
+                        notificationsOff: Bool = false, missedDismissed: Bool = false,
+                        showing offset: Int = 0) -> HomeStart {
         let card = StartCard.current(library: library, now: now, calendar: calendar)
         var start = HomeStart(title: card.title, rows: [], more: 0,
                               isInProgress: false, isEmpty: false)
+        let running = library.engine.map { $0.phase != .completed } ?? false
 
-        switch card {
-        case .noPlan:
-            start.title = "No plan yet"
-            // D46 (v1.4): the built-in picker took the sample's place. D61 (v1.7): two choices
-            // where there were three — the button opens the picker, and the chatbot and paste
-            // routes are one tap back inside it, where D57 already sends the reader.
-            start.sentence = emptySentence
-            start.buttonTitle = chooseButton
-            start.link = practiceLink
-            start.isEmpty = true
-            return start
-
-        case let .inProgress(dayName, elapsed):
-            start.title = dayName
-            start.buttonTitle = "Resume \(dayName) · \(Int(elapsed) / 60) min"
-            start.isInProgress = true
-            // D69 (v1.8): the clock says "so far", and the blocks fill as sets are logged — the
-            // card shows progress without a fraction, in the same zones as on any other day.
-            start.elapsed = elapsed
-            if let session = library.engine?.session {
-                start.previewPlanId = library.plans.first { $0.id == session.planId }?.id
-                start.dayColour = DayColour.of(session: session, plans: library.plans)
-                preview(&start, rows: rows(of: session), dayName: dayName)
-            }
-            start.alternatives = (Gates.changePlan(plans: library.plans) ? [.changePlan] : [])
-                + [.discardWorkout]
-            start.message = message(for: start, notificationsOff: notificationsOff,
-                                    missedDismissed: missedDismissed)
-            return start
-
-        case .nothingScheduled:
-            start.title = "Nothing scheduled"
-            start.sentence = "This plan has no day to start. Open it in Plans to check its repeat block."
-            if let plan = library.activePlan {
-                // With nothing scheduled any day is another day: the chooser is the way in.
-                start.alternatives = (Gates.anotherDay(plan: plan, showing: nil) ? [.anotherDay] : [])
-                    + (Gates.changePlan(plans: library.plans) ? [.changePlan] : [])
-            }
-            start.message = message(for: start, notificationsOff: notificationsOff,
-                                    missedDismissed: missedDismissed)
-            return start
-
-        case let .nextUp(planId, dayIndex, dayName), let .today(planId, dayIndex, dayName):
-            start.title = dayName
-            start.buttonTitle = startTitle(dayName: dayName, daysAway: 0, weekday: nil)
-            start.planId = planId
-            start.dayIndex = dayIndex
-
-        case let .restDay(planId, dayIndex, dayName, weekday, daysAway):
-            // D57 (v1.6): the workout is the headline on a rest day too, and the button just
-            // starts it. v1.1–v1.5 said "Rest day" and "Start Lower early" — schedule-speak to
-            // someone in a gym. D69 (v1.8): "Planned for Thu" left with the subtitle, and the
-            // button says when instead: "Start Thursday's Lower" (D70's words).
-            start.title = dayName
-            start.buttonTitle = startTitle(dayName: dayName, daysAway: daysAway, weekday: weekday)
-            start.planId = planId
-            start.dayIndex = dayIndex
+        // D70 (v1.8, §6.44): the strip is drawn from the first plan, from the same projection
+        // the calendar draws, and every square of it is live — a deliberate exception to
+        // §6.40's table, recorded there.
+        if let plan = library.activePlan {
+            start.strip = WeekStrip.days(plan: plan, sessions: library.sessions, today: now,
+                                         calendar: calendar)
         }
+        start.shownOffset = start.strip.isEmpty ? 0 : min(max(offset, 0), start.strip.count - 1)
 
+        // D37 (v1.2): the training day the schedule put before today that never happened, said
+        // plainly rather than resolved behind your back. "Push was due Tuesday." About the plan,
+        // not the day shown, so it is read whatever the square.
         if let plan = library.activePlan, plan.schedule == .rotation, library.engine == nil,
            let missed = PlanSchedule.missed(plan, sessions: library.sessions, today: now,
                                             calendar: calendar),
@@ -358,6 +336,99 @@ struct HomeStart: Equatable {
             start.missed = MissedWorkout(dayIndex: missed.dayIndex, dayName: day.name,
                                          date: missed.date,
                                          text: "\(day.name) was due \(name)")
+        }
+
+        if start.shownOffset > 0, let plan = library.activePlan,
+           let square = start.strip[safe: start.shownOffset] {
+            // D70 (v1.8): a tapped square — the card shows that day, and the button says when,
+            // so nobody has to count squares. What Another day did from the ···, without the
+            // chooser: the tap is the choice.
+            let weekday = WeekStrip.weekday(offset: square.offset, today: now, calendar: calendar)
+            start.buttonTitle = WeekStrip.buttonTitle(dayName: square.dayName, offset: square.offset,
+                                                      weekday: weekday)
+            guard let index = square.dayIndex, let day = plan.days[safe: index] else {
+                // D71 (v1.8): a grey square's card says rest — the title, no rows, and a button
+                // that does nothing, with a moon before its words.
+                start.title = restTitle
+                start.isRest = true
+                start.buttonMark = .moon
+                start.alternatives = alternatives(plans: library.plans, offersProgression: false,
+                                                  running: running)
+                start.message = message(for: start, notificationsOff: notificationsOff,
+                                        missedDismissed: missedDismissed)
+                return start
+            }
+            start.title = day.name
+            start.buttonMark = .play
+            start.planId = plan.id
+            start.dayIndex = index
+        } else {
+            switch card {
+            case .noPlan:
+                start.title = "No plan yet"
+                // D46 (v1.4): the built-in picker took the sample's place. D61 (v1.7): two
+                // choices where there were three — the button opens the picker, and the chatbot
+                // and paste routes are one tap back inside it, where D57 already sends the
+                // reader.
+                start.sentence = emptySentence
+                start.buttonTitle = chooseButton
+                start.link = practiceLink
+                start.isEmpty = true
+                return start
+
+            case let .inProgress(dayName, elapsed):
+                start.title = dayName
+                start.buttonTitle = "Resume \(dayName) · \(Int(elapsed) / 60) min"
+                start.buttonMark = .play
+                start.isInProgress = true
+                // D69 (v1.8): the clock says "so far", and the blocks fill as sets are logged —
+                // the card shows progress without a fraction, in the same zones as on any other
+                // day.
+                start.elapsed = elapsed
+                if let session = library.engine?.session {
+                    start.previewPlanId = library.plans.first { $0.id == session.planId }?.id
+                    start.dayColour = DayColour.of(session: session, plans: library.plans)
+                    preview(&start, rows: rows(of: session), dayName: dayName)
+                }
+                start.alternatives = alternatives(plans: library.plans, offersProgression: false,
+                                                  running: true)
+                start.message = message(for: start, notificationsOff: notificationsOff,
+                                        missedDismissed: missedDismissed)
+                return start
+
+            case .nothingScheduled:
+                start.title = "Nothing scheduled"
+                start.sentence = "This plan has no day to start. Open it in Plans to check its repeat block."
+                // D70 (v1.8): seven grey squares and the disabled button; the ··· still offers
+                // Change plan, the way to a plan with a day in it.
+                start.buttonTitle = WeekStrip.buttonTitle(dayName: nil, offset: 0, weekday: nil)
+                start.buttonMark = .moon
+                start.alternatives = alternatives(plans: library.plans, offersProgression: false,
+                                                  running: running)
+                start.message = message(for: start, notificationsOff: notificationsOff,
+                                        missedDismissed: missedDismissed)
+                return start
+
+            case let .nextUp(planId, dayIndex, dayName), let .today(planId, dayIndex, dayName):
+                start.title = dayName
+                start.buttonTitle = startTitle(dayName: dayName, daysAway: 0, weekday: nil)
+                start.buttonMark = .play
+                start.planId = planId
+                start.dayIndex = dayIndex
+
+            case let .restDay(planId, dayIndex, dayName, weekday, daysAway):
+                // D57 (v1.6): the workout is the headline on a rest day too, and the button
+                // just starts it. v1.1–v1.5 said "Rest day" and "Start Lower early" —
+                // schedule-speak to someone in a gym. D69 (v1.8): "Planned for Thu" left with
+                // the subtitle, and the button says when instead: "Start Thursday's Lower"
+                // (D70's words). The strip's first square is grey meanwhile; S3 (D71) turns
+                // this card too.
+                start.title = dayName
+                start.buttonTitle = startTitle(dayName: dayName, daysAway: daysAway, weekday: weekday)
+                start.buttonMark = .play
+                start.planId = planId
+                start.dayIndex = dayIndex
+            }
         }
 
         guard let plan = library.plans.first(where: { $0.id == start.planId }),
@@ -385,14 +456,24 @@ struct HomeStart: Equatable {
                                                             sessions: library.sessions)
         }
         // D61 (v1.7): the alternatives, in the order the ··· lists them, each earned (D64,
-        // §6.40): Another day when the plan has another day, Change plan when there is a plan
-        // list, Plan a progression while D50 offers it.
-        start.alternatives = (Gates.anotherDay(plan: plan, showing: index) ? [.anotherDay] : [])
-            + (Gates.changePlan(plans: library.plans) ? [.changePlan] : [])
-            + (start.offersProgression ? [.planProgression] : [])
+        // §6.40): Change plan when there is a plan list, Plan a progression while D50 offers it,
+        // and Discard while a session is open — reached here from a tapped square (D70).
+        // Another day left with the strip (D70, §6.44).
+        start.alternatives = alternatives(plans: library.plans, offersProgression: start.offersProgression,
+                                          running: running)
         start.message = message(for: start, notificationsOff: notificationsOff,
                                 missedDismissed: missedDismissed)
         return start
+    }
+
+    /// The ··· items in their order: Change plan (D64), Plan a progression (D50) and, while a
+    /// session is open, Discard workout (D56) — last, and never the only item, since Change
+    /// plan is there wherever there is a plan.
+    private static func alternatives(plans: [Plan], offersProgression: Bool,
+                                     running: Bool) -> [Alternative] {
+        (Gates.changePlan(plans: plans) ? [.changePlan] : [])
+            + (offersProgression ? [.planProgression] : [])
+            + (running ? [.discardWorkout] : [])
     }
 
     /// The first five rows, the count of the rest, and what VoiceOver reads for the block.

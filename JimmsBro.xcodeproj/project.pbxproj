@@ -73,6 +73,7 @@
 		AD76242ED722435ABA5BC7FC /* HomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFE14A9242514C71B4193FA3 /* HomeCard.swift */; };
 		7E3B9A1D2C4F4E6A9B8D0C13 /* Tabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1C7E2B9D4F4A3E8B6C1D02 /* Tabs.swift */; };
 		9F7AEC0250714270885E559E /* Gates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9936FFD6C64ED9A9536856 /* Gates.swift */; };
+		C4D5E6F708192A3B4C5D6E7F /* WeekStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E6F708192A3B4C5D6E7F80 /* WeekStrip.swift */; };
 		B0F982780DFDE681EE0BF8CA /* Steps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E1A0F5D06791E5C42ABF4B6 /* Steps.swift */; };
 		B14AA058BAFC9D16A2B2F3CC /* PlanImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20FFB53CE37AC01F8417CD08 /* PlanImport.swift */; };
 		B330B7AB22DB41CEABAF6F74 /* InputRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 181388EC300A446E84181414 /* InputRules.swift */; };
@@ -254,6 +255,7 @@
 		FFE14A9242514C71B4193FA3 /* HomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCard.swift; sourceTree = "<group>"; };
 		5A1C7E2B9D4F4A3E8B6C1D02 /* Tabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tabs.swift; sourceTree = "<group>"; };
 		9A9936FFD6C64ED9A9536856 /* Gates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gates.swift; sourceTree = "<group>"; };
+		D5E6F708192A3B4C5D6E7F80 /* WeekStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekStrip.swift; sourceTree = "<group>"; };
 		E2377BC537B24FBBA5CF2DD3 /* WorkoutScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutScreen.swift; sourceTree = "<group>"; };
 		34138007B45D4150AF304B1E /* WorkoutScreenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutScreenTests.swift; sourceTree = "<group>"; };
 		E02EC24596CE4959BC0BC3C7 /* PracticePlan.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = PracticePlan.json; sourceTree = "<group>"; };
@@ -516,6 +518,7 @@
 				FFE14A9242514C71B4193FA3 /* HomeCard.swift */,
 				5A1C7E2B9D4F4A3E8B6C1D02 /* Tabs.swift */,
 				9A9936FFD6C64ED9A9536856 /* Gates.swift */,
+				D5E6F708192A3B4C5D6E7F80 /* WeekStrip.swift */,
 				FA04F1C71678704412B2A759 /* README.md */,
 				D832A5437E88562B87368D3E /* CalendarProjection.swift */,
 				B9287B42BCB4E00C89CF46D4 /* Models.swift */,
@@ -782,6 +785,7 @@
 				AD76242ED722435ABA5BC7FC /* HomeCard.swift in Sources */,
 				7E3B9A1D2C4F4E6A9B8D0C13 /* Tabs.swift in Sources */,
 				9F7AEC0250714270885E559E /* Gates.swift in Sources */,
+				C4D5E6F708192A3B4C5D6E7F /* WeekStrip.swift in Sources */,
 				E5832E79ECB24747BF2E8DE0 /* StoreFiles.swift in Sources */,
 				27057E6E82004BE891303904 /* Store.swift in Sources */,
 				2CAA2329ED0122BBDA3E25D0 /* JimmsBroApp.swift in Sources */,

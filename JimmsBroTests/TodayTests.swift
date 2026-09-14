@@ -7,6 +7,8 @@ import XCTest
 /// T1 (v1.7) — Today is one card (D61): the one message, the ··· items, the exercise block
 /// that is the preview, and the empty card's two choices. T1–T4. S1 (v1.8) — nothing without a
 /// cue (D69): no sentence on a day's card, the rows and their sets, the step line. TS1–TS4.
+/// S2 (v1.8) — the week is the strip (D70): seven squares from the calendar's own projection, a
+/// tapped square's card and its button's words, Another day gone, nothing stored. TS6–TS10.
 final class TodayTests: XCTestCase {
     private let calendar = CoreTestSupport.utc()
 
@@ -51,9 +53,26 @@ final class TodayTests: XCTestCase {
     }
 
     private func card(_ library: PlanLibrary, on n: Int, notificationsOff: Bool = false,
-                      missedDismissed: Bool = false) -> HomeStart {
+                      missedDismissed: Bool = false, showing: Int = 0) -> HomeStart {
         HomeStart.current(library: library, now: day(n), calendar: calendar,
-                          notificationsOff: notificationsOff, missedDismissed: missedDismissed)
+                          notificationsOff: notificationsOff, missedDismissed: missedDismissed,
+                          showing: showing)
+    }
+
+    /// Mon Push (Bench Press, 3 sets) / Wed Pull (Row) / Fri Legs (Squat): a weekday plan, so
+    /// the strip's seven days come from the days' weekdays. September 2026 starts on a Tuesday:
+    /// the 14th is a Monday.
+    private func weekdayPlan() -> Plan {
+        let set = SetTarget(work: .reps(.fixed(5)), weight: 100, restSeconds: 180)
+        func day(_ name: String, _ weekday: Weekday, _ names: [String], sets: Int = 1) -> Day {
+            Day(name: name, weekday: weekday,
+                exercises: names.map { Exercise(name: $0, sets: Array(repeating: set, count: sets)) })
+        }
+        return Plan(name: "Push Pull Legs", units: .kg, schedule: .weekday,
+                    days: [day("Push", .monday, ["Bench Press"], sets: 3),
+                           day("Pull", .wednesday, ["Row"]),
+                           day("Legs", .friday, ["Squat"])],
+                    importedAt: self.day(1), sourceText: "", cycle: [])
     }
 
     // T1: the one message, by priority — missed > finished progression > notifications off —
@@ -95,11 +114,12 @@ final class TodayTests: XCTestCase {
         XCTAssertEqual(HomeStart.Message.notificationsOff.actions, [])
     }
 
-    // T2: the ··· items — Another day only with another day, Plan a progression only while
-    // D50 offers it, Discard last while a session is open, nothing at all with no plan.
+    // T2: the ··· items — Change plan once there is a plan, Plan a progression only while D50
+    // offers it, Discard last while a session is open, nothing at all with no plan. (Another
+    // day was the first item until v1.8, D70: the strip is the way to another day now, TS9.)
     func testAlternatives() throws {
         XCTAssertEqual(card(PlanLibrary(), on: 9).alternatives, [], "no plan: no ···")
-        XCTAssertEqual(card(library(rotation()), on: 9).alternatives, [.anotherDay, .changePlan])
+        XCTAssertEqual(card(library(rotation()), on: 9).alternatives, [.changePlan])
 
         // A one-day plan has no other day to offer.
         let oneDay = CoreTestSupport.plan()
@@ -120,7 +140,7 @@ final class TodayTests: XCTestCase {
         XCTAssertNotNil(single.activePlan?.progression)
         XCTAssertEqual(card(single, on: 9).alternatives, [.changePlan])
 
-        // While a session is open the menu ends with Discard, and Another day is not offered.
+        // While a session is open the menu ends with Discard.
         let plan = rotation()
         var running = library(plan)
         running.engine = SessionEngine(session: CoreTestSupport.session(plan, start: day(9)),
@@ -131,7 +151,6 @@ final class TodayTests: XCTestCase {
         XCTAssertEqual(inProgress.alternatives.last, .discardWorkout)
 
         // The titles the menu shows.
-        XCTAssertEqual(HomeStart.Alternative.anotherDay.title, "Another day")
         XCTAssertEqual(HomeStart.Alternative.changePlan.title, "Change plan")
         XCTAssertEqual(HomeStart.Alternative.planProgression.title, PromptText.planProgression)
         XCTAssertEqual(HomeStart.Alternative.discardWorkout.title, "Discard workout")
@@ -317,5 +336,240 @@ final class TodayTests: XCTestCase {
         let finished = card(library(rotation(progression: finishedByTheNinth())), on: 9)
         XCTAssertNil(finished.stepLine)
         XCTAssertEqual(finished.message, .progressionFinished)
+    }
+
+    // TS6 (D70): seven squares, today first, on a weekday plan — Push rest Pull rest Legs rest
+    // rest from a Monday — each with its colour and its "when"; the card carries the same
+    // strip, the empty card none, and Nothing scheduled seven grey ones under a moon button.
+    func testTheStripOnAWeekdayPlan() throws {
+        let plan = weekdayPlan()
+        XCTAssertEqual(calendar.component(.weekday, from: day(14)), 2, "the 14th is a Monday")
+        let strip = WeekStrip.days(plan: plan, sessions: [], today: day(14), calendar: calendar)
+        XCTAssertEqual(strip.count, 7)
+        XCTAssertEqual(strip.map(\.offset), Array(0..<7))
+        XCTAssertEqual(strip.map(\.dayName), ["Push", nil, "Pull", nil, "Legs", nil, nil])
+        XCTAssertEqual(strip.map(\.dayIndex), [0, nil, 1, nil, 2, nil, nil])
+        XCTAssertEqual(strip.map(\.colour), [.green, nil, .orange, nil, .purple, nil, nil])
+        XCTAssertEqual(strip.map(\.when),
+                       ["Today", "Tomorrow", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
+        XCTAssertEqual(strip.map(\.isRest), [false, true, false, true, false, true, true])
+        XCTAssertEqual(strip[0].spoken, "Today, Push")
+        XCTAssertEqual(strip[1].spoken, "Tomorrow, rest")
+        XCTAssertEqual(strip[2].spoken, "Wednesday, Pull")
+
+        // From a Thursday the week wraps: rest, Legs, rest, rest, Push, rest, Pull.
+        let thursday = WeekStrip.days(plan: plan, sessions: [], today: day(17), calendar: calendar)
+        XCTAssertEqual(thursday.map(\.dayName), [nil, "Legs", nil, nil, "Push", nil, "Pull"])
+        XCTAssertEqual(thursday.map(\.when),
+                       ["Today", "Tomorrow", "Saturday", "Sunday", "Monday", "Tuesday", "Wednesday"])
+
+        // The card's strip is this one, today's square shown; the empty card has no week.
+        let monday = card(library(plan), on: 14)
+        XCTAssertEqual(monday.strip, strip)
+        XCTAssertEqual(monday.shownOffset, 0)
+        XCTAssertTrue(card(PlanLibrary(), on: 14).strip.isEmpty)
+        XCTAssertNil(card(PlanLibrary(), on: 14).buttonMark, "Choose a plan has no mark")
+
+        // A plan with no day to schedule: seven grey squares, the moon's button, Change plan.
+        var nothing = plan
+        nothing.days = nothing.days.map { var day = $0; day.weekday = nil; return day }
+        let grey = card(library(nothing), on: 14)
+        XCTAssertEqual(grey.title, "Nothing scheduled")
+        XCTAssertEqual(grey.strip.count, 7)
+        XCTAssertTrue(grey.strip.allSatisfy { $0.colour == nil && $0.isRest })
+        XCTAssertEqual(grey.buttonTitle, "No exercise Today")
+        XCTAssertEqual(grey.buttonMark, .moon)
+        XCTAssertFalse(grey.buttonEnabled)
+        XCTAssertEqual(grey.alternatives, [.changePlan])
+        XCTAssertNotNil(grey.sentence, "not a day of the plan: it keeps its sentence")
+    }
+
+    // TS7 (D70): on a rotation the strip is the calendar's own projection for the same seven
+    // dates — the month grid says the same for each — across a month boundary too; and today's
+    // square after today's workout is the workout's, as the calendar draws it.
+    func testTheStripAgreesWithTheCalendar() throws {
+        let plan = rotation(anchor: 7)
+        for start in [9, 28] {
+            let strip = WeekStrip.days(plan: plan, sessions: [], today: day(start), calendar: calendar)
+            let run = CalendarProjection.next(days: 7, from: day(start), activePlan: plan, sessions: [],
+                                              today: day(start), calendar: calendar)
+            XCTAssertEqual(run.count, 7)
+            for (offset, square) in strip.enumerated() {
+                let date = try XCTUnwrap(calendar.date(byAdding: .day, value: offset,
+                                                       to: calendar.startOfDay(for: day(start))))
+                XCTAssertTrue(calendar.isDate(run[offset].date, inSameDayAs: date))
+                let grid = CalendarProjection.entries(month: date, activePlan: plan, sessions: [],
+                                                      today: day(start), calendar: calendar)
+                let cell = try XCTUnwrap(grid.first { calendar.isDate($0.date, inSameDayAs: date) })
+                XCTAssertEqual(cell.entry, run[offset].entry, "the strip and the grid disagree on day \(offset)")
+                switch cell.entry {
+                case let .projected(_, dayIndex):
+                    XCTAssertEqual(square.dayIndex, dayIndex)
+                    XCTAssertEqual(square.dayName, plan.days[dayIndex].name)
+                    XCTAssertEqual(square.colour, DayColour.of(dayIndex: dayIndex))
+                case .rest:
+                    XCTAssertTrue(square.isRest)
+                    XCTAssertNil(square.dayIndex)
+                    XCTAssertNil(square.colour)
+                default:
+                    XCTFail("the grid says nothing about a day within the week: \(cell.entry)")
+                }
+            }
+        }
+        // Push done on the 7th, so the 8th is Pull: from the 9th, Legs rest Push Pull Legs rest Push.
+        let ninth = WeekStrip.days(plan: plan, sessions: [], today: day(9), calendar: calendar)
+        XCTAssertEqual(ninth.map(\.dayName), ["Legs", nil, "Push", "Pull", "Legs", nil, "Push"])
+        // The 28th to the 4th of October: still seven, still the pattern — Pull Legs rest Push
+        // Pull Legs rest, the rest days falling on the 30th and the 4th.
+        let straddling = WeekStrip.days(plan: plan, sessions: [], today: day(28), calendar: calendar)
+        XCTAssertEqual(straddling.map(\.dayName), ["Pull", "Legs", nil, "Push", "Pull", "Legs", nil])
+        XCTAssertEqual(straddling.map(\.when),
+                       ["Today", "Tomorrow", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
+
+        // Today's workout done: today's square is the workout's day and colour, the rest as before.
+        let done = CoreTestSupport.completed(plan: plan, start: day(9))
+        XCTAssertEqual(done.dayName, "Push")
+        let after = WeekStrip.days(plan: plan, sessions: [done], today: day(9), calendar: calendar)
+        XCTAssertEqual(after[0].dayName, "Push")
+        XCTAssertEqual(after[0].dayIndex, 0)
+        XCTAssertEqual(after[0].colour, .green)
+        XCTAssertFalse(after[0].isRest)
+        XCTAssertEqual(Array(after[1...]), Array(ninth[1...]))
+    }
+
+    // TS8 (D70): the button names when — for the strip's offsets and for a rest square at each
+    // — and a tap shows that day: its name, colour, rows, minutes and button; a grey square's
+    // card says rest (D71); the first square is Today's own card; the strip stays live while a
+    // session is open.
+    func testTheButtonNamesWhen() throws {
+        XCTAssertEqual(WeekStrip.buttonTitle(dayName: "Push", offset: 0, weekday: .monday), "Start Today's Push")
+        XCTAssertEqual(WeekStrip.buttonTitle(dayName: "Pull", offset: 1, weekday: .tuesday), "Start Tomorrow's Pull")
+        XCTAssertEqual(WeekStrip.buttonTitle(dayName: "Legs", offset: 4, weekday: .friday), "Start Friday's Legs")
+        XCTAssertEqual(WeekStrip.buttonTitle(dayName: nil, offset: 0, weekday: .monday), "No exercise Today")
+        XCTAssertEqual(WeekStrip.buttonTitle(dayName: nil, offset: 1, weekday: .tuesday), "No exercise Tomorrow")
+        XCTAssertEqual(WeekStrip.buttonTitle(dayName: nil, offset: 4, weekday: .friday), "No exercise Friday")
+
+        // Monday, with a two-minute Pull behind it; tap Wednesday's square.
+        let plan = weekdayPlan()
+        var pullSession = try XCTUnwrap(Session.start(plan: plan, dayIndex: 1, now: day(9)))
+        pullSession.endedAt = day(9).addingTimeInterval(120)
+        var trained = library(plan)
+        trained.sessions = [pullSession]
+        let pull = card(trained, on: 14, showing: 2)
+        XCTAssertEqual(pull.shownOffset, 2)
+        XCTAssertEqual(pull.title, "Pull")
+        XCTAssertEqual(pull.dayColour, .orange)
+        XCTAssertEqual(pull.rows, [HomeStart.PreviewRow(name: "Row", sets: 1)])
+        XCTAssertEqual(pull.clock, HomeStart.Clock(minutes: "2 min", caption: "last time"))
+        XCTAssertEqual(pull.buttonTitle, "Start Wednesday's Pull")
+        XCTAssertEqual(pull.buttonMark, .play)
+        XCTAssertTrue(pull.buttonEnabled)
+        XCTAssertEqual(pull.planId, plan.id)
+        XCTAssertEqual(pull.dayIndex, 1)
+        XCTAssertEqual(pull.previewPlanId, plan.id)
+        XCTAssertEqual(pull.exerciseLabel, "Exercises: Row. Opens Pull")
+        XCTAssertNil(pull.sentence)
+        XCTAssertFalse(pull.isRest)
+        XCTAssertEqual(pull.alternatives, [.changePlan])
+
+        // Tomorrow is grey: the rest card — Rest, no colour, no rows, no clock, a moon's button.
+        let rest = card(trained, on: 14, showing: 1)
+        XCTAssertEqual(rest.title, "Rest")
+        XCTAssertTrue(rest.isRest)
+        XCTAssertNil(rest.dayColour)
+        XCTAssertTrue(rest.rows.isEmpty)
+        XCTAssertNil(rest.clock)
+        XCTAssertNil(rest.sentence)
+        XCTAssertNil(rest.exerciseLabel)
+        XCTAssertEqual(rest.buttonTitle, "No exercise Tomorrow")
+        XCTAssertEqual(rest.buttonMark, .moon)
+        XCTAssertFalse(rest.buttonEnabled)
+        XCTAssertNil(rest.planId)
+        XCTAssertNil(rest.dayIndex)
+        XCTAssertEqual(rest.alternatives, [.changePlan])
+        XCTAssertEqual(rest.strip, pull.strip, "the strip does not change with the tap")
+
+        // The first square is Today's own card, as S1 left it; a tap past the strip is clamped.
+        let today = card(trained, on: 14, showing: 0)
+        XCTAssertEqual(today, card(trained, on: 14))
+        XCTAssertEqual(today.title, "Push")
+        XCTAssertEqual(today.buttonTitle, "Start Today's Push")
+        XCTAssertEqual(today.buttonMark, .play)
+        XCTAssertEqual(card(trained, on: 14, showing: 9).shownOffset, 6)
+        XCTAssertEqual(card(trained, on: 14, showing: -1).shownOffset, 0)
+
+        // While a session is open the strip is still live — the tapped day's card, its Start
+        // (which raises the switch popup, O36), and Discard still last in the ···.
+        var running = trained
+        running.engine = SessionEngine(session: CoreTestSupport.session(plan, start: day(14)),
+                                       settings: CoreTestSupport.classic, now: day(14))
+        XCTAssertTrue(card(running, on: 14).isInProgress)
+        XCTAssertEqual(card(running, on: 14).buttonMark, .play)
+        let tapped = card(running, on: 14, showing: 2)
+        XCTAssertFalse(tapped.isInProgress)
+        XCTAssertEqual(tapped.title, "Pull")
+        XCTAssertEqual(tapped.buttonTitle, "Start Wednesday's Pull")
+        XCTAssertEqual(tapped.planId, plan.id)
+        XCTAssertEqual(tapped.alternatives, [.changePlan, .discardWorkout])
+        XCTAssertEqual(card(running, on: 14, showing: 1).alternatives, [.changePlan, .discardWorkout])
+    }
+
+    // TS9 (D70): Another day is not in the ··· — the strip is the way — and neither `Gates`
+    // nor Today has its gate or its chooser any more.
+    func testAnotherDayLeftTheMenu() throws {
+        let plan = weekdayPlan()
+        var nothing = plan
+        nothing.days = nothing.days.map { var day = $0; day.weekday = nil; return day }
+        let cards = [card(library(rotation()), on: 9), card(library(plan), on: 14),
+                     card(library(plan), on: 15), card(library(nothing), on: 14),
+                     card(library(plan), on: 14, showing: 3)]
+        for start in cards {
+            XCTAssertFalse(start.alternatives.map(\.title).contains("Another day"), start.title)
+        }
+        XCTAssertEqual(card(library(rotation()), on: 9).alternatives, [.changePlan])
+        XCTAssertEqual(card(library(nothing), on: 14).alternatives, [.changePlan],
+                       "nothing scheduled offered Another day until v1.8; the strip is the way")
+
+        guard let core = FixtureLoader.doc("JimmsBro/Core/HomeCard.swift"),
+              let gates = FixtureLoader.doc("JimmsBro/Core/Gates.swift"),
+              let today = FixtureLoader.doc("JimmsBro/Features/Home/HomeView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        XCTAssertFalse(core.contains("case anotherDay"), "HomeStart offers Another day again")
+        XCTAssertFalse(gates.contains("func anotherDay"), "Gates has Another day's gate again")
+        XCTAssertFalse(today.contains("Which day?"), "Today draws the day chooser again")
+        XCTAssertTrue(today.contains("WeekStripView("), "Today no longer draws the strip")
+    }
+
+    // TS10 (D70): the shown day is not in `Settings` — the frozen v1.1 file decodes unchanged,
+    // the type has no field for it, and the decoder gained no key.
+    func testTheShownDayIsNotStored() throws {
+        let frozen = try StoreCoder.decode(Settings.self, from: try FixtureLoader.data("store/v1/settings.json"))
+        XCTAssertEqual(frozen.defaultRestSeconds, 90)
+        XCTAssertEqual(try StoreCoder.decode(Settings.self, from: try StoreCoder.encode(frozen)), frozen)
+        let labels = Mirror(reflecting: Settings()).children.compactMap(\.label)
+        let words = ["shown", "strip", "offset", "week"]
+        for label in labels {
+            for word in words {
+                XCTAssertFalse(label.lowercased().contains(word), "Settings carries \(label)")
+            }
+        }
+        // And HomeStart does carry it, as a value: the strip's shown square is Today's, not the disk's.
+        XCTAssertTrue(Mirror(reflecting: card(PlanLibrary(), on: 14)).children.contains { $0.label == "shownOffset" })
+
+        guard let source = FixtureLoader.doc("JimmsBro/Core/Persistence.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        let block = try XCTUnwrap(source.components(separatedBy: "extension Settings {").last?
+                                    .components(separatedBy: "\nextension ").first)
+        let keys = block.components(separatedBy: "container.value(.").dropFirst()
+            .map { String($0.prefix { $0.isLetter || $0.isNumber }) }
+        XCTAssertEqual(keys.count, 13, "the Settings decoder gained a key: \(keys)")
+        XCTAssertTrue(Set(keys).isSubset(of: Set(labels)), "a decoded key that is not a field")
+        for key in keys {
+            for word in words {
+                XCTAssertFalse(key.lowercased().contains(word), "the decoder reads \(key)")
+            }
+        }
     }
 }

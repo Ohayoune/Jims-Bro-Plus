@@ -121,11 +121,16 @@ without words, or it leaves the card. The week becomes a seven-square strip that
 **Another day** (D70, S2), and a rest day says rest instead of naming the next workout (D71, S3).
 Nothing in it touches `Core/Persistence.swift`, the pipeline, the format, the prompts, the
 Workout screen, the rest, the Live Activity, History, or the empty card. The mock is the "Today,
-Simpler" artifact linked from the plan. S0 and S1 are built, on `v1.8-cues` off `main`: a day's
+Simpler" artifact linked from the plan. S0–S2 are built, on `v1.8-cues` off `main`: a day's
 card has no sentence (`HomeStart` has no `subtitle`, TS1) — a clock and the minutes, the
 exercises with their sets as blocks (`HomeStart.rows`, `PreviewRow`), the step as the ···'s last
 line (`stepLine`), **▶ Start Today's Push** (`HomeStart.startTitle`, D70's words), and a lighter
-gear and ··· (`QuietGlyph`). S2, the strip, is next.
+gear and ··· (`QuietGlyph`); and the week is a strip (S2, D70, SPEC §6.44): seven squares at the
+left of the meta row from the calendar's own projection (`Core/WeekStrip.swift`,
+`CalendarProjection.next(days:from:)`), a tap shows that day (`HomeStart.current(showing:)`, the
+view's `shownOffset`, never stored) with a button that says when, a tapped grey square shows
+D71's rest card early, and **Another day** left the ··· with its chooser and `Gates.anotherDay`
+(§6.40's table records the strip as the one ungated control). S3, a rest day says rest, is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 

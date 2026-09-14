@@ -1,35 +1,35 @@
 # Build status
 
 Updated 2026-09-13. **v1.8 is in progress on branch `v1.8-cues` (off `main`, which holds v1.7):
-S0 and S1 are built and green; S2–S4 are next.** v1.7 and everything before it are below,
+S0–S2 are built and green; S3 and S4 are next.** v1.7 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
 
-## v1.8 (S0–S4): S0–S1 built and green
+## v1.8 (S0–S4): S0–S2 built and green
 
 `docs/ITERATION_9_PLAN.md` is the v1.8 plan, written from the owner's note after looking at
 v1.7's Today — *"too much text, and too little use of visual cues"*. Each milestone ends with the
 whole suite green on all three routes, a Release build and `tools/check_release.py`, and one
 commit on `v1.8-cues`.
 
-After S1:
+After S2:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'` | **333 tests, 12 skipped, 0 failures** — the skips are the pins that read SPEC or a source file, which run on the host routes. iPhone 16, as in T7, where iPhone 17's test runner never connected |
-| `swift test` | **332 tests, 0 failures** |
-| `python3 tools/check_core.py` | **332 bodies, 6,203 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'` | **337 tests, 14 skipped, 0 failures** — the skips are the pins that read SPEC or a source file, which run on the host routes (TS9 and TS10 joined them). iPhone 16, as in T7, where iPhone 17's test runner never connected |
+| `swift test` | **336 tests, 0 failures** |
+| `python3 tools/check_core.py` | **336 bodies, 6,503 assertions, 0 failures** |
 | `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.7 (1); 1.8 is S4's |
-| `python3 tools/check_bundle.py` | **current** (regenerated in S1) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in S2) |
 
 | Milestone | What it did | State |
 |---|---|---|
 | S0 | The plan, the branch, the mock (the "Today, Simpler" artifact, not committed) | Done |
 | S1 | Nothing without a cue (D69): a day's card carries no sentence. The colour square stands as tall as the title's capitals; a meta row with a clock and **39 min** *last time* (**23 min** *so far* mid-session); the exercises at body size, each with its sets as blocks in the day's colour at half strength that fill as they are logged; the step as the ···'s last line; **▶ Start Today's Push** in D70's words (**Start Tomorrow's Push**, **Start Thursday's Lower** on a rest day); the gear and the ··· as grey glyphs in hairline circles, on History too. `HomeStart` traded `subtitle` and `exercises` for `sentence` (the empty and nothing-scheduled cards only), `rows`, `lastDuration`, `elapsed`, `stepLine` and `startTitle`. TS1–TS4 in `TodayTests`; T3, T4, O63/O64, U20, W39, Z22, Y13 and the built-in plan's card rewritten for them. SPEC §4.1 (v1.7's text in italics) and §6.43 | Done |
-| S2 | The week is the strip (D70) | Next |
-| S3 | A rest day says rest (D71) | — |
+| S2 | The week is the strip (D70): seven small squares at the left of the meta row — the next seven days, today first, each in its day's colour and grey for rest, the shown one larger and the others at half strength — drawn from the calendar's own projection (`Core/WeekStrip.swift`, `CalendarProjection.next(days:from:)`). A tap shows that day (`HomeStart.current(showing:)`; the view's `shownOffset`, never stored, reset when a workout starts) and the button says when — **Start Wednesday's Legs**; a tapped grey square shows D71's rest card early (**Rest**, the moon in the meta row, a disabled moon button); Nothing scheduled draws seven grey squares under **No exercise Today**. **Another day** left the ··· with its chooser and `Gates.anotherDay`; the strip is recorded in §6.40's table as the one control that is not earned; a day started from the strip mid-session raises the switch popup on Today. TS6–TS10 in `TodayTests`; T2, T21 and Z3's pin rewritten, T17 removed. SPEC §4.1, §6.37, §6.40 and the new §6.44 | Done |
+| S3 | A rest day says rest (D71) | Next |
 | S4 | Docs, checklist, bundle, screenshots, 1.8 | — |
 
 ### Checked on the simulator (v1.8)
@@ -37,10 +37,18 @@ After S1:
 | Screenshot | What it shows |
 |---|---|
 | `build/s1-today.png` | Today on the seeded plan on a Sunday — a rest day, so the card headlines Monday's Push (D57, until S3) — from `SEED=1 tools/shot.sh build/s1-today.png -uiScreen today -uiNoAsk`: the green square as tall as "Push"; the clock and "39 min last time" at the right; five names at body size, each with its sets as pale green blocks (four for the bench, three for the rest) and no chevron; the gear and the ··· as grey glyphs in hairline circles; **▶ Start Tomorrow's Push** |
+| `build/s2-today.png` | Today on the seeded plan on the same Sunday, from `SEED=1 tools/shot.sh build/s2-today.png -uiScreen today -uiNoAsk`: the strip under "Push" — a grey square first, larger, for today's rest entry, then Push, Pull, Legs, Push, Pull, Legs in their colours at half strength, the seven-day cycle as the calendar draws it — with the clock at the row's right; the card behind the first square still headlines Monday's Push (D57, until S3), **▶ Start Tomorrow's Push** |
+| `build/s2-today-pull.png` | The same screen after tapping the fourth square (through the simulator, not a launch argument): **Legs** after a purple square, the tapped square drawn larger and at full colour, **28 min** *last time*, Legs' five exercises with their blocks in purple, and **▶ Start Wednesday's Legs** — the card followed the tap and the button said when |
 
 ### Not run in v1.8
 
 - TS5, Today at accessibility XL on the phone; it joins the checklist with S4's v1.8 rows.
+- TS11 and TS12, the strip at accessibility XL and the shown day surviving a background but not
+  a relaunch — both on the phone, with S4's v1.8 rows. On the simulator the tap was seen to show
+  the day (above); backgrounding and relaunching were not walked.
+- A tapped grey square's rest card, and the switch popup raised from the strip mid-session: the
+  seeded cycle has no rest day in the next six, and no session was opened on the simulator; both
+  are held in Core (TS8) and not yet seen drawn.
 - The ··· with its step line open on screen: the seeded plan carries no progression, so the line
   is held in Core (TS4) and not yet seen drawn.
 

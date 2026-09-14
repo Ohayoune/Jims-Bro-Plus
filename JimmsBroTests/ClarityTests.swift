@@ -83,9 +83,11 @@ final class ClarityTests: XCTestCase {
             // D67 (v1.7): the Progression row is History's since the owner's review.
             ("JimmsBro/Features/History/HistoryView.swift", "PromptText.progressionRow"),
             // D61 (v1.7): Today's ··· takes its titles from Core — `HomeStart.Alternative.title`
-            // says PromptText.planProgression, and Core decides when it is offered.
+            // says PromptText.planProgression, and Core decides when it is offered (since v1.8's
+            // S2 in `HomeStart.alternatives(plans:offersProgression:running:)`, one list for
+            // every card).
             ("JimmsBro/Core/HomeCard.swift", "PromptText.planProgression"),
-            ("JimmsBro/Core/HomeCard.swift", "start.offersProgression ? [.planProgression]"),
+            ("JimmsBro/Core/HomeCard.swift", "(offersProgression ? [.planProgression] : [])"),
             ("JimmsBro/Features/Home/HomeView.swift", "alternative.title"),
         ]
         for pin in pins {
