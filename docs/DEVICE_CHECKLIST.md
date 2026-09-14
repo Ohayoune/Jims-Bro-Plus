@@ -4,9 +4,9 @@ Every `manual` case from `TEST_CASES.md`, to run on the owner's iPhone. The simu
 notifications while locked, real haptics, the silent switch, or the free-account expiry, which is why
 these are here rather than automated.
 
-Everything else — 332 automated tests plus the simulator screen checks — is green; see
+Everything else — 368 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
-**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37, **v1.7** T5, T9, T13 and T24, and **v1.8** TS5, TS11, TS12 and TS16. Y19 needs a TestFlight build, which needs the paid
+**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37, **v1.7** T5, T9, T13, T24 and T29, **v1.8** TS5, TS11, TS12 and TS16, and **v1.9** TQ18, TQ19, TQ20, TQ24, TQ29, TQ33, TQ38 and TQ39. Y19 needs a TestFlight build, which needs the paid
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
@@ -204,6 +204,32 @@ For the v1.8 rows: a `fail` on TS5 points at `HomeView`'s accessibility branches
 block sizing; on TS11 or TS12 at `Core/WeekStrip.swift` and the view's `@State shownOffset`, which
 must reset on relaunch but not on backgrounding; on TS16 at the rest-day branch of `HomeView` and
 its VoiceOver labels.
+
+## v1.9 rows (new in Q2–Q6, written with Q7)
+
+A swap needs a workout finished on a day the plan did not expect it: on Today's strip tap a later
+square, **Start** that day, log at least one set and finish. Use a plan that already has a finished
+workout — a rotation's first workout anchors it rather than swapping.
+
+| Case | What to do | Expected | Result | Notes |
+|---|---|---|---|---|
+| **TQ18** | Finish another day's workout today (above) and look at the strip. Then Settings → Accessibility → Motion → **Reduce Motion** on, and look again. Then tap the ringed square and choose an option in its block | Today's square has a dot beneath it in the colour today's own day would have had; the square whose workout was taken is ringed in yellow, and the ring breathes, about 2.4 s a breath. With Reduce Motion on, the ring holds still at full strength. Once answered, the ring is faint and still |  |  |
+| **TQ19** | After TQ18: long-press today's square, then tap elsewhere. Long-press the answered, ringed square. Then tap any square quickly | Today's long press raises a callout — the pattern's square and "was *day*" (for example "was Push") — and a tap elsewhere dismisses it. The ringed square's long press shows its day with the block back and the choice checked. A quick tap is still a tap: it shows that day and nothing more |  |  |
+| **TQ20** | Settings → Accessibility → Larger Text at the largest size, then tap a ringed square so its question shows | The block keeps every option on screen — the squares wrap rather than leave it, and the block scrolls if it must — while the day's name, the strip and the button in the bottom slot stay put |  |  |
+| **TQ24** | On Today, tap the ···. Then Settings → Display & Brightness → Dark, and tap it again | **Change plan** has the plan's cycle beside it as tiny squares in the days' colours, grey for rest, and **Change *day*'s exercises** the shown day's square. Both keep their colours in light and in dark and read as squares at the menu's size |  |  |
+| **TQ29** | With two plans — yours active and a second (Plans → **Add plan** → **Choose a built-in plan**; if the new one becomes active, tap your plan's circle and then **Use**) — tap a later square on the strip, ··· → **Change *day*'s exercises**, and pick a day of the second plan. On another square, ··· → Change *day*'s exercises → **Write a day just for *day***, and save the text it opens with. Look in light and in dark, with each square shown and not | The borrowed day's square is outlined in the second plan's colour and the own day's in ink. Beside the filled squares each still reads as a square at the strip's size, shown (larger) and not, and so does the square before the day's name when the card shows that day |  |  |
+| **TQ33** | Plans → your plan → tap a day to open it → the menu on its row → **Edit day as JSON**. Change a `"reps"` value to `"lots"` and tap **Replace *day*** (for example **Replace Push**). Then type one character. Repeat at the largest text size and in dark mode | The line with `"reps"` is tinted, with a red bar at its edge; the sentence sits beneath it and pushes the lines below down rather than covering them; the box scrolls to it; typing unmarks it. The same at accessibility XL and in dark |  |  |
+| **TQ38** | Settings → Accessibility → Larger Text at the largest size. Open Plans, then a plan, then tap one of its days. Look in light and in dark | On the list each row's symbol stands above its name. On the page the squares row wraps with every name legible, and an open day keeps its Start reachable |  |  |
+| **TQ39** | With two plans, open Plans and tap the other plan's circle. Go back to Today without tapping **Use**, then return to Plans | While it is marked: **Use *name*** in the bottom slot. After going back and returning: the active plan's circle is filled, there is no button, and Today runs the plan it ran |  |  |
+
+For the v1.9 rows: a `fail` on TQ18 or TQ19 points at `WeekStripView` and `QuestionRing` in
+`Features/Home/HomeView.swift` and at `WeekStrip.Square.hold` (`Core/WeekStrip.swift`); on TQ20 at
+`SwapQuestionView`; on TQ24 at `CycleSymbol` in `DaySquare.swift` and the `ImageRenderer` pictures
+handed to the ··· menu; on TQ29 at `DaySquare(outlined:)`; on TQ33 at the `UITextView` box in
+`Features/PlanDetail/JSONFragmentSheet.swift` and at `Core/JSONLocator.swift`; on TQ38 at
+`PlansView` and `PlanDetailView`; on TQ39 at `PlansView`'s mark, which is never stored. If no swap
+appears at all, look at `PlanLibrary.settle` (`Core/DaySwap.swift`) and whether `swaps.json` was
+written beside `plans.json`.
 
 ## When you are done
 

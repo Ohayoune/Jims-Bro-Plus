@@ -174,7 +174,7 @@ date (D76), **the JSON sheet redone** at every fragment point — named, pre-fil
 line, a Save that says its effect (D77) — and **Plans that speak in squares** (D78 — a circle to
 mark and a button to confirm, the page with the cycle as squares and every day closed until
 tapped). The requirements were settled in two rounds on the "Swapping Days" artifact linked from
-the plan. Q0–Q6 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
+the plan. Q0–Q7 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
 Today, Q3 the ··· in squares with progression left to History, Q4 a day's exercises changed for one
 date — a day of this plan, a day borrowed from another plan (outlined in its colour) or a day
 written just for the date (outlined in ink), `Core/ChangeDay.swift` and `ChangeDayView` — Q5
@@ -183,7 +183,15 @@ stands, the error marked at its line or nowhere (`Core/JSONPoint.swift`, `Core/J
 and a Save that says its effect — and Q6 Plans in squares: on the list a chevron at the left, the
 cycle's symbol, how often, and a circle that marks while **Use *name*** confirms (now the one way
 to change plan), and on the plan's page the cycle as squares, then as rows each closed until
-tapped (`Core/PlanPage.swift`). `docs/BUILD_STATUS.md` says what was run; Q7 is next.
+tapped (`Core/PlanPage.swift`). v1.9 touches the on-disk contract once: `swaps.json` beside
+`plans.json` (absent means no swaps) and an optional `swaps` in a backup, frozen in
+`examples/store/v1/` with a backup that carries swaps and one that does not. Q7 made the documents
+say so: version **1.9** on the app, the extension and the tests, `docs/DEVICE_CHECKLIST.md`'s
+**v1.9 rows** (TQ18–TQ20, TQ24, TQ29, TQ33, TQ38, TQ39), D72–D78 in `docs/DECISIONS_LOG.md` with
+the D37 amendment and the D50 reversal on Today named, and the bundle regenerated; no screenshot
+changed. Everything through Q7 is built and green. What remains is the owner's: the device
+checklist (the v1.7, v1.8 and v1.9 rows all need the phone), the Developer Program, a release Xcode
+and the submission (`docs/APP_STORE.md` §1 and §6).
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -248,7 +256,7 @@ An iPhone app that runs your workout for you. Pick a plan and tap Start; it walk
 
 ## Status
 
-**v1.8**, built and green on every route ([docs/BUILD_STATUS.md](docs/BUILD_STATUS.md)). Not yet on the App Store: the submission is prepared in [docs/APP_STORE.md](docs/APP_STORE.md) and waits on the paid Developer Program and a release Xcode. Until then, build it yourself.
+**v1.9**, built and green on every route ([docs/BUILD_STATUS.md](docs/BUILD_STATUS.md)). Not yet on the App Store: the submission is prepared in [docs/APP_STORE.md](docs/APP_STORE.md) and waits on the paid Developer Program and a release Xcode. Until then, build it yourself.
 
 ## Build it
 
@@ -268,7 +276,7 @@ The tests run on three routes — the simulator, `swift test` on the host, and a
 
 ## For the implementing agent
 
-This folder contains the design package and the app, built through **v1 (M0–M7)**, **v1.1 (R0–R6)**, **v1.2 (V0–V8)**, **v1.3 (X0–X6)**, **v1.4 (Y0–Y5)**, **v1.5 (Z0–Z6)**, **v1.6 (U0–U7)**, **v1.7 (T0–T6)** and **v1.8 (S0–S4)**: the Core import pipeline and session engine, the JSON store, every screen, the workout's five fixed zones, plan editing, backup and restore, v1.2's warm-up, timed walk between exercises, loadable weight suggestions, anchored calendar, metrics and Lock Screen / Dynamic Island activity, and v1.3's narrower Island, changing an exercise mid-workout, JSON edits at every size, history as CSV in and out, and Progression — the chatbot round-trip run the other way; and v1.4's four built-in plans, the introduction, a workout that opens the moment it exists, and the store readiness (an opaque icon, version 1.4 on every target, the export-compliance answer, the privacy policy and the submission page); and v1.5's clearer Progression row and Copy prompt, an effort target (reps or seconds in reserve) in the plan format, a plan built in several pastes for free chatbot tiers, progression as steps you earn by performance with the calendar kept as a mode, and a goal per exercise; and v1.6's answer to the usability audit (`docs/UX_REVIEW_2026-09-09.md`): no false missed workouts, every menu confirmation an alert with a way out, the first five minutes made to ask for nothing unexplained (no warm-up on a fresh install, Start first set, the permission at the first log, a weight field that explains itself, the unit asked), and a hierarchy pass (Start under the thumb, Undo on the row, a strip that says what follows, presets) — with plain words (U4, the owner's Reading B) and a switch back to compact notation, and a Lock Screen activity that no longer outlives the app (U7); and v1.7's answer to "feels like a settings menu": Today as one card with the day's alternatives in one ···, two tabs (Today · History) with Plans behind Change plan and Settings behind a gear, the calendar in History, controls that appear when they first have something to do, and a colour per day; and v1.8's answer to "too much text, and too little use of visual cues": nothing on Today without a mark beside it, the week as a seven-square strip that replaces Another day, and a rest day that says Rest instead of naming the next workout. Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the device checklist, which needs the owner's iPhone, and the submission itself — the Developer Program, a release Xcode and the form — which is the owner's to do from `docs/APP_STORE.md`. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
+This folder contains the design package and the app, built through **v1 (M0–M7)**, **v1.1 (R0–R6)**, **v1.2 (V0–V8)**, **v1.3 (X0–X6)**, **v1.4 (Y0–Y5)**, **v1.5 (Z0–Z6)**, **v1.6 (U0–U7)**, **v1.7 (T0–T6)**, **v1.8 (S0–S4)** and **v1.9 (Q0–Q7)**: the Core import pipeline and session engine, the JSON store, every screen, the workout's five fixed zones, plan editing, backup and restore, v1.2's warm-up, timed walk between exercises, loadable weight suggestions, anchored calendar, metrics and Lock Screen / Dynamic Island activity, and v1.3's narrower Island, changing an exercise mid-workout, JSON edits at every size, history as CSV in and out, and Progression — the chatbot round-trip run the other way; and v1.4's four built-in plans, the introduction, a workout that opens the moment it exists, and the store readiness (an opaque icon, version 1.4 on every target, the export-compliance answer, the privacy policy and the submission page); and v1.5's clearer Progression row and Copy prompt, an effort target (reps or seconds in reserve) in the plan format, a plan built in several pastes for free chatbot tiers, progression as steps you earn by performance with the calendar kept as a mode, and a goal per exercise; and v1.6's answer to the usability audit (`docs/UX_REVIEW_2026-09-09.md`): no false missed workouts, every menu confirmation an alert with a way out, the first five minutes made to ask for nothing unexplained (no warm-up on a fresh install, Start first set, the permission at the first log, a weight field that explains itself, the unit asked), and a hierarchy pass (Start under the thumb, Undo on the row, a strip that says what follows, presets) — with plain words (U4, the owner's Reading B) and a switch back to compact notation, and a Lock Screen activity that no longer outlives the app (U7); and v1.7's answer to "feels like a settings menu": Today as one card with the day's alternatives in one ···, two tabs (Today · History) with Plans behind Change plan and Settings behind a gear, the calendar in History, controls that appear when they first have something to do, and a colour per day; and v1.8's answer to "too much text, and too little use of visual cues": nothing on Today without a mark beside it, the week as a seven-square strip that replaces Another day, and a rest day that says Rest instead of naming the next workout; and v1.9's answer to "shift today's colour to the colour of the other day (without changing the plan itself)": a workout done on another day swaps two dates in a new `swaps.json` and leaves the plan alone, with a question on the day whose workout was taken (Rest, today's day, keep, or Slide), marks on the strip that show it, a ··· of two items drawn in squares, a day's exercises changed for one date — from this plan, another plan or a day written just for it — a JSON sheet that names what it edits and marks the error at its line, and Plans in squares with a circle to mark and a button to confirm. Open `JimmsBro.xcodeproj` and select the shared `JimmsBro` scheme. What remains is the device checklist, which needs the owner's iPhone, and the submission itself — the Developer Program, a release Xcode and the form — which is the owner's to do from `docs/APP_STORE.md`. ChatGPT / Codex reads `AGENTS.md`; Claude Code reads the identical `CLAUDE.md`.
 
 Run the iOS tests from this folder:
 
@@ -276,7 +284,7 @@ Run the iOS tests from this folder:
 xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-That is **341 tests** (14 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity, v1.3's Island timer range, exercise substitution, JSON splices, history CSV and Progression, v1.4's start-before-the-side-effects rule, the four built-in plans and the introduction, v1.5's effort target, the outline-then-days draft, the progression's earned steps and the goals, v1.6's usability rules — the missed-workout guard, the chip and calendar-label rules, the first-five-minutes defaults, the Summary's next line and plain words — v1.7's Today card, tab list, calendar line, earned controls and day colours, and v1.8's cueless card, week strip and rest-day rules. Imports use the 115 fixtures and the manifest verbatim (the original 111, plus four for the effort target). There are no third-party dependencies, and the signing team is already set for both targets.
+That is **368 tests** (18 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity, v1.3's Island timer range, exercise substitution, JSON splices, history CSV and Progression, v1.4's start-before-the-side-effects rule, the four built-in plans and the introduction, v1.5's effort target, the outline-then-days draft, the progression's earned steps and the goals, v1.6's usability rules — the missed-workout guard, the chip and calendar-label rules, the first-five-minutes defaults, the Summary's next line and plain words — v1.7's Today card, tab list, calendar line, earned controls and day colours, v1.8's cueless card, week strip and rest-day rules, and v1.9's day swaps and Slide, the strip's marks and question, the ··· in squares, a day changed for one date, the JSON sheet's points and its line locator, and Plans in squares. Imports use the 115 fixtures and the manifest verbatim (the original 111, plus four for the effort target). There are no third-party dependencies, and the signing team is already set for both targets.
 
 Core can also be checked with the independently installed Command Line Tools:
 
@@ -291,7 +299,7 @@ This portable runner compiles the actual Core sources in Swift 5 language mode a
 swift test
 ```
 
-runs Core as an ordinary Swift Package. This route had not compiled since `AppModel` became `@Observable` — `Package.swift` declared macOS 13 and Observation needs 14 — and v1.2's V1 fixed it. It is also where the ten cases the simulator skips actually run: five pin `Prompts.swift` to `docs/PROMPT.md`, one pins the introduction's copy to the views' own source, one the sentences of D50 to theirs, two SPEC's tab list and gate table to `Core/Tabs.swift` and `Core/Gates.swift`, and one reads `DaySquare.swift` for the palette — all outside the simulator's sandbox. See `docs/BUILD_STATUS.md` for results and remaining verification.
+runs Core as an ordinary Swift Package. This route had not compiled since `AppModel` became `@Observable` — `Package.swift` declared macOS 13 and Observation needs 14 — and v1.2's V1 fixed it. It is also where the eighteen cases the simulator skips actually run: they pin `Prompts.swift` to `docs/PROMPT.md`, SPEC's tab list and gate table to `Core/Tabs.swift` and `Core/Gates.swift`, and Core's words to the views' own source — the introduction's copy, D50's sentences, the palette in `DaySquare.swift`, Today's pins, the swaps' declarations (TQ12) and Plan detail's one way to change plan (TQ37) — all outside the simulator's sandbox. See `docs/BUILD_STATUS.md` for results and remaining verification.
 
 An iOS simulator runtime must be installed in Xcode; the commands above name the iPhone 17 simulator (the one Xcode 27 ships), and any installed iPhone works.
 
@@ -323,6 +331,7 @@ fails when `HANDOFF_BUNDLE.md` or the zip has drifted from the files it is built
 | `docs/ITERATION_7_PLAN.md` | The v1.6 plan: milestones U0–U7 from the usability audit; plain words (U4) as the owner's Reading B | both |
 | `docs/ITERATION_8_PLAN.md` | The v1.7 plan: milestones T0–T6 — Today as one card, two tabs, the calendar in History, earned controls, a colour per day | both |
 | `docs/ITERATION_9_PLAN.md` | The v1.8 plan: milestones S0–S4 — no words without a cue, the week as a seven-square strip, a rest day that says rest | both |
+| `docs/ITERATION_10_PLAN.md` | The v1.9 plan: milestones Q0–Q7 — a day swapped, not a plan changed, and Slide; the swap's marks on Today; the ··· in squares; a day changed for one date; the JSON sheet redone; Plans in squares | both |
 | `docs/PRIVACY.md` | The privacy policy the App Store needs a URL for | you |
 | `docs/APP_STORE.md` | The App Store submission: the order of things, every field, the review notes, the screenshots, the choices only you can make | you |
 | `docs/PROGRESSION_FORMAT.md` | The progression reply format (D44): fields, leniency, codes | both |
@@ -439,10 +448,10 @@ Rewritten in v1.1's R2 milestone. The v1 text is kept underneath each rule that 
 - **Large numbers are for values you act on right now**: the input values, a running countdown, a running timer. A number you are only being told about — a set's duration, a block's duration, a volume total — is body text. *(v1: "The most important number on a screen is the largest thing on it", which made the between-exercise block duration the hero of its own screen — D19, P1.)*
 - Show a line only when it has content (no "Notes: none", no empty "Last time").
 - **A control appears when it first has something to do**, and stays (v1.7, D64, §6.40). Nothing is removed by this, only delayed: §6.40's table lists every gated control and when it appears, and a control not in it is there from the first launch. Settings is never gated (D56).
-- **Colour says which day; the accent says tappable** (v1.7, D65, §6.41). Each day of a plan has a colour by its place in the day list, drawn in four places — a square before the day's name on Today (with, since v1.8, its rows' set blocks — D69, §6.43), the calendar's finished and planned days, a square leading each History row, and a square leading the workout header and the Lock Screen's title — and nowhere else: not Start, not the tab bar, not a background. No day is the accent, red or yellow.
+- **Colour says which day; the accent says tappable** (v1.7, D65, §6.41). Each day of a plan has a colour by its place in the day list, drawn in four places — a square before the day's name on Today (with, since v1.8, its rows' set blocks — D69, §6.43), the calendar's finished and planned days, a square leading each History row, and a square leading the workout header and the Lock Screen's title — and nowhere else: not Start, not the tab bar, not a background. No day is the accent, red or yellow. **v1.9 (D74–D78)**: *four* is v1.7's count — the squares that name a day join them (the swap's dot and question, the ···'s symbols, the picker's rows, Plans' symbols, squares and rows; §6.41 lists them), and Start, the tab bar and the backgrounds still carry none.
 - Tab bar with two tabs: **Today · History** (v1.7, D62, §6.38). Today's bar carries a gear and a ···, nothing else; History's carries the same gear in the same place. Plans is Today's ··· → **Change plan** and Settings is the gear, both pushed (§4.2, §4.11). *(v1–v1.6: "Home · Plans · History · Settings. No other navigation chrome on Home." v1.7's T1 kept four — Today · Plans · History · Settings — until D62 settled how many.)*
 - **Zones do not move.** Within one task, a control keeps its position across every state of that task: nothing appears, disappears or shifts under the thumb between working, resting and timed work (§4.5, D22, P1).
-- **The app speaks in words, and keeps the notation behind a switch** (v1.6, D58, §6.36). A target reads *"Aim 4–6 reps · 100 kg"*, a past set *"Last time 10 × 100 kg"* on its own line and never with "@", an exercise *"3 sets of 8–12 reps · 60 kg"*, a superset member *"paired with Tricep Pushdown"* rather than a bare **A**, a drop *"lighter set 1 of 2"* and, on the exercise's line, *"then lighter, as many as you can"*; "AMRAP" is *"as many reps as you can"*, an effort target *"stop 2 short of failure"*, and every button says the thing rather than the term — **Use this plan**, *"repeats every 7 days"* (D59). **Settings → Compact notation** restores v1.5's forms everywhere at once. Only rendered strings have two grammars: the engine, the plan format, the prompts (§7), the exports and the fixtures know nothing about this.
+- **The app speaks in words, and keeps the notation behind a switch** (v1.6, D58, §6.36). A target reads *"Aim 4–6 reps · 100 kg"*, a past set *"Last time 10 × 100 kg"* on its own line and never with "@", an exercise *"3 sets of 8–12 reps · 60 kg"*, a superset member *"paired with Tricep Pushdown"* rather than a bare **A**, a drop *"lighter set 1 of 2"* and, on the exercise's line, *"then lighter, as many as you can"*; "AMRAP" is *"as many reps as you can"*, an effort target *"stop 2 short of failure"*, and every button says the thing rather than the term — **Use Upper Lower** (**Use this plan** until v1.9's D78, §6.51), *"repeats every 7 days"* (D59). **Settings → Compact notation** restores v1.5's forms everywhere at once. Only rendered strings have two grammars: the engine, the plan format, the prompts (§7), the exports and the fixtures know nothing about this.
 - **Every confirmation shows its way out** (v1.6, D56). A confirmation presented from a menu is an alert with two named buttons, never a `confirmationDialog`: from a menu anchor a dialog draws as a popover on iOS 26 and drops its cancel-role button. Finish is never red — it saves; only Discard and Delete are.
 
 ### 4.1 Today (D61, rewritten in v1.7's T1; D69, v1.8's S1)
@@ -863,7 +872,7 @@ A v1.2 defect fixed here, because the splice goes through the same `apply`: a pl
 
 - **The sentences are Core** (`PromptText`): the step beside Copy prompt, the footer under the chatbot section, the line under the Progression row, and — until v1.9, when D75 took the link off Today — the name of Home's link. The views that show them are pinned to them (Z1), so a rewording is one edit and a rename cannot leave a screen behind.
 - **Copy prompt**, in Add plan (§4.4) and in Progression (§4.3), is the accent-filled small button its step deserves. The step's own text explains the mechanism once; the section's footer says the app never talks to the chatbot itself. No new screen.
-- **The Progression row** stays a row — no badge, no button — with a second line saying what it is and the accent chevron. Since v1.7 (D67, §6.42) it is History's, in the block with Metrics and Find an exercise, for the active plan; until then it was Plan detail's. **Today's ···** lists **Plan a progression** (`HomeStart.offersProgression`, from D64's `Gates.planProgression`) only while the plan has no progression, the card is not a running workout, and every exercise on the card's day has a logged session (`ExerciseHistory.last`) — the same history the prompt would send. It goes away the moment a progression is attached, and never appears for a plan with nothing to plan from. That is the whole of "not too obvious". *(v1.5–v1.6: a link in Home's footnote row beside Preview and Another day; v1.7's D61 put the card's alternatives in one ···, §4.1.)* **Reversed on Today in v1.9 (D75, §6.49)** — *"progression will just be in history"*: the offer, `HomeStart.offersProgression`, `Gates.planProgression` and the link's name in `PromptText` are gone, and History's Progression row (D67) is the one way. The Copy prompt, its sentence, the footer and the row's line stand.
+- **The Progression row** stays a row — no badge, no button — with a second line saying what it is and the accent chevron. Since v1.7 (D67, §6.42) it is History's, in the block with Metrics and Find an exercise, for the active plan; until then it was Plan detail's. *Until v1.9 (reversed below):* **Today's ···** lists **Plan a progression** (`HomeStart.offersProgression`, from D64's `Gates.planProgression`) only while the plan has no progression, the card is not a running workout, and every exercise on the card's day has a logged session (`ExerciseHistory.last`) — the same history the prompt would send. It goes away the moment a progression is attached, and never appears for a plan with nothing to plan from. That is the whole of "not too obvious". *(v1.5–v1.6: a link in Home's footnote row beside Preview and Another day; v1.7's D61 put the card's alternatives in one ···, §4.1.)* **Reversed on Today in v1.9 (D75, §6.49)** — *"progression will just be in history"*: the offer, `HomeStart.offersProgression`, `Gates.planProgression` and the link's name in `PromptText` are gone, and History's Progression row (D67) is the one way. The Copy prompt, its sentence, the footer and the row's line stand.
 
 ### 6.27 The effort target (D51, v1.5)
 "Also should add an effort target feature in the plan, showing how many reps/seconds to be away from failure." PLAN_FORMAT §5 kept RPE and RIR out of the format on purpose — "put them in notes" — and the owner has now asked for exactly this one, because it changes how a set is done rather than describing it.
@@ -891,7 +900,7 @@ A v1.2 defect fixed here, because the splice goes through the same `apply`: a pl
 - **When**: only when the workout completes (`PlanLibrary.completeSession`, next to the rotation's advance). Each exercise the session stamped with the entry's *current* step moves on (`step + 1`, `tries = 0`) or tries again (`tries + 1`). A session started before the step moved, or a substitute (D42) with no entry, changes nothing; editing history later never moves a step.
 - **Which step a workout gets** (`Progression.apply(to:on:)`): each entry's own step in performance mode — including a `{}` step, which keeps the plan's own targets but is still counted, because the workout still has to earn it — and the calendar week for all in calendar mode, where a `{}` week touches nothing (v1.3, W33). Each exercise is stamped with its step (`SessionExercise.progressionWeek`); the session's own number is the lowest of its exercises', which is what Home says, and `Session.progressionMode` records which kind it was.
 - **Finished** when every entry is past its last step (performance) or the day after the last week (calendar). Today then offers **Plan the next one**, as its message line (§4.1, D61).
-- **The words**: "Step 3 of 8" in performance mode, "Week 3 of 8" in calendar mode — on the Progression row, as the last line of Today's ··· (its subtitle until v1.8, D69), the chip's reason ("Step 3 of 8 of your progression"), the Summary and Session detail ("step 3 of 8"). The Progression screen shows each exercise's ladder with its current step marked (▸) and "Step 3 of 8 · 2 tries" when a step has repeated; the review says "8 steps, each earned".
+- **The words**: "Step 3 of 8" in performance mode, "Week 3 of 8" in calendar mode — on the Progression row, the chip's reason ("Step 3 of 8 of your progression"), the Summary and Session detail ("step 3 of 8") *(and, until v1.9, as the last line of Today's ··· — its subtitle until v1.8, D69 — which D75 took off Today, §6.49)*. The Progression screen shows each exercise's ladder with its current step marked (▸) and "Step 3 of 8 · 2 tries" when a step has repeated; the review says "8 steps, each earned".
 - **The prompt** (PROMPT.md §3) plans *steps* and carries a cadence sentence by mode: *one step is one workout's targets; I move to the next step only when I hit the current one, so make each step a small, achievable increase* — or *one step is one calendar week, starting the day I save it*. **The reply** (PROGRESSION_FORMAT.md) says `steps`; `weeks` is read as the alias with a cleanup warning. Paths say `steps[…]` and the sentences say "step".
 - **Planning**: the screen asks how many steps (4 / 6 / 8 / 12) and how to advance — **When I hit the target** (default) or **Every week** — and the choice is the progression's mode; the reply never sets it.
 
@@ -945,7 +954,7 @@ Where the eye lands, and what looks tappable. The audit's great-grandparent tapp
 
 - **Today** (§4.1; Home until v1.7): Start in the bottom slot, like every primary button; headers in ink; planned days on the grid — History's since v1.7 (D63) — as a label, not a box. *(v1.6: also "the small actions as bordered buttons that wrap"; v1.7's D61 moved them into the ···.)*
 - **The workout** (§4.5, §4.6): Undo on the logged row; the idle strip names what the button will start; Plan detail's Start is a button.
-- **Plans** (§4.3, §4.4): "kg · repeats every 7 days"; chips that wrap; an Add exercise row per day; **Use this plan** for "Set as current plan" and "Set as active"; the plan in use marked with a check in the list.
+- **Plans** (§4.3, §4.4): "kg · repeats every 7 days"; chips that wrap; an Add exercise row per day; **Use this plan** for "Set as current plan" and "Set as active"; the plan in use marked with a check in the list. *(v1.6–v1.8. Since v1.9, D78, §6.51: the list's filled circle is the mark, **Use *name*** in the bottom slot is the button, and Use this plan left Plan detail.)*
 - **History** (§4.10): labelled rows; a Find an exercise row.
 - **Settings** (§4.11, §8.6): duration presets; sentences without "prompt", "imports" or "Xcode"; the goal sheet said the app never nags (the sheet went with goals, D68).
 
@@ -994,7 +1003,7 @@ The 2026-09-09 audit's largest finding was not a defect. "5 (4–6) · 100 kg ·
 *(The other reading, kept for the record: leave the notation and explain each form once per install the first time it appears. It was the smaller change and would have left the numbers exactly as the owner reads them, but it teaches a notation rather than removing the need for one, and it says nothing on the four-hundredth day.)*
 
 ### 6.12 Calendar projection
-`Calendar.entries(month, plans, sessions, swaps, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none | .own(Day)`, for the active plan only. *(v1.9, D72: `swaps` has no default, and `.own` is a day written just for one date, §6.46.)* `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.
+`Calendar.entries(month, plans, sessions, swaps, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none | .own(Day)`, for the active plan only. *(v1.9, D72: `swaps` has no default, and `.own` is a day written just for one date, §6.46; until then `Calendar.entries(month, plans, sessions, today)`, and no `.own`.)* `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.
 - Past and today: `.completed` for days with ≥ 1 completed session (any plan). Past days without a session are `.none`, never `.rest` — a day you didn't train is not a scheduled rest day.
 - Future days (and today if no session yet):
   - weekday plan → `.projected` for days whose weekday has a Day, `.rest` for every other weekday (a weekday plan names all its training days, so the remainder are rest).
@@ -1053,7 +1062,7 @@ The app decides the **order**, never the **availability**:
 - **Everything else is one tap away, in one place.** The exercise block is the preview; Change plan, Change *day*'s exercises and, mid-workout, Discard are the ··· (*until v1.8, Another day too — D70 made the week strip the way to another day, and the chooser went, §6.44; until v1.9, Plan a progression too — D75 left it to History's row, §6.49*). `HomeStart.alternatives` lists the items in order — Change plan, then Change *day*'s exercises on a day's card, or Discard last while a session is open, nothing at all with no plan — and the view draws the list.
 - **One message at a time.** `HomeStart.message` is chosen by priority — the missed workout (the only one with a date on it) > the progression that has run its course > notifications off — and Dismiss on the first lets the next speak. Two never share the screen. The view's per-run dismissal (D37) is an input to Core (`missedDismissed`), as is the declined permission (`notificationsOff`, D57), so the choice is a unit test.
 - **The empty card makes two offers, not three**: the built-in picker in the button (**Choose a plan**, the intro's own words, with the chatbot and paste routes one tap back inside the sheet, D57) and the practice workout in a quiet link.
-- **In progress, nothing leaves.** The block shows the session's exercises and opens its plan; the subtitle counts the session's steps ("5 of 16 sets"); Resume still goes to the session. *v1.8 (D69)*: there is no subtitle — each row's set blocks fill as its sets are logged, and the clock says "23 min" *so far*.
+- **In progress, nothing leaves.** The block shows the session's exercises and opens its plan; the subtitle counts the session's steps ("5 of 16 sets"); Resume still goes to the session. *v1.8 (D69)*: there is no subtitle — each row's set blocks fill as its sets are logged, and the clock says "23 min" *so far*. *v1.9 (D75, §6.49)*: the block opens nothing — its rows are the preview, and the plan is ··· → Change plan.
 
 Home became **Today** in the tab bar. `RootView.Tab.today` replaces `.home` (`-uiScreen today`; `home` still resolves for older scripts); how many tabs there are is D62's (§6.38 — two, and the list moved to Core as `AppTab`).
 
@@ -1101,11 +1110,12 @@ Parked from iteration 7 and chosen with v1.7's plan (`docs/ITERATION_8_PLAN.md`,
 
 - **A day's colour is its place in the plan's day list**: the first day green, then orange, purple, pink, teal and indigo, and the seventh green again (`DayColour.index(dayIndex:)`, `Core/DayColour.swift`). Six system colours, so they follow dark mode; none is the accent (tappable, D59), red (destructive) or yellow (a warning), and a test holds the palette to that (T23).
 - **Derived, never stored.** Nothing joins `Plan`, `Session` or `Settings`, so no file on the phone changes shape; reordering a plan's days recolours them, which is the price of leaving the on-disk contract alone. **v1.9 (D72)**: a swap *is* stored (`swaps.json`, §6.46) and a colour still is not — the dot under a swapped square is the pattern's day's colour, derived like every other, and a swap names its day rather than indexing it, so it survives a reorder the way a colour does not. A workout's colour is its day's in its plan as the plan is now, found by the plan's id and the day's name, as the calendar finds its label (`DayColour.of(session:plans:)`); a workout whose plan is gone, or whose day was renamed, has none.
-- **Exactly four places**, each saying *which day* and none saying *tap here*:
+- **Four places**, each saying *which day* and none saying *tap here* — and since v1.9 the squares that name a day, after them (*v1.7–v1.8: "Exactly four places"*):
   1. **Today**: a filled square before the day's name — never the name itself, which is ink (§4.1) — and, since v1.8 (D69, §6.43), each exercise row's set blocks: half strength for a set to do, full once it is logged.
   2. **The calendar**: a finished day is filled, and a planned day named, in its day's colour, where the reserved green and the accent were (§4.10, D38). A day with two workouts takes the first's, the one its label names; a finished day with no colour is grey.
   3. **History**: the same square leading each workout's row, grey for a workout with no colour, so the column stays a column (§4.10).
   4. **The workout header**: the square leads the stage line — the header names no day, since D34 made it the stage — and the Lock Screen activity carries it too, before its title there and in the expanded Island; the compact Island, which has room for a colour and nothing else (D41), draws its figure in it while working, and a break keeps the accent (§4.5, §6.17).
+- **v1.9 (D74–D78): the squares that name a day.** Beside the four, a day's colour fills the small squares and dots that stand for a day wherever one is chosen or a cycle is drawn: the swap's dot under a strip square and the question block's options (§6.48), the ···'s cycle symbol and the shown day's square (§6.49), the picker's rows (§6.50), and Plans — a list row's cycle symbol, the page's squares and its rows (§6.51). Each names a day; none is a control's colour, and Start and the tab bar still carry none.
 - **v1.9 (D76, §6.50): the outline**, a mark beside the fill that says *not from this plan* while the colour still says *which day*: a day borrowed from another plan for one date is outlined in that plan's colour, and a day written just for a date is outlined in ink. Today's strip, Today's square before the name and the picker's rows draw it; the calendar, History and the workout header do not — a borrowed day's session is its own plan's, coloured by it, and an own day's has no colour.
 - **Nowhere else**: not Start, not the tab bar, not a background, not the Summary. Core decides the colour — `HomeStart.dayColour`, `DayEntry.dayColour(plans:)`, `DayColour.of(session:plans:)`, `WorkoutActivityState.dayColour` — and the view layer owns the mapping to a `Color` in one file, `DaySquare.swift`, compiled into the app and the widget extension alike (T23 reads it).
 - **Green is also the colour reserved for "this happened"** (§4.0, v1.1) — a logged set, a record. The palette keeps it for the first day, as the plan chose: in the calendar the fill now says *happened* and the colour says *which day*, so a plan's first day reads as it did in v1.6.
@@ -1114,7 +1124,7 @@ Parked from iteration 7 and chosen with v1.7's plan (`docs/ITERATION_8_PLAN.md`,
 The owner walked v1.7 on 2026-09-13, before it went to `main`, and asked for the release's own rule once more — one way to a thing, in the place it belongs.
 
 - **One way to find an exercise (D66).** History's search field is gone. It and the **Find an exercise** row (D59) led to the same exercises, and the field was the screen's top control, above the calendar it was meant to sit under. The row stays, under Metrics, from the first workout (§6.40); `ExerciseText.search` still orders its list, most recently trained first (J28). A pin holds `HistoryView` to no search field (T27).
-- **Progression lives in History (D67).** The Progression row (D44, D50) left Plan detail for History's block, under Metrics and Find an exercise: a progression is planned from what was lifted, which is History's, while Plan detail is the plan's contents. The row is unchanged — its second line, its step or "Plan it", the accent chevron — and opens the same screen as a sheet, for the **active plan**, the plan Today runs. So it needs an active plan as well as the block's first workout (§6.40); another plan's progression is planned by making it the active plan first (Plan detail's ··· → **Use this plan**). Before the first workout there is no Progression row anywhere — nothing lifted to plan from, which is also when D50's offer stays away. Today's **Plan the next one** opens the Progression screen itself, since Plan detail no longer leads there; Today's ··· kept **Plan a progression** while D50 offered it, until v1.9 (D75, §6.49). Pins hold the row to `HistoryView` and out of `PlanDetailView` (T28; Z3's and Y13's pins moved with it).
+- **Progression lives in History (D67).** The Progression row (D44, D50) left Plan detail for History's block, under Metrics and Find an exercise: a progression is planned from what was lifted, which is History's, while Plan detail is the plan's contents. The row is unchanged — its second line, its step or "Plan it", the accent chevron — and opens the same screen as a sheet, for the **active plan**, the plan Today runs. So it needs an active plan as well as the block's first workout (§6.40); another plan's progression is planned by making it the active plan first (Plan detail's ··· → **Use this plan**; since v1.9, D78, the Plans list's circle and **Use *name***, §6.51). Before the first workout there is no Progression row anywhere — nothing lifted to plan from, which is also when D50's offer stays away. Today's **Plan the next one** opens the Progression screen itself, since Plan detail no longer leads there; Today's ··· kept **Plan a progression** while D50 offered it, until v1.9 (D75, §6.49). Pins hold the row to `HistoryView` and out of `PlanDetailView` (T28; Z3's and Y13's pins moved with it).
 - **No goals (D68).** Goals (D54, §6.30) are removed: History's Goals section, **Set a goal** on an exercise's screen, the Summary's "Goal reached" line and the progression prompt's MY GOALS block, with `Core/Goals.swift` and `Gates.goals` (§6.40 lost its row). The on-disk contract holds the other way round. `goals.json` is no longer read or written, and a file v1.5–v1.7 left on the phone stays where it is, unread — the Store sets aside what it cannot read and deletes nothing, and a file it does not open is neither — until Delete all data removes the folder (§8.1). A backup that carries `goals` still restores; the key is ignored (§8.5). T30 holds both, and that the prompt carries no MY GOALS.
 
 ### 6.43 Nothing without a cue (D69, v1.8)
@@ -2969,7 +2979,7 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 
 ## TQ. v1.9 — A day swapped, not a plan changed
 
-`docs/ITERATION_10_PLAN.md` is the plan; one subsection per milestone, added as it lands. Every single letter is taken and TS was v1.8's, so the prefix is **TQ**; the plan's proposed ids are kept.
+`docs/ITERATION_10_PLAN.md` is the plan; one subsection per milestone that landed a decision, Q1–Q6 (Q7 is documents and adds no case). Every single letter is taken and TS was v1.8's, so the prefix is **TQ**; the plan's proposed ids were kept as they landed, so none was renumbered. The device cases (TQ18–TQ20, TQ24, TQ29, TQ33, TQ38, TQ39) are the **v1.9 rows** of `DEVICE_CHECKLIST.md`.
 
 ### Q1 — A day swapped, not a plan changed (D72), and Slide (D73)
 
@@ -5840,7 +5850,7 @@ the build that can be checked; the rest is typed into the form from this page.
    same binary reviewers get.
 7. **Fill in the form** from §2–§5, attach the build, and **Submit for Review**. First reviews
    usually take one to two days.
-8. **Updating later**: bump `MARKETING_VERSION` (1.8 → 1.9) and `CURRENT_PROJECT_VERSION`
+8. **Updating later**: bump `MARKETING_VERSION` (1.9 → 2.0) and `CURRENT_PROJECT_VERSION`
    (1 → 2) on all three targets, tests green, Archive, Upload, Submit. Screenshots only need
    redoing when the screens changed. `tools/check_release.py` fails if the three versions
    disagree.
@@ -5856,7 +5866,7 @@ the build that can be checked; the rest is typed into the form from this page.
 | Price | Free |
 | Availability | All territories |
 | Bundle id | `com.ohayoune.jimmsbro` |
-| Version | **1.8**, build **1** — the same on the app, the `JimmsBroActivity` extension and the tests; the extension's must match the app's or validation fails |
+| Version | **1.9**, build **1** — the same on the app, the `JimmsBroActivity` extension and the tests; the extension's must match the app's or validation fails |
 | Content rights | Contains no third-party content |
 | Age rating | None of the descriptors apply; Unrestricted Web Access: No; Gambling: No → **4+** |
 
@@ -6048,29 +6058,29 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 `````markdown
 # Build status
 
-Updated 2026-09-14. **v1.9 is in progress on branch `v1.9-swaps` (off `main`, which holds
-v1.8): Q0–Q5 built and green, Q6–Q7 not started.** v1.8 and everything before it are below,
+Updated 2026-09-14. **v1.9 is built and green on branch `v1.9-swaps` (off `main`, which holds
+v1.8): Q0–Q7.** v1.8 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
 
-## v1.9 (Q0–Q7): Q0–Q6 built and green
+## v1.9 (Q0–Q7): built and green
 
 `docs/ITERATION_10_PLAN.md` is the v1.9 plan, written from the owner's notes after living with
 v1.8's strip — *"shift today's colour to the colour of the other day (without changing the plan
 itself)"*. Each milestone ends with the whole suite green on all three routes, a Release build and
 `tools/check_release.py`, and one commit on `v1.9-swaps`.
 
-After Q6:
+After Q7:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **368 tests, 18 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; Q6 adds one, TQ37 |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **368 tests, 18 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; Q7 adds none |
 | `swift test` | **367 tests, 0 failures** |
 | `python3 tools/check_core.py` | **367 bodies, 7,345 assertions, 0 failures** |
-| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q6 touches nothing in the importer) |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q7 touches no code but the version) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
-| `python3 tools/check_release.py` | **ready, as far as a script can tell** — still version 1.8 (1); Q7 turns it to 1.9 |
-| `python3 tools/check_bundle.py` | **current** (regenerated in Q6) |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.9 (1) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in Q7) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -6081,7 +6091,8 @@ After Q6:
 | Q4 | Change *day*'s exercises (D76): the ···'s second item pushes a picker for the shown date (`ChangeDayView`; `DayChoices` from `PlanLibrary.dayChoices(for:now:)` in the new `Core/ChangeDay.swift`) — this plan's days, every other plan's, and **Write a day just for Wednesday** — and a tap writes a swap for that date alone (`choose(_:for:now:)`: answered and asked by nobody; the pattern's own day removes it; a date carrying a question is answered instead). A borrowed day projects as its own plan's day (`CalendarProjection` and `WeekStrip.days` take `plans:`), is drawn **outlined in that plan's colour**, starts as that plan's day, and its finished session moves neither plan (`isBorrowed`). A day just for the date goes through `JSONFragmentSheet` (Save **Use for Wednesday**, `saveTitle`) and the importer (`ownDay(_:named:units:settings:now:)`), is held by the swap, is drawn **outlined in ink**, and starts as the active plan's session under its own name (`startOwnDay`). `StartCard.own`, `HomeStart.ownDay` and `.isOutlined`, `MissedWorkout.planId` and `.own` (Do it now starts either), `WeekStrip.Square.planId` and `.own`, `DaySquare(outlined:)`. TQ25–TQ28 in `SwapTests`; no earlier case changed. SPEC §4.1, §6.41, §6.44, §6.46, §6.49 and the new §6.50 | Done |
 | Q5 | The JSON sheet, redone (D77), at its five points — an exercise, a day, exercises to add, a day to add, and Q4's day just for a date — by a `JSONPoint` (`Core/JSONPoint.swift`) that `FragmentTarget` maps to and `DayChoices.point` hands over (in place of Q4's `ownFooter` and `saveTitle`): **named** — One exercise, One day, Exercises to add, A day to add, A day just for Wednesday, with the place beneath ("Bench Press, exercise 3 of 5 in Push", "Added at the end of Push", "For Wednesday 16 September. Not saved to Push Pull Legs."); **pre-filled** — an edit on the part's own text, an addition on a Push-up that saves as it stands (a free weekday on a weekday plan); **the error at the line** — `Core/JSONLocator.swift` walks the text as strict JSON to the path's line, through the origins `PlanEdit.located` keeps (`fragment(_:as:)` is it without them), or answers nothing, and the box, now a TextKit 1 `UITextView`, tints the line with a bar at its edge and puts the sentence in a gap beneath it, while an edit unmarks until the next Save; and **a Save that says its effect** — Replace Bench Press, Replace Push, Add to Push, Add to Push Pull Legs, Use for Wednesday. Smart quotes are off in the box. TQ30–TQ32 in `JSONEditTests`; TQ25 reads Save from the point; W17's message changed. SPEC §4.3, §6.19 and §6.50 | Done |
 | Q6 | Plans speak in squares (D78). **The list**: a row is the accent chevron at its left, the plan's `CycleSymbol`, its name with **how often** beneath (`PlanText.howOften` — 6 days a week, 3 days every 10, Every day — counted from the symbol's own squares) and a circle at its right; the filled circle is the mark, the active plan's until another is tapped, and a marked plan that is not active puts **Use *name*** in the bottom slot (`PlanText.toUse`, `.useTitle`), which makes it active and empties Today's stack (`PlansView` takes Today's path). Add plan moved to the top right; the mark is never stored. **The page**: the repeat block's chips became squares, names beneath and the entry Next up would start in ink (`RepeatBlock.squares`), and the days became the whole cycle again as rows (`PlanPage.rows`) — repeats included, a rest with nothing to open, any day the cycle never reaches after it — each closed until tapped, an open day v1.8's section with the day's menu on its row. **Use this plan** left Plan detail's ···; nothing else did. `Core/PlanPage.swift`; the seeder's `--plans` (`SEED_PLANS=1` in `tools/shot.sh`). TQ34–TQ37 in `PlansTests`; Y13's Add plan pin reads the top-right button. SPEC §4.2, §4.3, §6.49 and the new §6.51 | Done |
-| Q7 | Docs, checklist, bundle, 1.9 | Not started |
+| Q7 | Docs, checklist, bundle, 1.9. SPEC's v1.9 amendments checked against v1.8: every rule a milestone changed keeps the text it replaced beside it (landed as each milestone shipped), and six places where v1.8's words still read as current were caught up — §4.0's colour line and its **Use this plan** example, §6.29's step line, §6.34's Plans line, §6.37's block that opened its plan, §6.41's "exactly four places" (now four places and the squares that name a day, §6.48–§6.51) and §6.42's way to make a plan active — with §6.12's old signature noted and §6.26's offer marked as until v1.9. `docs/DEVICE_CHECKLIST.md`'s **v1.9 rows** (TQ18–TQ20, TQ24, TQ29, TQ33, TQ38, TQ39) with how to make a swap on the phone; `DECISIONS_LOG.md`'s D77 and D78 lines, with D72 naming the D37 amendment and D75 the D50 reversal on Today; TEST_CASES' note that no TQ id was renumbered; version **1.9** in the six `MARKETING_VERSION` settings (the app, the extension and the tests, Debug and Release) and in `docs/APP_STORE.md`; the README's status, counts and plan table; the v1.9 paragraph in `CLAUDE.md` and `AGENTS.md`; the bundle regenerated. No screenshot changed — the ordinary card is unchanged — and `docs/PRIVACY.md` names no files | Done |
+| — | The v1.9 device rows (TQ18–TQ20, TQ24, TQ29, TQ33, TQ38, TQ39) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.9)
 
@@ -6114,7 +6125,7 @@ After Q6:
   repeats every 7 days* over seven squares with their names beneath and **Push** in ink, then Push,
   Pull, Legs, Push, Pull, Legs as closed rows with grey chevrons, and Rest with none.
 
-### Not run in v1.9 (so far)
+### Not run in v1.9
 
 - **Q6's taps.** The simulator tool refused taps again ("stopped retrying after repeated
   crashes"), and no launch argument opens a day or marks a circle, so an open day — its exercises,
@@ -6132,7 +6143,7 @@ After Q6:
   is TQ33.
 - The ring's breathing and Reduce Motion, the long press under a finger, the block at
   accessibility XL (TQ18–TQ20) and the ···'s symbols at the menu's size on the phone (TQ24) and an outlined
-  square beside filled ones on the strip (TQ29) are the phone's; Q7 adds them to `docs/DEVICE_CHECKLIST.md`.
+  square beside filled ones on the strip (TQ29) are the phone's, on the checklist's v1.9 rows (Q7).
   VoiceOver's words are held in Core (TQ17) and not yet heard.
 
 ## v1.8 (S0–S4): built and green
@@ -7088,7 +7099,7 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
   ordinary case — a day with rows and blocks — not the one S3 already illustrates.
 - v1.8 S4: **1.7 → 1.8.** Nothing has been submitted, so the same rule T6 used for 1.5 → 1.7
   applies: App Store Connect needs only a larger number than the last upload.
-- v1.9 Q1 (D72): **a day swapped, not a plan changed.** A workout finished on a date the pattern expected another day writes two swaps to `swaps.json` — today's record, and a question on the day whose workout was taken, with today's day applied as the default — and moves nothing in the plan; D37's "the pattern moves only when a workout finishes" now reads "the workout it expected". SPEC §6.8, §6.12, §6.41, §6.46, §7, §8.1, §8.5; TQ1–TQ13 in `SwapTests`.
+- v1.9 Q1 (D72): **a day swapped, not a plan changed.** A workout finished on a date the pattern expected another day writes two swaps to `swaps.json` — today's record, and a question on the day whose workout was taken, with today's day applied as the default — and moves nothing in the plan. **This amends D37**: its "the pattern moves only when a workout finishes" now reads "when the workout it expected finishes", and its re-anchor on any other day survives only as Slide (D73), chosen from the question. SPEC §6.8, §6.12, §6.41, §6.46, §7, §8.1, §8.5; TQ1–TQ13 in `SwapTests`.
 - v1.9 Q1 (D73): **one Slide**, D37's re-anchor for the done day on the day it was done, chosen from the question rather than applied on completion; rotations only, remembering what it replaced (`slideUndo`). SPEC §6.47.
 - v1.9 Q1: **the expected day re-anchors at the entry the pattern projected for the date, not at `advance`'s next matching entry.** The plan's example holds Push twice in a seven-day cycle; `advance` from position 0 finds the *second* Push and would have shifted the week on a workout done exactly as planned. Case 1 is "a refresh that changes nothing on the grid", so it sets the position to the projected index and the anchor to the date (TQ7). Slide keeps `advance`, as D73 says.
 - v1.9 Q1: **a rotation with nothing completed anchors on its first workout, whatever the day.** Its pattern floats with today until then (D55: it has missed nothing), so there is no expected day to swap against; the first workout is the anchor, as in v1.2–v1.8. L7 keeps its "pointer = 2" for that case and says what happens once anchored.
@@ -7108,7 +7119,7 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.9 Q2: **the slide preview is `answer(.slide)` on a copy of the library**, read through the projection, so the preview and the answer cannot disagree; an own or borrowed day in it is grey until Q4 draws them.
 - v1.9 Q2: **a question reads today's day from the pattern before the slide** (`slideUndo`). Q1's `question(for:now:)` read it from the plan as it is, so a question reopened after a slide offered Rest, Legs and Slide — Push gone, because the slid pattern makes Monday Legs, which was done. Found building the reopen; TQ15 holds it.
 - v1.9 Q2: **`SwapQuestionView` has its own file**; `WeekStripView` and `QuestionRing` stay private in `HomeView.swift` beside `SetBlocks`. The seeder gains `--swap` (`SEED_SWAP=1` in `tools/shot.sh`), which finishes an unexpected workout today through the library's own completion, so the simulator can show the marks.
-- v1.9 Q3 (D75): **the ··· speaks in squares.** Change plan beside the active plan's cycle, and Change *day*'s exercises beside the shown day's square; Plan a progression, the step line, `Gates.planProgression` and `PromptText.planProgression` gone from Today; the rows the preview and nothing more. SPEC §4.1, §6.26, §6.37, §6.40, §6.42–§6.45 and the new §6.49; TQ21–TQ23, TQ24 on the phone.
+- v1.9 Q3 (D75): **the ··· speaks in squares.** Change plan beside the active plan's cycle, and Change *day*'s exercises beside the shown day's square; Plan a progression, the step line, `Gates.planProgression` and `PromptText.planProgression` gone from Today; the rows the preview and nothing more. **This reverses D50 on Today**: the link to plan a progression that D50 gave Home, and that Today's ··· carried since v1.7, is gone, and History's Progression row (D67) is the one way in; D50's sentences in `PromptText` stand. SPEC §4.1, §6.26, §6.37, §6.40, §6.42–§6.45 and the new §6.49; TQ21–TQ23, TQ24 on the phone.
 - v1.9 Q3: **Change *day*'s exercises is named by the strip's own when** — "Change Today's exercises", "Change Tomorrow's exercises", "Change Wednesday's exercises" — as Start is ("Start Tomorrow's Pull"); the plan's example only ever named a weekday.
 - v1.9 Q3: **offered on a rest day's card too**, since a rest date can take a workout for that date (which Q4's picker writes); **not on today's once its workout is done**, when no change could be true of the date — Q2's rule for a question — and not on Nothing scheduled, which has no day. While a session is open, on any card, the menu is v1.8's Change plan and Discard workout.
 - v1.9 Q3: **until Q4, Change *day*'s exercises opens the active plan in Plan detail**, the sheet the rows opened until D75, so the item is never dead; Q4 pushes the picker in its place.
@@ -7122,6 +7133,7 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.9 Q4: **an own day starts from a copy of the plan holding it, with no progression** (`startOwnDay`), so the session is the plan's — its id, name and units — under the day's own name, with the targets written for it. **Do it now** starts a missed own or borrowed day, which Q1 named but could not start.
 - v1.9 Q4: **a nameless own day is "Wednesday's own day" by its weekday, even for today**, so History says which day it was, and its button reads "Start Wednesday's own day" rather than saying when twice. The date line spells the month in English from a fixed list, as the rest of the app speaks English whatever the phone's language.
 - v1.9 Q4: **until Q5, a day just for the date opens `JSONFragmentSheet`** on a day with a blank name (or on the date's own day), its Save "Use for Wednesday" through a new `saveTitle`; more than one day is refused, and the importer's paths are made the day's own ("exercises[0].reps"). Other plans are listed in the library's order, and a plan with no days has no section.
+- v1.9 Q5 (D77): **the JSON sheet, redone.** At its five points — an exercise, a day, exercises to add, a day to add, and a day just for a date — the sheet is named (One exercise, One day, Exercises to add, A day to add, A day just for Wednesday) with its place beneath, opens on text that saves as it stands, marks the error at its line or nowhere, and its Save says its effect (Replace Bench Press, Add to Push, Use for Wednesday). `Core/JSONPoint.swift`, `Core/JSONLocator.swift`. SPEC §4.3, §6.19, §6.50; TQ30–TQ32 in `JSONEditTests`, TQ33 on the phone.
 - v1.9 Q5: **the JSON box is a `UITextView` on TextKit 1**, because SwiftUI's `TextEditor` gives no line rectangles on iOS 17: a marked line is tinted with a red bar at its edge (a mark that is not colour alone), and its sentences sit in a gap beneath it that the text flows around (an exclusion path), so nothing written is covered. Smart quotes and dashes are off in it, because a line the importer had to mend is one the locator will not name.
 - v1.9 Q5: **at the line the sentence drops its place** ("The reps need to be…"), because the line is the place; under the box it keeps it ("Day 2, exercise 3, set 1: …"). **An edit unmarks every line until the next Save** — a line that moved would be the wrong line — and the sentences go under the box meanwhile; undoing back to the refused text marks them again.
 - v1.9 Q5: **the locator names a member's key line and an element's first line**; the empty path (the whole text) marks nothing; `E_EDIT_INVALID` never marks, being about the paste as a whole; a day the reader gathered from loose exercises marks nothing, having no line of its own; a key spelled with an escape matches nothing rather than being decoded.
@@ -7129,6 +7141,7 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.9 Q5: **the examples are a Push-up** — 3 sets of 8-12, 90 s rest, no weight — and a day of it, named "Day N" as Add day always named it, with the first free weekday on a weekday plan. D43's blank name, which Save refused on purpose, is reversed because the plan asks for an example that saves as it stands (TQ30); the importer still refuses a blank name (W17).
 - v1.9 Q5: **a day's place names the plan** ("Push, day 1 of 3 in Push Pull Legs"), and the hint under the box stays while there is nothing to fix; Add day's hint says what a weekday plan needs (a free weekday) instead of the repeat block.
 - v1.9 Q5: **`DayChoices` hands the sheet its point** (`point`), in place of Q4's `ownFooter` and `saveTitle`; the own day's hint no longer repeats the date, which its place line says.
+- v1.9 Q6 (D78): **Plans speak in squares.** On the list a row is the accent chevron, the plan's cycle as one symbol, its name with how often beneath, and a circle: a tap marks, and **Use *name*** in the bottom slot confirms — the one way to change plan, since Use this plan left Plan detail's ···. On the plan's page the repeat block is squares with names beneath, then the whole cycle as rows, each closed until tapped. `Core/PlanPage.swift`. SPEC §4.2, §4.3, §6.49 and the new §6.51; TQ34–TQ37 in `PlansTests`, TQ38–TQ39 on the phone.
 - v1.9 Q6: **how often counts the symbol's squares** (`DayColour.cycle(of:)`), so the words and the glyph beside them agree: "a week" only for a cycle of seven, which every weekday plan is; "Every day" whenever every entry is a workout, not only for a cycle of one; nothing beneath the name when no entry is a workout.
 - v1.9 Q6: **the filled circle is the mark**, the active plan's until another is tapped, as the mock drew it; the list marks the active plan no other way, and v1.8's check, "In use" and the "3 days · kg" line are gone.
 - v1.9 Q6: **Add plan moved to the list's top right**, as the mock drew it, since the bottom slot is Use's; the empty list keeps its own Add plan button. Y13's pin reads the new one.
@@ -7138,6 +7151,8 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.9 Q6: **rows are keyed by their place**, open or closed on the screen alone; an edit that changes the cycle can leave a different row open, which is cheaper than storing anything.
 - v1.9 Q6: **the day's menu sits on its row while the day is open**, a row having no header; the page's chevrons are grey and turn down, since a day opens in place, while the list's is the accent, its row opening a screen.
 - v1.9 Q6: **`RepeatBlock.chips` stays** for the cycle in words — Add plan's review, the draft's outline, the prompt's repeat-block line — and only Plan detail draws squares.
+- v1.9 Q7: **version 1.9 in six places, not five.** `MARKETING_VERSION` is set per target and per configuration — the app, the `JimmsBroActivity` extension and the tests, each Debug and Release — so the plan's "five places" is six; `check_release.py` reads every one. The build number stays 1: nothing has been uploaded.
+- v1.9 Q7: **§6.41's four places are v1.7's count.** v1.9 draws a day's colour in squares that name a day — the swap's dot and question (§6.48), the ···'s symbols (§6.49), the picker's rows (§6.50), and Plans' symbols, squares and rows (§6.51) — so "exactly four places" became four places and those squares, each naming a day and none a control's colour; Start and the tab bar still carry none. Found while consolidating SPEC, with five other places where v1.8's words still read as current (§4.0's **Use this plan**, §6.29's step line, §6.34's Plans line, §6.37's block that opened its plan, §6.42's way to make a plan active), each now noted in italics.
 `````
 
 ---
@@ -7151,9 +7166,9 @@ Every `manual` case from `TEST_CASES.md`, to run on the owner's iPhone. The simu
 notifications while locked, real haptics, the silent switch, or the free-account expiry, which is why
 these are here rather than automated.
 
-Everything else — 332 automated tests plus the simulator screen checks — is green; see
+Everything else — 368 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
-**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37, **v1.7** T5, T9, T13 and T24, and **v1.8** TS5, TS11, TS12 and TS16. Y19 needs a TestFlight build, which needs the paid
+**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37, **v1.7** T5, T9, T13, T24 and T29, **v1.8** TS5, TS11, TS12 and TS16, and **v1.9** TQ18, TQ19, TQ20, TQ24, TQ29, TQ33, TQ38 and TQ39. Y19 needs a TestFlight build, which needs the paid
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
@@ -7351,6 +7366,32 @@ For the v1.8 rows: a `fail` on TS5 points at `HomeView`'s accessibility branches
 block sizing; on TS11 or TS12 at `Core/WeekStrip.swift` and the view's `@State shownOffset`, which
 must reset on relaunch but not on backgrounding; on TS16 at the rest-day branch of `HomeView` and
 its VoiceOver labels.
+
+## v1.9 rows (new in Q2–Q6, written with Q7)
+
+A swap needs a workout finished on a day the plan did not expect it: on Today's strip tap a later
+square, **Start** that day, log at least one set and finish. Use a plan that already has a finished
+workout — a rotation's first workout anchors it rather than swapping.
+
+| Case | What to do | Expected | Result | Notes |
+|---|---|---|---|---|
+| **TQ18** | Finish another day's workout today (above) and look at the strip. Then Settings → Accessibility → Motion → **Reduce Motion** on, and look again. Then tap the ringed square and choose an option in its block | Today's square has a dot beneath it in the colour today's own day would have had; the square whose workout was taken is ringed in yellow, and the ring breathes, about 2.4 s a breath. With Reduce Motion on, the ring holds still at full strength. Once answered, the ring is faint and still |  |  |
+| **TQ19** | After TQ18: long-press today's square, then tap elsewhere. Long-press the answered, ringed square. Then tap any square quickly | Today's long press raises a callout — the pattern's square and "was *day*" (for example "was Push") — and a tap elsewhere dismisses it. The ringed square's long press shows its day with the block back and the choice checked. A quick tap is still a tap: it shows that day and nothing more |  |  |
+| **TQ20** | Settings → Accessibility → Larger Text at the largest size, then tap a ringed square so its question shows | The block keeps every option on screen — the squares wrap rather than leave it, and the block scrolls if it must — while the day's name, the strip and the button in the bottom slot stay put |  |  |
+| **TQ24** | On Today, tap the ···. Then Settings → Display & Brightness → Dark, and tap it again | **Change plan** has the plan's cycle beside it as tiny squares in the days' colours, grey for rest, and **Change *day*'s exercises** the shown day's square. Both keep their colours in light and in dark and read as squares at the menu's size |  |  |
+| **TQ29** | With two plans — yours active and a second (Plans → **Add plan** → **Choose a built-in plan**; if the new one becomes active, tap your plan's circle and then **Use**) — tap a later square on the strip, ··· → **Change *day*'s exercises**, and pick a day of the second plan. On another square, ··· → Change *day*'s exercises → **Write a day just for *day***, and save the text it opens with. Look in light and in dark, with each square shown and not | The borrowed day's square is outlined in the second plan's colour and the own day's in ink. Beside the filled squares each still reads as a square at the strip's size, shown (larger) and not, and so does the square before the day's name when the card shows that day |  |  |
+| **TQ33** | Plans → your plan → tap a day to open it → the menu on its row → **Edit day as JSON**. Change a `"reps"` value to `"lots"` and tap **Replace *day*** (for example **Replace Push**). Then type one character. Repeat at the largest text size and in dark mode | The line with `"reps"` is tinted, with a red bar at its edge; the sentence sits beneath it and pushes the lines below down rather than covering them; the box scrolls to it; typing unmarks it. The same at accessibility XL and in dark |  |  |
+| **TQ38** | Settings → Accessibility → Larger Text at the largest size. Open Plans, then a plan, then tap one of its days. Look in light and in dark | On the list each row's symbol stands above its name. On the page the squares row wraps with every name legible, and an open day keeps its Start reachable |  |  |
+| **TQ39** | With two plans, open Plans and tap the other plan's circle. Go back to Today without tapping **Use**, then return to Plans | While it is marked: **Use *name*** in the bottom slot. After going back and returning: the active plan's circle is filled, there is no button, and Today runs the plan it ran |  |  |
+
+For the v1.9 rows: a `fail` on TQ18 or TQ19 points at `WeekStripView` and `QuestionRing` in
+`Features/Home/HomeView.swift` and at `WeekStrip.Square.hold` (`Core/WeekStrip.swift`); on TQ20 at
+`SwapQuestionView`; on TQ24 at `CycleSymbol` in `DaySquare.swift` and the `ImageRenderer` pictures
+handed to the ··· menu; on TQ29 at `DaySquare(outlined:)`; on TQ33 at the `UITextView` box in
+`Features/PlanDetail/JSONFragmentSheet.swift` and at `Core/JSONLocator.swift`; on TQ38 at
+`PlansView` and `PlanDetailView`; on TQ39 at `PlansView`'s mark, which is never stored. If no swap
+appears at all, look at `PlanLibrary.settle` (`Core/DaySwap.swift`) and whether `swaps.json` was
+written beside `plans.json`.
 
 ## When you are done
 
@@ -9502,7 +9543,7 @@ date (D76), **the JSON sheet redone** at every fragment point — named, pre-fil
 line, a Save that says its effect (D77) — and **Plans that speak in squares** (D78 — a circle to
 mark and a button to confirm, the page with the cycle as squares and every day closed until
 tapped). The requirements were settled in two rounds on the "Swapping Days" artifact linked from
-the plan. Q0–Q6 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
+the plan. Q0–Q7 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
 Today, Q3 the ··· in squares with progression left to History, Q4 a day's exercises changed for one
 date — a day of this plan, a day borrowed from another plan (outlined in its colour) or a day
 written just for the date (outlined in ink), `Core/ChangeDay.swift` and `ChangeDayView` — Q5
@@ -9511,7 +9552,15 @@ stands, the error marked at its line or nowhere (`Core/JSONPoint.swift`, `Core/J
 and a Save that says its effect — and Q6 Plans in squares: on the list a chevron at the left, the
 cycle's symbol, how often, and a circle that marks while **Use *name*** confirms (now the one way
 to change plan), and on the plan's page the cycle as squares, then as rows each closed until
-tapped (`Core/PlanPage.swift`). `docs/BUILD_STATUS.md` says what was run; Q7 is next.
+tapped (`Core/PlanPage.swift`). v1.9 touches the on-disk contract once: `swaps.json` beside
+`plans.json` (absent means no swaps) and an optional `swaps` in a backup, frozen in
+`examples/store/v1/` with a backup that carries swaps and one that does not. Q7 made the documents
+say so: version **1.9** on the app, the extension and the tests, `docs/DEVICE_CHECKLIST.md`'s
+**v1.9 rows** (TQ18–TQ20, TQ24, TQ29, TQ33, TQ38, TQ39), D72–D78 in `docs/DECISIONS_LOG.md` with
+the D37 amendment and the D50 reversal on Today named, and the bundle regenerated; no screenshot
+changed. Everything through Q7 is built and green. What remains is the owner's: the device
+checklist (the v1.7, v1.8 and v1.9 rows all need the phone), the Developer Program, a release Xcode
+and the submission (`docs/APP_STORE.md` §1 and §6).
 
 Three v1.2 rules are worth knowing before touching anything:
 

@@ -156,7 +156,7 @@ date (D76), **the JSON sheet redone** at every fragment point — named, pre-fil
 line, a Save that says its effect (D77) — and **Plans that speak in squares** (D78 — a circle to
 mark and a button to confirm, the page with the cycle as squares and every day closed until
 tapped). The requirements were settled in two rounds on the "Swapping Days" artifact linked from
-the plan. Q0–Q6 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
+the plan. Q0–Q7 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
 Today, Q3 the ··· in squares with progression left to History, Q4 a day's exercises changed for one
 date — a day of this plan, a day borrowed from another plan (outlined in its colour) or a day
 written just for the date (outlined in ink), `Core/ChangeDay.swift` and `ChangeDayView` — Q5
@@ -165,7 +165,15 @@ stands, the error marked at its line or nowhere (`Core/JSONPoint.swift`, `Core/J
 and a Save that says its effect — and Q6 Plans in squares: on the list a chevron at the left, the
 cycle's symbol, how often, and a circle that marks while **Use *name*** confirms (now the one way
 to change plan), and on the plan's page the cycle as squares, then as rows each closed until
-tapped (`Core/PlanPage.swift`). `docs/BUILD_STATUS.md` says what was run; Q7 is next.
+tapped (`Core/PlanPage.swift`). v1.9 touches the on-disk contract once: `swaps.json` beside
+`plans.json` (absent means no swaps) and an optional `swaps` in a backup, frozen in
+`examples/store/v1/` with a backup that carries swaps and one that does not. Q7 made the documents
+say so: version **1.9** on the app, the extension and the tests, `docs/DEVICE_CHECKLIST.md`'s
+**v1.9 rows** (TQ18–TQ20, TQ24, TQ29, TQ33, TQ38, TQ39), D72–D78 in `docs/DECISIONS_LOG.md` with
+the D37 amendment and the D50 reversal on Today named, and the bundle regenerated; no screenshot
+changed. Everything through Q7 is built and green. What remains is the owner's: the device
+checklist (the v1.7, v1.8 and v1.9 rows all need the phone), the Developer Program, a release Xcode
+and the submission (`docs/APP_STORE.md` §1 and §6).
 
 Three v1.2 rules are worth knowing before touching anything:
 

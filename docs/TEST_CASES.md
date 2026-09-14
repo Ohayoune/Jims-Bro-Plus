@@ -1033,7 +1033,7 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 
 ## TQ. v1.9 — A day swapped, not a plan changed
 
-`docs/ITERATION_10_PLAN.md` is the plan; one subsection per milestone, added as it lands. Every single letter is taken and TS was v1.8's, so the prefix is **TQ**; the plan's proposed ids are kept.
+`docs/ITERATION_10_PLAN.md` is the plan; one subsection per milestone that landed a decision, Q1–Q6 (Q7 is documents and adds no case). Every single letter is taken and TS was v1.8's, so the prefix is **TQ**; the plan's proposed ids were kept as they landed, so none was renumbered. The device cases (TQ18–TQ20, TQ24, TQ29, TQ33, TQ38, TQ39) are the **v1.9 rows** of `DEVICE_CHECKLIST.md`.
 
 ### Q1 — A day swapped, not a plan changed (D72), and Slide (D73)
 

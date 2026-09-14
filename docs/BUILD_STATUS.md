@@ -1,28 +1,28 @@
 # Build status
 
-Updated 2026-09-14. **v1.9 is in progress on branch `v1.9-swaps` (off `main`, which holds
-v1.8): Q0–Q5 built and green, Q6–Q7 not started.** v1.8 and everything before it are below,
+Updated 2026-09-14. **v1.9 is built and green on branch `v1.9-swaps` (off `main`, which holds
+v1.8): Q0–Q7.** v1.8 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
 
-## v1.9 (Q0–Q7): Q0–Q6 built and green
+## v1.9 (Q0–Q7): built and green
 
 `docs/ITERATION_10_PLAN.md` is the v1.9 plan, written from the owner's notes after living with
 v1.8's strip — *"shift today's colour to the colour of the other day (without changing the plan
 itself)"*. Each milestone ends with the whole suite green on all three routes, a Release build and
 `tools/check_release.py`, and one commit on `v1.9-swaps`.
 
-After Q6:
+After Q7:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **368 tests, 18 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; Q6 adds one, TQ37 |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **368 tests, 18 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; Q7 adds none |
 | `swift test` | **367 tests, 0 failures** |
 | `python3 tools/check_core.py` | **367 bodies, 7,345 assertions, 0 failures** |
-| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q6 touches nothing in the importer) |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q7 touches no code but the version) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
-| `python3 tools/check_release.py` | **ready, as far as a script can tell** — still version 1.8 (1); Q7 turns it to 1.9 |
-| `python3 tools/check_bundle.py` | **current** (regenerated in Q6) |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.9 (1) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in Q7) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -33,7 +33,8 @@ After Q6:
 | Q4 | Change *day*'s exercises (D76): the ···'s second item pushes a picker for the shown date (`ChangeDayView`; `DayChoices` from `PlanLibrary.dayChoices(for:now:)` in the new `Core/ChangeDay.swift`) — this plan's days, every other plan's, and **Write a day just for Wednesday** — and a tap writes a swap for that date alone (`choose(_:for:now:)`: answered and asked by nobody; the pattern's own day removes it; a date carrying a question is answered instead). A borrowed day projects as its own plan's day (`CalendarProjection` and `WeekStrip.days` take `plans:`), is drawn **outlined in that plan's colour**, starts as that plan's day, and its finished session moves neither plan (`isBorrowed`). A day just for the date goes through `JSONFragmentSheet` (Save **Use for Wednesday**, `saveTitle`) and the importer (`ownDay(_:named:units:settings:now:)`), is held by the swap, is drawn **outlined in ink**, and starts as the active plan's session under its own name (`startOwnDay`). `StartCard.own`, `HomeStart.ownDay` and `.isOutlined`, `MissedWorkout.planId` and `.own` (Do it now starts either), `WeekStrip.Square.planId` and `.own`, `DaySquare(outlined:)`. TQ25–TQ28 in `SwapTests`; no earlier case changed. SPEC §4.1, §6.41, §6.44, §6.46, §6.49 and the new §6.50 | Done |
 | Q5 | The JSON sheet, redone (D77), at its five points — an exercise, a day, exercises to add, a day to add, and Q4's day just for a date — by a `JSONPoint` (`Core/JSONPoint.swift`) that `FragmentTarget` maps to and `DayChoices.point` hands over (in place of Q4's `ownFooter` and `saveTitle`): **named** — One exercise, One day, Exercises to add, A day to add, A day just for Wednesday, with the place beneath ("Bench Press, exercise 3 of 5 in Push", "Added at the end of Push", "For Wednesday 16 September. Not saved to Push Pull Legs."); **pre-filled** — an edit on the part's own text, an addition on a Push-up that saves as it stands (a free weekday on a weekday plan); **the error at the line** — `Core/JSONLocator.swift` walks the text as strict JSON to the path's line, through the origins `PlanEdit.located` keeps (`fragment(_:as:)` is it without them), or answers nothing, and the box, now a TextKit 1 `UITextView`, tints the line with a bar at its edge and puts the sentence in a gap beneath it, while an edit unmarks until the next Save; and **a Save that says its effect** — Replace Bench Press, Replace Push, Add to Push, Add to Push Pull Legs, Use for Wednesday. Smart quotes are off in the box. TQ30–TQ32 in `JSONEditTests`; TQ25 reads Save from the point; W17's message changed. SPEC §4.3, §6.19 and §6.50 | Done |
 | Q6 | Plans speak in squares (D78). **The list**: a row is the accent chevron at its left, the plan's `CycleSymbol`, its name with **how often** beneath (`PlanText.howOften` — 6 days a week, 3 days every 10, Every day — counted from the symbol's own squares) and a circle at its right; the filled circle is the mark, the active plan's until another is tapped, and a marked plan that is not active puts **Use *name*** in the bottom slot (`PlanText.toUse`, `.useTitle`), which makes it active and empties Today's stack (`PlansView` takes Today's path). Add plan moved to the top right; the mark is never stored. **The page**: the repeat block's chips became squares, names beneath and the entry Next up would start in ink (`RepeatBlock.squares`), and the days became the whole cycle again as rows (`PlanPage.rows`) — repeats included, a rest with nothing to open, any day the cycle never reaches after it — each closed until tapped, an open day v1.8's section with the day's menu on its row. **Use this plan** left Plan detail's ···; nothing else did. `Core/PlanPage.swift`; the seeder's `--plans` (`SEED_PLANS=1` in `tools/shot.sh`). TQ34–TQ37 in `PlansTests`; Y13's Add plan pin reads the top-right button. SPEC §4.2, §4.3, §6.49 and the new §6.51 | Done |
-| Q7 | Docs, checklist, bundle, 1.9 | Not started |
+| Q7 | Docs, checklist, bundle, 1.9. SPEC's v1.9 amendments checked against v1.8: every rule a milestone changed keeps the text it replaced beside it (landed as each milestone shipped), and six places where v1.8's words still read as current were caught up — §4.0's colour line and its **Use this plan** example, §6.29's step line, §6.34's Plans line, §6.37's block that opened its plan, §6.41's "exactly four places" (now four places and the squares that name a day, §6.48–§6.51) and §6.42's way to make a plan active — with §6.12's old signature noted and §6.26's offer marked as until v1.9. `docs/DEVICE_CHECKLIST.md`'s **v1.9 rows** (TQ18–TQ20, TQ24, TQ29, TQ33, TQ38, TQ39) with how to make a swap on the phone; `DECISIONS_LOG.md`'s D77 and D78 lines, with D72 naming the D37 amendment and D75 the D50 reversal on Today; TEST_CASES' note that no TQ id was renumbered; version **1.9** in the six `MARKETING_VERSION` settings (the app, the extension and the tests, Debug and Release) and in `docs/APP_STORE.md`; the README's status, counts and plan table; the v1.9 paragraph in `CLAUDE.md` and `AGENTS.md`; the bundle regenerated. No screenshot changed — the ordinary card is unchanged — and `docs/PRIVACY.md` names no files | Done |
+| — | The v1.9 device rows (TQ18–TQ20, TQ24, TQ29, TQ33, TQ38, TQ39) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.9)
 
@@ -66,7 +67,7 @@ After Q6:
   repeats every 7 days* over seven squares with their names beneath and **Push** in ink, then Push,
   Pull, Legs, Push, Pull, Legs as closed rows with grey chevrons, and Rest with none.
 
-### Not run in v1.9 (so far)
+### Not run in v1.9
 
 - **Q6's taps.** The simulator tool refused taps again ("stopped retrying after repeated
   crashes"), and no launch argument opens a day or marks a circle, so an open day — its exercises,
@@ -84,7 +85,7 @@ After Q6:
   is TQ33.
 - The ring's breathing and Reduce Motion, the long press under a finger, the block at
   accessibility XL (TQ18–TQ20) and the ···'s symbols at the menu's size on the phone (TQ24) and an outlined
-  square beside filled ones on the strip (TQ29) are the phone's; Q7 adds them to `docs/DEVICE_CHECKLIST.md`.
+  square beside filled ones on the strip (TQ29) are the phone's, on the checklist's v1.9 rows (Q7).
   VoiceOver's words are held in Core (TQ17) and not yet heard.
 
 ## v1.8 (S0–S4): built and green
