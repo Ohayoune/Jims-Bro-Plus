@@ -80,7 +80,8 @@ final class ClarityTests: XCTestCase {
             ("JimmsBro/Features/Import/ImportView.swift", "PromptText.mechanism"),
             ("JimmsBro/Features/PlanDetail/ProgressionView.swift", "PromptText.copyStep"),
             ("JimmsBro/Features/PlanDetail/ProgressionView.swift", "PromptText.mechanism"),
-            ("JimmsBro/Features/PlanDetail/PlanDetailView.swift", "PromptText.progressionRow"),
+            // D67 (v1.7): the Progression row is History's since the owner's review.
+            ("JimmsBro/Features/History/HistoryView.swift", "PromptText.progressionRow"),
             // D61 (v1.7): Today's ··· takes its titles from Core — `HomeStart.Alternative.title`
             // says PromptText.planProgression, and Core decides when it is offered.
             ("JimmsBro/Core/HomeCard.swift", "PromptText.planProgression"),

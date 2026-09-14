@@ -52,7 +52,8 @@ final class IntroductionTests: XCTestCase {
 
         let literals: [(control: String, file: String, literal: String)] = [
             ("Create with a chatbot", "JimmsBro/Features/Import/ImportView.swift", "Text(\"Create with a chatbot\")"),
-            ("Progression", "JimmsBro/Features/PlanDetail/PlanDetailView.swift", "Text(\"Progression\")"),
+            // D67 (v1.7): History's row since the owner's review.
+            ("Progression", "JimmsBro/Features/History/HistoryView.swift", "Text(\"Progression\")"),
             ("built-in plan", "JimmsBro/Features/Import/ImportView.swift", "Label(\"Choose a built-in plan\""),
             ("Add plan", "JimmsBro/Features/Plans/PlansView.swift", "PrimaryButton(title: \"Add plan\")"),
         ]

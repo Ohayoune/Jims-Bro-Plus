@@ -12,9 +12,12 @@ struct HistoryView: View {
     @State private var choosingHistory = false
     /// D62 (v1.7): the gear, top-left, pushes Settings — the same place as on Today.
     @State private var showingSettings = false
+    /// D67 (v1.7): the active plan's Progression screen, from the block under the calendar.
+    @State private var showingProgression = false
 
-    /// D64 (v1.7): Metrics and Find an exercise are earned by the first workout (§6.40) —
-    /// before it there is nothing to count or to find.
+    /// D64 (v1.7): Metrics, Find an exercise and Progression — one block — are earned by the
+    /// first workout (§6.40): before it there is nothing to count or to find, and nothing lifted
+    /// to plan a progression from.
     private var finding: Bool { Gates.metricsAndFind(sessions: model.sessions) }
 
     var body: some View {
@@ -53,6 +56,13 @@ struct HistoryView: View {
                         NavigationLink(value: HistoryRoute.exercises) {
                             Label("Find an exercise", systemImage: "magnifyingglass")
                         }
+                        // D67 (v1.7): the active plan's progression, beside the numbers it is
+                        // planned from. Plan detail had this row until the owner's review; it
+                        // is D50's row unchanged, and opens the same screen as a sheet.
+                        if let plan = model.activePlan {
+                            Button { showingProgression = true } label: { progressionRow(plan) }
+                                .buttonStyle(PressableRow())
+                        }
                     }
                 }
                 // D54 (v1.5): the goals, and how close each is — once there is a workout
@@ -85,6 +95,11 @@ struct HistoryView: View {
             // D62 (v1.7): Settings, from the same gear as Today's, in the same place.
             .settingsGear($showingSettings)
             .historyImportFlow(choosing: $choosingHistory)
+            .sheet(isPresented: $showingProgression) {
+                if let plan = model.activePlan {
+                    ProgressionView(planId: plan.id).environment(model)
+                }
+            }
             .confirmationDialog("Delete this workout?", isPresented: Binding(
                 get: { confirmDeleteId != nil }, set: { if !$0 { confirmDeleteId = nil } }),
                                 titleVisibility: .visible) {
@@ -96,7 +111,8 @@ struct HistoryView: View {
             }
             .task {
                 #if DEBUG
-                // Debug-only: open the newest session, or one exercise, for screenshot runs.
+                // Debug-only: open the newest session, one exercise or the Progression screen,
+                // for screenshot runs.
                 let arguments = ProcessInfo.processInfo.arguments
                 await model.waitUntilLoaded()
                 if arguments.contains("-uiSessionDetail"),
@@ -105,6 +121,10 @@ struct HistoryView: View {
                 } else if let index = arguments.firstIndex(of: "-uiExercise"),
                           let name = arguments[safe: index + 1] {
                     path = [.exercise(name: name, units: model.displayUnits)]
+                } else if arguments.contains("-uiProgression"), model.activePlan != nil {
+                    // Plan detail's hook until D67 moved the row here.
+                    try? await Task.sleep(for: .milliseconds(600))
+                    showingProgression = true
                 }
                 #endif
             }
@@ -123,6 +143,32 @@ struct HistoryView: View {
                 Text(ExerciseText.summary(session))
                     .font(.footnote).foregroundStyle(.secondary)
             }
+        }
+    }
+
+    /// D50 (v1.5), moved here by D67: what the row is, where the progression is, and the accent
+    /// chevron every row that opens a screen has — no badge. The icon lines it up with Metrics
+    /// and Find an exercise above it.
+    private func progressionRow(_ plan: Plan) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Label {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Progression")
+                    Text(PromptText.progressionRow)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } icon: {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .foregroundStyle(Color.accentColor)
+            }
+            Spacer()
+            Text(plan.progression.map { ProgressionText.status($0, on: Date()) } ?? "Plan it")
+                .foregroundStyle(.secondary)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.accentColor)
         }
     }
 }

@@ -18,7 +18,8 @@ struct HomeView: View {
     @State private var showDiscardConfirm = false
     @State private var previewing: PlanRoute?
     @State private var choosingDay = false
-    /// D50 (v1.5): the plan whose progression the ··· item opens.
+    /// D50 (v1.5): the plan whose progression the ··· item opens — and, since D67 (v1.7),
+    /// **Plan the next one**.
     @State private var planningProgression: PlanRoute?
     /// D37 (v1.2): the missed-workout notice is dismissible for this run of the app. It is not
     /// persisted: it costs one tap to clear and re-earning it means missing another day.
@@ -206,9 +207,11 @@ struct HomeView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             case .progressionFinished:
+                // D67 (v1.7): straight to the Progression screen — Plan detail no longer has
+                // the row that led there.
                 Button("Plan the next one") {
                     if let planId = card.planId {
-                        previewing = PlanRoute(id: planId, dayIndex: card.dayIndex ?? 0)
+                        planningProgression = PlanRoute(id: planId, dayIndex: card.dayIndex ?? 0)
                     }
                 }
                 .font(.footnote.weight(.medium))

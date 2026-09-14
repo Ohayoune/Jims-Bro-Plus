@@ -55,7 +55,7 @@ final class GatesTests: XCTestCase {
         XCTAssertFalse(Gates.month(sessions: [running(on: 1)], today: day(14), calendar: monday))
     }
 
-    // T15: Metrics and Find an exercise, from the first workout.
+    // T15: Metrics, Find an exercise and Progression — History's block — from the first workout.
     func testMetricsAndFindFromTheFirstWorkout() {
         XCTAssertFalse(Gates.metricsAndFind(sessions: []))
         XCTAssertTrue(Gates.metricsAndFind(sessions: [finished(on: 8)]))
@@ -184,5 +184,28 @@ final class GatesTests: XCTestCase {
         }
         XCTAssertFalse(source.contains(".searchable("), "History draws a search field again")
         XCTAssertTrue(source.contains("Label(\"Find an exercise\""), "History lost its Find an exercise row")
+    }
+
+    // T28 (D67): Progression is History's — the row beside Metrics and Find an exercise, and
+    // the screen it opens — and Plan detail no longer has it. Today's Plan the next one opens
+    // the screen itself, since the plan no longer leads there.
+    func testProgressionIsHistorys() throws {
+        guard let history = FixtureLoader.doc("JimmsBro/Features/History/HistoryView.swift"),
+              let detail = FixtureLoader.doc("JimmsBro/Features/PlanDetail/PlanDetailView.swift"),
+              let today = FixtureLoader.doc("JimmsBro/Features/Home/HomeView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        for literal in ["Text(\"Progression\")", "PromptText.progressionRow", "ProgressionView(planId:"] {
+            XCTAssertTrue(history.contains(literal), "History no longer has \(literal)")
+        }
+        XCTAssertFalse(detail.contains("ProgressionView("), "Plan detail opens Progression again")
+        XCTAssertFalse(detail.contains("Text(\"Progression\")"), "Plan detail has a Progression row again")
+
+        let finished = try XCTUnwrap(today.range(of: "case .progressionFinished:"))
+        let next = try XCTUnwrap(today.range(of: "case .notificationsOff:",
+                                             range: finished.upperBound..<today.endIndex))
+        let action = String(today[finished.upperBound..<next.lowerBound])
+        XCTAssertTrue(action.contains("planningProgression ="), "Plan the next one no longer opens Progression")
+        XCTAssertFalse(action.contains("previewing ="), "Plan the next one opens the plan again")
     }
 }

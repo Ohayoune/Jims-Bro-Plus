@@ -983,6 +983,8 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 | ID | Kind | Case | Expected |
 |---|---|---|---|
 | T27 | unit | (D66, v1.7) One way to find an exercise | `HistoryView.swift` draws no `.searchable` field and keeps the **Find an exercise** row |
+| T28 | unit | (D67, v1.7) Progression is History's | `HistoryView.swift` has the row — `Text("Progression")`, `PromptText.progressionRow` — and opens `ProgressionView`; `PlanDetailView.swift` has neither; Today's **Plan the next one** sets the Progression sheet, not the plan preview. Z3's and Y13's pins point at `HistoryView.swift` |
+| T29 | ui | (D66, D67, v1.7) History's block on the phone | As DEVICE_CHECKLIST T29: no search field; Metrics, Find an exercise and Progression in one block from the first workout; Progression opens the active plan's screen; Plan detail has no Progression row |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |

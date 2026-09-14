@@ -18,8 +18,9 @@ enum Gates {
         return finished(sessions).contains { $0.startedAt < week.start }
     }
 
-    /// **Metrics** and **Find an exercise** on History, once there is a workout to count or to
-    /// find an exercise in. (Until D66 the search field came with them; it went.)
+    /// **Metrics**, **Find an exercise** and — for the active plan — **Progression** (D67): one
+    /// block on History, once there is a workout to count, to find an exercise in, or to plan a
+    /// progression from. (Until D66 the search field came with them; it went.)
     static func metricsAndFind(sessions: [Session]) -> Bool { !finished(sessions).isEmpty }
 
     /// History's **Goals** section, once there is a workout for a goal to be measured against.

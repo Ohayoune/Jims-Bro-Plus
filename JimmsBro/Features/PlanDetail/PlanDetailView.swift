@@ -24,39 +24,15 @@ struct PlanDetailView: View {
     /// has finished dismissing (presenting the next in the same turn leaves it half-built).
     @State private var fragment: FragmentTarget?
     @State private var pendingFragment: FragmentTarget?
-    /// D44 (v1.3): the Progression screen.
-    @State private var showProgression = false
-
     private var plan: Plan? { model.plans.first { $0.id == planId } }
 
     var body: some View {
         Group {
             if let plan {
                 List {
+                    // D67 (v1.7): no Progression row here since the owner's review — it is
+                    // History's, beside the numbers a progression is planned from (§6.42).
                     Section { repeatBlock(plan) }
-                    // D44 (v1.3): where the progression is, or the offer to plan one.
-                    Section {
-                        Button { showProgression = true } label: {
-                            HStack(alignment: .firstTextBaseline) {
-                                // D50 (v1.5): a row that says what it is, and the accent
-                                // chevron every row that opens a screen has — no badge.
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text("Progression")
-                                    Text(PromptText.progressionRow)
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                Spacer()
-                                Text(plan.progression.map { ProgressionText.status($0, on: Date()) } ?? "Plan it")
-                                    .foregroundStyle(.secondary)
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(Color.accentColor)
-                            }
-                        }
-                        .buttonStyle(PressableRow())
-                    }
                     ForEach(Array(plan.days.enumerated()), id: \.element.id) { index, day in
                         Section {
                             ForEach(Array(day.exercises.enumerated()), id: \.element.id) { position, exercise in
@@ -132,17 +108,6 @@ struct PlanDetailView: View {
                                       footer: target.footer) { text in
                         await model.editPlan(planId, target.operation(text))
                     }
-                }
-                .sheet(isPresented: $showProgression) {
-                    ProgressionView(planId: planId).environment(model)
-                }
-                .task {
-                    #if DEBUG
-                    // Debug-only: open the Progression screen directly for screenshot runs.
-                    guard ProcessInfo.processInfo.arguments.contains("-uiProgression") else { return }
-                    try? await Task.sleep(for: .milliseconds(600))
-                    showProgression = true
-                    #endif
                 }
                 .alert("Rename day", isPresented: Binding(get: { renamingDay != nil },
                                                           set: { if !$0 { renamingDay = nil } })) {

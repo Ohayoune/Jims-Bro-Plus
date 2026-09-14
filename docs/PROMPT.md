@@ -70,7 +70,7 @@ Fix them and reply with the complete corrected JSON only, in one code block tagg
 
 `{{errorLines}}` is one line per error: `- <path>: <message>`. Include at most 20 errors; if more, add `- …and N more`. Include the original decoder message for `E_NOT_JSON` (e.g. "Unexpected end of file" tells the chatbot its output was cut off).
 
-## 3. Progression prompt (Plan → Progression → Copy prompt)
+## 3. Progression prompt (History → Progression → Copy prompt)
 
 **v1.5 (D53).** The progression is a ladder of *steps*; `{{cadence}}` says what a step is — in performance mode (the default) one workout's targets, earned by hitting them; in calendar mode one calendar week, as in v1.3. `{{steps}}` is the number chosen on the screen. The reply's `weeks` key is still read, as an alias. `{{goals}}` (D54) is the plan's unreached goals as a MY GOALS block, or nothing.
 
