@@ -113,6 +113,17 @@ with Metrics and Find an exercise, for the active plan, and Today's **Plan the n
 (D67); and **goals are removed** (D68) — `goals.json` is no longer read or written, a file left on
 the phone stays unread, and a backup that carries goals still restores. Its device row is T29.
 
+`docs/ITERATION_9_PLAN.md` is the v1.8 plan (milestones **S0–S4**), written 2026-09-13 from the
+owner's note after looking at v1.7's Today — *"too much text, and too little use of visual
+cues… I want the visual cues to be a sort of guide for the user"*. The rule is **no words without
+a cue** (D69, S1): every line of words on Today sits beside a mark that says the same thing
+without words, or it leaves the card. The week becomes a seven-square strip that replaces
+**Another day** (D70, S2), and a rest day says rest instead of naming the next workout (D71, S3).
+Nothing in it touches `Core/Persistence.swift`, the pipeline, the format, the prompts, the
+Workout screen, the rest, the Live Activity, History, or the empty card. The mock is the "Today,
+Simpler" artifact linked from the plan. S0 is built, on `v1.8-cues` off `main`; S1 begins the
+actual build.
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
