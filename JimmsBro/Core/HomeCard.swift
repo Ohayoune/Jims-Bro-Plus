@@ -46,7 +46,9 @@ enum StartCard: Equatable {
                         weekday: weekday, daysAway: daysAway)
     }
 
-    /// The day this card's primary button would start, if any.
+    /// The day the schedule points at, if any — today's, or on a rest day the next. Since v1.8
+    /// (D71) Today's button starts nothing on a rest day (`HomeStart` has no target there); the
+    /// screenshot runs' `startFromCard` still reach the next workout through this.
     var target: (planId: UUID, dayIndex: Int)? {
         switch self {
         case let .nextUp(planId, dayIndex, _), let .today(planId, dayIndex, _),
@@ -185,20 +187,25 @@ struct HomeStart: Equatable {
     /// D70 (v1.8): the square drawn larger — the day the card shows. 0 is today; the view's
     /// value, clamped to the strip, and never stored.
     var shownOffset = 0
-    /// D71 (v1.8): the card is a rest day's — a grey square, "Rest", no rows, and a disabled
-    /// button with a moon before its words. In S2 a tapped grey square's card; S3 makes it
-    /// today's too.
+    /// D71 (v1.8, §6.45): the card is a rest day's — a grey square, "Rest", the moon where the
+    /// clock would be, the z's where the rows would be, and a disabled button. A tapped grey
+    /// square's card (S2), and since S3 today's: on a rest day, and for the rest of a day whose
+    /// workout is done.
     var isRest = false
-    /// D69/D70 (v1.8): the mark before the button's words — play on Start and Resume, a moon on
-    /// the disabled "No exercise …". None on Choose a plan, which opens a picker.
+    /// D69/D70/D71 (v1.8): the mark before the button's words — play on Start and Resume, a moon
+    /// on the disabled "No exercise …", a check on the disabled "Done Today". None on Choose a
+    /// plan, which opens a picker.
     var buttonMark: Mark?
 
-    enum Mark: Equatable { case play, moon }
+    enum Mark: Equatable { case play, moon, check }
 
-    /// The moon's button does nothing; every other button does.
-    var buttonEnabled: Bool { buttonMark != .moon }
+    /// The moon's button and the check's do nothing; every other button does.
+    var buttonEnabled: Bool { buttonMark != .moon && buttonMark != .check }
 
     static let restTitle = "Rest"
+    /// D71 (v1.8, §6.45, the owner's reading of 2026-09-13): the rest card's button once a
+    /// workout was finished today, where "No exercise Today" would not be true.
+    static let doneTitle = "Done Today"
 
     static let previewLimit = 5
     static let chooseButton = "Choose a plan"
@@ -347,16 +354,9 @@ struct HomeStart: Equatable {
             start.buttonTitle = WeekStrip.buttonTitle(dayName: square.dayName, offset: square.offset,
                                                       weekday: weekday)
             guard let index = square.dayIndex, let day = plan.days[safe: index] else {
-                // D71 (v1.8): a grey square's card says rest — the title, no rows, and a button
-                // that does nothing, with a moon before its words.
-                start.title = restTitle
-                start.isRest = true
-                start.buttonMark = .moon
-                start.alternatives = alternatives(plans: library.plans, offersProgression: false,
-                                                  running: running)
-                start.message = message(for: start, notificationsOff: notificationsOff,
-                                        missedDismissed: missedDismissed)
-                return start
+                // D71 (v1.8): a grey square's card says rest — the same card as today's.
+                return rest(start, doneToday: false, library: library, now: now, calendar: calendar,
+                            notificationsOff: notificationsOff, missedDismissed: missedDismissed)
             }
             start.title = day.name
             start.buttonMark = .play
@@ -410,24 +410,31 @@ struct HomeStart: Equatable {
                 return start
 
             case let .nextUp(planId, dayIndex, dayName), let .today(planId, dayIndex, dayName):
+                // D71 (v1.8, the owner's reading): once a workout was finished today, today says
+                // so on every plan — a weekday plan's own day keeps its day after the workout,
+                // and would otherwise offer the same workout again.
+                if trainedToday(library.sessions, now: now, calendar: calendar) {
+                    return rest(start, doneToday: true, library: library, now: now, calendar: calendar,
+                                notificationsOff: notificationsOff, missedDismissed: missedDismissed)
+                }
                 start.title = dayName
                 start.buttonTitle = startTitle(dayName: dayName, daysAway: 0, weekday: nil)
                 start.buttonMark = .play
                 start.planId = planId
                 start.dayIndex = dayIndex
 
-            case let .restDay(planId, dayIndex, dayName, weekday, daysAway):
-                // D57 (v1.6): the workout is the headline on a rest day too, and the button
-                // just starts it. v1.1–v1.5 said "Rest day" and "Start Lower early" —
-                // schedule-speak to someone in a gym. D69 (v1.8): "Planned for Thu" left with
-                // the subtitle, and the button says when instead: "Start Thursday's Lower"
-                // (D70's words). The strip's first square is grey meanwhile; S3 (D71) turns
-                // this card too.
-                start.title = dayName
-                start.buttonTitle = startTitle(dayName: dayName, daysAway: daysAway, weekday: weekday)
-                start.buttonMark = .play
-                start.planId = planId
-                start.dayIndex = dayIndex
+            case .restDay:
+                // D71 (v1.8, §6.45) reverses D57 on Today: a rest day says rest. From v1.6 the
+                // card headlined the next workout ("Lower", **Start Lower**), because "Rest day"
+                // was schedule-speak to someone standing in a gym; the strip is why the reversal
+                // is safe — the next workout is one tap away on a square in its colour, whose
+                // button says **Start Tomorrow's Lower**. `StartCard.restDay` keeps its payload;
+                // the card just no longer starts it. A rotation re-anchors on the day its
+                // workout is done, so the rest of that day lands here too — and then the button
+                // says **Done Today** under a check, which is true (the owner's reading).
+                return rest(start, doneToday: trainedToday(library.sessions, now: now, calendar: calendar),
+                            library: library, now: now, calendar: calendar,
+                            notificationsOff: notificationsOff, missedDismissed: missedDismissed)
             }
         }
 
@@ -474,6 +481,36 @@ struct HomeStart: Equatable {
         (Gates.changePlan(plans: plans) ? [.changePlan] : [])
             + (offersProgression ? [.planProgression] : [])
             + (running ? [.discardWorkout] : [])
+    }
+
+    /// D71 (v1.8, §6.45): the card of a day with nothing to start, today's or a tapped grey
+    /// square's — a grey square and "Rest", no rows, no clock and no target, and a button that
+    /// does nothing: "No exercise Today" / "Tomorrow" / "Thursday" under a moon, or "Done Today"
+    /// under a check once a workout was finished today. The ··· has no day to plan a progression
+    /// for, and the message is the plan's, not the day's (§6.44): a missed workout still speaks,
+    /// and so does a progression that has run its course.
+    private static func rest(_ card: HomeStart, doneToday: Bool, library: PlanLibrary, now: Date,
+                             calendar: Calendar, notificationsOff: Bool,
+                             missedDismissed: Bool) -> HomeStart {
+        var start = card
+        start.title = restTitle
+        start.isRest = true
+        let weekday = WeekStrip.weekday(offset: start.shownOffset, today: now, calendar: calendar)
+        start.buttonTitle = doneToday
+            ? doneTitle : WeekStrip.buttonTitle(dayName: nil, offset: start.shownOffset, weekday: weekday)
+        start.buttonMark = doneToday ? .check : .moon
+        start.progressionFinished = library.activePlan?.progression?.isFinished(on: now, calendar: calendar) ?? false
+        start.alternatives = alternatives(plans: library.plans, offersProgression: false,
+                                          running: library.engine.map { $0.phase != .completed } ?? false)
+        start.message = message(for: start, notificationsOff: notificationsOff,
+                                missedDismissed: missedDismissed)
+        return start
+    }
+
+    /// A workout was finished today — the calendar's own test for a done day, so "Done Today"
+    /// is said exactly when today's square carries a workout (§6.44).
+    private static func trainedToday(_ sessions: [Session], now: Date, calendar: Calendar) -> Bool {
+        sessions.contains { $0.endedAt != nil && calendar.isDate($0.startedAt, inSameDayAs: now) }
     }
 
     /// The first five rows, the count of the rest, and what VoiceOver reads for the block.

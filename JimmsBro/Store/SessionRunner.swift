@@ -78,7 +78,9 @@ extension AppModel {
         await refreshActivity(now: now)
     }
 
-    /// The Home card's Start button target.
+    /// The day the schedule points at: Today's Start on a workout day. On a rest day Today's
+    /// button starts nothing since v1.8 (D71), but this still reaches the next workout — the
+    /// screenshot runs (`-uiScreen workout`) call it, on whatever day they run.
     func startFromCard(now: Date = Date(), switching: SessionSwitch? = nil) async throws {
         guard let target = startCard(now: now).target else { return }
         try await startDay(planId: target.planId, dayIndex: target.dayIndex, switching: switching, now: now)

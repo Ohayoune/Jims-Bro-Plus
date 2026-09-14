@@ -67,7 +67,8 @@ final class HomeAndAddPlanTests: XCTestCase {
         XCTAssertNil(inProgress.planId, "Resume goes back to the running session, not to a day")
     }
 
-    // O63 / L38: a weekday plan's rest day still offers the next day, by name, to start early.
+    // O63 / L38: a weekday plan's rest day still offers the next day, by name, to start early —
+    // since v1.8 (D71) one tap away on the strip, while the card itself says rest.
     func testRestDayOffersTheNextDayEarly() throws {
         let target = SetTarget(work: .reps(.fixed(5)), weight: 100, restSeconds: 180)
         let plan = Plan(name: "Upper Lower", units: .kg, schedule: .weekday,
@@ -84,14 +85,21 @@ final class HomeAndAddPlanTests: XCTestCase {
         let calendar = CoreTestSupport.utc()
         XCTAssertEqual(calendar.component(.weekday, from: tuesday), 3, "the fixture day is a Tuesday")
 
-        // D57 (v1.6): the workout is the headline on a rest day too. D69 (v1.8): the button,
-        // not a subtitle, says when.
+        // D57 (v1.6) made the workout the headline on a rest day; D71 (v1.8) reverses that on
+        // Today: the card says rest, and Thursday's Lower is the strip's third square, whose
+        // button says when.
         let card = HomeStart.current(library: library, now: tuesday, calendar: calendar)
-        XCTAssertEqual(card.title, "Lower")
-        XCTAssertEqual(card.buttonTitle, "Start Thursday's Lower")
-        XCTAssertEqual(card.dayIndex, 1)
-        XCTAssertEqual(card.rows.map(\.name), ["Squat"], "the day you would start is the one previewed")
+        XCTAssertEqual(card.title, "Rest")
+        XCTAssertEqual(card.buttonTitle, "No exercise Today")
+        XCTAssertNil(card.dayIndex)
+        XCTAssertTrue(card.rows.isEmpty)
         XCTAssertNil(card.sentence)
+        let lower = HomeStart.current(library: library, now: tuesday, calendar: calendar, showing: 2)
+        XCTAssertEqual(lower.title, "Lower")
+        XCTAssertEqual(lower.buttonTitle, "Start Thursday's Lower")
+        XCTAssertEqual(lower.dayIndex, 1)
+        XCTAssertEqual(lower.rows.map(\.name), ["Squat"], "the day you would start is the one previewed")
+        XCTAssertNil(lower.sentence)
 
         // And on its own day the same plan simply starts it.
         let monday = CoreTestSupport.date(7)

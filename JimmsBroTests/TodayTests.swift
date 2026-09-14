@@ -9,6 +9,8 @@ import XCTest
 /// cue (D69): no sentence on a day's card, the rows and their sets, the step line. TS1–TS4.
 /// S2 (v1.8) — the week is the strip (D70): seven squares from the calendar's own projection, a
 /// tapped square's card and its button's words, Another day gone, nothing stored. TS6–TS10.
+/// S3 (v1.8) — a rest day says rest (D71): the rest card, the next workout one tap away, the
+/// message still speaking, and Done Today once today's workout is done. TS13–TS15, TS17.
 final class TodayTests: XCTestCase {
     private let calendar = CoreTestSupport.utc()
 
@@ -227,7 +229,8 @@ final class TodayTests: XCTestCase {
     }
 
     // TS1 (D69): a day's card carries no sentence — no plan name, no "Planned for", no count —
-    // on a workout day, on a rest day that headlines the next workout, and mid-session.
+    // on a workout day, on a rest day (which says rest since D71) and the workout tapped from
+    // it, and mid-session.
     func testADaysCardCarriesNoSentence() throws {
         XCTAssertFalse(Mirror(reflecting: card(PlanLibrary(), on: 9)).children.contains { $0.label == "subtitle" },
                        "HomeStart has no subtitle")
@@ -239,14 +242,17 @@ final class TodayTests: XCTestCase {
         let workout = card(trained, on: 9)
         XCTAssertEqual(workout.clock, HomeStart.Clock(minutes: "2 min", caption: "last time"))
 
-        // A weekday plan on a Tuesday: Thursday's Lower, and the button says when.
+        // A weekday plan on a Tuesday: a rest day, which says rest (D71); Thursday's Lower is the
+        // strip's third square, and its button says when.
         let target = SetTarget(work: .reps(.fixed(5)), weight: 100, restSeconds: 180)
         let weekday = Plan(name: "Upper Lower", units: .kg, schedule: .weekday,
                            days: [Day(name: "Upper", weekday: .monday, exercises: [Exercise(name: "Press", sets: [target])]),
                                   Day(name: "Lower", weekday: .thursday, exercises: [Exercise(name: "Squat", sets: [target])])],
                            importedAt: day(1), sourceText: "", cycle: [])
         let rest = card(library(weekday), on: 1)
-        XCTAssertEqual(rest.buttonTitle, "Start Thursday's Lower")
+        XCTAssertEqual(rest.buttonTitle, "No exercise Today")
+        let thursday = card(library(weekday), on: 1, showing: 2)
+        XCTAssertEqual(thursday.buttonTitle, "Start Thursday's Lower")
 
         // Mid-session.
         let push = rotation()
@@ -256,7 +262,7 @@ final class TodayTests: XCTestCase {
         let open = card(running, on: 9)
         XCTAssertTrue(open.isInProgress)
 
-        for (start, plan) in [(workout, oneDay), (rest, weekday), (open, push)] {
+        for (start, plan) in [(workout, oneDay), (rest, weekday), (thursday, weekday), (open, push)] {
             XCTAssertNil(start.sentence, start.title)
             let shown = [start.title, start.buttonTitle, start.clock?.minutes, start.clock?.caption,
                          start.message?.text].compactMap { $0 } + start.rows.map(\.name)
@@ -571,5 +577,191 @@ final class TodayTests: XCTestCase {
                 XCTAssertFalse(key.lowercased().contains(word), "the decoder reads \(key)")
             }
         }
+    }
+
+    /// The weekday plan with a two-minute Pull finished on Wednesday the 9th.
+    private func trainedWeekdayPlan() throws -> (Plan, PlanLibrary) {
+        let plan = weekdayPlan()
+        var pull = try XCTUnwrap(Session.start(plan: plan, dayIndex: 1, now: day(9)))
+        pull.endedAt = day(9).addingTimeInterval(120)
+        var trained = library(plan)
+        trained.sessions = [pull]
+        return (plan, trained)
+    }
+
+    // TS13 (D71): a rest day says rest — "Rest" after a grey square, no rows, no clock and no
+    // target, and the moon's disabled "No exercise Today" — on a weekday plan and on a
+    // rotation's rest entry; the schedule's own answer still names the next workout.
+    func testARestDaySaysRest() throws {
+        let (plan, trained) = try trainedWeekdayPlan()
+        XCTAssertEqual(calendar.component(.weekday, from: day(15)), 3, "the 15th is a Tuesday")
+        let rest = card(trained, on: 15)
+        XCTAssertEqual(rest.title, "Rest")
+        XCTAssertTrue(rest.isRest)
+        XCTAssertNil(rest.dayColour, "the square before Rest is grey")
+        XCTAssertTrue(rest.rows.isEmpty)
+        XCTAssertEqual(rest.more, 0)
+        XCTAssertNil(rest.exerciseLabel)
+        XCTAssertNil(rest.planId, "the button has no target")
+        XCTAssertNil(rest.dayIndex)
+        XCTAssertNil(rest.previewPlanId)
+        XCTAssertNil(rest.clock, "the moon stands where the clock would, and no minutes — not Pull's")
+        XCTAssertNil(rest.sentence)
+        XCTAssertNil(rest.stepLine)
+        XCTAssertEqual(rest.buttonTitle, "No exercise Today")
+        XCTAssertEqual(rest.buttonMark, .moon)
+        XCTAssertFalse(rest.buttonEnabled)
+        XCTAssertEqual(rest.alternatives, [.changePlan])
+        XCTAssertEqual(rest.shownOffset, 0)
+        XCTAssertEqual(rest.strip.map(\.dayName), [nil, "Pull", nil, "Legs", nil, nil, "Push"])
+        XCTAssertTrue(rest.strip[0].isRest, "the first square is grey")
+        // The schedule still knows the next workout; Today's button no longer starts it.
+        XCTAssertEqual(StartCard.current(library: trained, now: day(15), calendar: calendar),
+                       .restDay(planId: plan.id, dayIndex: 1, dayName: "Pull", weekday: .wednesday, daysAway: 1))
+
+        // A rotation's rest entry: Legs done on the 9th, so the 10th rests and Push is the 11th.
+        var rotating = rotation(anchor: 9)
+        rotating.cyclePosition = 2
+        let resting = card(library(rotating), on: 10)
+        XCTAssertEqual(resting.title, "Rest")
+        XCTAssertTrue(resting.isRest)
+        XCTAssertNil(resting.missed, "the day before was the anchor: nothing was missed")
+        XCTAssertNil(resting.message)
+        XCTAssertTrue(resting.rows.isEmpty)
+        XCTAssertNil(resting.planId)
+        XCTAssertEqual(resting.buttonTitle, "No exercise Today")
+        XCTAssertEqual(resting.buttonMark, .moon)
+        XCTAssertEqual(resting.strip.map(\.dayName), [nil, "Push", "Pull", "Legs", nil, "Push", "Pull"])
+    }
+
+    // TS14 (D71): on a rest day the next workout is one tap away — its square yields that day's
+    // card, target and rows, and a button that says when; a later grey square is a rest card.
+    func testTheNextWorkoutIsOneTapAway() throws {
+        let (plan, trained) = try trainedWeekdayPlan()
+        let pull = card(trained, on: 15, showing: 1)
+        XCTAssertFalse(pull.isRest)
+        XCTAssertEqual(pull.title, "Pull")
+        XCTAssertEqual(pull.dayColour, .orange)
+        XCTAssertEqual(pull.planId, plan.id)
+        XCTAssertEqual(pull.dayIndex, 1)
+        XCTAssertEqual(pull.rows, [HomeStart.PreviewRow(name: "Row", sets: 1)])
+        XCTAssertEqual(pull.clock, HomeStart.Clock(minutes: "2 min", caption: "last time"))
+        XCTAssertEqual(pull.buttonTitle, "Start Tomorrow's Pull")
+        XCTAssertEqual(pull.buttonMark, .play)
+        XCTAssertTrue(pull.buttonEnabled)
+
+        let legs = card(trained, on: 15, showing: 3)
+        XCTAssertEqual(legs.title, "Legs")
+        XCTAssertEqual(legs.dayIndex, 2)
+        XCTAssertEqual(legs.rows, [HomeStart.PreviewRow(name: "Squat", sets: 1)])
+        XCTAssertEqual(legs.buttonTitle, "Start Friday's Legs")
+
+        let saturday = card(trained, on: 15, showing: 4)
+        XCTAssertTrue(saturday.isRest)
+        XCTAssertEqual(saturday.buttonTitle, "No exercise Saturday")
+        XCTAssertEqual(saturday.buttonMark, .moon)
+
+        // A rotation's rest day: tomorrow's Push, all seven of its exercises behind the five.
+        var rotating = rotation(anchor: 9)
+        rotating.cyclePosition = 2
+        let push = card(library(rotating), on: 10, showing: 1)
+        XCTAssertEqual(push.title, "Push")
+        XCTAssertEqual(push.dayIndex, 0)
+        XCTAssertEqual(push.rows.count, 5)
+        XCTAssertEqual(push.more, 2)
+        XCTAssertEqual(push.buttonTitle, "Start Tomorrow's Push")
+    }
+
+    // TS15 (D71, D37): a missed workout still speaks on a rest day — with Do it now, whose target
+    // is the missed day, exactly as before — and a progression that has run its course still
+    // says so once that is dismissed: the message is the plan's, not the day's (§6.44).
+    func testAMissedWorkoutStillSpeaksOnARestDay() throws {
+        // Push done on the 7th: Pull on the 8th and Legs on the 9th never happened; the 10th rests.
+        let both = library(rotation(anchor: 7, progression: finishedByTheNinth()))
+        let rest = card(both, on: 10)
+        XCTAssertTrue(rest.isRest)
+        XCTAssertEqual(rest.buttonTitle, "No exercise Today")
+        XCTAssertNil(rest.planId)
+        let missed = try XCTUnwrap(rest.missed)
+        XCTAssertEqual(missed.dayName, "Legs")
+        XCTAssertEqual(missed.dayIndex, 2, "Do it now starts the missed day")
+        XCTAssertTrue(calendar.isDate(missed.date, inSameDayAs: day(9)))
+        XCTAssertTrue(missed.text.hasPrefix("Legs was due "))
+        XCTAssertEqual(rest.message, .missed(missed))
+        XCTAssertEqual(rest.message?.actions, ["Do it now", "Dismiss"])
+
+        // Dismissed, the progression that has run its course speaks, on the rest card as on a
+        // workout's — and on a tapped grey square too: the message does not follow the square.
+        let next = card(both, on: 10, missedDismissed: true)
+        XCTAssertTrue(next.progressionFinished)
+        XCTAssertEqual(next.message, .progressionFinished)
+        let later = card(both, on: 10, missedDismissed: true, showing: 4)
+        XCTAssertTrue(later.isRest)
+        XCTAssertEqual(later.message, .progressionFinished)
+    }
+
+    // TS17 (D71, the owner's reading of 2026-09-13): once a workout was finished today, today's
+    // card is the rest card and says so truthfully — "Done Today" under a check, disabled, while
+    // today's square is the workout's colour — on every plan: a rotation (re-anchored on the day,
+    // so its next workout is tomorrow's), a weekday plan's own day (which keeps its day, and would
+    // otherwise offer the same workout again), and a weekday rest day with a workout done early.
+    func testAfterTheWorkoutTheRestCardSaysDone() throws {
+        // Push finished on the 9th: the rotation re-anchored there, and Pull is tomorrow.
+        let plan = rotation(anchor: 9)
+        var trained = library(plan)
+        trained.sessions = [CoreTestSupport.completed(plan: plan, start: day(9))]
+        XCTAssertEqual(StartCard.current(library: trained, now: day(9), calendar: calendar),
+                       .restDay(planId: plan.id, dayIndex: 1, dayName: "Pull", weekday: .thursday, daysAway: 1))
+        let done = card(trained, on: 9)
+        XCTAssertTrue(done.isRest)
+        XCTAssertEqual(done.title, "Rest")
+        XCTAssertEqual(done.buttonTitle, "Done Today")
+        XCTAssertEqual(done.buttonTitle, HomeStart.doneTitle)
+        XCTAssertEqual(done.buttonMark, .check)
+        XCTAssertFalse(done.buttonEnabled)
+        XCTAssertNil(done.planId)
+        XCTAssertTrue(done.rows.isEmpty)
+        XCTAssertNil(done.clock)
+        XCTAssertNil(done.dayColour, "the square before Rest is grey")
+        XCTAssertEqual(done.strip[0].dayName, "Push", "today's square is the workout's")
+        XCTAssertEqual(done.strip[0].colour, .green)
+        XCTAssertEqual(card(trained, on: 9, showing: 1).buttonTitle, "Start Tomorrow's Pull")
+        // A tapped grey square is never "done": that day has not happened.
+        XCTAssertEqual(card(trained, on: 9, showing: 3).buttonTitle, "No exercise Saturday")
+        XCTAssertEqual(card(trained, on: 9, showing: 3).buttonMark, .moon)
+
+        // A weekday plan's Tuesday, with Wednesday's Pull done early from the strip.
+        let weekly = weekdayPlan()
+        var early = try XCTUnwrap(Session.start(plan: weekly, dayIndex: 1, now: day(15)))
+        early.endedAt = day(15).addingTimeInterval(1800)
+        var extra = library(weekly)
+        extra.sessions = [early]
+        let doneEarly = card(extra, on: 15)
+        XCTAssertEqual(doneEarly.title, "Rest")
+        XCTAssertEqual(doneEarly.buttonTitle, "Done Today")
+        XCTAssertEqual(doneEarly.buttonMark, .check)
+        XCTAssertEqual(doneEarly.strip[0].dayName, "Pull")
+
+        // A weekday plan's own Monday, after its Push: the schedule still says today's Push, and
+        // the card says it is done rather than offering it again.
+        var push = try XCTUnwrap(Session.start(plan: weekly, dayIndex: 0, now: day(14)))
+        push.endedAt = day(14).addingTimeInterval(1800)
+        var monday = library(weekly)
+        monday.sessions = [push]
+        XCTAssertEqual(StartCard.current(library: monday, now: day(14), calendar: calendar),
+                       .today(planId: weekly.id, dayIndex: 0, dayName: "Push"))
+        let doneMonday = card(monday, on: 14)
+        XCTAssertTrue(doneMonday.isRest)
+        XCTAssertEqual(doneMonday.title, "Rest")
+        XCTAssertEqual(doneMonday.buttonTitle, "Done Today")
+        XCTAssertEqual(doneMonday.buttonMark, .check)
+        XCTAssertFalse(doneMonday.buttonEnabled)
+        XCTAssertNil(doneMonday.planId, "the workout just done is not offered again")
+        XCTAssertTrue(doneMonday.rows.isEmpty)
+        XCTAssertEqual(doneMonday.strip[0].dayName, "Push")
+        XCTAssertEqual(doneMonday.strip[0].colour, .green)
+        XCTAssertEqual(card(monday, on: 14, showing: 2).buttonTitle, "Start Wednesday's Pull")
+        // A week later it is an ordinary Monday again.
+        XCTAssertEqual(card(monday, on: 21).buttonTitle, "Start Today's Push")
     }
 }

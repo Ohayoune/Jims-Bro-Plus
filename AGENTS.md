@@ -130,7 +130,12 @@ left of the meta row from the calendar's own projection (`Core/WeekStrip.swift`,
 `CalendarProjection.next(days:from:)`), a tap shows that day (`HomeStart.current(showing:)`, the
 view's `shownOffset`, never stored) with a button that says when, a tapped grey square shows
 D71's rest card early, and **Another day** left the ··· with its chooser and `Gates.anotherDay`
-(§6.40's table records the strip as the one ungated control). S3, a rest day says rest, is next.
+(§6.40's table records the strip as the one ungated control). S3 is built too: a rest day says
+rest (D71, SPEC §6.45) — **Rest** after a grey square, the moon where the clock was, the
+system's z's in the accent where the rows were, and a disabled **No exercise Today** — which
+reverses D57 on Today, because the next workout is one tap away on the strip; after the day's
+workout, on every plan, the same card says **✓ Done Today** (the owner's reading), and a missed workout still
+speaks. S4 — docs, checklist, bundle, screenshots, 1.8 — is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 

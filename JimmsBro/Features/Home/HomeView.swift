@@ -60,28 +60,44 @@ struct HomeView: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                // U13's rule, applied to Today: when Dynamic Type makes the card taller than
-                // the screen, the exercise list is what scrolls; the name, the clock and
-                // Start hold. On an ordinary day nothing scrolls.
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        exerciseBlock(card)
-                        if let message = card.message {
-                            messageLine(message, card: card)
-                        }
-                        if card.isEmpty, let link = card.link {
-                            // D46 (v1.4): the practice workout, the one quiet link under the
-                            // sentence; the picker is the button below (D61).
-                            Button(link) { Task { await model.importPracticePlan() } }
-                                .font(.footnote)
-                                .buttonStyle(.bordered)
-                                .buttonBorderShape(.capsule)
-                                .controlSize(.small)
-                        }
+                if card.isRest {
+                    // D71 (v1.8, §6.45): where the rows would be, the system's z's in the
+                    // accent, centred in the card's empty half — the one blue thing above a
+                    // button that does nothing, and it says *do something*: tap the strip. A
+                    // mark, not words, so VoiceOver skips it; the title already said Rest. The
+                    // message still speaks beneath it (a missed workout's Do it now).
+                    Image(systemName: "zzz")
+                        .font(.system(size: 60))
+                        .foregroundStyle(Color.accentColor)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .accessibilityHidden(true)
+                    if let message = card.message {
+                        messageLine(message, card: card)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    // U13's rule, applied to Today: when Dynamic Type makes the card taller than
+                    // the screen, the exercise list is what scrolls; the name, the clock and
+                    // Start hold. On an ordinary day nothing scrolls.
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 14) {
+                            exerciseBlock(card)
+                            if let message = card.message {
+                                messageLine(message, card: card)
+                            }
+                            if card.isEmpty, let link = card.link {
+                                // D46 (v1.4): the practice workout, the one quiet link under the
+                                // sentence; the picker is the button below (D61).
+                                Button(link) { Task { await model.importPracticePlan() } }
+                                    .font(.footnote)
+                                    .buttonStyle(.bordered)
+                                    .buttonBorderShape(.capsule)
+                                    .controlSize(.small)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
                 }
-                .scrollBounceBehavior(.basedOnSize)
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -184,9 +200,10 @@ struct HomeView: View {
             }
             Spacer(minLength: 0)
             if card.isRest {
+                // Hidden from VoiceOver since S3: the title reads "Rest" first (TS16).
                 Image(systemName: "moon.fill")
                     .foregroundStyle(.secondary)
-                    .accessibilityLabel("Rest day")
+                    .accessibilityHidden(true)
             } else if let clock = card.clock {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Image(systemName: "clock")
@@ -201,12 +218,13 @@ struct HomeView: View {
         .font(.subheadline)
     }
 
-    /// The SF Symbol for Core's mark: the play mark on Start and Resume, the moon on the button
-    /// that does nothing, none on Choose a plan.
+    /// The SF Symbol for Core's mark: the play mark on Start and Resume, the moon and the check
+    /// on the buttons that do nothing (D71), none on Choose a plan.
     private func mark(_ mark: HomeStart.Mark?) -> String? {
         switch mark {
         case .play: return "play.fill"
         case .moon: return "moon.fill"
+        case .check: return "checkmark"
         case nil: return nil
         }
     }
@@ -283,10 +301,11 @@ struct HomeView: View {
                     .foregroundStyle(.secondary)
             case .progressionFinished:
                 // D67 (v1.7): straight to the Progression screen — Plan detail no longer has
-                // the row that led there.
+                // the row that led there. The active plan's, as Do it now's is: a rest card
+                // (D71) has no day to carry it.
                 Button("Plan the next one") {
-                    if let planId = card.planId {
-                        planningProgression = PlanRoute(id: planId, dayIndex: card.dayIndex ?? 0)
+                    if let plan = model.activePlan {
+                        planningProgression = PlanRoute(id: plan.id, dayIndex: card.dayIndex ?? 0)
                     }
                 }
                 .font(.footnote.weight(.medium))

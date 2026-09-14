@@ -304,18 +304,21 @@ final class UsabilityTests: XCTestCase {
         XCTAssertTrue(BuiltInPlans.buildYourOwn.contains("Create with a chatbot"))
     }
 
-    // U20: Home leads with the workout on a rest day, for a rotation as for a weekday plan.
-    func testHomeLeadsWithTheWorkoutOnARestDay() throws {
+    // U20: Home led with the workout on a rest day (D57) until v1.8, whose D71 reverses it on
+    // Today: a rest day says rest, and the workout is one tap away on the strip.
+    func testARestDaySaysRestAndTheWorkoutIsOneTapAway() throws {
         // Push / Pull / Legs / rest with Legs done on the 7th: the 8th is a rest day, Push is the 9th.
         var library = PlanLibrary()
         library.save(rotation(anchor: 7, position: 2), makeActive: true)
         let card = HomeStart.current(library: library, now: day(8), calendar: calendar)
-        XCTAssertEqual(card.title, "Push")
-        // D69 (v1.8): "Planned for Wed" left with the subtitle; the button says when.
-        XCTAssertEqual(card.buttonTitle, "Start Tomorrow's Push")
+        XCTAssertEqual(card.title, "Rest")
+        XCTAssertEqual(card.buttonTitle, "No exercise Today")
         XCTAssertNil(card.sentence)
         XCTAssertNil(card.missed)
-        // The weekday case is HomeAndAddPlanTests' O63, rewritten for D57.
+        let push = HomeStart.current(library: library, now: day(8), calendar: calendar, showing: 1)
+        XCTAssertEqual(push.title, "Push")
+        XCTAssertEqual(push.buttonTitle, "Start Tomorrow's Push")
+        // The weekday case is HomeAndAddPlanTests' O63.
     }
 
     // U21: the Summary says what comes next, from the schedule after the rotation advanced.
