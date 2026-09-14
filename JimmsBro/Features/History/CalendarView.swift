@@ -22,9 +22,9 @@ struct CalendarView: View {
 
     var body: some View {
         let days = expanded
-            ? CalendarProjection.entries(month: month, activePlan: model.activePlan,
+            ? CalendarProjection.entries(month: month, activePlan: model.activePlan, plans: model.plans,
                                          sessions: model.sessions, swaps: model.swaps, today: Date())
-            : CalendarProjection.week(containing: Date(), activePlan: model.activePlan,
+            : CalendarProjection.week(containing: Date(), activePlan: model.activePlan, plans: model.plans,
                                       sessions: model.sessions, swaps: model.swaps, today: Date())
         VStack(alignment: .leading, spacing: 10) {
             HStack {

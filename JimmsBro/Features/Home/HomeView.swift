@@ -20,8 +20,6 @@ struct HomeView: View {
     @State private var showingSettings = false
 
     @State private var showDiscardConfirm = false
-    /// The plan a Plan detail sheet shows — until Q4 (D76), what Change *day*'s exercises opens.
-    @State private var previewing: PlanRoute?
     /// D75 (v1.9): the ···'s symbols are drawn here as pictures, in the screen's own scheme.
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
@@ -56,8 +54,11 @@ struct HomeView: View {
                 // title's capitals, so the colour is read before the word.
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     // D71 (v1.8): a rest day's square is grey, and still there.
-                    if card.dayColour != nil || card.isRest {
-                        DaySquare(colour: card.dayColour, size: 24, relativeTo: .largeTitle)
+                    // D76 (v1.9, §6.50): outlined for a day not from this plan — in its own
+                    // plan's colour when borrowed, in ink when written for the date.
+                    if card.dayColour != nil || card.isRest || card.isOutlined {
+                        DaySquare(colour: card.dayColour, size: 24, outlined: card.isOutlined,
+                                  relativeTo: .largeTitle)
                     }
                     Text(card.title)
                         .font(.largeTitle.weight(.semibold))
@@ -175,10 +176,6 @@ struct HomeView: View {
             // D70 (v1.8): a workout started from anywhere — the strip, Do it now, Plan detail —
             // takes the tapped day with it; Today shows today behind the cover and after it.
             .onChange(of: model.startedWorkouts) { _, _ in shownOffset = 0; reopened = false }
-            .sheet(item: $previewing) { route in
-                NavigationStack { PlanDetailView(planId: route.id, showWorkout: $showWorkout) }
-                    .environment(model)
-            }
             .sheet(item: $planningProgression) { route in
                 ProgressionView(planId: route.id).environment(model)
             }
@@ -188,6 +185,7 @@ struct HomeView: View {
             .navigationDestination(for: TodayRoute.self) { route in
                 switch route {
                 case .plans: PlansView(addPlan: $addPlan, showWorkout: $showWorkout)
+                case let .changeExercises(date): ChangeDayView(date: date)
                 }
             }
         }
@@ -305,11 +303,15 @@ struct HomeView: View {
             Spacer(minLength: 0)
             switch message {
             case let .missed(missed):
-                // An own or borrowed day (D76) is named but not started here until Q4 says how.
-                if let dayIndex = missed.dayIndex {
+                // D76 (v1.9): a borrowed day starts as its own plan's, and a day written just
+                // for the date as it is.
+                if missed.dayIndex != nil || missed.own != nil {
                     Button("Do it now") {
-                        if let plan = model.activePlan {
-                            start(planId: plan.id, dayIndex: dayIndex)
+                        guard let plan = model.activePlan else { return }
+                        if let own = missed.own {
+                            startOwn(own, on: plan.id)
+                        } else if let dayIndex = missed.dayIndex {
+                            start(planId: missed.planId ?? plan.id, dayIndex: dayIndex)
                         }
                     }
                     .font(.footnote.weight(.medium))
@@ -346,11 +348,10 @@ struct HomeView: View {
                 Label { Text(alternative.title) } icon: { menuSymbol(CycleSymbol(cycle: cycle)) }
             }
         case let .changeExercises(_, colour):
-            // Q4 (D76) pushes the picker here, for the shown date alone. Until it lands the item
-            // opens the plan in Plan detail, where the rows led until D75.
+            // D76 (v1.9, §6.50): the picker, pushed onto Today, for the shown date alone.
             Button {
-                if let plan = model.activePlan {
-                    previewing = PlanRoute(id: plan.id, dayIndex: card.dayIndex ?? 0)
+                if let date = WeekStrip.date(offset: card.shownOffset, today: Date()) {
+                    path.append(TodayRoute.changeExercises(date))
                 }
             } label: {
                 Label { Text(alternative.title) } icon: {
@@ -376,6 +377,7 @@ struct HomeView: View {
         // D61 (v1.7): the empty card's button opens Add plan on the built-in picker (D46).
         if card.isEmpty { addPlan = .builtIns; return }
         if card.isInProgress { showWorkout = true; return }
+        if let own = card.ownDay, let planId = card.planId { startOwn(own, on: planId); return }
         guard let planId = card.planId, let dayIndex = card.dayIndex else { return }
         start(planId: planId, dayIndex: dayIndex)
     }
@@ -395,10 +397,28 @@ struct HomeView: View {
         }
     }
 
+    /// D76 (v1.9, §6.50): a day written just for a date, started as it is — with the switch
+    /// popup when a session is open, as every start has.
+    private func startOwn(_ day: Day, on planId: UUID, switching choice: SessionSwitch? = nil) {
+        Task {
+            do {
+                try await model.startOwnDay(day, on: planId, switching: choice)
+            } catch LibraryError.sessionInProgress {
+                switching = PlanRoute(id: planId, dayIndex: 0, own: day)
+            } catch {
+                switching = nil
+            }
+        }
+    }
+
     private func switchDay(_ choice: SessionSwitch) {
         guard let route = switching else { return }
         switching = nil
-        start(planId: route.id, dayIndex: route.dayIndex, switching: choice)
+        if let own = route.own {
+            startOwn(own, on: route.id, switching: choice)
+        } else {
+            start(planId: route.id, dayIndex: route.dayIndex, switching: choice)
+        }
     }
 
     /// D74 (v1.9, §6.48): one tap chooses and closes — the ring turns faint and the ordinary
@@ -452,9 +472,17 @@ private struct WeekStripView: View {
         let side = isShown ? large : small
         return VStack(spacing: 1) {
             ZStack {
-                RoundedRectangle(cornerRadius: side / 4, style: .continuous)
-                    .fill(fill(square, shown: isShown))
-                    .frame(width: side, height: side)
+                // D76 (v1.9, §6.50): a borrowed day outlined in its own plan's colour, a day
+                // written for the date outlined in ink — not from this plan, still which day.
+                if square.outline {
+                    RoundedRectangle(cornerRadius: side / 4, style: .continuous)
+                        .strokeBorder(stroke(square, shown: isShown), lineWidth: max(1.5, side / 6))
+                        .frame(width: side, height: side)
+                } else {
+                    RoundedRectangle(cornerRadius: side / 4, style: .continuous)
+                        .fill(fill(square, shown: isShown))
+                        .frame(width: side, height: side)
+                }
                 if square.ring != .none {
                     QuestionRing(asking: square.ring == .asking, side: side + 6)
                 }
@@ -505,6 +533,12 @@ private struct WeekStripView: View {
         guard let colour = square.colour else { return Color.secondary.opacity(shown ? 0.55 : 0.3) }
         return colour.color.opacity(shown ? 1 : 0.5)
     }
+
+    /// An outline's colour: its day's, or ink for a day in no plan — at half strength unless
+    /// shown, as a fill is.
+    private func stroke(_ square: WeekStrip.Square, shown: Bool) -> Color {
+        (square.colour?.color ?? Color.primary).opacity(shown ? 1 : 0.5)
+    }
 }
 
 /// D74 (v1.9, §6.48): the ring of a question, in yellow — the warning colour, and no day's
@@ -530,10 +564,12 @@ private struct QuestionRing: View {
     }
 }
 
-/// Identifies the plan a Plan detail sheet opens.
+/// A plan's day — the switch popup's target (D17), or the plan whose progression **Plan the
+/// next one** opens. D76 (v1.9): or a day written just for a date, on that plan.
 private struct PlanRoute: Identifiable {
     let id: UUID
     let dayIndex: Int
+    var own: Day? = nil
 }
 
 /// D62 (v1.7): what Today's stack pushes. A plan's detail follows the list as its `UUID`,
@@ -541,6 +577,8 @@ private struct PlanRoute: Identifiable {
 private enum TodayRoute: Hashable {
     /// ··· → Change plan: the Plans list, which was a tab until T2.
     case plans
+    /// D76 (v1.9, §6.50): ··· → Change *day*'s exercises, for that date.
+    case changeExercises(Date)
 }
 
 /// D69 (v1.8): an exercise's sets as small blocks at the row's right edge — four blocks, four

@@ -9,6 +9,8 @@ struct JSONFragmentSheet: View {
     let title: String
     let initialText: String
     let footer: String
+    /// What Save says. D76 (v1.9): "Use for Wednesday" where the text becomes a date's day.
+    var saveTitle = "Save"
     /// Runs the edit; returns the errors that stopped it, or nothing when it was saved.
     let commit: (String) async -> [Issue]
 
@@ -54,7 +56,7 @@ struct JSONFragmentSheet: View {
                 ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
             }
             .bottomAction {
-                PrimaryButton(title: "Save", enabled: !text.trimmed.isEmpty && !saving) { save() }
+                PrimaryButton(title: saveTitle, enabled: !text.trimmed.isEmpty && !saving) { save() }
             }
             .task {
                 guard !loaded else { return }
@@ -152,10 +154,16 @@ enum FragmentTarget: Identifiable, Equatable {
         case .addExercise:
             return Self.exerciseTemplate
         case .addDay:
-            return "{\n  \"name\": \"Day \(plan.days.count + 1)\",\n  \"exercises\": [\n"
-                + Self.exerciseTemplate.split(separator: "\n").map { "    " + $0 }.joined(separator: "\n")
-                + "\n  ]\n}\n"
+            return Self.dayTemplate(name: "Day \(plan.days.count + 1)")
         }
+    }
+
+    /// A day holding one exercise to fill in — Add day's, named for its place; and D76's day
+    /// just for a date, left without a name so that it takes the date's.
+    static func dayTemplate(name: String) -> String {
+        "{\n  \"name\": \"\(name)\",\n  \"exercises\": [\n"
+            + exerciseTemplate.split(separator: "\n").map { "    " + $0 }.joined(separator: "\n")
+            + "\n  ]\n}\n"
     }
 
     /// Blank where it must be filled in, so Save says "Every exercise needs a name" rather

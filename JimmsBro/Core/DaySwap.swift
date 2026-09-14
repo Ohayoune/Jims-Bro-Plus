@@ -122,7 +122,8 @@ enum DaySlot: Equatable {
     }
 
     /// The slot's colour (§6.41): a plan day's, by its place in the list; nil — grey — for rest
-    /// and nothing, and for an own or borrowed day until Q4 draws them (D76).
+    /// and nothing, and for an own day, which is in no plan (D76). A borrowed day's colour is
+    /// its own plan's, which the projection finds among the plans (§6.50); here it has none.
     var colour: DayColour? {
         if case let .day(index) = self { return DayColour.of(dayIndex: index) }
         return nil
@@ -217,7 +218,7 @@ extension PlanSchedule {
 
 /// D37, read with swaps (§6.46): the training day the projection put before today that has no
 /// completed session on it. `dayIndex` is nil for an own or borrowed day (D76), which is named
-/// by its own name and cannot be started from the message until Q4 says how.
+/// by its own name; Today's card finds what Do it now starts (§6.50).
 struct MissedDay: Equatable {
     var date: Date
     var slot: DaySlot
@@ -290,6 +291,9 @@ extension PlanLibrary {
         let plan = plans[index]
         let date = calendar.startOfDay(for: completed.startedAt)
         let done = completed.dayName
+        // D76 (v1.9, §6.50): a day the active plan borrowed from this one was that date's, by
+        // the picker — it moves neither plan and writes nothing.
+        if isBorrowed(completed) { return }
         let base = PlanSchedule.base(plan, on: date, today: date, calendar: calendar)
         let slot = PlanSchedule.slot(plan, on: date, swaps: swaps, today: date, calendar: calendar)
         if base.matches(done, in: plan) {
@@ -353,6 +357,20 @@ extension PlanLibrary {
         swaps.removeAll { $0.planId == swap.planId && calendar.isDate($0.date, inSameDayAs: swap.date) }
         guard swap.replacement != swap.original else { return }
         swaps.append(swap)
+    }
+
+    /// D76 (v1.9, §6.50): whether a finished session of another plan is a day the active plan
+    /// borrowed — on the session's own date, or on a date in the week before it whose missed
+    /// day Do it now started late (the missed rule's own week).
+    func isBorrowed(_ session: Session) -> Bool {
+        guard let active = activePlan, let planId = session.planId, planId != active.id else { return false }
+        let day = calendar.startOfDay(for: session.startedAt)
+        guard let weekBefore = calendar.date(byAdding: .day, value: -7, to: day) else { return false }
+        return swaps.contains { swap in
+            guard swap.planId == active.id, swap.date >= weekBefore, swap.date <= day,
+                  case let .borrowed(id, name) = swap.replacement else { return false }
+            return id == planId && normalized(name) == normalized(session.dayName)
+        }
     }
 
     /// §6.46: answering the question sets the taken date's slot. D73: `.slide` is D37's

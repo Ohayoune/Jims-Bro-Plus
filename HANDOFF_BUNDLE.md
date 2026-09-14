@@ -175,8 +175,10 @@ line, a Save that says its effect (D77) — and **Plans that speak in squares** 
 mark and a button to confirm, the page with the cycle as squares and every day closed until
 tapped). The requirements were settled in two rounds on the "Swapping Days" artifact linked from
 the plan. Q0–Q3 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
-Today, Q3 the ··· in squares with progression left to History — and `docs/BUILD_STATUS.md` says
-what was run; Q4 is next.
+Today, Q3 the ··· in squares with progression left to History, Q4 a day's exercises changed for one
+date — a day of this plan, a day borrowed from another plan (outlined in its colour) or a day
+written just for the date (outlined in ink), `Core/ChangeDay.swift` and `ChangeDayView` — and
+`docs/BUILD_STATUS.md` says what was run; Q5 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -448,7 +450,7 @@ Today is the day's card and nothing else, and **nothing on it is words without a
 
 Nothing on Today moves between visits. The screen does not scroll unless Dynamic Type makes it, and then the exercise rows are what scroll while the name, the meta row and Start hold (the rule U13 set for the workout in v1.6).
 
-**The ···**, top-right, and the gear, top-left, are grey glyphs in a hairline circle rather than the system's filled circles (D69), so the title is the heaviest thing at the top of the screen; History's gear is the same one (§4.0: zones do not move). The ··· is the only place the day's alternatives live, and it speaks in squares (v1.9, D75, §6.49): **Change plan**, beside one glyph made of the active plan's cycle — a tiny square per entry in its day's colour, grey for rest — opening the Plans list pushed onto Today (§4.2, D62); and **Change *Wednesday*'s exercises**, naming the day shown as the strip's button does (*Today*, *Tomorrow*, the weekday), beside that day's square, for that date alone (D76 — until Q4 lands it opens the plan in Plan detail, where the rows led). Nothing else: while a session is open the menu is **Change plan** and **Discard workout** with its alert (D56), and a card with no day to change — Nothing scheduled, or today once its workout is done — has Change plan alone. *(v1.7–v1.8: **Plan a progression** while D50 offered it, and while a progression ran the menu ended with where it was, "Step 3 of 8"; both are History's Progression row's since D75.)* Nothing in the menu is itself a confirmation. There is no ··· until there is a plan to have alternatives for; when each item appears is §6.40's table (D64).
+**The ···**, top-right, and the gear, top-left, are grey glyphs in a hairline circle rather than the system's filled circles (D69), so the title is the heaviest thing at the top of the screen; History's gear is the same one (§4.0: zones do not move). The ··· is the only place the day's alternatives live, and it speaks in squares (v1.9, D75, §6.49): **Change plan**, beside one glyph made of the active plan's cycle — a tiny square per entry in its day's colour, grey for rest — opening the Plans list pushed onto Today (§4.2, D62); and **Change *Wednesday*'s exercises**, naming the day shown as the strip's button does (*Today*, *Tomorrow*, the weekday), beside that day's square, for that date alone (D76, §6.50 — a picker pushed onto Today: this plan's days, every other plan's, and a day written just for that date). Nothing else: while a session is open the menu is **Change plan** and **Discard workout** with its alert (D56), and a card with no day to change — Nothing scheduled, or today once its workout is done — has Change plan alone. *(v1.7–v1.8: **Plan a progression** while D50 offered it, and while a progression ran the menu ended with where it was, "Step 3 of 8"; both are History's Progression row's since D75.)* Nothing in the menu is itself a confirmation. There is no ··· until there is a plan to have alternatives for; when each item appears is §6.40's table (D64).
 
 **No plans yet**: "No plan yet" as the headline; one sentence beneath — "Choose a built-in plan to start today, or have a chatbot write yours."; **Choose a plan** in the bottom slot — the intro's words (D47) — opening Add plan on the built-in picker (D46, §6.23, with its **Start here** badge and, one tap back, **Create with a chatbot** and **Paste plan**); and one quiet bordered button, **Try a short practice workout**. Two choices where there were three.
 
@@ -1082,6 +1084,7 @@ Parked from iteration 7 and chosen with v1.7's plan (`docs/ITERATION_8_PLAN.md`,
   2. **The calendar**: a finished day is filled, and a planned day named, in its day's colour, where the reserved green and the accent were (§4.10, D38). A day with two workouts takes the first's, the one its label names; a finished day with no colour is grey.
   3. **History**: the same square leading each workout's row, grey for a workout with no colour, so the column stays a column (§4.10).
   4. **The workout header**: the square leads the stage line — the header names no day, since D34 made it the stage — and the Lock Screen activity carries it too, before its title there and in the expanded Island; the compact Island, which has room for a colour and nothing else (D41), draws its figure in it while working, and a break keeps the accent (§4.5, §6.17).
+- **v1.9 (D76, §6.50): the outline**, a mark beside the fill that says *not from this plan* while the colour still says *which day*: a day borrowed from another plan for one date is outlined in that plan's colour, and a day written just for a date is outlined in ink. Today's strip, Today's square before the name and the picker's rows draw it; the calendar, History and the workout header do not — a borrowed day's session is its own plan's, coloured by it, and an own day's has no colour.
 - **Nowhere else**: not Start, not the tab bar, not a background, not the Summary. Core decides the colour — `HomeStart.dayColour`, `DayEntry.dayColour(plans:)`, `DayColour.of(session:plans:)`, `WorkoutActivityState.dayColour` — and the view layer owns the mapping to a `Color` in one file, `DaySquare.swift`, compiled into the app and the widget extension alike (T23 reads it).
 - **Green is also the colour reserved for "this happened"** (§4.0, v1.1) — a logged set, a record. The palette keeps it for the first day, as the plan chose: in the calendar the fill now says *happened* and the colour says *which day*, so a plan's first day reads as it did in v1.6.
 
@@ -1124,6 +1127,7 @@ Under the name, at the left of the meta row, **seven small squares: the next sev
 - **Drawn from the calendar's own projection** (D37: Today and the grid can never disagree). A weekday plan's seven days come from its days' weekdays; a rotation's from the anchored projection — `CalendarProjection.next(days:from:)` projects a run of days exactly as `entries(month:)` projects a month, across a month boundary — and `WeekStrip.days(plan:sessions:today:)` (`Core/WeekStrip.swift`) hands the view seven squares of *day or rest*, colour by `DayColour`, each with its **when** in words. Today's square after today's workout is that workout's colour, as the calendar draws it; the card behind the first square is always Today's own. A plan with no resolvable day (Nothing scheduled) draws seven grey squares and the disabled button, and the ··· still offers Change plan.
 - **Colour is never the only cue.** The shown square is larger and the button names the day in words, so the strip works in monochrome and for anyone who cannot tell green from orange. VoiceOver reads each square as its day — "Today, Push", "Tomorrow, rest", "Thursday, Legs" — and the shown one as selected.
 - **v1.9 (D74, §6.48): the swap's marks.** A square whose day is not the pattern's carries a dot beneath it in the pattern's colour — grey when the pattern said rest — and a date carrying a question wears a yellow ring. A long press does what `WeekStrip.Square.hold` says: on a ringed square it reopens the question, on a dotted one it raises a small callout — the pattern's square and *"was Push"* — and anywhere else it is a tap. No double tap: it fights the single tap and VoiceOver's activate gesture.
+- **v1.9 (D76, §6.50): a day from another plan, for one date.** v1.8's plan kept other plans off the strip — a day from another plan stayed behind ··· → Change plan. On the owner's ask a date can take a day of another plan through **Change *day*'s exercises**, and the strip draws it outlined in that plan's colour: one date, not a plan on the strip. A day written just for the date is outlined in ink. `WeekStrip.days` takes the library's plans, to name and colour a borrowed day.
 
 `HomeStart.current(library:now:calendar:notificationsOff:missedDismissed:showing:)` takes the shown offset and resolves the card for it: `strip`, `shownOffset`, `isRest`, `buttonMark` (play or moon; since S3 also the check, §6.45) and `buttonEnabled` join the card, `WeekStrip.buttonTitle(dayName:offset:weekday:)` says the words, and the view draws them and decides nothing (TS6–TS10).
 
@@ -1168,7 +1172,7 @@ Two of them merge: when today was a rest day, *today's* day **is** rest, and the
 
 **The projection reads swaps.** `CalendarProjection.entries`, `next(days:from:)` and `week(containing:)` take `swaps: [DaySwap]` with no default, so no caller can forget them and the compiler is the pin (TQ12; the strip and the missed rule take them the same way). For a date at or after today with a swap for the active plan: `.rest` → `.rest`; `.day(name)` → `.projected` by name — a name the plan no longer has projects `.none`, as a dead cycle entry does (§6.12); `.borrowed` → `.projected` with the other plan's id and index (D76, Q4 — `.none` until Q4 hands the projection the other plans); `.own(day)` → `DayEntry.own(day)`, drawn as a planned day with no colour, in ink; `.slide` → the pattern, which the slide already re-anchored. Past dates keep D37's rule: `.completed` or `.none`. Today's card (`PlanSchedule.next(_:today:swaps:)`, on both schedules), the strip (`WeekStrip.days`), the History grid and the missed rule read the same slot, so none of them can disagree about a swapped day; the grid draws a swapped day as what it now is and nothing more — no dot, no ring (the owner's 9).
 
-**Missed** (`PlanSchedule.missed`) reads the projected slots: Monday's Push, moved to Wednesday, is not "due Monday"; a Wednesday Push not done by Thursday is *"Push was due Wednesday"*, and **Do it now** starts the swapped day; a date whose replacement is rest is never missed; a missed own or borrowed day is named by its own name, and cannot be started from the message until Q4 says how.
+**Missed** (`PlanSchedule.missed`) reads the projected slots: Monday's Push, moved to Wednesday, is not "due Monday"; a Wednesday Push not done by Thursday is *"Push was due Wednesday"*, and **Do it now** starts the swapped day; a date whose replacement is rest is never missed; a missed own or borrowed day is named by its own name, and **Do it now** starts it as its card would (§6.50).
 
 **The strip's marks** (`WeekStrip.Square`; drawn since Q2, §6.48): a square whose slot is not the pattern's carries a **dot** in the pattern's colour (grey when the pattern said rest); a borrowed or own day is **outlined**; a question is a **ring** — pulsing while it asks, faint once answered — and VoiceOver reads *"Wednesday, Push, question"*. The shown square's card carries its question (`HomeStart.question`). A question is reachable while its date is today or later; past dates are history.
 
@@ -1204,7 +1208,7 @@ The owner's notes — *"The three buttons up top should bring two options; chang
 | Item | Symbol | Opens |
 |---|---|---|
 | **Change plan** | one glyph made of the active plan's cycle — a tiny square per entry in its day's colour, grey for rest | the Plans list, pushed onto Today (§4.2; Q6 redraws it, D78) |
-| **Change *Wednesday*'s exercises** — the day shown, named as the strip's button names it: *Today*, *Tomorrow*, the weekday | that day's square, grey on a rest day | the picker for that date alone (D76, Q4); until Q4 lands, the active plan in Plan detail, where the rows led |
+| **Change *Wednesday*'s exercises** — the day shown, named as the strip's button names it: *Today*, *Tomorrow*, the weekday | that day's square, grey on a rest day | the picker for that date alone (§6.50) |
 
 - **The symbol** is `CycleSymbol` (`DaySquare.swift`, compiled into both targets as `DaySquare` is): one row of squares of one size — a rotation's repeat block as written, from its first entry, so it is the plan's shape rather than this week (the strip is this week), and a weekday plan's Monday to Sunday, as Plan detail lays it out; an entry that names no day is grey. A cycle longer than fourteen is drawn as its first fourteen and a trailing mark, three grey dots. Core hands the colours (`DayColour.cycle(of:)`) and says where it cuts (`CycleGlyph`).
 - **The menu keeps the colours.** It is still a SwiftUI `Menu` whose items are `Label`s: the symbol is drawn by the view, rendered to a picture in the screen's colour scheme (`ImageRenderer`) and handed over as an image in its original colours, since a menu item takes an image and nothing else and draws a template in one grey. The iPhone 17 simulator showed both symbols in their colours, so the plan's fallback — a small sheet of our own with the same two rows — was not needed.
@@ -1215,6 +1219,25 @@ The owner's notes — *"The three buttons up top should bring two options; chang
 - **The introduction** names no **Plan a progression** and tells nobody to tap the list; the **Progression** it names is History's row, which Y13's pin still finds.
 
 **Core decides it** (§6.37): `HomeStart.Alternative` is `.changePlan(cycle: [DayColour?])`, `.changeExercises(dayName: String, colour: DayColour?)` or `.discardWorkout`, each with its words in `title` ("Change Wednesday's exercises"), and `HomeStart.alternatives` lists them in order; the view draws a `Label` per item and decides nothing (TQ21–TQ24).
+
+### 6.50 Change a day's exercises (D76, v1.9)
+The owner's ask — *"change exercises"* in the ···, and *"JSONs that only change a small part of the total plan"* (`docs/ITERATION_10_PLAN.md`, Q4). A date, not the plan: whatever is chosen is a swap on that one date (§6.46), and nothing in `Plan` moves.
+
+- **The picker**, pushed onto Today from the ···'s second item, is titled with the item's words — *"Change Wednesday's exercises"* — over the line *"For Wednesday 16 September only. The plan does not change."* This plan's days come first, under *Push Pull Legs · this plan*, each a square in its colour and a name; then every other plan that has days, under its own name (no such section with one plan); and last one row, **Write a day just for Wednesday**. The row the date is now carries a check. A tap writes the date's swap — `askedOn` nil, answered — and goes back to Today, whose card already shows it; choosing the pattern's own day removes the swap (§6.46: a replacement equal to its original is no swap). A date that carries a question is answered rather than overwritten: the question stays, answered, and leaving a slide puts the anchor back (D73).
+- **Three kinds, three marks:**
+
+| Chosen | Swap | On the strip, and Today's square | Its session |
+|---|---|---|---|
+| a day of this plan | `.day(name)` | filled in its colour, with the pattern's dot beneath | the plan's, as any |
+| a day of another plan | `.borrowed(planId:name:)` | **outlined in that plan's colour** — Lower is orange in Upper Lower as Pull is here | that plan's, coloured by it in History; it moves neither plan's anchor and writes no swap |
+| a day written just for the date | `.own(Day)` | **outlined in ink**, no colour; the rows are its exercises | the active plan's, under the day's own name — a name no plan has, so History draws it grey (§6.41) — and `advance` ignores it (§6.8) |
+
+- **A day just for the date** opens the JSON sheet (D43; Q5 redoes it) on a day to fill in, or on the date's own day when it has one, and its Save reads **Use for Wednesday**. The text is read as generously as any fragment — fences, prose around it, a plan holding one day (`PlanEdit.fragment(_:as: .days)`) — and checked by the importer as that day alone, in the plan's units, so a day the app would refuse to import is refused here with the importer's sentence; more than one day is refused. A nameless day is called *"Wednesday's own day"* — the weekday even for today, so that History says which — and its button reads **Start Wednesday's own day**, saying when once. The swap holds the `Day`; nothing joins the plan.
+- **Starting it.** A borrowed day starts as its plan's day; an own day through `startOwnDay(_:on:)`, which starts the active plan's session from a copy of the plan holding the day — the plan's id, name and units, and no progression, so the day's targets are its own. Both raise D17's switch popup when a session is open, as every start does, and a missed one's **Do it now** starts it the same way. Nothing on the Workout screen knows the difference.
+- **Finishing it.** A session of another plan that the active plan borrowed — on its date, or in the missed rule's week for a late Do it now — moves neither plan and writes nothing (`PlanLibrary.isBorrowed`). An own day's session is what its date said, §6.46's second case: nothing moves and nothing is written.
+- **The projection** finds a borrowed day in the plan it came from: `CalendarProjection.entries`, `next(days:)` and `week(containing:)` take `plans:` — the library's — and `.borrowed` projects as `.projected(otherPlanId, index)`, named and coloured by that plan on the grid, where until Q4 it was a day the grid could not name. `WeekStrip.days` takes `plans:` too, and a square carries the plan its day came from (`planId`) and an own day (`own`). A day written for today is `StartCard.own`.
+
+**Core decides it** (§6.37): `DayChoices` (`Core/ChangeDay.swift`) — the title, the line, the sections with their squares and checks, the own row and the sheet's words — from `PlanLibrary.dayChoices(for:now:)`; `choose(_:for:now:)` writes; `ownDay(_:named:units:settings:now:)` reads a pasted day. `ChangeDayView` draws a row per choice and decides nothing (TQ25–TQ29).
 
 ## 7. Data model (Core, Codable, no UI imports)
 
@@ -2959,6 +2982,18 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 | TQ22 | unit | (D75, v1.9, pin) The progression left Today | A `Mirror` of `HomeStart` names no `stepLine`, `offersProgression` or `previewPlanId`; a plan whose day has history for every exercise and a plan mid-progression both list only Change plan and Change Today's exercises, with no message; `HomeCard.swift` has no `case planProgression`, `Gates.swift` no `func planProgression`, `Prompts.swift` no `planProgression`, and `HomeView.swift` no step line and no tap from the rows into Plan detail (the source reads run on the host routes); T21 counts four gates |
 | TQ23 | unit | (D75, v1.9) The cycle as a symbol | `DayColour.cycle(of:)`: a rotation's repeat block as written — green, orange, purple, grey, green, orange, purple — an entry naming no day grey, and a weekday plan Monday to Sunday (green, grey, orange, grey, purple, grey, grey); `CycleGlyph`: seven and fourteen drawn whole, thirty-one as its first fourteen in order and a trailing mark; `CycleSymbol` cuts through `CycleGlyph` and Change plan draws it (source reads on the host routes) |
 | TQ24 | device | (D75, v1.9) The menu's symbols | On the phone, the ··· shows the plan's cycle in its colours beside Change plan and the shown day's square beside Change *day*'s exercises, in light and in dark, and the squares read as squares at the menu's size |
+
+### Q4 — Change *day*'s exercises (D76)
+
+`JimmsBroTests/SwapTests.swift` (TQ25–TQ28). The picker is Core's — `DayChoices` from `PlanLibrary.dayChoices(for:now:)`, written by `choose(_:for:now:)`, a pasted day read by `ownDay(_:named:units:settings:now:)` (`Core/ChangeDay.swift`) — and `ChangeDayView` draws it. `CalendarProjection`'s three functions and `WeekStrip.days` take `plans:`; `StartCard.own`, `HomeStart.ownDay` and `.isOutlined`, `MissedWorkout.planId` and `.own`, `WeekStrip.Square.planId` and `.own`, and `PlanLibrary.startOwnDay` and `.isBorrowed` join them. No earlier case changed.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| TQ25 | unit | (D76, v1.9) The picker's sections | Wednesday from Monday: "Change Wednesday's exercises" and "For Wednesday 16 September only. The plan does not change."; one section, "Push Pull Legs · this plan" — Push, Pull, Legs in green, orange and purple, filled, Legs checked — and no others section with one plan; the own row "Write a day just for Wednesday", the name "Wednesday's own day", Save "Use for Wednesday". With Upper Lower and a plan of no days: a second section, "Upper Lower" — Upper and Lower in green and orange, outlined, Lower's slot borrowed from it — and none for the plan of no days. Today's: "Change Today's exercises", "For Monday 14 September…", "Write a day just for Today", "Monday's own day", "Use for Today"; tomorrow's title says Tomorrow; no plan, no picker |
+| TQ26 | unit | (D76, v1.9) Choosing a day of this plan | Pull on Wednesday writes original Legs, replacement Pull, no `askedOn`, answered, and moves nothing in the plan; the square orange with a purple dot, no ring, filled; the card **Start Wednesday's Pull**; the picker checks Pull. Choosing Legs, the pattern's own, deletes the swap, and the square is purple with no dot. After Legs on Monday, choosing Pull for Wednesday answers the question: the same swap, replacement Pull, answered, still asked on Monday, its ring faint |
+| TQ27 | unit | (D76, v1.9) A day of another plan | Lower from Upper Lower on Wednesday: the swap is borrowed; the projection reads `.projected(Upper Lower, 1)`, orange, labelled Lower; the square named Lower, orange, outlined, with the other plan's id and a purple dot; the card Lower, orange, outlined, Deadlift, **Start Wednesday's Lower**, Upper Lower's day 1. Not done by Thursday: missed as Lower on Wednesday, with Upper Lower's id and index for Do it now. Finished on Wednesday: the session is Upper Lower's and orange in History; neither plan's position or anchor moves — Upper Lower's first workout does not anchor it — and no swap is written; the square stays orange and outlined, and the card says **Done Today**. Chosen for today: `StartCard` is `.nextUp` Upper of Upper Lower, and the card Upper, green, outlined, **Start Today's Upper** |
+| TQ28 | unit | (D76, v1.9) A day just for the date | `valid/fenced-with-prose.txt` is accepted as day A (Row), with no weekday; a nameless day is named "Wednesday's own day"; a day with no exercises is refused with the importer's own codes and sentences; `valid/array-of-days.json`, two days, is refused. Chosen for Wednesday: the swap holds the `Day`, the plan still has three days, and the picker's own is it; the square named A, no colour, outlined, carrying the day; the card A, no colour, outlined, Row, **Start Wednesday's A**, `ownDay` set and no `dayIndex`; missed on Thursday it carries the day for Do it now; a nameless one's button is **Start Wednesday's own day**. Chosen for today: `StartCard.own` and **Start Today's A**. Started on Wednesday: the active plan's session named A, with Row; finished, the plan does not move, no swap is written, and the session has no colour |
+| TQ29 | device | (D76, v1.9) The outline on the phone | An outlined square beside filled ones on the strip reads as a square at the strip's size, shown and not, in light and in dark — a borrowed day's in its plan's colour, an own day's in ink — and so does Today's square before the name |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -5957,28 +5992,28 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 # Build status
 
 Updated 2026-09-14. **v1.9 is in progress on branch `v1.9-swaps` (off `main`, which holds
-v1.8): Q0–Q3 built and green, Q4–Q7 not started.** v1.8 and everything before it are below,
+v1.8): Q0–Q4 built and green, Q5–Q7 not started.** v1.8 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
 
-## v1.9 (Q0–Q7): Q0–Q3 built and green
+## v1.9 (Q0–Q7): Q0–Q4 built and green
 
 `docs/ITERATION_10_PLAN.md` is the v1.9 plan, written from the owner's notes after living with
 v1.8's strip — *"shift today's colour to the colour of the other day (without changing the plan
 itself)"*. Each milestone ends with the whole suite green on all three routes, a Release build and
 `tools/check_release.py`, and one commit on `v1.9-swaps`.
 
-After Q3:
+After Q4:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **357 tests, 17 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; TQ22 and TQ23 are two more, each skipping after its Core assertions. Clean on the first run (Q2's took three) |
-| `swift test` | **356 tests, 0 failures** |
-| `python3 tools/check_core.py` | **356 bodies, 7,015 assertions, 0 failures** |
-| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q3 touches no import code) |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **361 tests, 17 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; Q4 adds none. Clean on the first run |
+| `swift test` | **360 tests, 0 failures** |
+| `python3 tools/check_core.py` | **360 bodies, 7,174 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q4 reads a day through the importer and changes none of it) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — still version 1.8 (1); Q7 turns it to 1.9 |
-| `python3 tools/check_bundle.py` | **current** (regenerated in Q3) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in Q4) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -5986,7 +6021,8 @@ After Q3:
 | Q1 | A day swapped, not a plan changed (D72) and Slide (D73), in Core: `Core/DaySwap.swift` — `DaySwap` with its five-kind `Slot`, `swaps.json` beside `plans.json` (a missing file is no swaps; an unreadable one is set aside), `PlanLibrary.swaps`, `settle` (the three completion cases: the expected day re-anchors at the projected entry and keeps the grid; what the date said writes nothing; anything else writes today's record and a question on the day whose workout was taken, with today's day as the default), `answer` (Rest, today's day, Keep, and Slide on rotations, which re-anchors as D37 did and remembers what it replaced), `question` (the options in order, the default, what was chosen); `PlanSchedule.base`/`slot` — one slot per date, swaps read — under `CalendarProjection`'s three functions (`swaps:` with no default), `WeekStrip.days` (the dot, the outline, the ring, the question on the shown square's card), `PlanSchedule.next(_:today:swaps:)` for Today's card on both schedules and the Summary's next line, and `PlanSchedule.missed`, which never misses a swapped-to-rest day and names the swapped day for Do it now; `DayEntry.own` drawn in ink on the grid; the backup's optional `swaps`; `examples/store/v1/` gains `swaps.json`, `backup-1.9.json` and `backup-1.7.json`. Nothing in the pipeline, the format, the prompts, the Workout screen, the rest or the Live Activity changed, and nothing is drawn yet: Q2 draws the marks. TQ1–TQ13 in `SwapTests`; L7 and one `LibraryCalendarPromptTests` assertion rewritten for D72. SPEC §6.8, §6.12, §6.41, §7, §8.1, §8.5 and the new §6.46 and §6.47 | Done |
 | Q2 | Today shows the swap (D74): under a square whose day is not the pattern's, a dot in the pattern's colour (grey for rest); a yellow ring on a date carrying a question, breathing while it asks (still under Reduce Motion) and faint once answered; a long press that reopens a ringed square's question or shows a "was Push" callout on a dotted one (`WeekStrip.Square.was` and `.hold`); and the question's block where the rows would be — `SwapQuestionView`: the heading, the options as large squares with their word beneath and a check on the chosen one, and on a rotation the Slide row previewing three days — with the button following the choice through the projection (`SwapQuestion.heading` and `.slide`, each option's `colour` and `isChosen`; `HomeStart.showsQuestion` and `current(…reopened:)`). A date whose workout is done asks nothing; the block is never on an open session's card; a question reopened after a slide offers what it first offered (a Q1 gap, fixed here). The seeder's `--swap` (`SEED_SWAP=1` in `tools/shot.sh`). TQ14–TQ17 in `SwapTests`; T21 counts two ungated rows. SPEC §4.1, §6.40, §6.44 and the new §6.48 | Done |
 | Q3 | The ··· speaks in squares (D75): **Change plan** beside the active plan's cycle drawn as one symbol (`CycleSymbol` in `DaySquare.swift`, its colours from `DayColour.cycle(of:)`, its fourteen-and-a-mark cut from `CycleGlyph`) and **Change *day*'s exercises**, named by the strip's own when, beside the shown day's square — both handed to the SwiftUI `Menu` as pictures in their own colours (`ImageRenderer`, `.alwaysOriginal`), and `HomeStart.Alternative` carrying what each symbol draws. On any day's card with no session open, but not today's once its workout is done; Change plan alone on Nothing scheduled; Change plan and Discard workout while a session is open. Until Q4 the second item opens the active plan in Plan detail. Progression left Today's menu — Plan a progression, the step line, `HomeStart.offersProgression`, `stepLine` and `previewPlanId`, `Gates.planProgression` and `PromptText.planProgression` are gone, and History's Progression row is the way — and the rows are the preview and nothing more. TQ21–TQ23 in `TodayTests` and `DayColourTests`; T2, T3, T21 (four gates), TS2, W39, Z1, Z3, Z22 and Z25 rewritten; T19, TS4 and Z2 removed. SPEC §4.1, §6.26, §6.37, §6.40, §6.42–§6.45 and the new §6.49 | Done |
-| Q4–Q7 | Change day's exercises (D76), the JSON sheet (D77), Plans in squares (D78), docs and 1.9 | Not started |
+| Q4 | Change *day*'s exercises (D76): the ···'s second item pushes a picker for the shown date (`ChangeDayView`; `DayChoices` from `PlanLibrary.dayChoices(for:now:)` in the new `Core/ChangeDay.swift`) — this plan's days, every other plan's, and **Write a day just for Wednesday** — and a tap writes a swap for that date alone (`choose(_:for:now:)`: answered and asked by nobody; the pattern's own day removes it; a date carrying a question is answered instead). A borrowed day projects as its own plan's day (`CalendarProjection` and `WeekStrip.days` take `plans:`), is drawn **outlined in that plan's colour**, starts as that plan's day, and its finished session moves neither plan (`isBorrowed`). A day just for the date goes through `JSONFragmentSheet` (Save **Use for Wednesday**, `saveTitle`) and the importer (`ownDay(_:named:units:settings:now:)`), is held by the swap, is drawn **outlined in ink**, and starts as the active plan's session under its own name (`startOwnDay`). `StartCard.own`, `HomeStart.ownDay` and `.isOutlined`, `MissedWorkout.planId` and `.own` (Do it now starts either), `WeekStrip.Square.planId` and `.own`, `DaySquare(outlined:)`. TQ25–TQ28 in `SwapTests`; no earlier case changed. SPEC §4.1, §6.41, §6.44, §6.46, §6.49 and the new §6.50 | Done |
+| Q5–Q7 | The JSON sheet (D77), Plans in squares (D78), docs and 1.9 | Not started |
 
 ### Checked on the simulator (v1.9)
 
@@ -6003,12 +6039,20 @@ After Q3:
   on a rest day: the ··· opened on **Change plan** beside seven tiny squares in the cycle's
   colours, grey for its rest, and **Change Today's exercises** beside a grey square, in light and
   in dark. iOS kept the pictures' colours, so the plan's fallback sheet was not built.
+- Q4, on the iPhone 17 simulator with `SEED=1 DEVICE="iPhone 17" tools/shot.sh` — the sample plan
+  on a rest day: ··· → **Change Today's exercises** pushed the picker, *"For Monday 14 September
+  only. The plan does not change."*, with Push, Pull and Legs in their colours under *Push Pull
+  Legs · this plan* and **Write a day just for Today** beside a square outlined in ink. Pull
+  brought Today back as Pull — an orange square, a grey dot under today's square, Pull's rows and
+  **▶ Start Today's Pull**. The last row opened the sheet on a day to fill in, its footer naming
+  *Monday's own day* and its Save **Use for Today**. With one plan there was no borrowed day to
+  see; the outlined squares at the strip's size are TQ29's, on the phone.
 
 ### Not run in v1.9 (so far)
 
 - The ring's breathing and Reduce Motion, the long press under a finger, the block at
-  accessibility XL (TQ18–TQ20) and the ···'s symbols at the menu's size on the phone (TQ24) are
-  the phone's; Q7 adds them to `docs/DEVICE_CHECKLIST.md`.
+  accessibility XL (TQ18–TQ20) and the ···'s symbols at the menu's size on the phone (TQ24) and an outlined
+  square beside filled ones on the strip (TQ29) are the phone's; Q7 adds them to `docs/DEVICE_CHECKLIST.md`.
   VoiceOver's words are held in Core (TQ17) and not yet heard.
 
 ## v1.8 (S0–S4): built and green
@@ -6991,6 +7035,13 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.9 Q3: **the symbol draws the plan as written**: a rotation's repeat block from its first entry, not from today — the plan's shape, where the strip is this week — and a weekday plan's Monday to Sunday, as Plan detail lays it out. `DayColour.cycle(of:)` beside `DayColour.of(session:plans:)`, for Q6 to reuse; `CycleGlyph` in `DayColour.swift`, so the fourteen-and-a-mark rule is Core's and both targets can ask it.
 - v1.9 Q3: **`PromptText.planProgression` went with the link.** The plan says D50's words in `PromptText` stand; that constant was the link's name and nothing else showed it, so it went, and the three sentences that explain the round-trip stay (Z1 counts three). **`HomeStart.previewPlanId`** went too: it named the plan the rows opened, and they open nothing now.
 - v1.9 Q3: **the menu keeps the symbols' colours**, so the plan's fallback — a small sheet of our own with the same two rows — was not built. `ImageRenderer` draws the symbol view in the screen's colour scheme and the menu is handed a `UIImage` with `.alwaysOriginal`; on the iPhone 17 simulator the cycle and the day's square both showed in colour, in light and in dark (2026-09-14). TQ24 is the phone's.
+- v1.9 Q4 (D76): **Change *day*'s exercises** is a picker pushed onto Today for the shown date — this plan's days, every other plan's (outlined in their plan's colour) and a day written just for the date (outlined in ink) — and a tap writes a swap for that date alone. SPEC §4.1, §6.41, §6.44, §6.46, §6.49 and the new §6.50; TQ25–TQ28, TQ29 on the phone.
+- v1.9 Q4: **a date carrying a question is answered, not overwritten**, when the picker chooses for it. The plan says the picker writes a swap asked by nobody, which would have dropped the question and, after a slide, left the anchor slid with nothing to put it back; `answer` keeps the question, answered, and restores a slide first.
+- v1.9 Q4: **`plans:` has a default on the projection and the strip**, where `swaps:` has none (TQ12): a caller that forgets them loses only a borrowed day's name and colour, and the app's callers — Today's card and History's calendar — pass the library's. With them the strip colours today's finished workout by its own plan, whichever plan it was, as the calendar already did.
+- v1.9 Q4: **a borrowed day's session moves neither plan**, found by `PlanLibrary.isBorrowed`: a session of another plan whose day the active plan borrowed on the session's date, or in the week before it (the missed rule's week, for a late Do it now). A session of another plan started from its own Plan detail still re-anchors that plan, as since v1.2.
+- v1.9 Q4: **an own day starts from a copy of the plan holding it, with no progression** (`startOwnDay`), so the session is the plan's — its id, name and units — under the day's own name, with the targets written for it. **Do it now** starts a missed own or borrowed day, which Q1 named but could not start.
+- v1.9 Q4: **a nameless own day is "Wednesday's own day" by its weekday, even for today**, so History says which day it was, and its button reads "Start Wednesday's own day" rather than saying when twice. The date line spells the month in English from a fixed list, as the rest of the app speaks English whatever the phone's language.
+- v1.9 Q4: **until Q5, a day just for the date opens `JSONFragmentSheet`** on a day with a blank name (or on the date's own day), its Save "Use for Wednesday" through a new `saveTitle`; more than one day is refused, and the importer's paths are made the day's own ("exercises[0].reps"). Other plans are listed in the library's order, and a plan with no days has no section.
 `````
 
 ---
@@ -9356,8 +9407,10 @@ line, a Save that says its effect (D77) — and **Plans that speak in squares** 
 mark and a button to confirm, the page with the cycle as squares and every day closed until
 tapped). The requirements were settled in two rounds on the "Swapping Days" artifact linked from
 the plan. Q0–Q3 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
-Today, Q3 the ··· in squares with progression left to History — and `docs/BUILD_STATUS.md` says
-what was run; Q4 is next.
+Today, Q3 the ··· in squares with progression left to History, Q4 a day's exercises changed for one
+date — a day of this plan, a day borrowed from another plan (outlined in its colour) or a day
+written just for the date (outlined in ink), `Core/ChangeDay.swift` and `ChangeDayView` — and
+`docs/BUILD_STATUS.md` says what was run; Q5 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 

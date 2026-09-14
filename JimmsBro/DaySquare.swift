@@ -26,21 +26,34 @@ struct DaySquare: View {
     let colour: DayColour?
     /// The side at the default text size; it grows with Dynamic Type.
     var size: CGFloat = 10
+    /// D76 (v1.9, §6.50): outlined rather than filled — a day of another plan in that plan's
+    /// colour, a day written just for one date in ink. The outline says *not from this plan*;
+    /// the colour still says *which day*.
+    var outlined = false
     @ScaledMetric private var scale: CGFloat = 1
 
     /// D69 (v1.8): Today's square is as tall as the large title's capitals, so it grows on the
     /// large title's curve rather than body text's.
-    init(colour: DayColour?, size: CGFloat = 10, relativeTo textStyle: Font.TextStyle = .body) {
+    init(colour: DayColour?, size: CGFloat = 10, outlined: Bool = false,
+         relativeTo textStyle: Font.TextStyle = .body) {
         self.colour = colour
         self.size = size
+        self.outlined = outlined
         _scale = ScaledMetric(wrappedValue: 1, relativeTo: textStyle)
     }
 
     var body: some View {
-        RoundedRectangle(cornerRadius: size * scale / 4, style: .continuous)
-            .fill(colour?.color ?? Color.secondary.opacity(0.4))
-            .frame(width: size * scale, height: size * scale)
-            .accessibilityHidden(true)
+        let side = size * scale
+        let shape = RoundedRectangle(cornerRadius: side / 4, style: .continuous)
+        Group {
+            if outlined {
+                shape.strokeBorder(colour?.color ?? Color.primary, lineWidth: max(1.5, side / 7))
+            } else {
+                shape.fill(colour?.color ?? Color.secondary.opacity(0.4))
+            }
+        }
+        .frame(width: side, height: side)
+        .accessibilityHidden(true)
     }
 }
 

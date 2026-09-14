@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		F69F47C90CB946688B922D06 /* SwapQuestionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AF6D2A2A934919AAE328C6 /* SwapQuestionView.swift */; };
+		06B92B29FAA44F848634ACFF /* ChangeDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE8B170CD22B4192A8888D7F /* ChangeDay.swift */; };
+		CD6667B433A744E0A43086B3 /* ChangeDayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0080CB3C1C425CA12994C3 /* ChangeDayView.swift */; };
 		8B873C0ED783406EADB72E7F /* TodayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 116E02F6C8CC4045BCF3B05F /* TodayTests.swift */; };
 		91B4F25683904A3BB2BA15F7 /* GatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A47BBF57B74FE383D3E2A2 /* GatesTests.swift */; };
 		3E9381121D5F4776974B78C4 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 612199622A504012982B21D4 /* CalendarView.swift */; };
@@ -169,6 +171,8 @@
 
 /* Begin PBXFileReference section */
 		02AF6D2A2A934919AAE328C6 /* SwapQuestionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapQuestionView.swift; sourceTree = "<group>"; };
+		BE8B170CD22B4192A8888D7F /* ChangeDay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeDay.swift; sourceTree = "<group>"; };
+		DD0080CB3C1C425CA12994C3 /* ChangeDayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeDayView.swift; sourceTree = "<group>"; };
 		116E02F6C8CC4045BCF3B05F /* TodayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayTests.swift; sourceTree = "<group>"; };
 		52A47BBF57B74FE383D3E2A2 /* GatesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatesTests.swift; sourceTree = "<group>"; };
 		612199622A504012982B21D4 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
@@ -487,6 +491,7 @@
 			isa = PBXGroup;
 			children = (
 				02AF6D2A2A934919AAE328C6 /* SwapQuestionView.swift */,
+				DD0080CB3C1C425CA12994C3 /* ChangeDayView.swift */,
 				1611CF2EBEDC4B84BB786C9E /* IntroductionView.swift */,
 				E83249BD3BA79932E16FB1FB /* HomeView.swift */,
 			);
@@ -507,6 +512,7 @@
 			isa = PBXGroup;
 			children = (
 				80D16661141C43ECB3877B14 /* DaySwap.swift */,
+				BE8B170CD22B4192A8888D7F /* ChangeDay.swift */,
 				7305E5F001F54DC3ACF882A1 /* DayColour.swift */,
 				AB6D6F6D20E64623A6844375 /* PlanDraft.swift */,
 				296E62D52FE147DC91EFCE6F /* Introduction.swift */,
@@ -745,6 +751,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				F69F47C90CB946688B922D06 /* SwapQuestionView.swift in Sources */,
+				06B92B29FAA44F848634ACFF /* ChangeDay.swift in Sources */,
+				CD6667B433A744E0A43086B3 /* ChangeDayView.swift in Sources */,
 				2133AC5C7B8C47A59056C26F /* DaySwap.swift in Sources */,
 				8736004A97C5433B89EB271A /* DaySquare.swift in Sources */,
 				4166F4BBA24D47E79D240C27 /* DayColour.swift in Sources */,

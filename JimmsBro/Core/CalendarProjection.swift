@@ -160,9 +160,11 @@ struct DayLine: Equatable { var text: String; var sessions: [Session] }
 
 enum CalendarProjection {
     /// D72 (v1.9, §6.46): `swaps` has no default on any of the three, so no caller can forget
-    /// them and the compiler is the pin (TQ12).
-    static func entries(month: Date, activePlan: Plan?, sessions: [Session], swaps: [DaySwap],
-                        today: Date, calendar: Calendar = .current) -> [CalendarDay] {
+    /// them and the compiler is the pin (TQ12). D76 (§6.50): `plans` are every plan a borrowed
+    /// day can come from; without them a borrowed day is a day the grid cannot name, and
+    /// nothing else changes, so they keep a default.
+    static func entries(month: Date, activePlan: Plan?, plans: [Plan] = [], sessions: [Session],
+                        swaps: [DaySwap], today: Date, calendar: Calendar = .current) -> [CalendarDay] {
         guard let monthInterval = calendar.dateInterval(of:.month,for:month), let days = calendar.range(of:.day,in:.month,for:month) else { return [] }
         let startToday = calendar.startOfDay(for:today)
         let completed = Dictionary(grouping:sessions.filter { $0.endedAt != nil }, by: { calendar.startOfDay(for:$0.startedAt) })
@@ -192,9 +194,15 @@ enum CalendarProjection {
             case let .day(d): entry = .projected(planId: plan.id, dayIndex: d)
             case .rest: entry = .rest
             case let .own(day): entry = .own(day)
-            // Q4 (D76) hands the projection the other plans; until then a borrowed day is a
-            // day the grid cannot name.
-            case .borrowed: entry = .none
+            // D76 (v1.9, §6.50): a day of another plan is that plan's day, by its id and the
+            // day's place in it — named and coloured by it, as its own plan would draw it.
+            case let .borrowed(planId, name):
+                if let other = plans.first(where: { $0.id == planId }),
+                   let index = other.days.firstIndex(where: { normalized($0.name) == normalized(name) }) {
+                    entry = .projected(planId: planId, dayIndex: index)
+                } else {
+                    entry = .none
+                }
             case .none: entry = .none
             }
             return CalendarDay(date:date,entry:entry)
@@ -204,16 +212,17 @@ enum CalendarProjection {
     /// same entries as `entries(month:)`, across a month boundary, so the strip and the grid can
     /// never disagree (D37). `today` is the calendar's today, as for `entries`; the run usually
     /// starts there.
-    static func next(days count: Int, from start: Date, activePlan: Plan?, sessions: [Session],
-                     swaps: [DaySwap], today: Date, calendar: Calendar = .current) -> [CalendarDay] {
+    static func next(days count: Int, from start: Date, activePlan: Plan?, plans: [Plan] = [],
+                     sessions: [Session], swaps: [DaySwap], today: Date,
+                     calendar: Calendar = .current) -> [CalendarDay] {
         let first = calendar.startOfDay(for: start)
         guard count > 0,
               let last = calendar.date(byAdding: .day, value: count - 1, to: first) else { return [] }
-        var all = entries(month: first, activePlan: activePlan, sessions: sessions, swaps: swaps,
-                          today: today, calendar: calendar)
+        var all = entries(month: first, activePlan: activePlan, plans: plans, sessions: sessions,
+                          swaps: swaps, today: today, calendar: calendar)
         if !calendar.isDate(first, equalTo: last, toGranularity: .month) {
-            all += entries(month: last, activePlan: activePlan, sessions: sessions, swaps: swaps,
-                           today: today, calendar: calendar)
+            all += entries(month: last, activePlan: activePlan, plans: plans, sessions: sessions,
+                           swaps: swaps, today: today, calendar: calendar)
         }
         return (0..<count).compactMap { offset in
             guard let day = calendar.date(byAdding: .day, value: offset, to: first) else { return nil }
@@ -225,14 +234,14 @@ enum CalendarProjection {
     /// SPEC §4.10 (D18, v1.1): the seven days of the calendar week containing `date`, so the
     /// strip and the week's line under it describe the same days — Home's until v1.7, History's
     /// since (D63). Same entries as `entries(month:)`.
-    static func week(containing date: Date, activePlan: Plan?, sessions: [Session], swaps: [DaySwap],
-                     today: Date, calendar: Calendar = .current) -> [CalendarDay] {
+    static func week(containing date: Date, activePlan: Plan?, plans: [Plan] = [], sessions: [Session],
+                     swaps: [DaySwap], today: Date, calendar: Calendar = .current) -> [CalendarDay] {
         guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else { return [] }
-        let month = entries(month: interval.start, activePlan: activePlan, sessions: sessions,
+        let month = entries(month: interval.start, activePlan: activePlan, plans: plans, sessions: sessions,
                             swaps: swaps, today: today, calendar: calendar)
         // A week straddling a month boundary needs both months' entries.
         let next = calendar.date(byAdding: .day, value: 7, to: interval.start).map {
-            entries(month: $0, activePlan: activePlan, sessions: sessions, swaps: swaps,
+            entries(month: $0, activePlan: activePlan, plans: plans, sessions: sessions, swaps: swaps,
                     today: today, calendar: calendar)
         } ?? []
         let all = month + next

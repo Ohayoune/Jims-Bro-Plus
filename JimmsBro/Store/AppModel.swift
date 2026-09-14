@@ -298,6 +298,34 @@ enum SaveFailure: Equatable {
         if library.plans != before { await persistPlans() }
     }
 
+    /// D76 (v1.9, §6.50): the picker for a date — this plan's days, the other plans', and a day
+    /// written just for it.
+    func dayChoices(for date: Date, now: Date = Date()) -> DayChoices? {
+        library.dayChoices(for: date, now: now)
+    }
+
+    /// D76: a tap in the picker writes the date's swap, or answers the question it carries; a
+    /// slide left behind puts the anchor back, so `plans.json` is written when it changed.
+    func chooseDay(_ slot: DaySwap.Slot, for date: Date, now: Date = Date()) async {
+        let before = library.plans
+        library.choose(slot, for: date, now: now)
+        await persistSwaps()
+        if library.plans != before { await persistPlans() }
+    }
+
+    /// D76: a day written just for a date, read by the importer and then chosen for it. Returns
+    /// the errors that refused it — the importer's own sentences — or nothing once it is the
+    /// date's.
+    func useOwnDay(_ text: String, for date: Date, now: Date = Date()) async -> [Issue] {
+        guard let plan = library.activePlan,
+              let choices = library.dayChoices(for: date, now: now) else { return [] }
+        let read = PlanLibrary.ownDay(text, named: choices.ownName, units: plan.units,
+                                      settings: library.settings, now: now)
+        guard let day = read.day else { return read.issues }
+        await chooseDay(.own(day), for: date, now: now)
+        return []
+    }
+
     // MARK: - History
 
     /// Editing a past session recomputes its advice and rewrites just that file (O15).

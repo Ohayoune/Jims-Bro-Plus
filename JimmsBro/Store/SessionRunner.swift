@@ -65,6 +65,19 @@ extension AppModel {
                   now: Date = Date()) async throws {
         // Throws before anything changes when a session is running and no choice was given.
         let effects = try library.startDay(planId: planId, dayIndex: dayIndex, now: now, switching: switching)
+        await began(effects, now: now)
+    }
+
+    /// D76 (v1.9, §6.50): a day written just for a date, started as the plan's session under
+    /// its own name — refused like any start while a session is open, which raises the popup.
+    func startOwnDay(_ day: Day, on planId: UUID, switching: SessionSwitch? = nil,
+                     now: Date = Date()) async throws {
+        let effects = try library.startOwnDay(day, on: planId, now: now, switching: switching)
+        await began(effects, now: now)
+    }
+
+    /// What every start does once the engine exists.
+    private func began(_ effects: [Effect], now: Date) async {
         // Finishing as part of a switch goes straight into the new workout, with no Summary.
         justCompleted = nil
         // D48 (v1.4): the workout exists now; the cover opens on this, not on the awaits below.

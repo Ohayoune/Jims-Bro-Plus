@@ -60,6 +60,22 @@ struct PlanLibrary {
     @discardableResult mutating func startDay(planId: UUID, dayIndex: Int, now: Date, switching: SessionSwitch? = nil) throws -> [Effect] {
         guard let plan = plans.first(where: { $0.id == planId }) else { throw LibraryError.planNotFound }
         guard let session = Session.start(plan:plan,dayIndex:dayIndex,now:now), !session.steps.isEmpty else { throw LibraryError.invalidDay }
+        return try begin(session, now: now, switching: switching)
+    }
+    /// D76 (v1.9, §6.50): a day written just for a date, which no plan holds, started as the
+    /// plan's session under the day's own name. It starts from a copy of the plan holding the
+    /// day — so the session carries the plan's id, name and units — and the plan never holds
+    /// it; the copy carries no progression, so the day's targets are the ones written for it.
+    @discardableResult mutating func startOwnDay(_ day: Day, on planId: UUID, now: Date, switching: SessionSwitch? = nil) throws -> [Effect] {
+        guard var host = plans.first(where: { $0.id == planId }) else { throw LibraryError.planNotFound }
+        host.days.append(day)
+        host.progression = nil
+        guard let session = Session.start(plan: host, dayIndex: host.days.count - 1, now: now), !session.steps.isEmpty else { throw LibraryError.invalidDay }
+        return try begin(session, now: now, switching: switching)
+    }
+    /// A session begun: the open one finished or discarded first, as `switching` says (D17),
+    /// and refused when one is open and nothing was said.
+    private mutating func begin(_ session: Session, now: Date, switching: SessionSwitch?) throws -> [Effect] {
         var effects: [Effect] = []
         if engine != nil {
             guard let switching else { throw LibraryError.sessionInProgress }

@@ -37,6 +37,11 @@ enum WeekStrip {
         /// D74 (v1.9, §6.48): the dot in words — "was Push", or "was rest" when the pattern
         /// said rest — for the long press's callout and VoiceOver. Nil without a dot.
         var was: String? = nil
+        /// D76 (v1.9, §6.50): the plan whose day the square is — the active plan's, or for a
+        /// borrowed day the plan it came from. Nil on a rest day and on an own day.
+        var planId: UUID? = nil
+        /// D76: a day written just for this date, in no plan; the card starts it as it is.
+        var own: Day? = nil
 
         /// A grey square: nothing to start on this day.
         var isRest: Bool { dayName == nil }
@@ -61,9 +66,13 @@ enum WeekStrip {
     /// rotation's from the anchored projection — both by way of `CalendarProjection`, so the
     /// strip is the grid's own row of days. With no plan, or a plan with no day to schedule,
     /// seven grey squares.
-    static func days(plan: Plan?, sessions: [Session], swaps: [DaySwap], today: Date,
+    ///
+    /// D76 (v1.9, §6.50): `plans` are every plan a borrowed day can come from — the library's;
+    /// the active plan is counted among them whether or not it is passed.
+    static func days(plan: Plan?, plans: [Plan] = [], sessions: [Session], swaps: [DaySwap], today: Date,
                      calendar: Calendar = .current) -> [Square] {
-        let run = CalendarProjection.next(days: count, from: today, activePlan: plan,
+        let known = plan.map { active in plans.contains { $0.id == active.id } ? plans : plans + [active] } ?? []
+        let run = CalendarProjection.next(days: count, from: today, activePlan: plan, plans: known,
                                           sessions: sessions, swaps: swaps, today: today,
                                           calendar: calendar)
         return (0..<count).map { offset in
@@ -71,22 +80,27 @@ enum WeekStrip {
             var square = Square(offset: offset,
                                 when: when(offset: offset,
                                            weekday: weekday(offset: offset, today: today, calendar: calendar)))
-            square.colour = plan.flatMap { entry.dayColour(plans: [$0]) }
+            square.colour = entry.dayColour(plans: known)
             switch entry {
-            case let .projected(_, dayIndex):
+            case let .projected(planId, dayIndex):
+                // D76: a borrowed day is named, as it is coloured, by the plan it came from.
                 square.dayIndex = dayIndex
-                square.dayName = plan?.days[safe: dayIndex]?.name
+                square.planId = planId
+                square.dayName = known.first { $0.id == planId }?.days[safe: dayIndex]?.name
             case let .completed(sessions):
                 // Today's square once today's workout is done: the calendar labels the day
                 // with the workout, and so does the strip. The day's index is found as its
-                // colour is (§6.41), by name in the plan as it is now.
+                // colour is (§6.41), by name in its plan as it is now.
                 guard let session = sessions.first else { break }
+                let owner = known.first { $0.id == session.planId } ?? plan
                 square.dayName = session.dayName
-                square.dayIndex = plan?.days.firstIndex { normalized($0.name) == normalized(session.dayName) }
+                square.planId = owner?.id
+                square.dayIndex = owner?.days.firstIndex { normalized($0.name) == normalized(session.dayName) }
             case let .own(day):
                 // D76: a day written just for this date — named, outlined, in no plan.
                 square.dayName = day.name
                 square.outline = true
+                square.own = day
             case .rest, .none:
                 break
             }
@@ -112,7 +126,11 @@ enum WeekStrip {
                         }
                     }
                 }
-                if case .borrowed = slot { square.outline = true }
+                // D76 (§6.50): a borrowed or own day is outlined, done or not.
+                switch slot {
+                case .borrowed, .own: square.outline = true
+                case .day, .rest, .none: break
+                }
             }
             return square
         }
@@ -136,10 +154,15 @@ enum WeekStrip {
         }
     }
 
+    /// The start of the day `offset` days from today — the date a square is — in the calendar's
+    /// own zone. D76: the date Change *day*'s exercises changes.
+    static func date(offset: Int, today: Date, calendar: Calendar = .current) -> Date? {
+        calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: today))
+    }
+
     /// The weekday `offset` days from today, in the calendar's own zone.
     static func weekday(offset: Int, today: Date, calendar: Calendar = .current) -> Weekday? {
-        guard let date = calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: today))
-        else { return nil }
+        guard let date = date(offset: offset, today: today, calendar: calendar) else { return nil }
         let value = calendar.component(.weekday, from: date)
         return Weekday.allCases.first { $0.calendarValue == value }
     }

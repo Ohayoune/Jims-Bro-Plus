@@ -13,6 +13,9 @@ enum StartCard: Equatable {
     case restDay(planId: UUID, dayIndex: Int, dayName: String, weekday: Weekday?, daysAway: Int)
     /// A plan exists but no day can be resolved from it (an empty cycle, say).
     case nothingScheduled
+    /// D76 (v1.9, §6.50): a day written just for a date, which no plan holds — started as it
+    /// is, as the active plan's session under its own name.
+    case own(planId: UUID, day: Day, daysAway: Int, weekday: Weekday?)
 
     static func current(library: PlanLibrary, now: Date = Date(), calendar: Calendar = .current) -> StartCard {
         if let engine = library.engine, engine.phase != .completed {
@@ -25,22 +28,33 @@ enum StartCard: Equatable {
         // as it is the strip's.
         guard let next = PlanSchedule.next(plan, today: now, swaps: library.swaps, calendar: calendar)
         else { return .nothingScheduled }
-        // Q4 (D76) gives an own or borrowed day a card of its own; neither can be written yet.
-        guard case let .day(dayIndex) = next.slot, let day = plan.days[safe: dayIndex] else {
-            return .nothingScheduled
-        }
         // And it says *when*, which v1.1 never did for a rotation: the card read "Next up ·
         // Push" whether Push was today or three rest days away, while the grid drew it on a
         // day you had to count to.
         let daysAway = calendar.dateComponents([.day], from: calendar.startOfDay(for: now),
                                                to: next.date).day ?? 0
+        let weekday = Weekday.allCases.first { $0.calendarValue == calendar.component(.weekday, from: next.date) }
+        // D76 (v1.9, §6.50): a borrowed day is its own plan's day, started as that plan's; a
+        // day written just for the date is in no plan, and has a case of its own.
+        let target: (planId: UUID, dayIndex: Int, day: Day)
+        switch next.slot {
+        case let .day(index):
+            guard let found = plan.days[safe: index] else { return .nothingScheduled }
+            target = (plan.id, index, found)
+        case let .borrowed(otherId, name):
+            guard let found = library.borrowed(planId: otherId, name: name) else { return .nothingScheduled }
+            target = found
+        case let .own(own):
+            return .own(planId: plan.id, day: own, daysAway: daysAway, weekday: weekday)
+        case .rest, .none:
+            return .nothingScheduled
+        }
         guard daysAway > 0 else {
             return plan.schedule == .weekday
-                ? .today(planId: plan.id, dayIndex: dayIndex, dayName: day.name)
-                : .nextUp(planId: plan.id, dayIndex: dayIndex, dayName: day.name)
+                ? .today(planId: target.planId, dayIndex: target.dayIndex, dayName: target.day.name)
+                : .nextUp(planId: target.planId, dayIndex: target.dayIndex, dayName: target.day.name)
         }
-        let weekday = Weekday.allCases.first { $0.calendarValue == calendar.component(.weekday, from: next.date) }
-        return .restDay(planId: plan.id, dayIndex: dayIndex, dayName: day.name,
+        return .restDay(planId: target.planId, dayIndex: target.dayIndex, dayName: target.day.name,
                         weekday: weekday, daysAway: daysAway)
     }
 
@@ -52,7 +66,8 @@ enum StartCard: Equatable {
         case let .nextUp(planId, dayIndex, _), let .today(planId, dayIndex, _),
              let .restDay(planId, dayIndex, _, _, _):
             return (planId, dayIndex)
-        case .noPlan, .inProgress, .nothingScheduled:
+        // D76: an own day has no index in any plan; `PlanLibrary.startOwnDay` starts it.
+        case .noPlan, .inProgress, .nothingScheduled, .own:
             return nil
         }
     }
@@ -69,6 +84,10 @@ enum StartCard: Equatable {
             guard let weekday else { return "Rest day · next \(dayName)" }
             return "Rest day · next \(dayName), \(WeekdayText.short(weekday))"
         case .nothingScheduled: return "Nothing scheduled"
+        case let .own(_, day, daysAway, weekday):
+            guard daysAway > 0 else { return "Today · \(day.name)" }
+            guard let weekday else { return "Rest day · next \(day.name)" }
+            return "Rest day · next \(day.name), \(WeekdayText.short(weekday))"
         }
     }
 
@@ -76,7 +95,7 @@ enum StartCard: Equatable {
         switch self {
         case .noPlan: return "Import"
         case .inProgress: return "Resume"
-        case .nextUp, .today, .restDay: return "Start"
+        case .nextUp, .today, .restDay, .own: return "Start"
         case .nothingScheduled: return nil
         }
     }
@@ -144,9 +163,14 @@ struct HomeStart: Equatable {
     var elapsed: TimeInterval?
     /// "Start Today's Push" (D70's words, `startTitle`), "Resume Push · 23 min", "Choose a plan".
     var buttonTitle: String?
-    /// The day the button would start, and that Preview would open.
+    /// The day the button would start: a plan's day by its index — since D76 (v1.9) the plan a
+    /// borrowed day came from — or `ownDay`, a day written just for the date, on `planId`.
     var planId: UUID?
     var dayIndex: Int?
+    var ownDay: Day?
+    /// D76 (v1.9, §6.50): the square before the name is outlined, not filled — a borrowed day in
+    /// its own plan's colour, an own day in ink: *not from this plan*.
+    var isOutlined = false
     /// D65 (v1.7, §6.41): the colour of the day the card names, for the square before its
     /// name — the day's own on a workout or rest day, the running session's while one is open.
     /// Nil on the empty card, when nothing is scheduled, and for a session whose day is in no
@@ -248,14 +272,28 @@ struct HomeStart: Equatable {
         return "Start \(dayName)"
     }
 
+    /// D76 (v1.9, §6.50): an own day's button. A nameless own day is called "Wednesday's own
+    /// day", which already says when — "Start Wednesday's Wednesday's own day" would say it
+    /// twice — so its button is "Start Wednesday's own day"; a named one says when, as every
+    /// day does.
+    static func ownStartTitle(_ day: Day, daysAway: Int, weekday: Weekday?) -> String {
+        day.name.hasSuffix(DayChoices.ownSuffix)
+            ? "Start \(day.name)" : startTitle(dayName: day.name, daysAway: daysAway, weekday: weekday)
+    }
+
     /// A workout the schedule expected on a day that has no session on it.
     struct MissedWorkout: Equatable {
-        /// Nil for an own or borrowed day (D76), which the message names but cannot start.
+        /// The day's place in its plan; nil for an own day (D76), which `own` carries.
         var dayIndex: Int?
         var dayName: String
         var date: Date
         /// "Push was due Monday" — said, not silently rescheduled.
         var text: String
+        /// D76 (v1.9, §6.50): the plan whose day it is — nil for the active plan's, a borrowed
+        /// day's own plan otherwise — and a day written just for the date, which Do it now
+        /// starts as it is.
+        var planId: UUID? = nil
+        var own: Day? = nil
     }
 
     /// D61 (v1.7): at most one of these is on the card. Each reads as it read in v1.6, with
@@ -332,8 +370,8 @@ struct HomeStart: Equatable {
         // the calendar draws, and every square of it is live — a deliberate exception to
         // §6.40's table, recorded there.
         if let plan = library.activePlan {
-            start.strip = WeekStrip.days(plan: plan, sessions: library.sessions, swaps: library.swaps,
-                                         today: now, calendar: calendar)
+            start.strip = WeekStrip.days(plan: plan, plans: library.plans, sessions: library.sessions,
+                                         swaps: library.swaps, today: now, calendar: calendar)
         }
         start.shownOffset = start.strip.isEmpty ? 0 : min(max(offset, 0), start.strip.count - 1)
         // D72/D74 (v1.9, §6.46, §6.48): the question the shown square's date carries, and
@@ -352,9 +390,22 @@ struct HomeStart: Equatable {
                                             today: now, calendar: calendar) {
             let weekday = calendar.component(.weekday, from: missed.date)
             let name = calendar.weekdaySymbols[safe: weekday - 1] ?? "then"
-            start.missed = MissedWorkout(dayIndex: missed.dayIndex, dayName: missed.name,
-                                         date: missed.date,
-                                         text: "\(missed.name) was due \(name)")
+            var workout = MissedWorkout(dayIndex: missed.dayIndex, dayName: missed.name,
+                                        date: missed.date, text: "\(missed.name) was due \(name)")
+            // D76 (v1.9, §6.50): Do it now starts a borrowed day as its own plan's, and a day
+            // written just for the date as it is.
+            switch missed.slot {
+            case let .borrowed(otherId, dayName):
+                if let found = library.borrowed(planId: otherId, name: dayName) {
+                    workout.planId = found.planId
+                    workout.dayIndex = found.dayIndex
+                }
+            case let .own(day):
+                workout.own = day
+            case .day, .rest, .none:
+                break
+            }
+            start.missed = workout
         }
 
         if start.shownOffset > 0, let plan = library.activePlan,
@@ -365,15 +416,28 @@ struct HomeStart: Equatable {
             let weekday = WeekStrip.weekday(offset: square.offset, today: now, calendar: calendar)
             start.buttonTitle = WeekStrip.buttonTitle(dayName: square.dayName, offset: square.offset,
                                                       weekday: weekday)
-            guard let index = square.dayIndex, let day = plan.days[safe: index] else {
-                // D71 (v1.8): a grey square's card says rest — the same card as today's.
-                return rest(start, doneToday: false, library: library, now: now, calendar: calendar,
-                            notificationsOff: notificationsOff, missedDismissed: missedDismissed)
+            if let own = square.own {
+                // D76 (v1.9, §6.50): a day written just for this date — its name, its rows, a
+                // square outlined in ink, and a button that starts it as it is.
+                start.title = own.name
+                start.buttonTitle = ownStartTitle(own, daysAway: square.offset, weekday: weekday)
+                start.buttonMark = .play
+                start.planId = plan.id
+                start.ownDay = own
+            } else {
+                // D76: a borrowed day's plan is the one it came from.
+                guard let index = square.dayIndex,
+                      let owner = library.plans.first(where: { $0.id == (square.planId ?? plan.id) }),
+                      let day = owner.days[safe: index] else {
+                    // D71 (v1.8): a grey square's card says rest — the same card as today's.
+                    return rest(start, doneToday: false, library: library, now: now, calendar: calendar,
+                                notificationsOff: notificationsOff, missedDismissed: missedDismissed)
+                }
+                start.title = day.name
+                start.buttonMark = .play
+                start.planId = owner.id
+                start.dayIndex = index
             }
-            start.title = day.name
-            start.buttonMark = .play
-            start.planId = plan.id
-            start.dayIndex = index
         } else {
             switch card {
             case .noPlan:
@@ -436,6 +500,20 @@ struct HomeStart: Equatable {
                 start.planId = planId
                 start.dayIndex = dayIndex
 
+            case let .own(planId, day, daysAway, _):
+                // D76 (v1.9, §6.50): today's own day is today's card, as a plan's day is; one
+                // on a later date leaves today a rest day (D71), one tap away on the strip.
+                let done = trainedToday(library.sessions, now: now, calendar: calendar)
+                if daysAway > 0 || done {
+                    return rest(start, doneToday: done, library: library, now: now, calendar: calendar,
+                                notificationsOff: notificationsOff, missedDismissed: missedDismissed)
+                }
+                start.title = day.name
+                start.buttonTitle = ownStartTitle(day, daysAway: 0, weekday: nil)
+                start.buttonMark = .play
+                start.planId = planId
+                start.ownDay = day
+
             case .restDay:
                 // D71 (v1.8, §6.45) reverses D57 on Today: a rest day says rest. From v1.6 the
                 // card headlined the next workout ("Lower", **Start Lower**), because "Rest day"
@@ -452,16 +530,20 @@ struct HomeStart: Equatable {
         }
 
         guard let plan = library.plans.first(where: { $0.id == start.planId }),
-              let index = start.dayIndex, let day = plan.days[safe: index] else { return start }
-        start.dayColour = DayColour.of(dayIndex: index)
+              let day = start.ownDay ?? start.dayIndex.flatMap({ plan.days[safe: $0] }) else { return start }
+        // D76 (v1.9, §6.50): an own day is in no plan's list, so it has no colour; it and a
+        // borrowed day are outlined, as their squares on the strip are.
+        start.dayColour = start.ownDay == nil ? start.dayIndex.map(DayColour.of(dayIndex:)) : nil
+        start.isOutlined = start.strip[safe: start.shownOffset]?.outline ?? false
         // D69 (v1.8): a set is a block, and a drop set is one set — its drops are inside it.
         preview(&start, rows: day.exercises.map { PreviewRow(name: $0.name, sets: $0.sets.count) })
         start.lastDuration = lastDuration(dayName: day.name, sessions: library.sessions)
         // D44 (v1.3): when the progression has run its course, the message line offers the next
         // one — nothing else moves. D75 (v1.9, §6.49): where it is — "Step 3 of 8" (D53), "Week
         // 3 of 8" — is History's Progression row's, and so is D50's offer to plan one; Today's
-        // ··· carries neither.
-        if let progression = plan.progression,
+        // ··· carries neither. The active plan's alone: a borrowed day's plan is not the one
+        // whose next progression the message would plan (D76).
+        if plan.id == library.activePlanId, let progression = plan.progression,
            progression.currentStep(dayName: day.name, on: now, calendar: calendar) == nil,
            progression.isFinished(on: now, calendar: calendar) {
             start.progressionFinished = true
