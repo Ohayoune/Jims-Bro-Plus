@@ -64,6 +64,49 @@ final class DayColourTests: XCTestCase {
         }
     }
 
+    // TQ23 (D75, v1.9): a plan's cycle as the ···'s symbol draws it — a square per entry in its
+    // day's colour and grey (nil) for rest, a weekday plan Monday to Sunday, and past fourteen
+    // the first fourteen and a trailing mark.
+    func testTheCycleSymbol() throws {
+        let set = SetTarget(work: .reps(.fixed(5)), weight: 100, restSeconds: 180)
+        func day(_ name: String, _ weekday: Weekday? = nil) -> Day {
+            Day(name: name, weekday: weekday, exercises: [Exercise(name: "Squat", sets: [set])])
+        }
+        let rotation = Plan(name: "Push Pull Legs", units: .kg, schedule: .rotation,
+                            days: [day("Push"), day("Pull"), day("Legs")],
+                            importedAt: CoreTestSupport.date(1), sourceText: "",
+                            cycle: [.day(0), .day(1), .day(2), .rest, .day(0), .day(1), .day(2)])
+        XCTAssertEqual(DayColour.cycle(of: rotation), [.green, .orange, .purple, nil, .green, .orange, .purple],
+                       "the repeat block as written, from its first entry")
+        var dead = rotation
+        dead.cycle = [.day(0), .day(5)]
+        XCTAssertEqual(DayColour.cycle(of: dead), [.green, nil], "an entry naming no day is grey")
+
+        let weekday = Plan(name: "Push Pull Legs", units: .kg, schedule: .weekday,
+                           days: [day("Push", .monday), day("Pull", .wednesday), day("Legs", .friday)],
+                           importedAt: CoreTestSupport.date(1), sourceText: "", cycle: [])
+        XCTAssertEqual(DayColour.cycle(of: weekday), [.green, nil, .orange, nil, .purple, nil, nil],
+                       "Monday to Sunday")
+
+        let week = CycleGlyph(DayColour.cycle(of: rotation))
+        XCTAssertEqual(week.squares.count, 7)
+        XCTAssertFalse(week.continues)
+        let fortnight = CycleGlyph(Array(repeating: DayColour?.some(.green), count: 14))
+        XCTAssertEqual(fortnight.squares.count, 14)
+        XCTAssertFalse(fortnight.continues, "fourteen fit")
+        let month = (0..<31).map { $0 % 3 == 2 ? nil : DayColour.of(dayIndex: $0) }
+        let cut = CycleGlyph(month)
+        XCTAssertEqual(cut.squares, Array(month.prefix(14)), "the first fourteen, in order")
+        XCTAssertTrue(cut.continues, "and a trailing mark")
+
+        guard let square = FixtureLoader.doc("JimmsBro/DaySquare.swift"),
+              let today = FixtureLoader.doc("JimmsBro/Features/Home/HomeView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        XCTAssertTrue(square.contains("let glyph = CycleGlyph(cycle)"), "CycleSymbol no longer cuts through CycleGlyph")
+        XCTAssertTrue(today.contains("CycleSymbol(cycle: cycle)"), "Change plan lost its symbol")
+    }
+
     // T25: one day, one colour, wherever Core hands it out — Today's card, the calendar's
     // planned and finished days, a History row and the Lock Screen — so that T24 on the phone
     // is about the drawing, not the arithmetic. And derived: move the day and its colour moves.

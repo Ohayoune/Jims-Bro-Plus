@@ -20,7 +20,11 @@ struct HomeView: View {
     @State private var showingSettings = false
 
     @State private var showDiscardConfirm = false
+    /// The plan a Plan detail sheet shows — until Q4 (D76), what Change *day*'s exercises opens.
     @State private var previewing: PlanRoute?
+    /// D75 (v1.9): the ···'s symbols are drawn here as pictures, in the screen's own scheme.
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.displayScale) private var displayScale
     /// D70 (v1.8, §6.44): the strip's square the card shows — 0, today, until one is tapped.
     /// Not stored: put down and picked up again the phone shows the tapped day; a relaunch
     /// shows today; a started workout resets it (the tap was the choice, and it was taken).
@@ -32,8 +36,8 @@ struct HomeView: View {
     /// target, as on Plan detail. Today never needed the popup before the strip: its only
     /// mid-session button was Resume.
     @State private var switching: PlanRoute?
-    /// D50 (v1.5): the plan whose progression the ··· item opens — and, since D67 (v1.7),
-    /// **Plan the next one**.
+    /// D67 (v1.7): the plan whose progression **Plan the next one** opens. (The ···'s Plan a
+    /// progression opened it too, from D50 until D75 took it off Today in v1.9.)
     @State private var planningProgression: PlanRoute?
     /// D37 (v1.2): the missed-workout notice is dismissible for this run of the app. It is not
     /// persisted: it costs one tap to clear and re-earning it means missing another day.
@@ -127,15 +131,13 @@ struct HomeView: View {
             .toolbar {
                 // D61 (v1.7): the only place the day's alternatives live. No ··· at all until
                 // there is a plan to have alternatives for. D69 (v1.8): drawn lighter than the
-                // title, and holding the progression's step as a line that is not a control.
+                // title. D75 (v1.9, §6.49): two items that speak in squares — the plan's cycle
+                // beside Change plan, the day's square beside Change *day*'s exercises.
                 if !card.alternatives.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             ForEach(card.alternatives, id: \.self) { alternative in
                                 alternativeButton(alternative, card: card)
-                            }
-                            if let step = card.stepLine {
-                                Section { Button(step) {}.disabled(true) }
                             }
                         } label: {
                             QuietGlyph(systemName: "ellipsis")
@@ -261,25 +263,15 @@ struct HomeView: View {
     }
 
     /// P5: Start is never blind — the day's exercises are named before you tap it. D61
-    /// (v1.7): the block is the preview, one tappable row that opens the day in Plan detail.
-    /// D69 (v1.8): the names at body size in ink, each with its sets as blocks at the right
-    /// edge; the chevron went — the list is the thing to tap.
+    /// (v1.7): the block is the preview. D69 (v1.8): the names at body size in ink, each with
+    /// its sets as blocks at the right edge. D75 (v1.9, the owner's 13): the preview and
+    /// nothing more — no longer a tap into Plan detail, as it was from v1.7; the ··· is the way
+    /// to the day.
     @ViewBuilder private func exerciseBlock(_ card: HomeStart) -> some View {
         if !card.rows.isEmpty {
-            if let planId = card.previewPlanId {
-                Button {
-                    previewing = PlanRoute(id: planId, dayIndex: card.dayIndex ?? 0)
-                } label: {
-                    exerciseRows(card)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+            exerciseRows(card)
+                .accessibilityElement(children: .combine)
                 .accessibilityLabel(card.exerciseLabel ?? "")
-            } else {
-                exerciseRows(card)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel(card.exerciseLabel ?? "")
-            }
         }
     }
 
@@ -344,21 +336,40 @@ struct HomeView: View {
         .accessibilityElement(children: .contain)
     }
 
-    /// The ··· items, in Core's order. Nothing in the menu is itself a confirmation.
+    /// The ··· items, in Core's order, each its words beside its symbol (D75). Nothing in the
+    /// menu is itself a confirmation.
     @ViewBuilder private func alternativeButton(_ alternative: HomeStart.Alternative,
                                                 card: HomeStart) -> some View {
         switch alternative {
-        case .changePlan:
-            Button(alternative.title) { path.append(TodayRoute.plans) }
-        case .planProgression:
-            Button(alternative.title) {
-                if let planId = card.planId {
-                    planningProgression = PlanRoute(id: planId, dayIndex: card.dayIndex ?? 0)
+        case let .changePlan(cycle):
+            Button { path.append(TodayRoute.plans) } label: {
+                Label { Text(alternative.title) } icon: { menuSymbol(CycleSymbol(cycle: cycle)) }
+            }
+        case let .changeExercises(_, colour):
+            // Q4 (D76) pushes the picker here, for the shown date alone. Until it lands the item
+            // opens the plan in Plan detail, where the rows led until D75.
+            Button {
+                if let plan = model.activePlan {
+                    previewing = PlanRoute(id: plan.id, dayIndex: card.dayIndex ?? 0)
+                }
+            } label: {
+                Label { Text(alternative.title) } icon: {
+                    menuSymbol(DaySquare(colour: colour, size: 14))
                 }
             }
         case .discardWorkout:
             Button(alternative.title, role: .destructive) { showDiscardConfirm = true }
         }
+    }
+
+    /// D75 (v1.9, §6.49): a ··· item's symbol, drawn by our own view and handed to the menu as a
+    /// picture in its own colours — a menu item takes an image and nothing else, and draws a
+    /// template image in one grey.
+    @MainActor private func menuSymbol(_ content: some View) -> Image {
+        let renderer = ImageRenderer(content: content.environment(\.colorScheme, colorScheme))
+        renderer.scale = displayScale
+        guard let image = renderer.uiImage else { return Image(systemName: "square.fill") }
+        return Image(uiImage: image.withRenderingMode(.alwaysOriginal)).renderingMode(.original)
     }
 
     private func act(_ card: HomeStart) {

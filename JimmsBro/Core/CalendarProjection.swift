@@ -32,6 +32,26 @@ extension DayColour {
         else { return nil }
         return of(dayIndex: index)
     }
+
+    /// D75 (v1.9, §6.49): a plan's cycle as colours — a square per entry, its day's colour and
+    /// nil for rest — for the ···'s Change plan and, from Q6 (D78), the Plans list. A rotation's
+    /// is its repeat block as written, from its first entry rather than from today: the plan's
+    /// shape, where the strip is this week. A weekday plan's is Monday to Sunday, as Plan detail
+    /// lays it out, a weekday with no day nil. An entry pointing at a day the plan no longer
+    /// has is nil, as the projection draws it (§6.12).
+    static func cycle(of plan: Plan) -> [DayColour?] {
+        switch plan.schedule {
+        case .rotation:
+            return plan.cycle.map { entry in
+                guard case let .day(index) = entry, plan.days.indices.contains(index) else { return nil }
+                return of(dayIndex: index)
+            }
+        case .weekday:
+            return Weekday.allCases.map { weekday in
+                plan.days.firstIndex { $0.weekday == weekday }.map { of(dayIndex: $0) }
+            }
+        }
+    }
 }
 
 /// SPEC §4.1 (D38, v1.2): what a calendar cell says. v1.1 drew every day as a dot of the same

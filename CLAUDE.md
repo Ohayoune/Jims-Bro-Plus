@@ -156,7 +156,9 @@ date (D76), **the JSON sheet redone** at every fragment point — named, pre-fil
 line, a Save that says its effect (D77) — and **Plans that speak in squares** (D78 — a circle to
 mark and a button to confirm, the page with the cycle as squares and every day closed until
 tapped). The requirements were settled in two rounds on the "Swapping Days" artifact linked from
-the plan. Q0 is written; nothing else is built.
+the plan. Q0–Q3 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
+Today, Q3 the ··· in squares with progression left to History — and `docs/BUILD_STATUS.md` says
+what was run; Q4 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 

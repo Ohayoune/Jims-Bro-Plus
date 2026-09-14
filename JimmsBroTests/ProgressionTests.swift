@@ -269,25 +269,26 @@ final class ProgressionTests: XCTestCase {
         XCTAssertNil(library.plans[0].progression)
     }
 
-    // W39: Today says the week — since D69 (v1.8) as the ···'s line, not a subtitle — and
-    // offers the next one when the progression has run out.
+    // W39: the week, and the next one once the progression has run out. Today said the week —
+    // a subtitle until v1.8, the ···'s line in v1.8 — and since D75 (v1.9) History's
+    // Progression row says it; Today only offers the next one.
     func testHomeSaysTheWeekAndOffersTheNextOne() throws {
         var library = PlanLibrary()
         var plan = plan()
         plan.progression = progression()
         library.save(plan, makeActive: true)
+        let saved = try XCTUnwrap(library.plans[0].progression)
 
         let card = HomeStart.current(library: library, now: days(8), calendar: calendar)
-        XCTAssertEqual(card.stepLine, "Week 2 of 4")
+        XCTAssertEqual(ProgressionText.status(saved, on: days(8), calendar: calendar), "Week 2 of 4")
         XCTAssertFalse(card.progressionFinished)
 
         let later = HomeStart.current(library: library, now: days(30), calendar: calendar)
         XCTAssertTrue(later.progressionFinished)
-        XCTAssertNil(later.stepLine)
+        XCTAssertEqual(ProgressionText.status(saved, on: days(30), calendar: calendar), "Finished")
 
         library.plans[0].progression = nil
         let none = HomeStart.current(library: library, now: days(8), calendar: calendar)
         XCTAssertFalse(none.progressionFinished)
-        XCTAssertNil(none.stepLine)
     }
 }

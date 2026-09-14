@@ -8,7 +8,8 @@ import Foundation
 ///
 /// Nothing is stored. Each gate is a function of the data, and the data only grows with time
 /// and use, so a control once shown stays; deleting what earned it takes it back (Delete all
-/// data returns the app to its first day). The one control that leaves on its own is D50's.
+/// data returns the app to its first day). The one control that left on its own was D50's
+/// Plan a progression, and D75 (v1.9) took it off Today: History's Progression row is the way.
 ///
 /// D70 (v1.8): the week strip and its tap are deliberately *not* here — live from the first
 /// plan, recorded as such in §6.40's table — and **Another day**'s gate went with the chooser
@@ -28,18 +29,9 @@ enum Gates {
     static func metricsAndFind(sessions: [Session]) -> Bool { !finished(sessions).isEmpty }
 
     /// **Change plan**, in Today's ···: once there is a plan, and so a list to change it in.
+    /// D75 (v1.9): **Change *day*'s exercises** stands beside it from the same first plan, on a
+    /// day's card — one row of §6.40's table for the two.
     static func changePlan(plans: [Plan]) -> Bool { !plans.isEmpty }
-
-    /// **Plan a progression**, in Today's ··· (D50): every exercise on the day has a logged
-    /// session to plan from, and the plan carries no progression — so it leaves again the
-    /// moment one is attached.
-    static func planProgression(plan: Plan, dayIndex: Int, sessions: [Session]) -> Bool {
-        guard plan.progression == nil, let day = plan.days[safe: dayIndex],
-              !day.exercises.isEmpty else { return false }
-        return day.exercises.allSatisfy { exercise in
-            ExerciseHistory.last(name: exercise.name, units: plan.units, sessions: sessions) != nil
-        }
-    }
 
     /// The notifications-off line on Today (D57): once this run's first **Log set** — or first
     /// timer started — has asked for the permission, and the answer was no. Before that the app

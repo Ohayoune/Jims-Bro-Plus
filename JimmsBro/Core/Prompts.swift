@@ -2,7 +2,8 @@ import Foundation
 
 /// D50 (v1.5): the two sentences that explain the chatbot round-trip where its buttons are,
 /// and the line under the Progression row. Core strings, so the views that show them are
-/// pinned to them (Z1) and a rewording is one edit.
+/// pinned to them (Z1) and a rewording is one edit. (Until v1.9 the name of Today's Plan a
+/// progression too; D75 took the link off Today, and its name went with it.)
 enum PromptText {
     /// Step 1 of Add plan and of Progression, beside the accent Copy prompt button.
     static let copyStep = "Copy the prompt. It tells the chatbot the exact format the app "
@@ -10,10 +11,8 @@ enum PromptText {
     /// The chatbot section's footer, in both places.
     static let mechanism = "The app never talks to the chatbot itself; you carry the text "
         + "both ways."
-    /// The second line under Plan detail's Progression row.
+    /// The second line under the Progression row — History's since D67 (v1.7).
     static let progressionRow = "A chatbot plans your next steps from what you have lifted."
-    /// Home's quiet link, when the day has history to plan from and no progression yet.
-    static let planProgression = "Plan a progression"
 }
 
 enum Prompts {

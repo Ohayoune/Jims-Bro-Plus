@@ -203,8 +203,8 @@ final class StepProgressionTests: XCTestCase {
         XCTAssertEqual(after.entries[1].tries, 1)
         XCTAssertEqual(after.entries[2].step, 0, "Pull was not trained")
         XCTAssertEqual(ProgressionText.entryStatus(after.entries[1], of: 4), "Step 1 of 4 · 1 try")
-        XCTAssertEqual(HomeStart.current(library: model.library, now: now.addingTimeInterval(86_400), calendar: calendar).stepLine, "Step 1 of 4",
-                       "the day is at its lowest exercise's step")
+        XCTAssertEqual(after.currentStep(dayName: "Push", on: now.addingTimeInterval(86_400), calendar: calendar), 0,
+                       "the day is at its lowest exercise's step (Today's ··· said \"Step 1 of 4\" until D75)")
 
         // It reached the disk.
         let relaunched = AppModel(store: Store(root: root))
@@ -274,16 +274,18 @@ final class StepProgressionTests: XCTestCase {
         XCTAssertEqual(values.suggestion?.reason, "Step 1 of 4 of your progression")
         XCTAssertEqual(values.weight, 60)
 
-        // Home: the step, then the offer when every exercise is done.
+        // The step is History's row's since D75 (v1.9; Today's ··· said it in v1.8); Today says
+        // nothing until every exercise is done, then offers the next one.
         var library = PlanLibrary()
         library.save(with, makeActive: true)
-        XCTAssertEqual(HomeStart.current(library: library, now: now, calendar: calendar).stepLine, "Step 1 of 4")
+        XCTAssertEqual(ProgressionText.status(try XCTUnwrap(library.plans[0].progression), on: now, calendar: calendar),
+                       "Step 1 of 4")
+        XCTAssertFalse(HomeStart.current(library: library, now: now, calendar: calendar).progressionFinished)
         library.plans[0].progression?.entries[0].step = 4
         library.plans[0].progression?.entries[1].step = 2
         library.plans[0].progression?.entries[2].step = 1
         let done = HomeStart.current(library: library, now: now, calendar: calendar)
         XCTAssertTrue(done.progressionFinished)
-        XCTAssertNil(done.stepLine)
     }
 
     // Z23: on disk — a v1.3 progression reads as calendar at step 0; the new fields round-trip.

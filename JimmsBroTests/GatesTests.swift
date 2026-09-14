@@ -7,7 +7,8 @@ import XCTest
 /// T4 (v1.7) — controls are earned (D64): one test per row of SPEC §6.40's table, each at its
 /// boundary, and the pin that holds the table and `Gates` together. T14–T21 (T16, the Goals
 /// section's, went with goals in D68; T17, Another day's, with the chooser the week strip
-/// replaced in v1.8, D70), and T27–T28 from the owner's review.
+/// replaced in v1.8, D70; T19, Plan a progression's, with the item in v1.9, D75), and T27–T28
+/// from the owner's review.
 final class GatesTests: XCTestCase {
     private func day(_ n: Int) -> Date { CoreTestSupport.date(n) }
 
@@ -71,27 +72,7 @@ final class GatesTests: XCTestCase {
         XCTAssertTrue(Gates.changePlan(plans: [CoreTestSupport.plan()]))
     }
 
-    // T19: Plan a progression (D50) — every exercise on the day logged once, and no
-    // progression attached.
-    func testPlanAProgressionOnceEveryExerciseHasHistory() {
-        let plan = CoreTestSupport.plan()
-        XCTAssertFalse(Gates.planProgression(plan: plan, dayIndex: 0, sessions: []))
-
-        // A session of another exercise is no history for this one.
-        var other = plan
-        other.days[0].exercises[0].name = "Squat"
-        XCTAssertFalse(Gates.planProgression(plan: plan, dayIndex: 0,
-                                             sessions: [CoreTestSupport.completed(plan: other)]))
-
-        let logged = [CoreTestSupport.completed(plan: plan)]
-        XCTAssertTrue(Gates.planProgression(plan: plan, dayIndex: 0, sessions: logged))
-
-        // It leaves the moment a progression is attached — the one control that does.
-        var progressed = plan
-        progressed.progression = Progression(startDate: day(9), weeks: 4, entries: [])
-        XCTAssertFalse(Gates.planProgression(plan: progressed, dayIndex: 0, sessions: logged))
-        XCTAssertFalse(Gates.planProgression(plan: plan, dayIndex: 1, sessions: logged), "no such day")
-    }
+    // T19 (Plan a progression's gate, D50) went with the item in v1.9 (D75); TQ22 pins it gone.
 
     // T20: the notifications-off line (D57) — once the first Log set has asked, and only if
     // the answer was no.
@@ -137,8 +118,9 @@ final class GatesTests: XCTestCase {
             guard trimmed.hasPrefix("static func ") else { return nil }
             return String(trimmed.dropFirst("static func ".count).prefix { $0.isLetter || $0.isNumber })
         }
-        // Five since v1.8 (D70): Another day's gate went with the chooser the strip replaced.
-        XCTAssertEqual(functions.count, 5, "one function per row of the plan's table")
+        // Four since v1.9 (D75): Plan a progression's gate went with the item. Five in v1.8,
+        // when Another day's went with the chooser the strip replaced (D70).
+        XCTAssertEqual(functions.count, 4, "one function per row of the plan's table")
 
         let lines = spec.components(separatedBy: "\n")
         let heading = try XCTUnwrap(lines.firstIndex { $0.hasPrefix("### 6.40 ") }, "SPEC has no §6.40")

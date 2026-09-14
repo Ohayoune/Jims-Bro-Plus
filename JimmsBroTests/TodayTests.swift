@@ -11,6 +11,9 @@ import XCTest
 /// tapped square's card and its button's words, Another day gone, nothing stored. TS6–TS10.
 /// S3 (v1.8) — a rest day says rest (D71): the rest card, the next workout one tap away, the
 /// message still speaking, and Done Today once today's workout is done. TS13–TS15, TS17.
+/// Q3 (v1.9) — the ··· speaks in squares (D75): Change plan with the plan's cycle, Change *day*'s
+/// exercises with the shown day's square, the progression gone from Today, the rows the
+/// preview and nothing more. TQ21–TQ22 (T2 and T3 rewritten; TS4 removed with the step line).
 final class TodayTests: XCTestCase {
     private let calendar = CoreTestSupport.utc()
 
@@ -116,61 +119,75 @@ final class TodayTests: XCTestCase {
         XCTAssertEqual(HomeStart.Message.notificationsOff.actions, [])
     }
 
-    // T2: the ··· items — Change plan once there is a plan, Plan a progression only while D50
-    // offers it, Discard last while a session is open, nothing at all with no plan. (Another
-    // day was the first item until v1.8, D70: the strip is the way to another day now, TS9.)
+    // T2, TQ21 (D75, v1.9): the ··· — Change plan with the plan's cycle, then Change *day*'s
+    // exercises with the shown day's name and square; while a session is open, Change plan and
+    // Discard workout; nothing at all with no plan. (Another day was the first item until v1.8,
+    // D70; Plan a progression joined while D50 offered it until v1.9, D75.)
     func testAlternatives() throws {
         XCTAssertEqual(card(PlanLibrary(), on: 9).alternatives, [], "no plan: no ···")
-        XCTAssertEqual(card(library(rotation()), on: 9).alternatives, [.changePlan])
 
-        // A one-day plan has no other day to offer.
+        // Push Pull Legs Rest: the cycle as written, grey (nil) for rest.
+        let cycle: [DayColour?] = [.green, .orange, .purple, nil]
+        let anchored = library(rotation(anchor: 7))
+        let legs = card(anchored, on: 9)
+        XCTAssertEqual(legs.title, "Legs")
+        XCTAssertEqual(legs.alternatives, [.changePlan(cycle: cycle),
+                                           .changeExercises(dayName: "Today", colour: .purple)])
+        // A tapped square names its day as the strip's button does, and brings its square.
+        XCTAssertEqual(card(anchored, on: 9, showing: 1).alternatives,
+                       [.changePlan(cycle: cycle), .changeExercises(dayName: "Tomorrow", colour: nil)],
+                       "a rest day's date can take a workout too")
+        XCTAssertEqual(card(anchored, on: 9, showing: 2).alternatives,
+                       [.changePlan(cycle: cycle), .changeExercises(dayName: "Friday", colour: .green)])
+
+        // A one-day plan, before and after every exercise has history — what D50 offered Plan a
+        // progression on until v1.9: the same two items.
         let oneDay = CoreTestSupport.plan()
-        XCTAssertEqual(oneDay.days.count, 1)
         var single = library(oneDay)
-        XCTAssertEqual(card(single, on: 9).alternatives, [.changePlan])
-
-        // With every exercise on the day logged once, D50's link joins — as the last item.
+        let two: [HomeStart.Alternative] = [.changePlan(cycle: [.green]),
+                                            .changeExercises(dayName: "Today", colour: .green)]
+        XCTAssertEqual(card(single, on: 9).alternatives, two)
         single.sessions = [CoreTestSupport.completed(plan: oneDay)]
-        let offered = card(single, on: 9)
-        XCTAssertTrue(offered.offersProgression)
-        XCTAssertEqual(offered.alternatives, [.changePlan, .planProgression])
+        XCTAssertEqual(card(single, on: 9).alternatives, two)
 
-        // And leaves again the moment the plan carries a progression.
-        var progressed = oneDay
-        progressed.progression = Progression(startDate: calendar.startOfDay(for: day(9)), weeks: 4, entries: [])
-        single.replace(oneDay.id, with: progressed)
-        XCTAssertNotNil(single.activePlan?.progression)
-        XCTAssertEqual(card(single, on: 9).alternatives, [.changePlan])
+        // Today's workout done: nothing about the day can change, so Change plan alone.
+        single.sessions = [CoreTestSupport.completed(plan: oneDay, start: day(9))]
+        let done = card(single, on: 9)
+        XCTAssertEqual(done.buttonTitle, HomeStart.doneTitle)
+        XCTAssertEqual(done.alternatives, [.changePlan(cycle: [.green])])
 
-        // While a session is open the menu ends with Discard.
+        // While a session is open the menu is v1.8's — Change plan, then Discard — on the
+        // session's card and on a tapped square's alike.
         let plan = rotation()
         var running = library(plan)
         running.engine = SessionEngine(session: CoreTestSupport.session(plan, start: day(9)),
                                        settings: CoreTestSupport.classic, now: day(9))
         let inProgress = card(running, on: 9)
         XCTAssertTrue(inProgress.isInProgress)
-        XCTAssertEqual(inProgress.alternatives, [.changePlan, .discardWorkout])
-        XCTAssertEqual(inProgress.alternatives.last, .discardWorkout)
+        XCTAssertEqual(inProgress.alternatives, [.changePlan(cycle: cycle), .discardWorkout])
+        XCTAssertEqual(card(running, on: 9, showing: 2).alternatives,
+                       [.changePlan(cycle: cycle), .discardWorkout])
 
         // The titles the menu shows.
-        XCTAssertEqual(HomeStart.Alternative.changePlan.title, "Change plan")
-        XCTAssertEqual(HomeStart.Alternative.planProgression.title, PromptText.planProgression)
+        XCTAssertEqual(HomeStart.Alternative.changePlan(cycle: cycle).title, "Change plan")
+        XCTAssertEqual(HomeStart.Alternative.changeExercises(dayName: "Wednesday", colour: .green).title,
+                       "Change Wednesday's exercises")
         XCTAssertEqual(HomeStart.Alternative.discardWorkout.title, "Discard workout")
     }
 
-    // T3: the exercise block is the preview, and says so to VoiceOver.
+    // T3: the exercise block is the preview, and says so to VoiceOver — and since D75 (v1.9)
+    // it is nothing more: its label no longer ends "Opens Push".
     func testExerciseBlockIsThePreview() throws {
         let plan = rotation()
         let push = card(library(plan), on: 1)
         XCTAssertEqual(push.title, "Push")
         XCTAssertEqual(push.exerciseLabel,
-                       "Exercises: Bench Press, Incline Press, Lateral Raise, Tricep Pushdown, Plank, and 2 more. Opens Push")
-        XCTAssertEqual(push.previewPlanId, plan.id)
+                       "Exercises: Bench Press, Incline Press, Lateral Raise, Tricep Pushdown, Plank, and 2 more")
 
         // Fewer than five: no "and N more".
         let legs = card(library(rotation(anchor: 7)), on: 9)
         XCTAssertEqual(legs.title, "Legs")
-        XCTAssertEqual(legs.exerciseLabel, "Exercises: Squat. Opens Legs")
+        XCTAssertEqual(legs.exerciseLabel, "Exercises: Squat")
 
         // In progress the block still stands, from the session, and the clock says how long so
         // far (D69, v1.8); Resume still goes to the session, not to a day.
@@ -185,8 +202,7 @@ final class TodayTests: XCTestCase {
         XCTAssertEqual(inProgress.rows.count, 5)
         XCTAssertEqual(inProgress.more, 2)
         XCTAssertEqual(inProgress.exerciseLabel,
-                       "Exercises: Bench Press, Incline Press, Lateral Raise, Tricep Pushdown, Plank, and 2 more. Opens Push")
-        XCTAssertEqual(inProgress.previewPlanId, plan.id)
+                       "Exercises: Bench Press, Incline Press, Lateral Raise, Tricep Pushdown, Plank, and 2 more")
         XCTAssertNil(inProgress.planId)
         XCTAssertNil(inProgress.dayIndex)
     }
@@ -295,7 +311,7 @@ final class TodayTests: XCTestCase {
                                    HomeStart.PreviewRow(name: "Plank", sets: 1),
                                    HomeStart.PreviewRow(name: "Curl", sets: 5)])
         XCTAssertEqual(full.more, 1)
-        XCTAssertEqual(full.exerciseLabel, "Exercises: Squat, Bench Press, Row, Plank, Curl, and 1 more. Opens Full")
+        XCTAssertEqual(full.exerciseLabel, "Exercises: Squat, Bench Press, Row, Plank, Curl, and 1 more")
         XCTAssertTrue(full.rows.allSatisfy { $0.logged == nil }, "nothing fills before a session")
     }
 
@@ -321,27 +337,40 @@ final class TodayTests: XCTestCase {
         XCTAssertEqual(card(library(plan), on: 9).rows.map(\.sets), [2, 2])
     }
 
-    // TS4 (D69): the step count is the ···'s line, only while the plan carries a progression that
-    // is still running — "Week 2 of 4" by the calendar, "Step 1 of 4" by performance.
-    func testTheStepLineOnlyWithAProgression() throws {
-        XCTAssertNil(card(library(rotation()), on: 9).stepLine, "no progression, no line")
+    // TQ22 (D75, v1.9): the progression left Today — no step line, no offer to plan one, and
+    // the rows open nothing; History's Progression row (D67) is the way. (TS4, the step line,
+    // went with it; a progression that has run its course still speaks, T1.)
+    func testTheProgressionLeftToday() throws {
+        let labels = Mirror(reflecting: card(library(rotation()), on: 9)).children.compactMap(\.label)
+        for gone in ["stepLine", "offersProgression", "previewPlanId"] {
+            XCTAssertFalse(labels.contains(gone), "HomeStart has \(gone) again")
+        }
+        // A plan with no progression whose day has history for every exercise — what D50
+        // offered on — and one mid-progression: neither card names a progression.
+        let oneDay = CoreTestSupport.plan()
+        var single = library(oneDay)
+        single.sessions = [CoreTestSupport.completed(plan: oneDay)]
+        var stepped = oneDay
+        stepped.progression = Progression(startDate: calendar.startOfDay(for: day(1)), weeks: 4,
+                                          entries: [ProgressionEntry(dayName: "Push", exerciseName: "Bench Press",
+                                                                     weeks: Array(repeating: ProgressionWeek(weight: 62.5), count: 4))],
+                                          mode: .performance)
+        for start in [card(single, on: 9), card(library(stepped), on: 9)] {
+            XCTAssertEqual(start.alternatives.map(\.title), ["Change plan", "Change Today's exercises"])
+            XCTAssertNil(start.message)
+        }
 
-        let byCalendar = Progression(startDate: calendar.startOfDay(for: day(1)), weeks: 4, entries: [])
-        let week = card(library(rotation(progression: byCalendar)), on: 9)
-        XCTAssertEqual(week.stepLine, "Week 2 of 4")
-        XCTAssertFalse(week.alternatives.isEmpty, "the ··· is there to hold it")
-
-        var oneDay = CoreTestSupport.plan()
-        let entry = ProgressionEntry(dayName: "Push", exerciseName: "Bench Press",
-                                     weeks: Array(repeating: ProgressionWeek(weight: 62.5), count: 4))
-        oneDay.progression = Progression(startDate: calendar.startOfDay(for: day(1)), weeks: 4,
-                                         entries: [entry], mode: .performance)
-        XCTAssertEqual(card(library(oneDay), on: 9).stepLine, "Step 1 of 4")
-
-        // Run its course: no line, and the message says so instead.
-        let finished = card(library(rotation(progression: finishedByTheNinth())), on: 9)
-        XCTAssertNil(finished.stepLine)
-        XCTAssertEqual(finished.message, .progressionFinished)
+        guard let home = FixtureLoader.doc("JimmsBro/Core/HomeCard.swift"),
+              let gates = FixtureLoader.doc("JimmsBro/Core/Gates.swift"),
+              let prompts = FixtureLoader.doc("JimmsBro/Core/Prompts.swift"),
+              let today = FixtureLoader.doc("JimmsBro/Features/Home/HomeView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        XCTAssertFalse(home.contains("case planProgression"), "Today's ··· offers a progression again")
+        XCTAssertFalse(gates.contains("func planProgression"), "Gates has Plan a progression's gate again")
+        XCTAssertFalse(prompts.contains("static let planProgression"), "PromptText names Today's link again")
+        XCTAssertFalse(today.contains("stepLine"), "Today draws a step line again")
+        XCTAssertFalse(today.contains("previewing = PlanRoute(id: planId"), "Today's rows open Plan detail again")
     }
 
     // TS6 (D70): seven squares, today first, on a weekday plan — Push rest Pull rest Legs rest
@@ -386,7 +415,8 @@ final class TodayTests: XCTestCase {
         XCTAssertEqual(grey.buttonTitle, "No exercise Today")
         XCTAssertEqual(grey.buttonMark, .moon)
         XCTAssertFalse(grey.buttonEnabled)
-        XCTAssertEqual(grey.alternatives, [.changePlan])
+        XCTAssertEqual(grey.alternatives, [.changePlan(cycle: DayColour.cycle(of: nothing))],
+                       "no day to change: Change plan alone (D75)")
         XCTAssertNotNil(grey.sentence, "not a day of the plan: it keeps its sentence")
     }
 
@@ -474,11 +504,11 @@ final class TodayTests: XCTestCase {
         XCTAssertTrue(pull.buttonEnabled)
         XCTAssertEqual(pull.planId, plan.id)
         XCTAssertEqual(pull.dayIndex, 1)
-        XCTAssertEqual(pull.previewPlanId, plan.id)
-        XCTAssertEqual(pull.exerciseLabel, "Exercises: Row. Opens Pull")
+        XCTAssertEqual(pull.exerciseLabel, "Exercises: Row")
         XCTAssertNil(pull.sentence)
         XCTAssertFalse(pull.isRest)
-        XCTAssertEqual(pull.alternatives, [.changePlan])
+        XCTAssertEqual(pull.alternatives, [.changePlan(cycle: DayColour.cycle(of: plan)),
+                                           .changeExercises(dayName: "Wednesday", colour: .orange)])
 
         // Tomorrow is grey: the rest card — Rest, no colour, no rows, no clock, a moon's button.
         let rest = card(trained, on: 14, showing: 1)
@@ -494,7 +524,8 @@ final class TodayTests: XCTestCase {
         XCTAssertFalse(rest.buttonEnabled)
         XCTAssertNil(rest.planId)
         XCTAssertNil(rest.dayIndex)
-        XCTAssertEqual(rest.alternatives, [.changePlan])
+        XCTAssertEqual(rest.alternatives, [.changePlan(cycle: DayColour.cycle(of: plan)),
+                                           .changeExercises(dayName: "Tomorrow", colour: nil)])
         XCTAssertEqual(rest.strip, pull.strip, "the strip does not change with the tap")
 
         // The first square is Today's own card, as S1 left it; a tap past the strip is clamped.
@@ -518,8 +549,10 @@ final class TodayTests: XCTestCase {
         XCTAssertEqual(tapped.title, "Pull")
         XCTAssertEqual(tapped.buttonTitle, "Start Wednesday's Pull")
         XCTAssertEqual(tapped.planId, plan.id)
-        XCTAssertEqual(tapped.alternatives, [.changePlan, .discardWorkout])
-        XCTAssertEqual(card(running, on: 14, showing: 1).alternatives, [.changePlan, .discardWorkout])
+        XCTAssertEqual(tapped.alternatives, [.changePlan(cycle: DayColour.cycle(of: plan)), .discardWorkout],
+                       "mid-workout the ··· is v1.8's (D75)")
+        XCTAssertEqual(card(running, on: 14, showing: 1).alternatives,
+                       [.changePlan(cycle: DayColour.cycle(of: plan)), .discardWorkout])
     }
 
     // TS9 (D70): Another day is not in the ··· — the strip is the way — and neither `Gates`
@@ -534,8 +567,9 @@ final class TodayTests: XCTestCase {
         for start in cards {
             XCTAssertFalse(start.alternatives.map(\.title).contains("Another day"), start.title)
         }
-        XCTAssertEqual(card(library(rotation()), on: 9).alternatives, [.changePlan])
-        XCTAssertEqual(card(library(nothing), on: 14).alternatives, [.changePlan],
+        XCTAssertEqual(card(library(rotation()), on: 9).alternatives.map(\.title),
+                       ["Change plan", "Change Today's exercises"])
+        XCTAssertEqual(card(library(nothing), on: 14).alternatives.map(\.title), ["Change plan"],
                        "nothing scheduled offered Another day until v1.8; the strip is the way")
 
         guard let core = FixtureLoader.doc("JimmsBro/Core/HomeCard.swift"),
@@ -606,14 +640,14 @@ final class TodayTests: XCTestCase {
         XCTAssertNil(rest.exerciseLabel)
         XCTAssertNil(rest.planId, "the button has no target")
         XCTAssertNil(rest.dayIndex)
-        XCTAssertNil(rest.previewPlanId)
         XCTAssertNil(rest.clock, "the moon stands where the clock would, and no minutes — not Pull's")
         XCTAssertNil(rest.sentence)
-        XCTAssertNil(rest.stepLine)
         XCTAssertEqual(rest.buttonTitle, "No exercise Today")
         XCTAssertEqual(rest.buttonMark, .moon)
         XCTAssertFalse(rest.buttonEnabled)
-        XCTAssertEqual(rest.alternatives, [.changePlan])
+        XCTAssertEqual(rest.alternatives, [.changePlan(cycle: DayColour.cycle(of: plan)),
+                                           .changeExercises(dayName: "Today", colour: nil)],
+                       "a rest date can take a workout for that date (D75)")
         XCTAssertEqual(rest.shownOffset, 0)
         XCTAssertEqual(rest.strip.map(\.dayName), [nil, "Pull", nil, "Legs", nil, nil, "Push"])
         XCTAssertTrue(rest.strip[0].isRest, "the first square is grey")

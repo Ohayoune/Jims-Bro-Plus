@@ -26,3 +26,20 @@ enum DayColour: String, CaseIterable, Codable, Hashable, Sendable {
     /// The colour of the plan's `dayIndex`-th day.
     static func of(dayIndex: Int) -> DayColour { allCases[index(dayIndex: dayIndex)] }
 }
+
+/// D75 (v1.9, §6.49): a plan's cycle as one symbol draws it — one row of equal squares, a day's
+/// colour each and nil (grey) for rest. A cycle longer than fourteen draws its first fourteen
+/// and a trailing mark, so a month-long block stays a glyph rather than a line of dust. Here
+/// beside `DayColour` so `CycleSymbol` can ask it in both targets.
+struct CycleGlyph: Equatable, Sendable {
+    static let limit = 14
+    /// The squares drawn, in the cycle's order.
+    var squares: [DayColour?]
+    /// The cycle has more entries than are drawn, and a trailing mark says so.
+    var continues: Bool
+
+    init(_ cycle: [DayColour?]) {
+        squares = Array(cycle.prefix(Self.limit))
+        continues = cycle.count > Self.limit
+    }
+}

@@ -130,7 +130,8 @@ struct HomeStart: Equatable {
     /// D69 (v1.8): the one sentence under the title on the two cards that are not a day of the
     /// plan — the empty card's, whose words D57 chose for a stranger, and Nothing scheduled's.
     /// A day's card has none: v1.7's subtitle ("Push Pull Legs · 5 exercises · 48 min last
-    /// time · step 3 of 8") became the clock, the blocks and the ···'s step line.
+    /// time · step 3 of 8") became the clock, the blocks and the ···'s step line — which D75
+    /// (v1.9) took out again: where a progression is, is History's Progression row's.
     var sentence: String?
     /// D69 (v1.8): the day's first few exercises, each with its sets, so Start is never blind.
     var rows: [PreviewRow]
@@ -141,10 +142,6 @@ struct HomeStart: Equatable {
     var lastDuration: TimeInterval?
     /// D69 (v1.8): how long the open session has run; the clock says "so far" instead.
     var elapsed: TimeInterval?
-    /// D69 (v1.8): "Step 3 of 8" (D53) or "Week 3 of 8" (D44) — the one fragment of v1.7's
-    /// subtitle with no mark to sit beside, so it is a line in the ···, not on the card. Only
-    /// while the plan carries a progression that is still running.
-    var stepLine: String?
     /// "Start Today's Push" (D70's words, `startTitle`), "Resume Push · 23 min", "Choose a plan".
     var buttonTitle: String?
     /// The day the button would start, and that Preview would open.
@@ -170,20 +167,16 @@ struct HomeStart: Equatable {
     var showsQuestion = false
     /// D44 (v1.3): the plan's progression has run its course, so Today offers the next one.
     var progressionFinished = false
-    /// D50 (v1.5): the quiet link to plan one — only when the plan has no progression and
-    /// every exercise on this day has a logged session to plan from. "Not too obvious".
-    var offersProgression = false
     /// D61 (v1.7): the one message line, chosen by priority — the missed workout, then the
     /// progression that has run its course, then notifications off — and never two at once.
     var message: Message?
     /// D61 (v1.7): the ··· items, in order. Empty means no ··· at all.
     var alternatives: [Alternative] = []
-    /// D61 (v1.7): the exercise block is the preview — one tappable row that opens the day in
-    /// Plan detail. This is what VoiceOver reads for it: "Exercises: …, and 2 more. Opens Push".
+    /// D61 (v1.7): the exercise block is the preview, and this is what VoiceOver reads for it:
+    /// "Exercises: …, and 2 more". D75 (v1.9, the owner's 13): the preview and nothing more —
+    /// until then the block was a tappable row that opened the day in Plan detail, and the
+    /// label ended "Opens Push"; the ··· is the way to the day now.
     var exerciseLabel: String?
-    /// D61 (v1.7): the plan the exercise block opens. The card's `planId` while a day is ready;
-    /// the running session's plan while one is in progress (Resume still goes to the session).
-    var previewPlanId: UUID?
     /// D61 (v1.7): the empty card's one quiet link, under the sentence.
     var link: String?
     /// D70 (v1.8, §6.44): the week as a strip — seven squares, today first, from the calendar's
@@ -296,19 +289,23 @@ struct HomeStart: Equatable {
 
     /// D61 (v1.7): the day's alternatives, which live in Today's ··· and nowhere else. D70
     /// (v1.8): Another day left — the strip is the way to another day, and its chooser is gone
-    /// (§6.44).
+    /// (§6.44). D75 (v1.9, §6.49): two items that speak in squares, each carrying what its
+    /// symbol draws; Plan a progression left for History's Progression row (D67).
     enum Alternative: Hashable {
-        /// The Plans list.
-        case changePlan
-        /// D50: while the plan has none and every exercise on the day has history.
-        case planProgression
+        /// The Plans list. Its symbol is the active plan's cycle, a square per entry in its
+        /// day's colour and grey for rest (`DayColour.cycle(of:)`, drawn by `CycleSymbol`).
+        case changePlan(cycle: [DayColour?])
+        /// D75/D76 (v1.9): the shown day's exercises, for that date alone — "Change Wednesday's
+        /// exercises", named by the strip's own when ("Today", "Tomorrow", the weekday) — with
+        /// that day's square as its symbol, grey for rest.
+        case changeExercises(dayName: String, colour: DayColour?)
         /// D56: while a session is open, with its alert.
         case discardWorkout
 
         var title: String {
             switch self {
             case .changePlan: return "Change plan"
-            case .planProgression: return PromptText.planProgression
+            case let .changeExercises(dayName, _): return "Change \(dayName)'s exercises"
             case .discardWorkout: return "Discard workout"
             }
         }
@@ -404,12 +401,10 @@ struct HomeStart: Equatable {
                 // day.
                 start.elapsed = elapsed
                 if let session = library.engine?.session {
-                    start.previewPlanId = library.plans.first { $0.id == session.planId }?.id
                     start.dayColour = DayColour.of(session: session, plans: library.plans)
-                    preview(&start, rows: rows(of: session), dayName: dayName)
+                    preview(&start, rows: rows(of: session))
                 }
-                start.alternatives = alternatives(plans: library.plans, offersProgression: false,
-                                                  running: true)
+                start.alternatives = alternatives(library: library, changing: nil, running: true)
                 start.message = message(for: start, notificationsOff: notificationsOff,
                                         missedDismissed: missedDismissed)
                 return start
@@ -418,11 +413,11 @@ struct HomeStart: Equatable {
                 start.title = "Nothing scheduled"
                 start.sentence = "This plan has no day to start. Open it in Plans to check its repeat block."
                 // D70 (v1.8): seven grey squares and the disabled button; the ··· still offers
-                // Change plan, the way to a plan with a day in it.
+                // Change plan, the way to a plan with a day in it — and, with no day to change,
+                // nothing else (D75).
                 start.buttonTitle = WeekStrip.buttonTitle(dayName: nil, offset: 0, weekday: nil)
                 start.buttonMark = .moon
-                start.alternatives = alternatives(plans: library.plans, offersProgression: false,
-                                                  running: running)
+                start.alternatives = alternatives(library: library, changing: nil, running: running)
                 start.message = message(for: start, notificationsOff: notificationsOff,
                                         missedDismissed: missedDismissed)
                 return start
@@ -458,55 +453,52 @@ struct HomeStart: Equatable {
 
         guard let plan = library.plans.first(where: { $0.id == start.planId }),
               let index = start.dayIndex, let day = plan.days[safe: index] else { return start }
-        start.previewPlanId = plan.id
         start.dayColour = DayColour.of(dayIndex: index)
         // D69 (v1.8): a set is a block, and a drop set is one set — its drops are inside it.
-        preview(&start, rows: day.exercises.map { PreviewRow(name: $0.name, sets: $0.sets.count) },
-                dayName: day.name)
+        preview(&start, rows: day.exercises.map { PreviewRow(name: $0.name, sets: $0.sets.count) })
         start.lastDuration = lastDuration(dayName: day.name, sessions: library.sessions)
-        // D44 (v1.3): where the progression is; and when it has run out, one line offering the
-        // next — nothing else moves. D69 (v1.8): the where is the ···'s line, not the card's.
-        if let progression = plan.progression {
-            // D53 (v1.5): "Step 3 of 8" in performance mode — the lowest step among the day's
-            // exercises still climbing — and "Week 3 of 8" in calendar mode.
-            if let index = progression.currentStep(dayName: day.name, on: now, calendar: calendar) {
-                start.stepLine = "\(ProgressionText.word(progression.mode)) \(index + 1) of \(progression.weeks)"
-            } else if progression.isFinished(on: now, calendar: calendar) {
-                start.progressionFinished = true
-            }
-        } else {
-            // D50 (v1.5): the link appears only once there is something to plan from — a
-            // logged session of every exercise on the day — and never shouts. A row of §6.40.
-            start.offersProgression = Gates.planProgression(plan: plan, dayIndex: index,
-                                                            sessions: library.sessions)
+        // D44 (v1.3): when the progression has run its course, the message line offers the next
+        // one — nothing else moves. D75 (v1.9, §6.49): where it is — "Step 3 of 8" (D53), "Week
+        // 3 of 8" — is History's Progression row's, and so is D50's offer to plan one; Today's
+        // ··· carries neither.
+        if let progression = plan.progression,
+           progression.currentStep(dayName: day.name, on: now, calendar: calendar) == nil,
+           progression.isFinished(on: now, calendar: calendar) {
+            start.progressionFinished = true
         }
-        // D61 (v1.7): the alternatives, in the order the ··· lists them, each earned (D64,
-        // §6.40): Change plan when there is a plan list, Plan a progression while D50 offers it,
-        // and Discard while a session is open — reached here from a tapped square (D70).
-        // Another day left with the strip (D70, §6.44).
-        start.alternatives = alternatives(plans: library.plans, offersProgression: start.offersProgression,
+        // D61 (v1.7): the alternatives, in the order the ··· lists them (D75, §6.49): Change
+        // plan, and Change *day*'s exercises for the day shown — or Discard while a session is
+        // open, reached here from a tapped square (D70).
+        start.alternatives = alternatives(library: library, changing: start.strip[safe: start.shownOffset],
                                           running: running)
         start.message = message(for: start, notificationsOff: notificationsOff,
                                 missedDismissed: missedDismissed)
         return start
     }
 
-    /// The ··· items in their order: Change plan (D64), Plan a progression (D50) and, while a
-    /// session is open, Discard workout (D56) — last, and never the only item, since Change
-    /// plan is there wherever there is a plan.
-    private static func alternatives(plans: [Plan], offersProgression: Bool,
+    /// D75 (v1.9, §6.49): the ··· items in their order — **Change plan**, its symbol the active
+    /// plan's cycle, and **Change *day*'s exercises** for the shown square's date, its symbol that
+    /// day's square. While a session is open the menu is v1.8's, Change plan and Discard workout
+    /// (D56) last, because nothing about a day changes from Today mid-workout (the owner's 11); a
+    /// card with no day to change — Nothing scheduled, or today once its workout is done — has
+    /// Change plan alone. No ··· at all until there is a plan (§6.40).
+    private static func alternatives(library: PlanLibrary, changing square: WeekStrip.Square?,
                                      running: Bool) -> [Alternative] {
-        (Gates.changePlan(plans: plans) ? [.changePlan] : [])
-            + (offersProgression ? [.planProgression] : [])
-            + (running ? [.discardWorkout] : [])
+        guard Gates.changePlan(plans: library.plans) else { return [] }
+        let changePlan = Alternative.changePlan(cycle: library.activePlan.map(DayColour.cycle(of:)) ?? [])
+        if running { return [changePlan, .discardWorkout] }
+        guard let square else { return [changePlan] }
+        return [changePlan, .changeExercises(dayName: square.when, colour: square.colour)]
     }
 
     /// D71 (v1.8, §6.45): the card of a day with nothing to start, today's or a tapped grey
     /// square's — a grey square and "Rest", no rows, no clock and no target, and a button that
     /// does nothing: "No exercise Today" / "Tomorrow" / "Thursday" under a moon, or "Done Today"
-    /// under a check once a workout was finished today. The ··· has no day to plan a progression
-    /// for, and the message is the plan's, not the day's (§6.44): a missed workout still speaks,
-    /// and so does a progression that has run its course.
+    /// under a check once a workout was finished today. The ··· offers the date's exercises to
+    /// change — a rest day can take a workout for that date (D75, D76) — but not once today's
+    /// workout is done, when no change could be true; and the message is the plan's, not the
+    /// day's (§6.44): a missed workout still speaks, and so does a progression that has run its
+    /// course.
     private static func rest(_ card: HomeStart, doneToday: Bool, library: PlanLibrary, now: Date,
                              calendar: Calendar, notificationsOff: Bool,
                              missedDismissed: Bool) -> HomeStart {
@@ -518,7 +510,8 @@ struct HomeStart: Equatable {
             ? doneTitle : WeekStrip.buttonTitle(dayName: nil, offset: start.shownOffset, weekday: weekday)
         start.buttonMark = doneToday ? .check : .moon
         start.progressionFinished = library.activePlan?.progression?.isFinished(on: now, calendar: calendar) ?? false
-        start.alternatives = alternatives(plans: library.plans, offersProgression: false,
+        start.alternatives = alternatives(library: library,
+                                          changing: doneToday ? nil : start.strip[safe: start.shownOffset],
                                           running: library.engine.map { $0.phase != .completed } ?? false)
         start.message = message(for: start, notificationsOff: notificationsOff,
                                 missedDismissed: missedDismissed)
@@ -531,14 +524,14 @@ struct HomeStart: Equatable {
         sessions.contains { $0.endedAt != nil && calendar.isDate($0.startedAt, inSameDayAs: now) }
     }
 
-    /// The first five rows, the count of the rest, and what VoiceOver reads for the block.
-    private static func preview(_ start: inout HomeStart, rows: [PreviewRow], dayName: String) {
+    /// The first five rows, the count of the rest, and what VoiceOver reads for the block — the
+    /// preview and nothing more since D75, so the label no longer ends "Opens Push".
+    private static func preview(_ start: inout HomeStart, rows: [PreviewRow]) {
         start.rows = Array(rows.prefix(previewLimit))
         start.more = max(0, rows.count - previewLimit)
         guard !start.rows.isEmpty else { return }
         var label = "Exercises: " + start.rows.map(\.name).joined(separator: ", ")
         if start.more > 0 { label += ", and \(start.more) more" }
-        if start.previewPlanId != nil { label += ". Opens \(dayName)" }
         start.exerciseLabel = label
     }
 
