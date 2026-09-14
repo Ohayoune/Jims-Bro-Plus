@@ -121,8 +121,11 @@ without words, or it leaves the card. The week becomes a seven-square strip that
 **Another day** (D70, S2), and a rest day says rest instead of naming the next workout (D71, S3).
 Nothing in it touches `Core/Persistence.swift`, the pipeline, the format, the prompts, the
 Workout screen, the rest, the Live Activity, History, or the empty card. The mock is the "Today,
-Simpler" artifact linked from the plan. S0 is built, on `v1.8-cues` off `main`; S1 begins the
-actual build.
+Simpler" artifact linked from the plan. S0 and S1 are built, on `v1.8-cues` off `main`: a day's
+card has no sentence (`HomeStart` has no `subtitle`, TS1) — a clock and the minutes, the
+exercises with their sets as blocks (`HomeStart.rows`, `PreviewRow`), the step as the ···'s last
+line (`stepLine`), **▶ Start Today's Push** (`HomeStart.startTitle`, D70's words), and a lighter
+gear and ··· (`QuietGlyph`). S2, the strip, is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 

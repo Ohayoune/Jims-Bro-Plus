@@ -1,10 +1,48 @@
 # Build status
 
-Updated 2026-09-13. **v1.7 is built and green on branch `v1.7-today` (off `main`, which holds
-v1.6 since pull request #2 merged): T0–T6, then T7 — the owner's review before the push (D66–D68).** v1.6 and
-everything before it are below, unchanged except where a later milestone corrected them; the
-device checklist, the Developer Program, a release Xcode and the submission itself are the
-owner's.
+Updated 2026-09-13. **v1.8 is in progress on branch `v1.8-cues` (off `main`, which holds v1.7):
+S0 and S1 are built and green; S2–S4 are next.** v1.7 and everything before it are below,
+unchanged except where a later milestone corrected them; the device checklist, the Developer
+Program, a release Xcode and the submission itself are the owner's.
+
+## v1.8 (S0–S4): S0–S1 built and green
+
+`docs/ITERATION_9_PLAN.md` is the v1.8 plan, written from the owner's note after looking at
+v1.7's Today — *"too much text, and too little use of visual cues"*. Each milestone ends with the
+whole suite green on all three routes, a Release build and `tools/check_release.py`, and one
+commit on `v1.8-cues`.
+
+After S1:
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 16'` | **333 tests, 12 skipped, 0 failures** — the skips are the pins that read SPEC or a source file, which run on the host routes. iPhone 16, as in T7, where iPhone 17's test runner never connected |
+| `swift test` | **332 tests, 0 failures** |
+| `python3 tools/check_core.py` | **332 bodies, 6,203 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged) |
+| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.7 (1); 1.8 is S4's |
+| `python3 tools/check_bundle.py` | **current** (regenerated in S1) |
+
+| Milestone | What it did | State |
+|---|---|---|
+| S0 | The plan, the branch, the mock (the "Today, Simpler" artifact, not committed) | Done |
+| S1 | Nothing without a cue (D69): a day's card carries no sentence. The colour square stands as tall as the title's capitals; a meta row with a clock and **39 min** *last time* (**23 min** *so far* mid-session); the exercises at body size, each with its sets as blocks in the day's colour at half strength that fill as they are logged; the step as the ···'s last line; **▶ Start Today's Push** in D70's words (**Start Tomorrow's Push**, **Start Thursday's Lower** on a rest day); the gear and the ··· as grey glyphs in hairline circles, on History too. `HomeStart` traded `subtitle` and `exercises` for `sentence` (the empty and nothing-scheduled cards only), `rows`, `lastDuration`, `elapsed`, `stepLine` and `startTitle`. TS1–TS4 in `TodayTests`; T3, T4, O63/O64, U20, W39, Z22, Y13 and the built-in plan's card rewritten for them. SPEC §4.1 (v1.7's text in italics) and §6.43 | Done |
+| S2 | The week is the strip (D70) | Next |
+| S3 | A rest day says rest (D71) | — |
+| S4 | Docs, checklist, bundle, screenshots, 1.8 | — |
+
+### Checked on the simulator (v1.8)
+
+| Screenshot | What it shows |
+|---|---|
+| `build/s1-today.png` | Today on the seeded plan on a Sunday — a rest day, so the card headlines Monday's Push (D57, until S3) — from `SEED=1 tools/shot.sh build/s1-today.png -uiScreen today -uiNoAsk`: the green square as tall as "Push"; the clock and "39 min last time" at the right; five names at body size, each with its sets as pale green blocks (four for the bench, three for the rest) and no chevron; the gear and the ··· as grey glyphs in hairline circles; **▶ Start Tomorrow's Push** |
+
+### Not run in v1.8
+
+- TS5, Today at accessibility XL on the phone; it joins the checklist with S4's v1.8 rows.
+- The ··· with its step line open on screen: the seeded plan carries no progression, so the line
+  is held in Core (TS4) and not yet seen drawn.
 
 ## v1.7 (T0–T7): built and green
 

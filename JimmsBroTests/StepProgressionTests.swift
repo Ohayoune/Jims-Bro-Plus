@@ -203,7 +203,7 @@ final class StepProgressionTests: XCTestCase {
         XCTAssertEqual(after.entries[1].tries, 1)
         XCTAssertEqual(after.entries[2].step, 0, "Pull was not trained")
         XCTAssertEqual(ProgressionText.entryStatus(after.entries[1], of: 4), "Step 1 of 4 · 1 try")
-        XCTAssertEqual(HomeStart.current(library: model.library, now: now.addingTimeInterval(86_400), calendar: calendar).subtitle?.contains("step 1 of 4"), true,
+        XCTAssertEqual(HomeStart.current(library: model.library, now: now.addingTimeInterval(86_400), calendar: calendar).stepLine, "Step 1 of 4",
                        "the day is at its lowest exercise's step")
 
         // It reached the disk.
@@ -277,13 +277,13 @@ final class StepProgressionTests: XCTestCase {
         // Home: the step, then the offer when every exercise is done.
         var library = PlanLibrary()
         library.save(with, makeActive: true)
-        XCTAssertTrue(HomeStart.current(library: library, now: now, calendar: calendar).subtitle?.hasSuffix("step 1 of 4") == true)
+        XCTAssertEqual(HomeStart.current(library: library, now: now, calendar: calendar).stepLine, "Step 1 of 4")
         library.plans[0].progression?.entries[0].step = 4
         library.plans[0].progression?.entries[1].step = 2
         library.plans[0].progression?.entries[2].step = 1
         let done = HomeStart.current(library: library, now: now, calendar: calendar)
         XCTAssertTrue(done.progressionFinished)
-        XCTAssertFalse(done.subtitle?.contains("step") == true)
+        XCTAssertNil(done.stepLine)
     }
 
     // Z23: on disk — a v1.3 progression reads as calendar at step 0; the new fields round-trip.

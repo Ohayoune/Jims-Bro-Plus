@@ -28,6 +28,14 @@ struct DaySquare: View {
     var size: CGFloat = 10
     @ScaledMetric private var scale: CGFloat = 1
 
+    /// D69 (v1.8): Today's square is as tall as the large title's capitals, so it grows on the
+    /// large title's curve rather than body text's.
+    init(colour: DayColour?, size: CGFloat = 10, relativeTo textStyle: Font.TextStyle = .body) {
+        self.colour = colour
+        self.size = size
+        _scale = ScaledMetric(wrappedValue: 1, relativeTo: textStyle)
+    }
+
     var body: some View {
         RoundedRectangle(cornerRadius: size * scale / 4, style: .continuous)
             .fill(colour?.color ?? Color.secondary.opacity(0.4))

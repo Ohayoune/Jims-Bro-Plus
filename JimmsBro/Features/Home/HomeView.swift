@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// SPEC §4.1 (D61, v1.7): Today is the day's card and nothing else — the same five zones on
-/// every day of the plan: the day's name, one subtitle, the exercise names (which are the
-/// preview), at most one message, and Start in the bottom slot. The day's alternatives live in
-/// one ··· and nowhere else. The calendar and the week's line leave for History (D63, T3).
+/// SPEC §4.1 (D61, v1.7; D69, v1.8): Today is the day's card and nothing else — the same five
+/// zones on every day of the plan: the day's colour and name, the meta row (a clock and the
+/// minutes), the exercises with their sets as blocks (which are the preview), at most one
+/// message, and Start in the bottom slot. No words without a cue: every line of words sits
+/// beside a mark that says the same. The day's alternatives live in one ··· and nowhere else.
 struct HomeView: View {
     @Environment(AppModel.self) private var model
     /// Opens Add plan — on the built-in picker when the empty card asks (D46, v1.4).
@@ -32,22 +33,26 @@ struct HomeView: View {
                                      missedDismissed: dismissedMissed)
         NavigationStack(path: $path) {
             VStack(alignment: .leading, spacing: 14) {
-                // D65 (v1.7): the day's colour is a small square before its name, never the
-                // name itself — headers are ink (D59).
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    if let colour = card.dayColour { DaySquare(colour: colour, size: 16) }
+                // D65 (v1.7): the day's colour is a square before its name, never the name
+                // itself — headers are ink (D59). D69 (v1.8): the square stands as tall as the
+                // title's capitals, so the colour is read before the word.
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    if let colour = card.dayColour {
+                        DaySquare(colour: colour, size: 24, relativeTo: .largeTitle)
+                    }
                     Text(card.title)
                         .font(.largeTitle.weight(.semibold))
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                if let subtitle = card.subtitle {
-                    Text(subtitle)
+                if let clock = card.clock { metaRow(clock) }
+                if let sentence = card.sentence {
+                    Text(sentence)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 // U13's rule, applied to Today: when Dynamic Type makes the card taller than
-                // the screen, the exercise list is what scrolls; the name, the subtitle and
+                // the screen, the exercise list is what scrolls; the name, the clock and
                 // Start hold. On an ordinary day nothing scrolls.
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
@@ -75,24 +80,32 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 // D61 (v1.7): the only place the day's alternatives live. No ··· at all until
-                // there is a plan to have alternatives for.
+                // there is a plan to have alternatives for. D69 (v1.8): drawn lighter than the
+                // title, and holding the progression's step as a line that is not a control.
                 if !card.alternatives.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             ForEach(card.alternatives, id: \.self) { alternative in
                                 alternativeButton(alternative, card: card)
                             }
+                            if let step = card.stepLine {
+                                Section { Button(step) {}.disabled(true) }
+                            }
                         } label: {
-                            Image(systemName: "ellipsis.circle")
+                            QuietGlyph(systemName: "ellipsis")
                         }
                         .accessibilityLabel("More")
                     }
+                    .quietBackground()
                 }
             }
             // D59 (v1.6): Start in the slot every other screen keeps for its primary button —
             // under the thumb, above the tab bar.
+            // D69 (v1.8): the play mark says the button starts something; the empty card's opens
+            // a picker, and has none.
             .bottomAction(if: card.buttonTitle != nil) {
-                PrimaryButton(title: card.buttonTitle ?? "") { act(card) }
+                PrimaryButton(title: card.buttonTitle ?? "",
+                              systemImage: card.isEmpty ? nil : "play.fill") { act(card) }
             }
             // D56 (v1.6): a confirmation reached from a menu is an alert with two named
             // buttons, never a dialog — from a menu anchor a dialog can draw as a popover and
@@ -146,43 +159,61 @@ struct HomeView: View {
         }
     }
 
+    /// D69 (v1.8): the meta row — a clock, the minutes in ink, then the two grey words that
+    /// say which minutes: "39 min last time", "23 min so far". At the row's right end; the left
+    /// end is the week strip's (D70).
+    private func metaRow(_ clock: HomeStart.Clock) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Spacer(minLength: 0)
+            Image(systemName: "clock")
+                .foregroundStyle(.secondary)
+            Text(clock.minutes)
+            Text(clock.caption)
+                .foregroundStyle(.secondary)
+        }
+        .font(.subheadline)
+        .accessibilityElement(children: .combine)
+    }
+
     /// P5: Start is never blind — the day's exercises are named before you tap it. D61
-    /// (v1.7): the block is the preview; the Preview button went. One tappable row with a
-    /// trailing chevron that opens the day in Plan detail.
+    /// (v1.7): the block is the preview, one tappable row that opens the day in Plan detail.
+    /// D69 (v1.8): the names at body size in ink, each with its sets as blocks at the right
+    /// edge; the chevron went — the list is the thing to tap.
     @ViewBuilder private func exerciseBlock(_ card: HomeStart) -> some View {
-        if !card.exercises.isEmpty {
+        if !card.rows.isEmpty {
             if let planId = card.previewPlanId {
                 Button {
                     previewing = PlanRoute(id: planId, dayIndex: card.dayIndex ?? 0)
                 } label: {
-                    HStack(alignment: .center, spacing: 12) {
-                        exerciseNames(card)
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.right")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-                    .contentShape(Rectangle())
+                    exerciseRows(card)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(card.exerciseLabel ?? "")
             } else {
-                exerciseNames(card)
+                exerciseRows(card)
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel(card.exerciseLabel ?? "")
             }
         }
     }
 
-    private func exerciseNames(_ card: HomeStart) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            ForEach(Array(card.exercises.enumerated()), id: \.offset) { _, name in
-                Text(name).font(.footnote).foregroundStyle(.secondary)
+    private func exerciseRows(_ card: HomeStart) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(Array(card.rows.enumerated()), id: \.offset) { _, row in
+                HStack(spacing: 12) {
+                    Text(row.name)
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    SetBlocks(sets: row.sets, logged: row.logged ?? 0, colour: card.dayColour)
+                }
             }
             if card.more > 0 {
-                Text("and \(card.more) more").font(.footnote).foregroundStyle(.tertiary)
+                Text("and \(card.more) more").foregroundStyle(.secondary)
             }
         }
+        .font(.body)
     }
 
     /// D61 (v1.7): at most one message line, with its own actions — the missed workout (D37),
@@ -269,4 +300,28 @@ private struct PlanRoute: Identifiable {
 private enum TodayRoute: Hashable {
     /// ··· → Change plan: the Plans list, which was a tab until T2.
     case plans
+}
+
+/// D69 (v1.8): an exercise's sets as small blocks at the row's right edge — four blocks, four
+/// sets — in the day's colour at half strength, each filling to full once logged, so the card
+/// shows progress without a fraction. Grey for a session whose day is in no plan, as the square
+/// is. The block's spoken label names the exercises; the blocks are hidden from VoiceOver.
+private struct SetBlocks: View {
+    let sets: Int
+    let logged: Int
+    let colour: DayColour?
+    @ScaledMetric(relativeTo: .body) private var width: CGFloat = 7
+    @ScaledMetric(relativeTo: .body) private var height: CGFloat = 14
+
+    var body: some View {
+        let fill = colour?.color ?? Color.secondary
+        HStack(spacing: width / 2) {
+            ForEach(0..<sets, id: \.self) { index in
+                RoundedRectangle(cornerRadius: width / 3, style: .continuous)
+                    .fill(fill.opacity(index < logged ? 1 : 0.5))
+                    .frame(width: width, height: height)
+            }
+        }
+        .accessibilityHidden(true)
+    }
 }

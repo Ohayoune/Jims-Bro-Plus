@@ -115,21 +115,35 @@ enum RepeatBlock {
     }
 }
 
-/// SPEC §4.1 (D18, revised v1.1; D61, v1.7): Today is the day's card and nothing else. The
-/// card names the day and the plan, previews the exercises, carries at most one message, and
-/// its button says what it will do. Resolved here, without view code, so the wording per
-/// schedule state is a unit test (O63) rather than a screenshot — and since v1.7 the one
-/// message and the ··· items are chosen here too (T1, T2): the view stops deciding either.
+/// SPEC §4.1 (D18, revised v1.1; D61, v1.7; D69, v1.8): Today is the day's card and nothing
+/// else. The card names the day, lists its exercises with their sets, carries at most one
+/// message, and its button says what it will do and when. Resolved here, without view code, so
+/// the wording per schedule state is a unit test (O63) rather than a screenshot — and since
+/// v1.7 the one message and the ··· items are chosen here too (T1, T2): the view stops deciding
+/// either. Since v1.8 (D69) a day's card carries no sentence: every fact on it is also a mark —
+/// a colour, a clock, a block per set — and the view draws what it is handed.
 struct HomeStart: Equatable {
-    /// The day, big: "Push", "Rest day", "No plan yet".
+    /// The day, big: "Push", "No plan yet".
     var title: String
-    /// "Push Pull Legs · 5 exercises · 48 min last time" — each fragment only when it has data.
-    var subtitle: String?
-    /// The day's first few exercise names, so Start is never blind.
-    var exercises: [String]
+    /// D69 (v1.8): the one sentence under the title on the two cards that are not a day of the
+    /// plan — the empty card's, whose words D57 chose for a stranger, and Nothing scheduled's.
+    /// A day's card has none: v1.7's subtitle ("Push Pull Legs · 5 exercises · 48 min last
+    /// time · step 3 of 8") became the clock, the blocks and the ···'s step line.
+    var sentence: String?
+    /// D69 (v1.8): the day's first few exercises, each with its sets, so Start is never blind.
+    var rows: [PreviewRow]
     /// The exercises not listed, e.g. 2 for "and 2 more".
     var more: Int
-    /// "Start Push", "Resume Push · 23 min", "Choose a plan".
+    /// D69 (v1.8): the last finished workout of this day, for the meta row's clock — a fact
+    /// about last time, never a forecast (D55). Nil with none, or with one under a minute.
+    var lastDuration: TimeInterval?
+    /// D69 (v1.8): how long the open session has run; the clock says "so far" instead.
+    var elapsed: TimeInterval?
+    /// D69 (v1.8): "Step 3 of 8" (D53) or "Week 3 of 8" (D44) — the one fragment of v1.7's
+    /// subtitle with no mark to sit beside, so it is a line in the ···, not on the card. Only
+    /// while the plan carries a progression that is still running.
+    var stepLine: String?
+    /// "Start Today's Push" (D70's words, `startTitle`), "Resume Push · 23 min", "Choose a plan".
     var buttonTitle: String?
     /// The day the button would start, and that Preview would open.
     var planId: UUID?
@@ -168,6 +182,44 @@ struct HomeStart: Equatable {
     static let chooseButton = "Choose a plan"
     static let practiceLink = "Try a short practice workout"
     static let emptySentence = "Choose a built-in plan to start today, or have a chatbot write yours."
+
+    /// D69 (v1.8): one exercise on the card — its name, and its sets drawn as blocks. A drop
+    /// set is one block (a set is a set). `logged` is nil until a session is open, and then the
+    /// engine's count of this exercise's logged sets, whose blocks fill.
+    struct PreviewRow: Equatable {
+        var name: String
+        var sets: Int
+        var logged: Int? = nil
+    }
+
+    /// D69 (v1.8): the meta row's clock — the minutes in ink, then the two grey words that say
+    /// which minutes they are.
+    struct Clock: Equatable {
+        var minutes: String
+        var caption: String
+    }
+
+    /// "23 min" *so far* while a session is open; otherwise "39 min" *last time*, when there
+    /// was a last time. Nil means no clock at all.
+    var clock: Clock? {
+        if let elapsed { return Clock(minutes: "\(Int(elapsed) / 60) min", caption: "so far") }
+        guard let lastDuration else { return nil }
+        return Clock(minutes: "\(Int(lastDuration) / 60) min", caption: "last time")
+    }
+
+    /// D70 (v1.8): the button names *when*, so nobody has to count — "Start Today's Push",
+    /// "Start Tomorrow's Pull", "Start Friday's Legs". Past six days a weekday would name this
+    /// week's, which is not the day meant (D55), so the button says the day alone.
+    static func startTitle(dayName: String, daysAway: Int, weekday: Weekday?) -> String {
+        switch daysAway {
+        case 0: return "Start Today's \(dayName)"
+        case 1: return "Start Tomorrow's \(dayName)"
+        case 2...6:
+            if let weekday { return "Start \(WeekdayText.full(weekday))'s \(dayName)" }
+        default: break
+        }
+        return "Start \(dayName)"
+    }
 
     /// A workout the schedule expected on a day that has no session on it.
     struct MissedWorkout: Equatable {
@@ -235,7 +287,7 @@ struct HomeStart: Equatable {
     static func current(library: PlanLibrary, now: Date = Date(), calendar: Calendar = .current,
                         notificationsOff: Bool = false, missedDismissed: Bool = false) -> HomeStart {
         let card = StartCard.current(library: library, now: now, calendar: calendar)
-        var start = HomeStart(title: card.title, exercises: [], more: 0,
+        var start = HomeStart(title: card.title, rows: [], more: 0,
                               isInProgress: false, isEmpty: false)
 
         switch card {
@@ -244,7 +296,7 @@ struct HomeStart: Equatable {
             // D46 (v1.4): the built-in picker took the sample's place. D61 (v1.7): two choices
             // where there were three — the button opens the picker, and the chatbot and paste
             // routes are one tap back inside it, where D57 already sends the reader.
-            start.subtitle = emptySentence
+            start.sentence = emptySentence
             start.buttonTitle = chooseButton
             start.link = practiceLink
             start.isEmpty = true
@@ -254,18 +306,13 @@ struct HomeStart: Equatable {
             start.title = dayName
             start.buttonTitle = "Resume \(dayName) · \(Int(elapsed) / 60) min"
             start.isInProgress = true
+            // D69 (v1.8): the clock says "so far", and the blocks fill as sets are logged — the
+            // card shows progress without a fraction, in the same zones as on any other day.
+            start.elapsed = elapsed
             if let session = library.engine?.session {
-                // D61 (v1.7): the subtitle says where you are, and the exercise block still
-                // stands — the same five zones as on any other day.
-                let logged = SessionStats.loggedCount(session)
-                let total = session.steps.count
-                start.subtitle = "In progress · \(logged) of \(total) set\(total == 1 ? "" : "s")"
-                    + " · \(Int(elapsed) / 60) min"
                 start.previewPlanId = library.plans.first { $0.id == session.planId }?.id
                 start.dayColour = DayColour.of(session: session, plans: library.plans)
-                preview(&start, names: session.exercises.map(\.name), dayName: dayName)
-            } else {
-                start.subtitle = "In progress"
+                preview(&start, rows: rows(of: session), dayName: dayName)
             }
             start.alternatives = (Gates.changePlan(plans: library.plans) ? [.changePlan] : [])
                 + [.discardWorkout]
@@ -275,7 +322,7 @@ struct HomeStart: Equatable {
 
         case .nothingScheduled:
             start.title = "Nothing scheduled"
-            start.subtitle = "This plan has no day to start. Open it in Plans to check its repeat block."
+            start.sentence = "This plan has no day to start. Open it in Plans to check its repeat block."
             if let plan = library.activePlan {
                 // With nothing scheduled any day is another day: the chooser is the way in.
                 start.alternatives = (Gates.anotherDay(plan: plan, showing: nil) ? [.anotherDay] : [])
@@ -287,20 +334,19 @@ struct HomeStart: Equatable {
 
         case let .nextUp(planId, dayIndex, dayName), let .today(planId, dayIndex, dayName):
             start.title = dayName
-            start.buttonTitle = "Start \(dayName)"
+            start.buttonTitle = startTitle(dayName: dayName, daysAway: 0, weekday: nil)
             start.planId = planId
             start.dayIndex = dayIndex
 
-        case let .restDay(planId, dayIndex, dayName, weekday, _):
+        case let .restDay(planId, dayIndex, dayName, weekday, daysAway):
             // D57 (v1.6): the workout is the headline on a rest day too, and the button just
-            // starts it; the schedule is one quiet fragment in front of the rest. v1.1–v1.5
-            // said "Rest day" and "Start Lower early" — schedule-speak to someone in a gym.
+            // starts it. v1.1–v1.5 said "Rest day" and "Start Lower early" — schedule-speak to
+            // someone in a gym. D69 (v1.8): "Planned for Thu" left with the subtitle, and the
+            // button says when instead: "Start Thursday's Lower" (D70's words).
             start.title = dayName
-            start.buttonTitle = "Start \(dayName)"
+            start.buttonTitle = startTitle(dayName: dayName, daysAway: daysAway, weekday: weekday)
             start.planId = planId
             start.dayIndex = dayIndex
-            let when = weekday.map { " for \(WeekdayText.short($0))" } ?? ""
-            start.subtitle = "Planned\(when)"
         }
 
         if let plan = library.activePlan, plan.schedule == .rotation, library.engine == nil,
@@ -318,24 +364,17 @@ struct HomeStart: Equatable {
               let index = start.dayIndex, let day = plan.days[safe: index] else { return start }
         start.previewPlanId = plan.id
         start.dayColour = DayColour.of(dayIndex: index)
-        preview(&start, names: day.exercises.map(\.name), dayName: day.name)
-
-        var fragments: [String] = []
-        // The plan's name always (D57): "Planned for Fri · Upper Lower · 5 exercises".
-        fragments.append(plan.name)
-        if !day.exercises.isEmpty {
-            fragments.append("\(day.exercises.count) exercise\(day.exercises.count == 1 ? "" : "s")")
-        }
-        if let last = lastDuration(dayName: day.name, sessions: library.sessions) {
-            fragments.append("\(last) min last time")
-        }
-        // D44 (v1.3): where the progression is, in the subtitle that already says what today
-        // is; and when it has run out, one line offering the next — nothing else moves.
+        // D69 (v1.8): a set is a block, and a drop set is one set — its drops are inside it.
+        preview(&start, rows: day.exercises.map { PreviewRow(name: $0.name, sets: $0.sets.count) },
+                dayName: day.name)
+        start.lastDuration = lastDuration(dayName: day.name, sessions: library.sessions)
+        // D44 (v1.3): where the progression is; and when it has run out, one line offering the
+        // next — nothing else moves. D69 (v1.8): the where is the ···'s line, not the card's.
         if let progression = plan.progression {
-            // D53 (v1.5): "step 3 of 8" in performance mode — the lowest step among the day's
-            // exercises still climbing — and "week 3 of 8" in calendar mode.
+            // D53 (v1.5): "Step 3 of 8" in performance mode — the lowest step among the day's
+            // exercises still climbing — and "Week 3 of 8" in calendar mode.
             if let index = progression.currentStep(dayName: day.name, on: now, calendar: calendar) {
-                fragments.append("\(ProgressionText.word(progression.mode).lowercased()) \(index + 1) of \(progression.weeks)")
+                start.stepLine = "\(ProgressionText.word(progression.mode)) \(index + 1) of \(progression.weeks)"
             } else if progression.isFinished(on: now, calendar: calendar) {
                 start.progressionFinished = true
             }
@@ -345,10 +384,6 @@ struct HomeStart: Equatable {
             start.offersProgression = Gates.planProgression(plan: plan, dayIndex: index,
                                                             sessions: library.sessions)
         }
-        // A rest day already used the subtitle to say what is next; the rest hangs off that.
-        start.subtitle = ([start.subtitle].compactMap { $0 } + fragments).joined(separator: " · ")
-        if start.subtitle?.isEmpty == true { start.subtitle = nil }
-
         // D61 (v1.7): the alternatives, in the order the ··· lists them, each earned (D64,
         // §6.40): Another day when the plan has another day, Change plan when there is a plan
         // list, Plan a progression while D50 offers it.
@@ -360,12 +395,12 @@ struct HomeStart: Equatable {
         return start
     }
 
-    /// The first five names, the count of the rest, and what VoiceOver reads for the block.
-    private static func preview(_ start: inout HomeStart, names: [String], dayName: String) {
-        start.exercises = Array(names.prefix(previewLimit))
-        start.more = max(0, names.count - previewLimit)
-        guard !start.exercises.isEmpty else { return }
-        var label = "Exercises: " + start.exercises.joined(separator: ", ")
+    /// The first five rows, the count of the rest, and what VoiceOver reads for the block.
+    private static func preview(_ start: inout HomeStart, rows: [PreviewRow], dayName: String) {
+        start.rows = Array(rows.prefix(previewLimit))
+        start.more = max(0, rows.count - previewLimit)
+        guard !start.rows.isEmpty else { return }
+        var label = "Exercises: " + start.rows.map(\.name).joined(separator: ", ")
         if start.more > 0 { label += ", and \(start.more) more" }
         if start.previewPlanId != nil { label += ". Opens \(dayName)" }
         start.exerciseLabel = label
@@ -382,14 +417,26 @@ struct HomeStart: Equatable {
         return nil
     }
 
-    /// Whole minutes of the most recent completed session of this day name.
-    private static func lastDuration(dayName: String, sessions: [Session]) -> Int? {
+    /// D69 (v1.8): the open session's exercises with the engine's own count — a set is its
+    /// first step, so a drop set is one, and it fills once that step is logged. Counted from
+    /// the steps rather than the targets, so an exercise changed mid-workout (D42) shows the
+    /// sets it actually has.
+    private static func rows(of session: Session) -> [PreviewRow] {
+        session.exercises.indices.map { index in
+            let sets = session.steps.filter { $0.exerciseIndex == index && $0.dropIndex == 0 }
+            return PreviewRow(name: session.exercises[index].name, sets: sets.count,
+                              logged: sets.filter { $0.status == .logged }.count)
+        }
+    }
+
+    /// The most recent completed session of this day name, if it lasted a minute or more.
+    private static func lastDuration(dayName: String, sessions: [Session]) -> TimeInterval? {
         let matching = sessions
             .filter { $0.endedAt != nil && normalized($0.dayName) == normalized(dayName) }
             .max { $0.startedAt < $1.startedAt }
         guard let matching else { return nil }
-        let minutes = Int(SessionStats.duration(matching)) / 60
-        return minutes > 0 ? minutes : nil
+        let duration = SessionStats.duration(matching)
+        return duration >= 60 ? duration : nil
     }
 }
 

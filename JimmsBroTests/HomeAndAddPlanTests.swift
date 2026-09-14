@@ -38,22 +38,22 @@ final class HomeAndAddPlanTests: XCTestCase {
         library.save(rotation(), makeActive: true)
         let card = HomeStart.current(library: library, now: now)
         XCTAssertEqual(card.title, "Push")
-        XCTAssertEqual(card.buttonTitle, "Start Push")
+        XCTAssertEqual(card.buttonTitle, "Start Today's Push")
         XCTAssertEqual(card.dayIndex, 0)
         XCTAssertEqual(card.planId, library.activePlanId)
         // The five names, then a count of what is left — Start is never blind (T1).
-        XCTAssertEqual(card.exercises, ["Bench Press", "Incline Press", "Lateral Raise",
-                                        "Tricep Pushdown", "Plank"])
+        XCTAssertEqual(card.rows.map(\.name), ["Bench Press", "Incline Press", "Lateral Raise",
+                                               "Tricep Pushdown", "Plank"])
         XCTAssertEqual(card.more, 2)
-        XCTAssertEqual(card.subtitle, "Push Pull Legs · 7 exercises",
-                       "no history yet, so no \"last time\" fragment")
+        XCTAssertNil(card.clock, "no history yet, so no clock")
+        XCTAssertNil(card.sentence, "D69: the plan's name and the count left with the subtitle")
 
-        // With history for that day, the subtitle gains the one fragment it can now fill.
+        // With history for that day, the clock says how long it took last time.
         var done = CoreTestSupport.session(rotation(), start: now.addingTimeInterval(-86_400))
         done.endedAt = done.startedAt.addingTimeInterval(48 * 60)
         library.sessions = [done]
-        XCTAssertEqual(HomeStart.current(library: library, now: now).subtitle,
-                       "Push Pull Legs · 7 exercises · 48 min last time")
+        XCTAssertEqual(HomeStart.current(library: library, now: now).clock,
+                       HomeStart.Clock(minutes: "48 min", caption: "last time"))
 
         // A workout in progress takes over the card.
         var running = library
@@ -84,21 +84,21 @@ final class HomeAndAddPlanTests: XCTestCase {
         let calendar = CoreTestSupport.utc()
         XCTAssertEqual(calendar.component(.weekday, from: tuesday), 3, "the fixture day is a Tuesday")
 
-        // D57 (v1.6): the workout is the headline on a rest day too; the schedule is a fragment.
+        // D57 (v1.6): the workout is the headline on a rest day too. D69 (v1.8): the button,
+        // not a subtitle, says when.
         let card = HomeStart.current(library: library, now: tuesday, calendar: calendar)
         XCTAssertEqual(card.title, "Lower")
-        XCTAssertEqual(card.buttonTitle, "Start Lower")
+        XCTAssertEqual(card.buttonTitle, "Start Thursday's Lower")
         XCTAssertEqual(card.dayIndex, 1)
-        XCTAssertEqual(card.exercises, ["Squat"], "the day you would start is the one previewed")
-        let subtitle = try XCTUnwrap(card.subtitle)
-        XCTAssertTrue(subtitle.hasPrefix("Planned for Thu · Upper Lower"), subtitle)
+        XCTAssertEqual(card.rows.map(\.name), ["Squat"], "the day you would start is the one previewed")
+        XCTAssertNil(card.sentence)
 
         // And on its own day the same plan simply starts it.
         let monday = CoreTestSupport.date(7)
         XCTAssertEqual(calendar.component(.weekday, from: monday), 2)
         let onDay = HomeStart.current(library: library, now: monday, calendar: calendar)
         XCTAssertEqual(onDay.title, "Upper")
-        XCTAssertEqual(onDay.buttonTitle, "Start Upper")
+        XCTAssertEqual(onDay.buttonTitle, "Start Today's Upper")
     }
 
     // O65: the week strip is the same projection the month grid uses, for seven days.

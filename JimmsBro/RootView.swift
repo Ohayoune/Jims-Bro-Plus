@@ -192,16 +192,47 @@ extension View {
     /// Today and on History pushes it (P1: zones do not move). Pushed rather than presented, so
     /// what Settings presents, and the introduction that Delete all data makes due again,
     /// present over the tabs as they did when Settings was one.
+    /// D69 (v1.8): drawn as a `QuietGlyph`, lighter than the title under it.
     func settingsGear(_ isPresented: Binding<Bool>) -> some View {
         toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button { isPresented.wrappedValue = true } label: {
-                    Image(systemName: "gearshape")
+                    QuietGlyph(systemName: "gearshape")
                 }
                 .accessibilityLabel("Settings")
             }
+            .quietBackground()
         }
         .navigationDestination(isPresented: isPresented) { SettingsView() }
+    }
+}
+
+/// D69 (v1.8): a toolbar control drawn lighter than the title under it — a grey glyph in a
+/// hairline circle, where iOS 26 fills a circle of glass. Today's gear and ···, and History's
+/// gear, which is the same one (P1: zones do not move).
+struct QuietGlyph: View {
+    let systemName: String
+    @ScaledMetric(relativeTo: .body) private var side: CGFloat = 32
+    @Environment(\.displayScale) private var displayScale
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.body)
+            .foregroundStyle(.secondary)
+            .frame(width: side, height: side)
+            .overlay(Circle().strokeBorder(Color(.separator), lineWidth: 1 / displayScale))
+            .contentShape(Circle())
+    }
+}
+
+extension ToolbarContent {
+    /// D69 (v1.8): no shared glass behind a `QuietGlyph` — its own circle is the button's edge.
+    @ToolbarContentBuilder func quietBackground() -> some ToolbarContent {
+        if #available(iOS 26.0, *) {
+            sharedBackgroundVisibility(.hidden)
+        } else {
+            self
+        }
     }
 }
 
@@ -276,12 +307,22 @@ struct PressableRow: ButtonStyle {
 /// SPEC §4.0: one primary action per screen, full width, accent colour.
 struct PrimaryButton: View {
     let title: String
+    /// D69 (v1.8): a mark before the words, so the button says what it does before it is read —
+    /// the play mark on Today's Start and Resume.
+    var systemImage: String? = nil
     var enabled = true
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text(title).frame(maxWidth: .infinity)
+            Group {
+                if let systemImage {
+                    Label(title, systemImage: systemImage)
+                } else {
+                    Text(title)
+                }
+            }
+            .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.large)

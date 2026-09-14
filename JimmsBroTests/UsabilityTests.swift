@@ -311,8 +311,9 @@ final class UsabilityTests: XCTestCase {
         library.save(rotation(anchor: 7, position: 2), makeActive: true)
         let card = HomeStart.current(library: library, now: day(8), calendar: calendar)
         XCTAssertEqual(card.title, "Push")
-        XCTAssertEqual(card.buttonTitle, "Start Push")
-        XCTAssertEqual(card.subtitle, "Planned for Wed · PPL")
+        // D69 (v1.8): "Planned for Wed" left with the subtitle; the button says when.
+        XCTAssertEqual(card.buttonTitle, "Start Tomorrow's Push")
+        XCTAssertNil(card.sentence)
         XCTAssertNil(card.missed)
         // The weekday case is HomeAndAddPlanTests' O63, rewritten for D57.
     }

@@ -220,7 +220,7 @@ final class BuiltInPlanTests: XCTestCase {
         // Home before: the empty card names the picker.
         let empty = HomeStart.current(library: model.library, now: now)
         XCTAssertTrue(empty.isEmpty)
-        XCTAssertEqual(empty.subtitle, HomeStart.emptySentence)
+        XCTAssertEqual(empty.sentence, HomeStart.emptySentence)
 
         let result = model.loadBuiltInPlan("FullBody", now: now)
         XCTAssertTrue(result.issues.isEmpty, "\(result.issues)")
@@ -238,8 +238,8 @@ final class BuiltInPlanTests: XCTestCase {
         // Home after: the day is named, and Start says what it will do.
         let card = HomeStart.current(library: model.library, now: now)
         XCTAssertEqual(card.title, "Full Body A")
-        XCTAssertEqual(card.buttonTitle, "Start Full Body A")
-        XCTAssertEqual(card.exercises.first, "Barbell Back Squat")
+        XCTAssertEqual(card.buttonTitle, "Start Today's Full Body A")
+        XCTAssertEqual(card.rows.first?.name, "Barbell Back Squat")
 
         // And it is on disk as an ordinary plan.
         let reloaded = AppModel(store: Store(root: root))

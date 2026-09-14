@@ -5,7 +5,8 @@ import XCTest
 #endif
 
 /// T1 (v1.7) — Today is one card (D61): the one message, the ··· items, the exercise block
-/// that is the preview, and the empty card's two choices. T1–T4.
+/// that is the preview, and the empty card's two choices. T1–T4. S1 (v1.8) — nothing without a
+/// cue (D69): no sentence on a day's card, the rows and their sets, the step line. TS1–TS4.
 final class TodayTests: XCTestCase {
     private let calendar = CoreTestSupport.utc()
 
@@ -150,16 +151,17 @@ final class TodayTests: XCTestCase {
         XCTAssertEqual(legs.title, "Legs")
         XCTAssertEqual(legs.exerciseLabel, "Exercises: Squat. Opens Legs")
 
-        // In progress the block still stands, from the session, and the subtitle says where
-        // you are; Resume still goes to the session, not to a day.
+        // In progress the block still stands, from the session, and the clock says how long so
+        // far (D69, v1.8); Resume still goes to the session, not to a day.
         var running = library(plan)
         running.engine = SessionEngine(session: CoreTestSupport.session(plan, start: day(9)),
                                        settings: CoreTestSupport.classic, now: day(9))
         let inProgress = HomeStart.current(library: running, now: day(9).addingTimeInterval(23 * 60),
                                            calendar: calendar)
-        XCTAssertEqual(inProgress.subtitle, "In progress · 0 of 7 sets · 23 min")
+        XCTAssertEqual(inProgress.clock, HomeStart.Clock(minutes: "23 min", caption: "so far"))
+        XCTAssertNil(inProgress.sentence)
         XCTAssertEqual(inProgress.buttonTitle, "Resume Push · 23 min")
-        XCTAssertEqual(inProgress.exercises.count, 5)
+        XCTAssertEqual(inProgress.rows.count, 5)
         XCTAssertEqual(inProgress.more, 2)
         XCTAssertEqual(inProgress.exerciseLabel,
                        "Exercises: Bench Press, Incline Press, Lateral Raise, Tricep Pushdown, Plank, and 2 more. Opens Push")
@@ -173,13 +175,14 @@ final class TodayTests: XCTestCase {
         let empty = card(PlanLibrary(), on: 9)
         XCTAssertTrue(empty.isEmpty)
         XCTAssertEqual(empty.title, "No plan yet")
-        XCTAssertEqual(empty.subtitle, "Choose a built-in plan to start today, or have a chatbot write yours.")
+        XCTAssertEqual(empty.sentence, "Choose a built-in plan to start today, or have a chatbot write yours.")
+        XCTAssertNil(empty.clock)
         XCTAssertEqual(empty.buttonTitle, "Choose a plan")
         XCTAssertEqual(empty.buttonTitle, Introduction.choosePlan, "the intro's button says the same")
         XCTAssertEqual(empty.link, "Try a short practice workout")
         XCTAssertEqual(empty.alternatives, [])
         XCTAssertNil(empty.message)
-        XCTAssertTrue(empty.exercises.isEmpty)
+        XCTAssertTrue(empty.rows.isEmpty)
         XCTAssertNil(empty.exerciseLabel)
 
         // Only the empty card has the link.
@@ -202,5 +205,117 @@ final class TodayTests: XCTestCase {
         XCTAssertEqual(list.components(separatedBy: " · "), AppTab.allCases.map(\.title))
         XCTAssertTrue(root.contains("ForEach(AppTab.allCases"), "RootView no longer draws AppTab's list")
         XCTAssertEqual(root.components(separatedBy: ".tabItem").count, 2, "a tab drawn outside AppTab's list")
+    }
+
+    // TS1 (D69): a day's card carries no sentence — no plan name, no "Planned for", no count —
+    // on a workout day, on a rest day that headlines the next workout, and mid-session.
+    func testADaysCardCarriesNoSentence() throws {
+        XCTAssertFalse(Mirror(reflecting: card(PlanLibrary(), on: 9)).children.contains { $0.label == "subtitle" },
+                       "HomeStart has no subtitle")
+
+        // A one-day plan with last time's workout: the clock, not a fragment.
+        let oneDay = CoreTestSupport.plan()
+        var trained = library(oneDay)
+        trained.sessions = [CoreTestSupport.completed(plan: oneDay)]
+        let workout = card(trained, on: 9)
+        XCTAssertEqual(workout.clock, HomeStart.Clock(minutes: "2 min", caption: "last time"))
+
+        // A weekday plan on a Tuesday: Thursday's Lower, and the button says when.
+        let target = SetTarget(work: .reps(.fixed(5)), weight: 100, restSeconds: 180)
+        let weekday = Plan(name: "Upper Lower", units: .kg, schedule: .weekday,
+                           days: [Day(name: "Upper", weekday: .monday, exercises: [Exercise(name: "Press", sets: [target])]),
+                                  Day(name: "Lower", weekday: .thursday, exercises: [Exercise(name: "Squat", sets: [target])])],
+                           importedAt: day(1), sourceText: "", cycle: [])
+        let rest = card(library(weekday), on: 1)
+        XCTAssertEqual(rest.buttonTitle, "Start Thursday's Lower")
+
+        // Mid-session.
+        let push = rotation()
+        var running = library(push)
+        running.engine = SessionEngine(session: CoreTestSupport.session(push, start: day(9)),
+                                       settings: CoreTestSupport.classic, now: day(9))
+        let open = card(running, on: 9)
+        XCTAssertTrue(open.isInProgress)
+
+        for (start, plan) in [(workout, oneDay), (rest, weekday), (open, push)] {
+            XCTAssertNil(start.sentence, start.title)
+            let shown = [start.title, start.buttonTitle, start.clock?.minutes, start.clock?.caption,
+                         start.message?.text].compactMap { $0 } + start.rows.map(\.name)
+            for text in shown + [start.exerciseLabel ?? ""] {
+                XCTAssertFalse(text.contains("Planned for"), text)
+                XCTAssertFalse(text.contains(plan.name), text)
+            }
+            for text in shown { XCTAssertFalse(text.contains("exercises"), text) }
+        }
+    }
+
+    // TS2 (D69): the rows are the first five exercises with their sets — a drop set is one
+    // block — and the rest are "and N more".
+    func testRowsCarryTheirSets() throws {
+        let set = SetTarget(work: .reps(.fixed(8)), weight: 60, restSeconds: 90)
+        var drop = set
+        drop.drops = [DropTarget(work: .reps(.fixed(8)), weight: 45)]
+        let names = ["Squat", "Bench Press", "Row", "Plank", "Curl", "Calf Raise"]
+        var exercises = zip(names, [4, 3, 2, 1, 5, 2]).map { name, count in
+            Exercise(name: name, sets: Array(repeating: set, count: count))
+        }
+        exercises[2].sets = [set, drop]
+        let plan = Plan(name: "Full Body", units: .kg, schedule: .rotation,
+                        days: [Day(name: "Full", exercises: exercises)],
+                        importedAt: day(1), sourceText: "", cycle: [.day(0)])
+        let full = card(library(plan), on: 9)
+        XCTAssertEqual(full.rows, [HomeStart.PreviewRow(name: "Squat", sets: 4),
+                                   HomeStart.PreviewRow(name: "Bench Press", sets: 3),
+                                   HomeStart.PreviewRow(name: "Row", sets: 2),
+                                   HomeStart.PreviewRow(name: "Plank", sets: 1),
+                                   HomeStart.PreviewRow(name: "Curl", sets: 5)])
+        XCTAssertEqual(full.more, 1)
+        XCTAssertEqual(full.exerciseLabel, "Exercises: Squat, Bench Press, Row, Plank, Curl, and 1 more. Opens Full")
+        XCTAssertTrue(full.rows.allSatisfy { $0.logged == nil }, "nothing fills before a session")
+    }
+
+    // TS3 (D69): mid-session a row's blocks are the session's sets and the filled ones are the
+    // engine's logged sets — a drop set counts once, its drop logged or not.
+    func testLoggedSetsAreTheEngines() throws {
+        let plan = CoreTestSupport.plan(sets: 2, secondExercise: true,
+                                        drops: [DropTarget(work: .reps(.fixed(8)), weight: 40)])
+        var engine = SessionEngine(session: CoreTestSupport.session(plan, start: day(9)),
+                                   settings: CoreTestSupport.classic, now: day(9))
+        engine.apply(.logSet(step: 0, result: .reps(count: 10, weight: 60)), now: day(9).addingTimeInterval(60))
+        engine.apply(.logSet(step: 1, result: .reps(count: 8, weight: 40)), now: day(9).addingTimeInterval(90))
+        XCTAssertEqual(engine.session.steps.prefix(2).map(\.status), [.logged, .logged], "the set and its drop")
+        var running = library(plan)
+        running.engine = engine
+        let open = HomeStart.current(library: running, now: day(9).addingTimeInterval(120), calendar: calendar)
+        XCTAssertEqual(open.rows, [HomeStart.PreviewRow(name: "Bench Press", sets: 2, logged: 1),
+                                   HomeStart.PreviewRow(name: "Row", sets: 2, logged: 0)])
+        let engineCount = engine.session.steps.filter { $0.exerciseIndex == 0 && $0.dropIndex == 0 && $0.status == .logged }.count
+        XCTAssertEqual(open.rows.first?.logged, engineCount)
+        XCTAssertEqual(open.clock, HomeStart.Clock(minutes: "2 min", caption: "so far"))
+        // The plan's own card has the same blocks, none filled.
+        XCTAssertEqual(card(library(plan), on: 9).rows.map(\.sets), [2, 2])
+    }
+
+    // TS4 (D69): the step count is the ···'s line, only while the plan carries a progression that
+    // is still running — "Week 2 of 4" by the calendar, "Step 1 of 4" by performance.
+    func testTheStepLineOnlyWithAProgression() throws {
+        XCTAssertNil(card(library(rotation()), on: 9).stepLine, "no progression, no line")
+
+        let byCalendar = Progression(startDate: calendar.startOfDay(for: day(1)), weeks: 4, entries: [])
+        let week = card(library(rotation(progression: byCalendar)), on: 9)
+        XCTAssertEqual(week.stepLine, "Week 2 of 4")
+        XCTAssertFalse(week.alternatives.isEmpty, "the ··· is there to hold it")
+
+        var oneDay = CoreTestSupport.plan()
+        let entry = ProgressionEntry(dayName: "Push", exerciseName: "Bench Press",
+                                     weeks: Array(repeating: ProgressionWeek(weight: 62.5), count: 4))
+        oneDay.progression = Progression(startDate: calendar.startOfDay(for: day(1)), weeks: 4,
+                                         entries: [entry], mode: .performance)
+        XCTAssertEqual(card(library(oneDay), on: 9).stepLine, "Step 1 of 4")
+
+        // Run its course: no line, and the message says so instead.
+        let finished = card(library(rotation(progression: finishedByTheNinth())), on: 9)
+        XCTAssertNil(finished.stepLine)
+        XCTAssertEqual(finished.message, .progressionFinished)
     }
 }

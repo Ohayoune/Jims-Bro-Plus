@@ -38,7 +38,7 @@ final class IntroductionTests: XCTestCase {
         var library = PlanLibrary()
         XCTAssertEqual(HomeStart.current(library: library, now: now).buttonTitle, Introduction.choosePlan)
         library.save(CoreTestSupport.plan(), makeActive: true)
-        XCTAssertEqual(HomeStart.current(library: library, now: now).buttonTitle, "Start Push")
+        XCTAssertEqual(HomeStart.current(library: library, now: now).buttonTitle, "Start Today's Push")
         // "Log set" is the workout's primary action on a set of reps.
         let engine = CoreTestSupport.engine()
         let screen = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [], now: now,
