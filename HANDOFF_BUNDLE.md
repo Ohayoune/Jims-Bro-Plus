@@ -118,7 +118,7 @@ both tabs (`settingsGear`). The calendar and the week's line open History
 (`Features/History/CalendarView.swift`); the tapped-day line is Core's (`CalendarText.line`) and
 has no Start this, because a workout starts on Today. Controls are earned (T4): `Core/Gates.swift`
 has one function per row of SPEC §6.40's table, pinned by T21, and the views ask it — Month waits
-for a workout older than this week, and Metrics, Find an exercise, the search field and Goals
+for a workout older than this week, and Metrics, Find an exercise and Goals
 for the first workout. Each day has a colour (T5): `Core/DayColour.swift` gives a day its colour by
 its place in the plan's day list, derived and never stored, and `DaySquare.swift` draws it in
 SPEC §6.41's four places — Today, the calendar, History's rows, and the workout header with the
@@ -470,9 +470,9 @@ Leads with "**Workout saved**", then one line of what happened — "Push · 48 m
 **v1.5 (D54, §6.30)**: a goal this workout was the first to reach is said under the headline — "Goal reached: Barbell Bench Press 100 kg × 5" — in the reserved green, like a record.
 
 ### 4.10 History
-**The calendar first (v1.7, D63, §6.39).** History opens with the calendar that was Home's until v1.7, its drawing unchanged: a **7-day strip of the current week**, with **Month** — once a workout is older than this week (D64, §6.40) — disclosing the full grid (7 columns, weeks as rows, ‹ › to change month) and **Week** collapsing it again; cells at least 44 pt in both (P6). A finished day is filled and named in its day's colour, where v1.6 used the reserved green, and a day the plan expects is named in its day's colour, where v1.6 used the accent (D65, §6.41; §6.12: the active plan only, never more than 62 days ahead); a scheduled rest day is a short dash; a day the plan says nothing about is its number alone; today is outlined in ink. Tapping a day shows one line under the grid: "Wed 10 · Legs · 52 min ›", the way into that workout — pushed onto History like its row below, a chooser first when the day holds two — "Sat 13 · Push · planned", or "Sun 14 · Rest day"; tapping the same day again opens a finished one and otherwise clears the line. A day the plan says nothing about shows no line. There is no **Start this**: a workout starts on Today (§4.1). Under the calendar, **the week's line**: "2 workouts this week · 1 h 32 min", or "No workouts yet this week" — this week is the calendar week containing today, the seven days the strip shows. With no workouts at all the strip still shows the plan's week — worth seeing on day one — with "No workouts yet" under it, then **Import from another app** (D45) with "Finished workouts appear here." Below the calendar, as before: Metrics and Find an exercise, Goals, and the months — the first three, and the search field, from the first workout (D64, §6.40). A search replaces all of it, calendar included, with the exercises it finds.
+**The calendar first (v1.7, D63, §6.39).** History opens with the calendar that was Home's until v1.7, its drawing unchanged: a **7-day strip of the current week**, with **Month** — once a workout is older than this week (D64, §6.40) — disclosing the full grid (7 columns, weeks as rows, ‹ › to change month) and **Week** collapsing it again; cells at least 44 pt in both (P6). A finished day is filled and named in its day's colour, where v1.6 used the reserved green, and a day the plan expects is named in its day's colour, where v1.6 used the accent (D65, §6.41; §6.12: the active plan only, never more than 62 days ahead); a scheduled rest day is a short dash; a day the plan says nothing about is its number alone; today is outlined in ink. Tapping a day shows one line under the grid: "Wed 10 · Legs · 52 min ›", the way into that workout — pushed onto History like its row below, a chooser first when the day holds two — "Sat 13 · Push · planned", or "Sun 14 · Rest day"; tapping the same day again opens a finished one and otherwise clears the line. A day the plan says nothing about shows no line. There is no **Start this**: a workout starts on Today (§4.1). Under the calendar, **the week's line**: "2 workouts this week · 1 h 32 min", or "No workouts yet this week" — this week is the calendar week containing today, the seven days the strip shows. With no workouts at all the strip still shows the plan's week — worth seeing on day one — with "No workouts yet" under it, then **Import from another app** (D45) with "Finished workouts appear here." Below the calendar, as before: Metrics and Find an exercise, Goals, and the months — the first three from the first workout (D64, §6.40). There is no search field (D66, §6.42): **Find an exercise** is the way to an exercise's history.
 
-Sessions newest first by month, with a **search box** that finds an exercise by name (D30, v1.1) — most recently trained first — and opens its history directly (**v1.6, D59**: also a **Find an exercise** row under Metrics, listing every exercise most recent first, because the search field is not drawn on every iOS; and a session's row reads "28 min · 16 sets · 13,920 kg lifted", not "28:08 · 16 sets · 13,920 kg"; **v1.7, D65, §6.41**: each row leads with a small square in its day's colour, grey for a workout whose day is in no plan). Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1). **v1.5 (D54, §6.30)**: a **Goals** section at the top, under Metrics — each goal's exercise, its line ("100 kg × 5 · best 82.5 kg × 5 · by 1 Dec", or "reached 3 Sep" in green) and a bar of how far along it is; **Set a goal**; swipe to remove. An exercise's own screen has **Set a goal** too.
+Sessions newest first by month, and under Metrics a **Find an exercise** row listing every exercise, most recently trained first, each opening its history (D59, v1.6) — since v1.7 the only way to find one. *(v1.1–v1.7's T6: also a **search box** that found an exercise by name, D30; D66 removed it, §6.42 — a second way to the list the row opens.)* (**v1.6, D59**: a session's row reads "28 min · 16 sets · 13,920 kg lifted", not "28:08 · 16 sets · 13,920 kg"; **v1.7, D65, §6.41**: each row leads with a small square in its day's colour, grey for a workout whose day is in no plan). Session detail (editable, deletable, with a confirmation on delete, and **Rename exercise**, which moved here from the workout menu in v1.1); exercise history with best set, every session that included it, and a **chart of top weight over time with the reps annotated** (D13, built in v1.1's R5). A set that beat everything before it carries a **PR** badge here and on the Summary (D30). Tapping an exercise name anywhere opens it. A skipped step in session detail can be recovered the same way as in the live Overview (D27 v1.1). **v1.5 (D54, §6.30)**: a **Goals** section at the top, under Metrics — each goal's exercise, its line ("100 kg × 5 · best 82.5 kg × 5 · by 1 Dec", or "reached 3 Sep" in green) and a bar of how far along it is; **Set a goal**; swipe to remove. An exercise's own screen has **Set a goal** too.
 
 ### 4.11 Settings
 Reached from the gear at the top-left of Today and of History, and pushed (v1.7, D62, §6.38 — it was a tab until then). Units, default rest, **warm-up length** (D32, v1.2), **between exercises** (D33, v1.2) — each with a row of preset buttons (Off · 1 · 2 · 3 · 5 min; 60 · 90 · 120 · 180 s) beside its stepper since v1.6 (D59) — sound, vibration, notifications state, keep awake, weight step, **smallest weight change** (D35, v1.2), Export backup, **Import backup** (D31, v1.1), **Export history (CSV)** and **Import history (CSV)** (D45, v1.3), Delete all data, About — the version, the counts, and **How the app works** (D47, v1.4, §6.24), which reopens the introduction with **Done** in place of Choose a plan. (The home-chart metric row went with the sparkline in v1.1's R3.)
@@ -1002,7 +1002,7 @@ The rule behind §6.37, made a table (`docs/ITERATION_8_PLAN.md`, T4, which prop
 | Control | Appears when | Core |
 |---|---|---|
 | **Month** (History's calendar) | a session exists that is older than the current week — the calendar week the strip shows | `Gates.month` |
-| **Metrics**, **Find an exercise** and the search field (History) | at least one session | `Gates.metricsAndFind` |
+| **Metrics** and **Find an exercise** (History) | at least one session | `Gates.metricsAndFind` |
 | **Goals** section (History) | at least one session | `Gates.goals` |
 | **Another day** (Today's ···) | the plan has more than one day — or any day, when nothing is scheduled and the chooser is the only way to a workout | `Gates.anotherDay` |
 | **Change plan** (Today's ···) | at least one plan | `Gates.changePlan` |
@@ -1027,6 +1027,11 @@ Parked from iteration 7 and chosen with v1.7's plan (`docs/ITERATION_8_PLAN.md`,
   4. **The workout header**: the square leads the stage line — the header names no day, since D34 made it the stage — and the Lock Screen activity carries it too, before its title there and in the expanded Island; the compact Island, which has room for a colour and nothing else (D41), draws its figure in it while working, and a break keeps the accent (§4.5, §6.17).
 - **Nowhere else**: not Start, not the tab bar, not a background, not the Summary. Core decides the colour — `HomeStart.dayColour`, `DayEntry.dayColour(plans:)`, `DayColour.of(session:plans:)`, `WorkoutActivityState.dayColour` — and the view layer owns the mapping to a `Color` in one file, `DaySquare.swift`, compiled into the app and the widget extension alike (T23 reads it).
 - **Green is also the colour reserved for "this happened"** (§4.0, v1.1) — a logged set, a record, a goal reached. The palette keeps it for the first day, as the plan chose: in the calendar the fill now says *happened* and the colour says *which day*, so a plan's first day reads as it did in v1.6.
+
+### 6.42 Before v1.7 shipped: the owner's review (D66–D68)
+The owner walked v1.7 on 2026-09-13, before it went to `main`, and asked for the release's own rule once more — one way to a thing, in the place it belongs.
+
+- **One way to find an exercise (D66).** History's search field is gone. It and the **Find an exercise** row (D59) led to the same exercises, and the field was the screen's top control, above the calendar it was meant to sit under. The row stays, under Metrics, from the first workout (§6.40); `ExerciseText.search` still orders its list, most recently trained first (J28). A pin holds `HistoryView` to no search field (T27).
 
 ## 7. Data model (Core, Codable, no UI imports)
 
@@ -2650,6 +2655,14 @@ No app code beyond the version; the check is the script's, as U7 was for v1.6.
 | ID | Kind | Case | Expected |
 |---|---|---|---|
 | T26 | check | (v1.7) `tools/check_release.py` | Version 1.7, build 1, on every target and in `docs/APP_STORE.md` |
+
+### T7 — The owner's review before the push (D66–D68)
+
+What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 went to `main` (SPEC §6.42). The pins read source files, so, like T21, they run on the host routes.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| T27 | unit | (D66, v1.7) One way to find an exercise | `HistoryView.swift` draws no `.searchable` field and keeps the **Find an exercise** row |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -5762,6 +5775,7 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.7 T6: **1.5 → 1.7.** Nothing has been submitted, so v1.6 kept 1.5; the plan names 1.7, and App Store Connect needs only a larger number than the last upload.
 - v1.7 T6: **a rename is not a rule change.** Where SPEC only named the screen, Home became Today in place; where the rule itself changed — D18's row in §1, the empty card's button in §5.1, the progression link, v1.6's hierarchy line — the older text stays in italics, as §4.0 asks.
 - v1.7 T6: **the store screenshots are not retaken.** `APP_STORE.md` §5 names Today and History as they now are; its 1320 × 2868 captures are taken with the submission, which is the owner's.
+- v1.7 review (D66): **one way to find an exercise.** The owner's call on 2026-09-13, before the push: History's search field went and the **Find an exercise** row stayed. The two led to the same list, and the field was History's top control. `ExerciseText.search` stays — it orders the row's list (J28) — and T27 pins `HistoryView` to no `.searchable`.
 `````
 
 ---
@@ -8054,7 +8068,7 @@ both tabs (`settingsGear`). The calendar and the week's line open History
 (`Features/History/CalendarView.swift`); the tapped-day line is Core's (`CalendarText.line`) and
 has no Start this, because a workout starts on Today. Controls are earned (T4): `Core/Gates.swift`
 has one function per row of SPEC §6.40's table, pinned by T21, and the views ask it — Month waits
-for a workout older than this week, and Metrics, Find an exercise, the search field and Goals
+for a workout older than this week, and Metrics, Find an exercise and Goals
 for the first workout. Each day has a colour (T5): `Core/DayColour.swift` gives a day its colour by
 its place in the plan's day list, derived and never stored, and `DaySquare.swift` draws it in
 SPEC §6.41's four places — Today, the calendar, History's rows, and the workout header with the

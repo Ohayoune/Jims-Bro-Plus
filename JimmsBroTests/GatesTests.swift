@@ -55,7 +55,7 @@ final class GatesTests: XCTestCase {
         XCTAssertFalse(Gates.month(sessions: [running(on: 1)], today: day(14), calendar: monday))
     }
 
-    // T15: Metrics and Find an exercise — the row and the search field — from the first workout.
+    // T15: Metrics and Find an exercise, from the first workout.
     func testMetricsAndFindFromTheFirstWorkout() {
         XCTAssertFalse(Gates.metricsAndFind(sessions: []))
         XCTAssertTrue(Gates.metricsAndFind(sessions: [finished(on: 8)]))
@@ -172,5 +172,17 @@ final class GatesTests: XCTestCase {
         }
         XCTAssertEqual(named.count, rows.count, "a row of §6.40 names no Gates function")
         XCTAssertEqual(named.sorted(), functions.sorted(), "§6.40's table and Gates disagree")
+    }
+
+    // MARK: - T7 (v1.7): the owner's review before the push (SPEC §6.42)
+
+    // T27 (D66): one way to find an exercise — the row. The search field was a second way to
+    // the same list, at the top of History, and it went.
+    func testHistoryHasOneWayToFindAnExercise() throws {
+        guard let source = FixtureLoader.doc("JimmsBro/Features/History/HistoryView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        XCTAssertFalse(source.contains(".searchable("), "History draws a search field again")
+        XCTAssertTrue(source.contains("Label(\"Find an exercise\""), "History lost its Find an exercise row")
     }
 }

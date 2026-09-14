@@ -8,86 +8,67 @@ struct HistoryView: View {
     @State private var path: [HistoryRoute] = []
     /// D25 (v1.1): swipe-to-delete confirms, matching every other delete path.
     @State private var confirmDeleteId: UUID?
-    /// D30 (v1.1): find one exercise without remembering which day you did it on.
-    @State private var query = ""
     /// D45 (v1.3): the picker behind "Import from another app".
     @State private var choosingHistory = false
     /// D62 (v1.7): the gear, top-left, pushes Settings — the same place as on Today.
     @State private var showingSettings = false
 
-    private var matches: [String] { ExerciseText.search(query, sessions: model.sessions) }
-    /// D64 (v1.7): Metrics, Find an exercise and the search field are earned by the first
-    /// workout (§6.40) — before it there is nothing to count or to find.
+    /// D64 (v1.7): Metrics and Find an exercise are earned by the first workout (§6.40) —
+    /// before it there is nothing to count or to find.
     private var finding: Bool { Gates.metricsAndFind(sessions: model.sessions) }
 
     var body: some View {
         NavigationStack(path: $path) {
-            Group {
-                // A query left behind when the last workout goes is not shown: its field went too.
-                if finding, !query.trimmed.isEmpty {
-                    List {
-                        if matches.isEmpty {
-                            ContentUnavailableView.search(text: query)
+            List {
+                // D63 (v1.7): the calendar is the record's — what happened and what the
+                // plan expects — so History opens with it, the week's line under it. A
+                // finished day opens here, pushed like its row below.
+                Section {
+                    CalendarView { path.append(.session($0)) }
+                    // With no workouts the strip still shows: the plan's week is worth
+                    // seeing on day one.
+                    Text(model.sessions.isEmpty ? "No workouts yet"
+                                                : HomeActivity.line(sessions: model.sessions))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                if model.sessions.isEmpty {
+                    // D45 (v1.3): the one place an empty History can offer what fills it.
+                    Section {
+                        Button("Import from another app") { choosingHistory = true }
+                    } footer: {
+                        Text("Finished workouts appear here.")
+                    }
+                }
+                if finding {
+                    // D39 (v1.2): the numbers over time, one tap from the list of workouts
+                    // that produced them.
+                    Section {
+                        NavigationLink(value: HistoryRoute.metrics) {
+                            Label("Metrics", systemImage: "chart.bar")
                         }
-                        ForEach(matches, id: \.self) { name in
-                            NavigationLink(value: HistoryRoute.exercise(name: name,
-                                                                       units: model.displayUnits)) {
-                                Text(name)
-                            }
+                        // D66 (v1.7): the one way to an exercise's chart. D59 added the row
+                        // because the search field was not drawn on every iOS; the field was
+                        // then a second way to the same list, and it went.
+                        NavigationLink(value: HistoryRoute.exercises) {
+                            Label("Find an exercise", systemImage: "magnifyingglass")
                         }
                     }
-                } else {
-                    List {
-                        // D63 (v1.7): the calendar is the record's — what happened and what the
-                        // plan expects — so History opens with it, the week's line under it. A
-                        // finished day opens here, pushed like its row below.
-                        Section {
-                            CalendarView { path.append(.session($0)) }
-                            // With no workouts the strip still shows: the plan's week is worth
-                            // seeing on day one.
-                            Text(model.sessions.isEmpty ? "No workouts yet"
-                                                        : HomeActivity.line(sessions: model.sessions))
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-                        if model.sessions.isEmpty {
-                            // D45 (v1.3): the one place an empty History can offer what fills it.
-                            Section {
-                                Button("Import from another app") { choosingHistory = true }
-                            } footer: {
-                                Text("Finished workouts appear here.")
+                }
+                // D54 (v1.5): the goals, and how close each is — once there is a workout
+                // to measure them against (D64, §6.40).
+                if Gates.goals(sessions: model.sessions) {
+                    GoalsSection()
+                }
+                ForEach(model.historyMonths) { month in
+                    Section(month.title) {
+                        ForEach(month.sessions) { session in
+                            NavigationLink(value: HistoryRoute.session(session.id)) {
+                                row(session)
                             }
                         }
-                        if finding {
-                            // D39 (v1.2): the numbers over time, one tap from the list of workouts
-                            // that produced them.
-                            Section {
-                                NavigationLink(value: HistoryRoute.metrics) {
-                                    Label("Metrics", systemImage: "chart.bar")
-                                }
-                                // D59 (v1.6): the search field is not drawn on every iOS; the fastest
-                                // route to an exercise's chart needs a row of its own.
-                                NavigationLink(value: HistoryRoute.exercises) {
-                                    Label("Find an exercise", systemImage: "magnifyingglass")
-                                }
-                            }
-                        }
-                        // D54 (v1.5): the goals, and how close each is — once there is a workout
-                        // to measure them against (D64, §6.40).
-                        if Gates.goals(sessions: model.sessions) {
-                            GoalsSection()
-                        }
-                        ForEach(model.historyMonths) { month in
-                            Section(month.title) {
-                                ForEach(month.sessions) { session in
-                                    NavigationLink(value: HistoryRoute.session(session.id)) {
-                                        row(session)
-                                    }
-                                }
-                                .onDelete { offsets in
-                                    confirmDeleteId = offsets.first.map { month.sessions[$0].id }
-                                }
-                            }
+                        .onDelete { offsets in
+                            confirmDeleteId = offsets.first.map { month.sessions[$0].id }
                         }
                     }
                 }
@@ -103,7 +84,6 @@ struct HistoryView: View {
             .navigationTitle("History")
             // D62 (v1.7): Settings, from the same gear as Today's, in the same place.
             .settingsGear($showingSettings)
-            .modifier(FindAnExercise(earned: finding, query: $query))
             .historyImportFlow(choosing: $choosingHistory)
             .confirmationDialog("Delete this workout?", isPresented: Binding(
                 get: { confirmDeleteId != nil }, set: { if !$0 { confirmDeleteId = nil } }),
@@ -157,7 +137,8 @@ enum HistoryRoute: Hashable {
     case exercises
 }
 
-/// D59 (v1.6): the list behind History's **Find an exercise** row.
+/// D59 (v1.6): the list behind History's **Find an exercise** row — since D66 (v1.7) the only
+/// way to it.
 struct ExercisesListView: View {
     @Environment(AppModel.self) private var model
 
@@ -169,20 +150,5 @@ struct ExercisesListView: View {
         }
         .navigationTitle("Exercises")
         .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-/// D64 (v1.7): the search field is Find an exercise too, so it arrives with the row (§6.40). A
-/// field over no workouts could only ever say "No results".
-private struct FindAnExercise: ViewModifier {
-    let earned: Bool
-    @Binding var query: String
-
-    @ViewBuilder func body(content: Content) -> some View {
-        if earned {
-            content.searchable(text: $query, prompt: "Find an exercise")
-        } else {
-            content
-        }
     }
 }

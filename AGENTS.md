@@ -100,7 +100,7 @@ both tabs (`settingsGear`). The calendar and the week's line open History
 (`Features/History/CalendarView.swift`); the tapped-day line is Core's (`CalendarText.line`) and
 has no Start this, because a workout starts on Today. Controls are earned (T4): `Core/Gates.swift`
 has one function per row of SPEC §6.40's table, pinned by T21, and the views ask it — Month waits
-for a workout older than this week, and Metrics, Find an exercise, the search field and Goals
+for a workout older than this week, and Metrics, Find an exercise and Goals
 for the first workout. Each day has a colour (T5): `Core/DayColour.swift` gives a day its colour by
 its place in the plan's day list, derived and never stored, and `DaySquare.swift` draws it in
 SPEC §6.41's four places — Today, the calendar, History's rows, and the workout header with the

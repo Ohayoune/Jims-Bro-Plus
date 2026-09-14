@@ -976,6 +976,14 @@ No app code beyond the version; the check is the script's, as U7 was for v1.6.
 |---|---|---|---|
 | T26 | check | (v1.7) `tools/check_release.py` | Version 1.7, build 1, on every target and in `docs/APP_STORE.md` |
 
+### T7 — The owner's review before the push (D66–D68)
+
+What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 went to `main` (SPEC §6.42). The pins read source files, so, like T21, they run on the host routes.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| T27 | unit | (D66, v1.7) One way to find an exercise | `HistoryView.swift` draws no `.searchable` field and keeps the **Find an exercise** row |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|
