@@ -103,10 +103,13 @@ struct PlanDetailView: View {
                 }
                 // D43 (v1.3): one sheet for every JSON edit; Save is a `PlanEdit.Operation`
                 // through the import pipeline, and a refusal stays in the sheet with the text.
+                // D77 (v1.9): the point says what the JSON is, where it lands and what Save does.
                 .sheet(item: $fragment) { target in
-                    JSONFragmentSheet(title: target.title, initialText: target.initialText(plan),
-                                      footer: target.footer) { text in
-                        await model.editPlan(planId, target.operation(text))
+                    if let point = target.point(plan) {
+                        JSONFragmentSheet(point: point) { text in
+                            guard let operation = point.operation(text) else { return [] }
+                            return await model.editPlan(planId, operation)
+                        }
                     }
                 }
                 .alert("Rename day", isPresented: Binding(get: { renamingDay != nil },

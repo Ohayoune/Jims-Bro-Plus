@@ -220,6 +220,21 @@ enum PlanEdit {
     /// exercises: a plan gives its days (or all its exercises), a day gives itself (or its
     /// exercises), an exercise gives itself (or a day of one), and an array is read the same way.
     static func fragment(_ text: String, as kind: FragmentKind) -> (values: [RawJSON]?, issues: [Issue]) {
+        let read = located(text, as: kind)
+        return (read.values?.map(\.value), read.issues)
+    }
+
+    /// D77 (v1.9): one value of a fragment, and where the reader found it in the JSON — `[]` for
+    /// the whole of it, `[1]`, `days[0]`, `[0].exercises[2]` — so the JSON sheet can mark the line
+    /// an error names. Nil for a day made here out of loose exercises, which no line of the text is.
+    struct Located {
+        var value: RawJSON
+        var origin: [JSONLocator.Component]?
+    }
+
+    /// `fragment(_:as:)`, keeping each value's origin: the one reading of a fragment's shape, so
+    /// the place an error is marked is the place its value was read from.
+    static func located(_ text: String, as kind: FragmentKind) -> (values: [Located]?, issues: [Issue]) {
         let extracted = PlanImport.extract(text)
         guard let body = extracted.value else { return (nil, extracted.issues) }
         let decoded = PlanImport.decode(body)
@@ -227,19 +242,29 @@ enum PlanEdit {
         let issues = extracted.issues + decoded.issues
         func isDay(_ value: RawJSON) -> Bool { value.object?["exercises"] != nil }
         func isPlan(_ value: RawJSON) -> Bool { value.object?["days"] != nil }
-        let list: [RawJSON]
-        if let array = raw.array { list = array } else if raw.object != nil { list = [raw] } else {
+        // The elements of `key` in `parent`, each found under its parent.
+        func children(_ parent: Located, _ key: String) -> [Located] {
+            (parent.value[key]?.array ?? []).enumerated().map { index, child in
+                Located(value: child, origin: parent.origin.map { $0 + [.key(key), .index(index)] })
+            }
+        }
+        let list: [Located]
+        if let array = raw.array {
+            list = array.enumerated().map { Located(value: $1, origin: [.index($0)]) }
+        } else if raw.object != nil {
+            list = [Located(value: raw, origin: [])]
+        } else {
             return (nil, issues + [Issue(severity: .error, code: "E_NOT_A_PLAN", path: "",
                                          message: "This JSON isn't a workout plan. Use an object with days or exercises.")])
         }
-        guard !list.isEmpty, list.allSatisfy({ $0.object != nil }) else {
+        guard !list.isEmpty, list.allSatisfy({ $0.value.object != nil }) else {
             return (nil, issues + [Issue(severity: .error, code: "E_NOT_A_PLAN", path: "",
                                          message: "Paste an exercise, a day, or a list of them.")])
         }
         // Flatten whatever was pasted down to the shape asked for.
-        let days: [RawJSON] = list.flatMap { value -> [RawJSON] in
-            if isPlan(value) { return value["days"]?.array ?? [] }
-            if isDay(value) { return [value] }
+        let days: [Located] = list.flatMap { item -> [Located] in
+            if isPlan(item.value) { return children(item, "days") }
+            if isDay(item.value) { return [item] }
             return []
         }
         // An object that is neither a plan nor a day is an exercise when it says something an
@@ -251,15 +276,16 @@ enum PlanEdit {
         func isExerciseLike(_ value: RawJSON) -> Bool {
             !Set(value.object?.keys.map { $0 } ?? []).isDisjoint(with: exerciseKeys)
         }
-        let loose = list.filter { !isPlan($0) && !isDay($0) }
+        let loose = list.filter { !isPlan($0.value) && !isDay($0.value) }
         switch kind {
         case .exercises:
-            let fromDays = days.flatMap { $0["exercises"]?.array ?? [] }
-            return (fromDays + loose, issues)
+            return (days.flatMap { children($0, "exercises") } + loose, issues)
         case .days:
-            let exercises = loose.filter(isExerciseLike)
-            let bare = loose.filter { !isExerciseLike($0) }
-            return (days + bare + (exercises.isEmpty ? [] : [.object(["exercises": .array(exercises)])]), issues)
+            let exercises = loose.filter { isExerciseLike($0.value) }
+            let bare = loose.filter { !isExerciseLike($0.value) }
+            let gathered: [Located] = exercises.isEmpty ? []
+                : [Located(value: .object(["exercises": .array(exercises.map(\.value))]), origin: nil)]
+            return (days + bare + gathered, issues)
         }
     }
 

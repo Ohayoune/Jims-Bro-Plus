@@ -174,11 +174,13 @@ date (D76), **the JSON sheet redone** at every fragment point — named, pre-fil
 line, a Save that says its effect (D77) — and **Plans that speak in squares** (D78 — a circle to
 mark and a button to confirm, the page with the cycle as squares and every day closed until
 tapped). The requirements were settled in two rounds on the "Swapping Days" artifact linked from
-the plan. Q0–Q3 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
+the plan. Q0–Q5 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
 Today, Q3 the ··· in squares with progression left to History, Q4 a day's exercises changed for one
 date — a day of this plan, a day borrowed from another plan (outlined in its colour) or a day
-written just for the date (outlined in ink), `Core/ChangeDay.swift` and `ChangeDayView` — and
-`docs/BUILD_STATUS.md` says what was run; Q5 is next.
+written just for the date (outlined in ink), `Core/ChangeDay.swift` and `ChangeDayView` — and Q5
+the JSON sheet redone at its five points: named, pre-filled with an example that saves as it
+stands, the error marked at its line or nowhere (`Core/JSONPoint.swift`, `Core/JSONLocator.swift`),
+and a Save that says its effect. `docs/BUILD_STATUS.md` says what was run; Q6 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -468,7 +470,7 @@ List of plans (active one marked), reached from Today's ··· → **Change plan
 - **Progression** (D44, v1.3, §6.21) is History's since v1.7 (D67, §4.10, §6.42), for the active plan *(v1.3–v1.7's T6: one row here, under the repeat block)*. The row reads "Plan it", "Week 3 of 8", "Step 3 of 8" (D53) or "Finished" — with, since v1.5 (D50), a second line saying what it is ("A chatbot plans your next steps from what you have lifted") and the accent chevron every row that opens a screen has, opening the Progression screen: the period (4 / 6 / 8 / 12 weeks), **Use my history** when there is any, the three chatbot steps, **Paste progression**, a review of every exercise's weeks with the material warnings in yellow, **Save progression**. With one saved, the same screen reads it back, week by week with this week's targets first, and offers **Plan the next one** and Remove.
 - Days: each expands to its exercises (sets, target, rest, drops, rep range).
 - **Editing** (D29, v1.1): tapping an exercise opens a sheet for its name, set count, reps, rep range, weight and rest. Edit mode reorders and deletes exercises within a day; the day header's menu renames the day and duplicates it. Every change goes back through the import pipeline, and one it would refuse says why rather than appearing to work.
-- **JSON edits** (D43, v1.3, §6.19): the exercise sheet's **Edit as JSON** opens the exercise's own JSON — for what the fields cannot say: one set unlike the others, drop sets, a warning beep. The day's menu has **Add exercise** (a template to fill in, or a pasted list) and **Edit day as JSON**. One sheet does all of them: monospace text, a Paste button, the friendly error sentence with the real path behind Details, Save. Every Save is a `PlanEdit.Operation` through the import pipeline.
+- **JSON edits** (D43, v1.3, §6.19): the exercise sheet's **Edit as JSON** opens the exercise's own JSON — for what the fields cannot say: one set unlike the others, drop sets, a warning beep. The day's menu has **Add exercise** (an example to change, or a pasted list) and **Edit day as JSON**. One sheet does all of them: monospace text, a Paste button, the friendly error sentence with the real path behind Details, and a Save that says its effect. Every Save is a `PlanEdit.Operation` through the import pipeline. **v1.9 (D77, §6.19)**: the sheet is titled for what the JSON is — **One exercise**, **One day**, **Exercises to add**, **A day to add** (the ···'s Add day from JSON) — with a line beneath it saying where the text lands (*"Bench Press, exercise 3 of 5 in Push"*, *"Added at the end of Push"*); a refusal marks the line its path names, with the sentence beneath it; and Save reads **Replace Bench Press**, **Replace Push**, **Add to Push** or **Add to Push Pull Legs**. *(v1.3–v1.8: the titles "Edit exercise as JSON", "Add exercise", "Edit day as JSON" and "Add day", a template with a blank name, and a bare Save.)*
 - "···": Set as active, Rename, Copy JSON, **Edit JSON**, **Add day from JSON**, Delete. Edit JSON (v1.3, D43; v1.1 called it Replace) opens Import targeting this plan's id with the plan's text already open: saving it keeps the id, the cycle position and its anchor (D37) and, if this plan was active, keeps it active. Add day from JSON appends a pasted day — or every day of a pasted plan, which is how a week the chatbot cut short gets finished — and puts it into a rotation's repeat block. Delete confirms (D25 v1.1).
 - Any day has **Start** (override). If a session is in progress this triggers the switch popup (D17): "You're in the middle of Pull (5 of 16 sets). Switching workouts mid-session isn't recommended." Buttons: **Keep going** (default), Finish Pull and start Legs, Discard Pull and start Legs.
 
@@ -771,6 +773,23 @@ UI: "···" → **Change exercise**, offered whenever the exercise still has a 
 - **An added day is a day you mean to train.** It is named here if the fragment did not name it, and a rotation's repeat block gains it at the end. A weekday plan insists on a weekday, with the importer's own sentence.
 - **Refusals stay in the sheet, with the text**, so a typo is fixed rather than retyped. A fragment that is not JSON, not a plan shape, or two exercises where one goes is refused before the pipeline runs.
 - **The whole plan** is Plan detail's **Edit JSON** — the Add plan sheet targeting this plan's id (v1.1's Replace, renamed for what you came to do). It keeps the id, the position and the anchor.
+
+**The sheet, redone (D77, v1.9).** *"Constantly interact with the app through JSONs in different points, with JSONs that only change a small part of the total plan."* Five points edit a fragment — an exercise in the plan, a day in the plan, exercises to add, a day to add, and a day just for a date (§6.50) — and the one sheet serves them all, told what it is by a `JSONPoint` (`Core/JSONPoint.swift`) built from the plan and the target; `FragmentTarget` is a thin map to it.
+
+| Point | Title | Where it lands | Save |
+|---|---|---|---|
+| An exercise | One exercise | Bench Press, exercise 3 of 5 in Push | Replace Bench Press |
+| A day | One day | Push, day 1 of 3 in Push Pull Legs | Replace Push |
+| Exercises to add | Exercises to add | Added at the end of Push | Add to Push |
+| A day to add | A day to add | Added at the end of Push Pull Legs | Add to Push Pull Legs |
+| A day just for a date | A day just for Wednesday | For Wednesday 16 September. Not saved to Push Pull Legs. | Use for Wednesday |
+
+- **Named.** The title says what the JSON is, and the line beneath it where the text lands and for how long. The hint about what to write stays under the box while there is nothing to fix.
+- **Pre-filled.** An edit opens on the part's own text. An addition opens on the smallest example the importer takes as it stands — a Push-up, 3 sets of 8-12 with 90 s rest — or a day of it, named *Day 4* and, on a weekday plan, given the first free weekday; so a change is one number, and the Paste button replaces the box. *(v1.3–v1.8: a template whose blank name Save refused.)*
+- **The error at the line.** The pipeline's path is the plan's (`days[1].exercises[2].sets[0].reps`); the point makes it the text's through the fragment reader's own record of where it read each value (`PlanEdit.located`), and `JSONLocator` (`Core/JSONLocator.swift`) walks the text as strict JSON to the line where that member's key, or that element, begins. The line is tinted, with a bar at its edge, and the sentence sits beneath it in a gap the text flows around — without its place, because the line is the place (*"The reps need to be a number, a range like 8-12, or AMRAP."*). **It never marks the wrong line**: text that is not exactly one JSON value (prose around it, a fence, a trailing comma, curly quotes), a key written twice, a path into a key or an index that is not there, the whole text, an error about the paste as a whole (two exercises where one goes), a day the reader gathered from loose exercises, and another part of the plan all mark nothing, and the sentence shows under the box with its place (*"Day 2, exercise 3, set 1: …"*). An edit to the text unmarks every line until the next Save, because a line that moved would be the wrong one; meanwhile the sentences are under the box.
+- **Save says its effect** — never a bare Save.
+
+The whole plan keeps the Add plan screen (Edit JSON), and a progression its own; a chatbot prompt per fragment is parked (ITERATION_10_PLAN).
 
 A v1.2 defect fixed here, because the splice goes through the same `apply`: a plan edit and Replace both dropped `cycleAnchor`, so the next launch re-anchored the rotation to that day and the calendar moved — the compounding D37 had just fixed. Both now keep it (W20).
 
@@ -1232,7 +1251,7 @@ The owner's ask — *"change exercises"* in the ···, and *"JSONs that only ch
 | a day of another plan | `.borrowed(planId:name:)` | **outlined in that plan's colour** — Lower is orange in Upper Lower as Pull is here | that plan's, coloured by it in History; it moves neither plan's anchor and writes no swap |
 | a day written just for the date | `.own(Day)` | **outlined in ink**, no colour; the rows are its exercises | the active plan's, under the day's own name — a name no plan has, so History draws it grey (§6.41) — and `advance` ignores it (§6.8) |
 
-- **A day just for the date** opens the JSON sheet (D43; Q5 redoes it) on a day to fill in, or on the date's own day when it has one, and its Save reads **Use for Wednesday**. The text is read as generously as any fragment — fences, prose around it, a plan holding one day (`PlanEdit.fragment(_:as: .days)`) — and checked by the importer as that day alone, in the plan's units, so a day the app would refuse to import is refused here with the importer's sentence; more than one day is refused. A nameless day is called *"Wednesday's own day"* — the weekday even for today, so that History says which — and its button reads **Start Wednesday's own day**, saying when once. The swap holds the `Day`; nothing joins the plan.
+- **A day just for the date** opens the JSON sheet (§6.19, D77) titled **A day just for Wednesday**, with *"For Wednesday 16 September. Not saved to Push Pull Legs."* beneath it, on the example day left without a name, or on the date's own day when it has one, and its Save reads **Use for Wednesday**. The text is read as generously as any fragment — fences, prose around it, a plan holding one day (`PlanEdit.fragment(_:as: .days)`) — and checked by the importer as that day alone, in the plan's units, so a day the app would refuse to import is refused here with the importer's sentence; more than one day is refused. A nameless day is called *"Wednesday's own day"* — the weekday even for today, so that History says which — and its button reads **Start Wednesday's own day**, saying when once. The swap holds the `Day`; nothing joins the plan.
 - **Starting it.** A borrowed day starts as its plan's day; an own day through `startOwnDay(_:on:)`, which starts the active plan's session from a copy of the plan holding the day — the plan's id, name and units, and no progression, so the day's targets are its own. Both raise D17's switch popup when a session is open, as every start does, and a missed one's **Do it now** starts it the same way. Nothing on the Workout screen knows the difference.
 - **Finishing it.** A session of another plan that the active plan borrowed — on its date, or in the missed rule's week for a late Do it now — moves neither plan and writes nothing (`PlanLibrary.isBorrowed`). An own day's session is what its date said, §6.46's second case: nothing moves and nothing is written.
 - **The projection** finds a borrowed day in the plan it came from: `CalendarProjection.entries`, `next(days:)` and `week(containing:)` take `plans:` — the library's — and `.borrowed` projects as `.projected(otherPlanId, index)`, named and coloured by that plan on the grid, where until Q4 it was a day the grid could not name. `WeekStrip.days` takes `plans:` too, and a square carries the plan its day came from (`planId`) and an own day (`own`). A day written for today is `StartCard.own`.
@@ -2994,6 +3013,17 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 | TQ27 | unit | (D76, v1.9) A day of another plan | Lower from Upper Lower on Wednesday: the swap is borrowed; the projection reads `.projected(Upper Lower, 1)`, orange, labelled Lower; the square named Lower, orange, outlined, with the other plan's id and a purple dot; the card Lower, orange, outlined, Deadlift, **Start Wednesday's Lower**, Upper Lower's day 1. Not done by Thursday: missed as Lower on Wednesday, with Upper Lower's id and index for Do it now. Finished on Wednesday: the session is Upper Lower's and orange in History; neither plan's position or anchor moves — Upper Lower's first workout does not anchor it — and no swap is written; the square stays orange and outlined, and the card says **Done Today**. Chosen for today: `StartCard` is `.nextUp` Upper of Upper Lower, and the card Upper, green, outlined, **Start Today's Upper** |
 | TQ28 | unit | (D76, v1.9) A day just for the date | `valid/fenced-with-prose.txt` is accepted as day A (Row), with no weekday; a nameless day is named "Wednesday's own day"; a day with no exercises is refused with the importer's own codes and sentences; `valid/array-of-days.json`, two days, is refused. Chosen for Wednesday: the swap holds the `Day`, the plan still has three days, and the picker's own is it; the square named A, no colour, outlined, carrying the day; the card A, no colour, outlined, Row, **Start Wednesday's A**, `ownDay` set and no `dayIndex`; missed on Thursday it carries the day for Do it now; a nameless one's button is **Start Wednesday's own day**. Chosen for today: `StartCard.own` and **Start Today's A**. Started on Wednesday: the active plan's session named A, with Row; finished, the plan does not move, no swap is written, and the session has no colour |
 | TQ29 | device | (D76, v1.9) The outline on the phone | An outlined square beside filled ones on the strip reads as a square at the strip's size, shown and not, in light and in dark — a borrowed day's in its plan's colour, an own day's in ink — and so does Today's square before the name |
+
+### Q5 — The JSON sheet, redone (D77)
+
+`JimmsBroTests/JSONEditTests.swift` (TQ30–TQ32). `JSONPoint` (`Core/JSONPoint.swift`) — the kind, title, place, template, Save and hint, `operation(_:)` and `marks(for:in:)` — is built by `FragmentTarget.point(_:)` in Plan detail and by `dayChoices` for the own day (`DayChoices.point`, in place of Q4's `ownFooter` and `saveTitle`); `JSONLocator` (`Core/JSONLocator.swift`) finds a path's line; `PlanEdit.located(_:as:)` is `fragment(_:as:)` keeping where each value was read. TQ25 now reads Save from `DayChoices.point` and checks its title and place; W17's message no longer speaks of the template's blank name. No other earlier case changed.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| TQ30 | unit | (D77, v1.9) Every point opens on text it can save | On Push Pull Legs and `valid/weekly-weekday.json`: the exercise's and the day's own text, saved over themselves, change nothing; Exercises to add saved as it opens adds a Push-up of 3 × 8-12; A day to add adds the next "Day N" holding it, with a free weekday on the weekday plan; the own day's example is read by the importer as "Wednesday's own day" with a Push-up, and has no plan operation; the date's own day opens on itself |
+| TQ31 | unit | (D77, v1.9) Titles, places and Save | On Push Pull Legs: One exercise · "Bench Press, exercise 3 of 5 in Push" · Replace Bench Press; One day · "Push, day 1 of 3 in Push Pull Legs" · Replace Push; Exercises to add · "Added at the end of Push" · Add to Push; A day to add · "Added at the end of Push Pull Legs" · Add to Push Pull Legs; A day just for Wednesday · "For Wednesday 16 September. Not saved to Push Pull Legs." · Use for Wednesday. Edits open on the part's own rendering and additions on the example (a rotation's new day without a weekday, the own day nameless); each Save is D43's operation on the right part; a point past the plan's end is nil |
+| TQ32 | unit | (D77, v1.9) The error at its line, or nowhere | `JSONLocator`: `days[0].exercises[1].sets[0].reps` in a rendered plan is the line `"reps": 11,`; in a written exercise, a member's key line (not its value's) and an element's first line, CRLF counted as lines; nil for the empty path, a missing key, an index past the end, a path through a scalar, an unclosed index, a fenced fragment with prose, a trailing comma, curly quotes and a key written twice. Through a point: a day's bad reps at `days[1].exercises[1].sets[0].reps` marks line 5 of the day with "The reps need to be a number, a range like 8-12, or AMRAP."; an exercise's bad weight, the second of two exercises to add, a day inside a pasted plan and an own day's `exercises[0].reps` each mark their own line; prose around the day, two exercises where one goes, a day gathered from loose exercises and `cycle[2]` mark nothing and keep the sentence, with its place, under the box |
+| TQ33 | device | (D77, v1.9) The marked line on the phone | Edit a day as JSON, break a number and Save: the line is tinted with a red bar at its edge, the sentence beneath it pushes the lines below down rather than covering them, the box scrolls to it, and typing unmarks it — at the default size and at accessibility XL, in light and in dark |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -5992,28 +6022,28 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 # Build status
 
 Updated 2026-09-14. **v1.9 is in progress on branch `v1.9-swaps` (off `main`, which holds
-v1.8): Q0–Q4 built and green, Q5–Q7 not started.** v1.8 and everything before it are below,
+v1.8): Q0–Q5 built and green, Q6–Q7 not started.** v1.8 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
 
-## v1.9 (Q0–Q7): Q0–Q4 built and green
+## v1.9 (Q0–Q7): Q0–Q5 built and green
 
 `docs/ITERATION_10_PLAN.md` is the v1.9 plan, written from the owner's notes after living with
 v1.8's strip — *"shift today's colour to the colour of the other day (without changing the plan
 itself)"*. Each milestone ends with the whole suite green on all three routes, a Release build and
 `tools/check_release.py`, and one commit on `v1.9-swaps`.
 
-After Q4:
+After Q5:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **361 tests, 17 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; Q4 adds none. Clean on the first run |
-| `swift test` | **360 tests, 0 failures** |
-| `python3 tools/check_core.py` | **360 bodies, 7,174 assertions, 0 failures** |
-| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q4 reads a day through the importer and changes none of it) |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **364 tests, 17 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; Q5 adds none. The first run stopped at a new test's missing `min:max:` labels; the second was clean |
+| `swift test` | **363 tests, 0 failures** |
+| `python3 tools/check_core.py` | **363 bodies, 7,289 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q5 reads fragments exactly as before and changes nothing in the importer) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — still version 1.8 (1); Q7 turns it to 1.9 |
-| `python3 tools/check_bundle.py` | **current** (regenerated in Q4) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in Q5) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -6022,7 +6052,8 @@ After Q4:
 | Q2 | Today shows the swap (D74): under a square whose day is not the pattern's, a dot in the pattern's colour (grey for rest); a yellow ring on a date carrying a question, breathing while it asks (still under Reduce Motion) and faint once answered; a long press that reopens a ringed square's question or shows a "was Push" callout on a dotted one (`WeekStrip.Square.was` and `.hold`); and the question's block where the rows would be — `SwapQuestionView`: the heading, the options as large squares with their word beneath and a check on the chosen one, and on a rotation the Slide row previewing three days — with the button following the choice through the projection (`SwapQuestion.heading` and `.slide`, each option's `colour` and `isChosen`; `HomeStart.showsQuestion` and `current(…reopened:)`). A date whose workout is done asks nothing; the block is never on an open session's card; a question reopened after a slide offers what it first offered (a Q1 gap, fixed here). The seeder's `--swap` (`SEED_SWAP=1` in `tools/shot.sh`). TQ14–TQ17 in `SwapTests`; T21 counts two ungated rows. SPEC §4.1, §6.40, §6.44 and the new §6.48 | Done |
 | Q3 | The ··· speaks in squares (D75): **Change plan** beside the active plan's cycle drawn as one symbol (`CycleSymbol` in `DaySquare.swift`, its colours from `DayColour.cycle(of:)`, its fourteen-and-a-mark cut from `CycleGlyph`) and **Change *day*'s exercises**, named by the strip's own when, beside the shown day's square — both handed to the SwiftUI `Menu` as pictures in their own colours (`ImageRenderer`, `.alwaysOriginal`), and `HomeStart.Alternative` carrying what each symbol draws. On any day's card with no session open, but not today's once its workout is done; Change plan alone on Nothing scheduled; Change plan and Discard workout while a session is open. Until Q4 the second item opens the active plan in Plan detail. Progression left Today's menu — Plan a progression, the step line, `HomeStart.offersProgression`, `stepLine` and `previewPlanId`, `Gates.planProgression` and `PromptText.planProgression` are gone, and History's Progression row is the way — and the rows are the preview and nothing more. TQ21–TQ23 in `TodayTests` and `DayColourTests`; T2, T3, T21 (four gates), TS2, W39, Z1, Z3, Z22 and Z25 rewritten; T19, TS4 and Z2 removed. SPEC §4.1, §6.26, §6.37, §6.40, §6.42–§6.45 and the new §6.49 | Done |
 | Q4 | Change *day*'s exercises (D76): the ···'s second item pushes a picker for the shown date (`ChangeDayView`; `DayChoices` from `PlanLibrary.dayChoices(for:now:)` in the new `Core/ChangeDay.swift`) — this plan's days, every other plan's, and **Write a day just for Wednesday** — and a tap writes a swap for that date alone (`choose(_:for:now:)`: answered and asked by nobody; the pattern's own day removes it; a date carrying a question is answered instead). A borrowed day projects as its own plan's day (`CalendarProjection` and `WeekStrip.days` take `plans:`), is drawn **outlined in that plan's colour**, starts as that plan's day, and its finished session moves neither plan (`isBorrowed`). A day just for the date goes through `JSONFragmentSheet` (Save **Use for Wednesday**, `saveTitle`) and the importer (`ownDay(_:named:units:settings:now:)`), is held by the swap, is drawn **outlined in ink**, and starts as the active plan's session under its own name (`startOwnDay`). `StartCard.own`, `HomeStart.ownDay` and `.isOutlined`, `MissedWorkout.planId` and `.own` (Do it now starts either), `WeekStrip.Square.planId` and `.own`, `DaySquare(outlined:)`. TQ25–TQ28 in `SwapTests`; no earlier case changed. SPEC §4.1, §6.41, §6.44, §6.46, §6.49 and the new §6.50 | Done |
-| Q5–Q7 | The JSON sheet (D77), Plans in squares (D78), docs and 1.9 | Not started |
+| Q5 | The JSON sheet, redone (D77), at its five points — an exercise, a day, exercises to add, a day to add, and Q4's day just for a date — by a `JSONPoint` (`Core/JSONPoint.swift`) that `FragmentTarget` maps to and `DayChoices.point` hands over (in place of Q4's `ownFooter` and `saveTitle`): **named** — One exercise, One day, Exercises to add, A day to add, A day just for Wednesday, with the place beneath ("Bench Press, exercise 3 of 5 in Push", "Added at the end of Push", "For Wednesday 16 September. Not saved to Push Pull Legs."); **pre-filled** — an edit on the part's own text, an addition on a Push-up that saves as it stands (a free weekday on a weekday plan); **the error at the line** — `Core/JSONLocator.swift` walks the text as strict JSON to the path's line, through the origins `PlanEdit.located` keeps (`fragment(_:as:)` is it without them), or answers nothing, and the box, now a TextKit 1 `UITextView`, tints the line with a bar at its edge and puts the sentence in a gap beneath it, while an edit unmarks until the next Save; and **a Save that says its effect** — Replace Bench Press, Replace Push, Add to Push, Add to Push Pull Legs, Use for Wednesday. Smart quotes are off in the box. TQ30–TQ32 in `JSONEditTests`; TQ25 reads Save from the point; W17's message changed. SPEC §4.3, §6.19 and §6.50 | Done |
+| Q6–Q7 | Plans in squares (D78), docs and 1.9 | Not started |
 
 ### Checked on the simulator (v1.9)
 
@@ -6050,6 +6081,14 @@ After Q4:
 
 ### Not run in v1.9 (so far)
 
+- **Q5's sheet on the simulator.** `SEED=1 DEVICE="iPhone 17" tools/shot.sh` brought the app up on
+  the seeded rest day (seen in a `simctl` screenshot), but the simulator tool then crashed on every
+  screenshot and afterwards refused taps as well ("stopped retrying after repeated crashes"), and no
+  launch argument opens Plan detail or the JSON sheet. So the named title, the place line, the
+  marked line with its bar, the gap its sentence opens beneath it, and the scroll to it were not
+  looked at. To look: put a day with `"reps": "lots"` on the simulator's clipboard (`xcrun simctl
+  pbcopy`), open a day's **Edit day as JSON**, tap Paste, then **Replace Push**. On the phone this
+  is TQ33.
 - The ring's breathing and Reduce Motion, the long press under a finger, the block at
   accessibility XL (TQ18–TQ20) and the ···'s symbols at the menu's size on the phone (TQ24) and an outlined
   square beside filled ones on the strip (TQ29) are the phone's; Q7 adds them to `docs/DEVICE_CHECKLIST.md`.
@@ -7042,6 +7081,13 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.9 Q4: **an own day starts from a copy of the plan holding it, with no progression** (`startOwnDay`), so the session is the plan's — its id, name and units — under the day's own name, with the targets written for it. **Do it now** starts a missed own or borrowed day, which Q1 named but could not start.
 - v1.9 Q4: **a nameless own day is "Wednesday's own day" by its weekday, even for today**, so History says which day it was, and its button reads "Start Wednesday's own day" rather than saying when twice. The date line spells the month in English from a fixed list, as the rest of the app speaks English whatever the phone's language.
 - v1.9 Q4: **until Q5, a day just for the date opens `JSONFragmentSheet`** on a day with a blank name (or on the date's own day), its Save "Use for Wednesday" through a new `saveTitle`; more than one day is refused, and the importer's paths are made the day's own ("exercises[0].reps"). Other plans are listed in the library's order, and a plan with no days has no section.
+- v1.9 Q5: **the JSON box is a `UITextView` on TextKit 1**, because SwiftUI's `TextEditor` gives no line rectangles on iOS 17: a marked line is tinted with a red bar at its edge (a mark that is not colour alone), and its sentences sit in a gap beneath it that the text flows around (an exclusion path), so nothing written is covered. Smart quotes and dashes are off in it, because a line the importer had to mend is one the locator will not name.
+- v1.9 Q5: **at the line the sentence drops its place** ("The reps need to be…"), because the line is the place; under the box it keeps it ("Day 2, exercise 3, set 1: …"). **An edit unmarks every line until the next Save** — a line that moved would be the wrong line — and the sentences go under the box meanwhile; undoing back to the refused text marks them again.
+- v1.9 Q5: **the locator names a member's key line and an element's first line**; the empty path (the whole text) marks nothing; `E_EDIT_INVALID` never marks, being about the paste as a whole; a day the reader gathered from loose exercises marks nothing, having no line of its own; a key spelled with an escape matches nothing rather than being decoded.
+- v1.9 Q5: **the fragment reader keeps where it read each value** (`PlanEdit.located`), and `fragment(_:as:)` is it without the origins, so the place an error is marked cannot drift from the place its value was read.
+- v1.9 Q5: **the examples are a Push-up** — 3 sets of 8-12, 90 s rest, no weight — and a day of it, named "Day N" as Add day always named it, with the first free weekday on a weekday plan. D43's blank name, which Save refused on purpose, is reversed because the plan asks for an example that saves as it stands (TQ30); the importer still refuses a blank name (W17).
+- v1.9 Q5: **a day's place names the plan** ("Push, day 1 of 3 in Push Pull Legs"), and the hint under the box stays while there is nothing to fix; Add day's hint says what a weekday plan needs (a free weekday) instead of the repeat block.
+- v1.9 Q5: **`DayChoices` hands the sheet its point** (`point`), in place of Q4's `ownFooter` and `saveTitle`; the own day's hint no longer repeats the date, which its place line says.
 `````
 
 ---
@@ -9406,11 +9452,13 @@ date (D76), **the JSON sheet redone** at every fragment point — named, pre-fil
 line, a Save that says its effect (D77) — and **Plans that speak in squares** (D78 — a circle to
 mark and a button to confirm, the page with the cycle as squares and every day closed until
 tapped). The requirements were settled in two rounds on the "Swapping Days" artifact linked from
-the plan. Q0–Q3 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
+the plan. Q0–Q5 are built and green on `v1.9-swaps` — Q1 the swap in Core, Q2 its marks on
 Today, Q3 the ··· in squares with progression left to History, Q4 a day's exercises changed for one
 date — a day of this plan, a day borrowed from another plan (outlined in its colour) or a day
-written just for the date (outlined in ink), `Core/ChangeDay.swift` and `ChangeDayView` — and
-`docs/BUILD_STATUS.md` says what was run; Q5 is next.
+written just for the date (outlined in ink), `Core/ChangeDay.swift` and `ChangeDayView` — and Q5
+the JSON sheet redone at its five points: named, pre-filled with an example that saves as it
+stands, the error marked at its line or nowhere (`Core/JSONPoint.swift`, `Core/JSONLocator.swift`),
+and a Save that says its effect. `docs/BUILD_STATUS.md` says what was run; Q6 is next.
 
 Three v1.2 rules are worth knowing before touching anything:
 

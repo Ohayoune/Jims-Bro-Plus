@@ -1,28 +1,28 @@
 # Build status
 
 Updated 2026-09-14. **v1.9 is in progress on branch `v1.9-swaps` (off `main`, which holds
-v1.8): Q0–Q4 built and green, Q5–Q7 not started.** v1.8 and everything before it are below,
+v1.8): Q0–Q5 built and green, Q6–Q7 not started.** v1.8 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
 
-## v1.9 (Q0–Q7): Q0–Q4 built and green
+## v1.9 (Q0–Q7): Q0–Q5 built and green
 
 `docs/ITERATION_10_PLAN.md` is the v1.9 plan, written from the owner's notes after living with
 v1.8's strip — *"shift today's colour to the colour of the other day (without changing the plan
 itself)"*. Each milestone ends with the whole suite green on all three routes, a Release build and
 `tools/check_release.py`, and one commit on `v1.9-swaps`.
 
-After Q4:
+After Q5:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **361 tests, 17 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; Q4 adds none. Clean on the first run |
-| `swift test` | **360 tests, 0 failures** |
-| `python3 tools/check_core.py` | **360 bodies, 7,174 assertions, 0 failures** |
-| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q4 reads a day through the importer and changes none of it) |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **364 tests, 17 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; Q5 adds none. The first run stopped at a new test's missing `min:max:` labels; the second was clean |
+| `swift test` | **363 tests, 0 failures** |
+| `python3 tools/check_core.py` | **363 bodies, 7,289 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q5 reads fragments exactly as before and changes nothing in the importer) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — still version 1.8 (1); Q7 turns it to 1.9 |
-| `python3 tools/check_bundle.py` | **current** (regenerated in Q4) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in Q5) |
 
 | Milestone | What it did | State |
 |---|---|---|
@@ -31,7 +31,8 @@ After Q4:
 | Q2 | Today shows the swap (D74): under a square whose day is not the pattern's, a dot in the pattern's colour (grey for rest); a yellow ring on a date carrying a question, breathing while it asks (still under Reduce Motion) and faint once answered; a long press that reopens a ringed square's question or shows a "was Push" callout on a dotted one (`WeekStrip.Square.was` and `.hold`); and the question's block where the rows would be — `SwapQuestionView`: the heading, the options as large squares with their word beneath and a check on the chosen one, and on a rotation the Slide row previewing three days — with the button following the choice through the projection (`SwapQuestion.heading` and `.slide`, each option's `colour` and `isChosen`; `HomeStart.showsQuestion` and `current(…reopened:)`). A date whose workout is done asks nothing; the block is never on an open session's card; a question reopened after a slide offers what it first offered (a Q1 gap, fixed here). The seeder's `--swap` (`SEED_SWAP=1` in `tools/shot.sh`). TQ14–TQ17 in `SwapTests`; T21 counts two ungated rows. SPEC §4.1, §6.40, §6.44 and the new §6.48 | Done |
 | Q3 | The ··· speaks in squares (D75): **Change plan** beside the active plan's cycle drawn as one symbol (`CycleSymbol` in `DaySquare.swift`, its colours from `DayColour.cycle(of:)`, its fourteen-and-a-mark cut from `CycleGlyph`) and **Change *day*'s exercises**, named by the strip's own when, beside the shown day's square — both handed to the SwiftUI `Menu` as pictures in their own colours (`ImageRenderer`, `.alwaysOriginal`), and `HomeStart.Alternative` carrying what each symbol draws. On any day's card with no session open, but not today's once its workout is done; Change plan alone on Nothing scheduled; Change plan and Discard workout while a session is open. Until Q4 the second item opens the active plan in Plan detail. Progression left Today's menu — Plan a progression, the step line, `HomeStart.offersProgression`, `stepLine` and `previewPlanId`, `Gates.planProgression` and `PromptText.planProgression` are gone, and History's Progression row is the way — and the rows are the preview and nothing more. TQ21–TQ23 in `TodayTests` and `DayColourTests`; T2, T3, T21 (four gates), TS2, W39, Z1, Z3, Z22 and Z25 rewritten; T19, TS4 and Z2 removed. SPEC §4.1, §6.26, §6.37, §6.40, §6.42–§6.45 and the new §6.49 | Done |
 | Q4 | Change *day*'s exercises (D76): the ···'s second item pushes a picker for the shown date (`ChangeDayView`; `DayChoices` from `PlanLibrary.dayChoices(for:now:)` in the new `Core/ChangeDay.swift`) — this plan's days, every other plan's, and **Write a day just for Wednesday** — and a tap writes a swap for that date alone (`choose(_:for:now:)`: answered and asked by nobody; the pattern's own day removes it; a date carrying a question is answered instead). A borrowed day projects as its own plan's day (`CalendarProjection` and `WeekStrip.days` take `plans:`), is drawn **outlined in that plan's colour**, starts as that plan's day, and its finished session moves neither plan (`isBorrowed`). A day just for the date goes through `JSONFragmentSheet` (Save **Use for Wednesday**, `saveTitle`) and the importer (`ownDay(_:named:units:settings:now:)`), is held by the swap, is drawn **outlined in ink**, and starts as the active plan's session under its own name (`startOwnDay`). `StartCard.own`, `HomeStart.ownDay` and `.isOutlined`, `MissedWorkout.planId` and `.own` (Do it now starts either), `WeekStrip.Square.planId` and `.own`, `DaySquare(outlined:)`. TQ25–TQ28 in `SwapTests`; no earlier case changed. SPEC §4.1, §6.41, §6.44, §6.46, §6.49 and the new §6.50 | Done |
-| Q5–Q7 | The JSON sheet (D77), Plans in squares (D78), docs and 1.9 | Not started |
+| Q5 | The JSON sheet, redone (D77), at its five points — an exercise, a day, exercises to add, a day to add, and Q4's day just for a date — by a `JSONPoint` (`Core/JSONPoint.swift`) that `FragmentTarget` maps to and `DayChoices.point` hands over (in place of Q4's `ownFooter` and `saveTitle`): **named** — One exercise, One day, Exercises to add, A day to add, A day just for Wednesday, with the place beneath ("Bench Press, exercise 3 of 5 in Push", "Added at the end of Push", "For Wednesday 16 September. Not saved to Push Pull Legs."); **pre-filled** — an edit on the part's own text, an addition on a Push-up that saves as it stands (a free weekday on a weekday plan); **the error at the line** — `Core/JSONLocator.swift` walks the text as strict JSON to the path's line, through the origins `PlanEdit.located` keeps (`fragment(_:as:)` is it without them), or answers nothing, and the box, now a TextKit 1 `UITextView`, tints the line with a bar at its edge and puts the sentence in a gap beneath it, while an edit unmarks until the next Save; and **a Save that says its effect** — Replace Bench Press, Replace Push, Add to Push, Add to Push Pull Legs, Use for Wednesday. Smart quotes are off in the box. TQ30–TQ32 in `JSONEditTests`; TQ25 reads Save from the point; W17's message changed. SPEC §4.3, §6.19 and §6.50 | Done |
+| Q6–Q7 | Plans in squares (D78), docs and 1.9 | Not started |
 
 ### Checked on the simulator (v1.9)
 
@@ -59,6 +60,14 @@ After Q4:
 
 ### Not run in v1.9 (so far)
 
+- **Q5's sheet on the simulator.** `SEED=1 DEVICE="iPhone 17" tools/shot.sh` brought the app up on
+  the seeded rest day (seen in a `simctl` screenshot), but the simulator tool then crashed on every
+  screenshot and afterwards refused taps as well ("stopped retrying after repeated crashes"), and no
+  launch argument opens Plan detail or the JSON sheet. So the named title, the place line, the
+  marked line with its bar, the gap its sentence opens beneath it, and the scroll to it were not
+  looked at. To look: put a day with `"reps": "lots"` on the simulator's clipboard (`xcrun simctl
+  pbcopy`), open a day's **Edit day as JSON**, tap Paste, then **Replace Push**. On the phone this
+  is TQ33.
 - The ring's breathing and Reduce Motion, the long press under a finger, the block at
   accessibility XL (TQ18–TQ20) and the ···'s symbols at the menu's size on the phone (TQ24) and an outlined
   square beside filled ones on the strip (TQ29) are the phone's; Q7 adds them to `docs/DEVICE_CHECKLIST.md`.

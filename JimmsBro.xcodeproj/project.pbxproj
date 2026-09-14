@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5C1A2EF8492A449394CC0E32 /* JSONPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D63DF0BBB984DE9BCD80A16 /* JSONPoint.swift */; };
+		AFA84798DF75402CA760BCF1 /* JSONLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BA5E71739BE44C69373F820 /* JSONLocator.swift */; };
 		F69F47C90CB946688B922D06 /* SwapQuestionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AF6D2A2A934919AAE328C6 /* SwapQuestionView.swift */; };
 		06B92B29FAA44F848634ACFF /* ChangeDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE8B170CD22B4192A8888D7F /* ChangeDay.swift */; };
 		CD6667B433A744E0A43086B3 /* ChangeDayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0080CB3C1C425CA12994C3 /* ChangeDayView.swift */; };
@@ -170,6 +172,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1D63DF0BBB984DE9BCD80A16 /* JSONPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONPoint.swift; sourceTree = "<group>"; };
+		6BA5E71739BE44C69373F820 /* JSONLocator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONLocator.swift; sourceTree = "<group>"; };
 		02AF6D2A2A934919AAE328C6 /* SwapQuestionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapQuestionView.swift; sourceTree = "<group>"; };
 		BE8B170CD22B4192A8888D7F /* ChangeDay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeDay.swift; sourceTree = "<group>"; };
 		DD0080CB3C1C425CA12994C3 /* ChangeDayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeDayView.swift; sourceTree = "<group>"; };
@@ -511,6 +515,8 @@
 		94A0426E8D3203DA5468CCF0 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				1D63DF0BBB984DE9BCD80A16 /* JSONPoint.swift */,
+				6BA5E71739BE44C69373F820 /* JSONLocator.swift */,
 				80D16661141C43ECB3877B14 /* DaySwap.swift */,
 				BE8B170CD22B4192A8888D7F /* ChangeDay.swift */,
 				7305E5F001F54DC3ACF882A1 /* DayColour.swift */,
@@ -750,6 +756,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5C1A2EF8492A449394CC0E32 /* JSONPoint.swift in Sources */,
+				AFA84798DF75402CA760BCF1 /* JSONLocator.swift in Sources */,
 				F69F47C90CB946688B922D06 /* SwapQuestionView.swift in Sources */,
 				06B92B29FAA44F848634ACFF /* ChangeDay.swift in Sources */,
 				CD6667B433A744E0A43086B3 /* ChangeDayView.swift in Sources */,

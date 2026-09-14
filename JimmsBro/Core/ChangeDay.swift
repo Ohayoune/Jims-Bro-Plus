@@ -41,10 +41,10 @@ struct DayChoices: Equatable {
     var own: Day?
     /// The name a nameless own day takes: "Wednesday's own day".
     var ownName: String
-    /// The sheet's words under the text.
-    var ownFooter: String
-    /// The sheet's Save, which says where the text lands: "Use for Wednesday".
-    var saveTitle: String
+    /// The JSON sheet for the last row (§6.19, D77): "A day just for Wednesday", "For Wednesday
+    /// 16 September. Not saved to Push Pull Legs.", the date's own day or the example, and Save
+    /// reading "Use for Wednesday".
+    var point: JSONPoint
 
     /// A nameless own day's name ends so, and already says when (`HomeStart.ownStartTitle`).
     static let ownSuffix = "'s own day"
@@ -93,9 +93,7 @@ extension PlanLibrary {
             ownTitle: "Write a day just for \(when)",
             own: own,
             ownName: ownName,
-            ownFooter: "One day, in the same fields as a pasted plan's day, for \(fullDate) alone. "
-                + "The plan does not change. Left without a name, it is called \(ownName).",
-            saveTitle: "Use for \(when)")
+            point: .ownDay(when: when, date: fullDate, name: ownName, plan: plan, own: own))
     }
 
     /// A tap in the picker (§6.50): the date becomes `slot`, for that date alone. A date that

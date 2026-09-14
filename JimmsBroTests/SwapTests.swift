@@ -760,7 +760,10 @@ final class SwapTests: XCTestCase {
         XCTAssertEqual(mine.map(\.isChosen), [false, false, true], "Wednesday is Legs")
         XCTAssertEqual(alone.ownTitle, "Write a day just for Wednesday")
         XCTAssertEqual(alone.ownName, "Wednesday's own day")
-        XCTAssertEqual(alone.saveTitle, "Use for Wednesday")
+        // D77 (v1.9): the sheet's point, which says what the JSON is and where it lands.
+        XCTAssertEqual(alone.point.saveTitle, "Use for Wednesday")
+        XCTAssertEqual(alone.point.title, "A day just for Wednesday")
+        XCTAssertEqual(alone.point.place, "For Wednesday 16 September. Not saved to Push Pull Legs.")
         XCTAssertNil(alone.own)
 
         library.save(upperLower())
@@ -782,7 +785,8 @@ final class SwapTests: XCTestCase {
         XCTAssertEqual(today.line, "For Monday 14 September only. The plan does not change.")
         XCTAssertEqual(today.ownTitle, "Write a day just for Today")
         XCTAssertEqual(today.ownName, "Monday's own day", "the name keeps the weekday, for History")
-        XCTAssertEqual(today.saveTitle, "Use for Today")
+        XCTAssertEqual(today.point.saveTitle, "Use for Today")
+        XCTAssertEqual(today.point.place, "For Monday 14 September. Not saved to Push Pull Legs.")
         XCTAssertEqual(try XCTUnwrap(library.dayChoices(for: day(15), now: day(14))).title,
                        "Change Tomorrow's exercises")
         XCTAssertNil(PlanLibrary().dayChoices(for: day(16), now: day(14)), "no plan, no picker")

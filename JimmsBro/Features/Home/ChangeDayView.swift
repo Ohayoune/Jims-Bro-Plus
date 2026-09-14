@@ -49,10 +49,7 @@ struct ChangeDayView: View {
         .navigationTitle(choices.title)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $writing, onDismiss: { if used { dismiss() } }) {
-            JSONFragmentSheet(title: choices.ownTitle,
-                              initialText: choices.own.map(PlanJSON.render(day:))
-                                  ?? FragmentTarget.dayTemplate(name: ""),
-                              footer: choices.ownFooter, saveTitle: choices.saveTitle) { text in
+            JSONFragmentSheet(point: choices.point) { text in
                 let refused = await model.useOwnDay(text, for: date)
                 if refused.isEmpty { used = true }
                 return refused
