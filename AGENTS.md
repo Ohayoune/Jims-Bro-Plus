@@ -121,7 +121,7 @@ without words, or it leaves the card. The week becomes a seven-square strip that
 **Another day** (D70, S2), and a rest day says rest instead of naming the next workout (D71, S3).
 Nothing in it touches `Core/Persistence.swift`, the pipeline, the format, the prompts, the
 Workout screen, the rest, the Live Activity, History, or the empty card. The mock is the "Today,
-Simpler" artifact linked from the plan. S0–S2 are built, on `v1.8-cues` off `main`: a day's
+Simpler" artifact linked from the plan. S0–S4 are built and green, on `v1.8-cues` off `main`: a day's
 card has no sentence (`HomeStart` has no `subtitle`, TS1) — a clock and the minutes, the
 exercises with their sets as blocks (`HomeStart.rows`, `PreviewRow`), the step as the ···'s last
 line (`stepLine`), **▶ Start Today's Push** (`HomeStart.startTitle`, D70's words), and a lighter
@@ -135,7 +135,12 @@ rest (D71, SPEC §6.45) — **Rest** after a grey square, the moon where the clo
 system's z's in the accent where the rows were, and a disabled **No exercise Today** — which
 reverses D57 on Today, because the next workout is one tap away on the strip; after the day's
 workout, on every plan, the same card says **✓ Done Today** (the owner's reading), and a missed workout still
-speaks. S4 — docs, checklist, bundle, screenshots, 1.8 — is next.
+speaks. S4 made the documents say so: version **1.8** on the app, the extension and the tests,
+`docs/DEVICE_CHECKLIST.md`'s **v1.8 rows** (TS5, TS11, TS12, TS16), `today.png` retaken for the
+README with the strip and the set blocks, and the bundle regenerated. Everything through S4 is
+built and green. What remains is the owner's: the device checklist (the v1.7 and v1.8 rows both
+need the phone), the Developer Program, a release Xcode and the submission
+(`docs/APP_STORE.md` §1 and §6).
 
 Three v1.2 rules are worth knowing before touching anything:
 

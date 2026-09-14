@@ -6,7 +6,7 @@ these are here rather than automated.
 
 Everything else — 332 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
-**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37, and **v1.7** T5, T9, T13 and T24. Y19 needs a TestFlight build, which needs the paid
+**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37, **v1.7** T5, T9, T13 and T24, and **v1.8** TS5, TS11, TS12 and TS16. Y19 needs a TestFlight build, which needs the paid
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
@@ -190,6 +190,20 @@ which is the only mapping from a `DayColour` to a `Color`, then at `DayColour.of
 and `WorkoutActivityState.dayColour` for the Lock Screen and the Island. A `fail` on T29 points at
 `HistoryView` (`Features/History/HistoryView.swift`) and, for **Plan the next one**, at `HomeView`'s
 message line.
+
+## v1.8 rows (new in S1–S3, written with S4)
+
+| Case | What to do | Expected | Result | Notes |
+|---|---|---|---|---|
+| **TS5** | Settings → Accessibility → Larger Text at the largest size, then Today on a workout day, and again on a rest day | Workout day: the name, the meta row, the exercise list and Start stay on screen without scrolling, the list is what scrolls, and the set blocks grow with the text. Rest day: the name (**Rest**), the strip and Start stay on screen with nothing clipped; the z's keep their fixed size rather than growing, and **No exercise Today** stays readable and disabled |  |  |
+| **TS11** | With the same text size, look at the strip's seven squares beside the clock | The strip stays one row and wraps nothing; each square keeps a tappable width |  |  |
+| **TS12** | Tap a day other than today on the strip (for example Pull on a Tuesday), background the app, and return to it; then force-quit the app and reopen it | Backgrounding and returning: the card still shows the tapped day (Pull). After the force-quit: the card shows today, not the tapped day |  |  |
+| **TS16** | Look at a rest day's card in light mode, then Settings → Display & Brightness → Dark and look again; turn on VoiceOver and swipe through the card | The z's rise to the right in the accent, and the moon sits where the clock would, legible in both. VoiceOver reads "Rest", then the seven strip squares ("Today, rest", "Tomorrow, Pull", …), then "No exercise Today", dimmed |  |  |
+
+For the v1.8 rows: a `fail` on TS5 points at `HomeView`'s accessibility branches or `HomeStart.rows`'
+block sizing; on TS11 or TS12 at `Core/WeekStrip.swift` and the view's `@State shownOffset`, which
+must reset on relaunch but not on backgrounding; on TS16 at the rest-day branch of `HomeView` and
+its VoiceOver labels.
 
 ## When you are done
 

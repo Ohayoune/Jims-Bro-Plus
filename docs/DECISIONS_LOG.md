@@ -322,3 +322,14 @@
 - v1.8 S3: **the rest card's message is the plan's.** A progression that has run its course is read plan-wide on a rest card (`Progression.isFinished`), as it was when the card headlined the next workout — and now on a tapped grey square too, which S2 had left silent against §6.44's "the message does not follow the square". **Plan the next one** opens the active plan's Progression screen, as Do it now starts the active plan's day, because a rest card has no `planId`. Plan a progression is a day's (D50), so it is not in a rest card's ···; it is a tap away on a coloured square, or in History (D67).
 - v1.8 S3: **the z's are a fixed 60 pt and centred in the card's empty half** by a flexible frame, with the message line beneath them; a mark, not text, so they do not grow with Dynamic Type. They and the moon are hidden from VoiceOver, which reads the title "Rest" first (the moon read "Rest day" in S2).
 - v1.8 S3: **the plan's "§6.29 (D57)" is §6.33**, "The first five minutes"; the v1.8 note is there.
+- v1.8 S4: **"Today on a rest day at accessibility XL" is folded into TS5**, not a new id. TS5
+  already covers Today at the largest text size; S3 gave the rest day its own layout (the z's, the
+  moon, no rows), so the checklist row asks for both states rather than inventing an id nothing in
+  `TEST_CASES.md` names.
+- v1.8 S4: **the README's `today.png` is shot the same way `s2-today-pull.png` was** — `tools/shot.sh`
+  on the seeded plan's rest day, then a tap on the strip's second square through the simulator,
+  since there is no launch argument for a shown offset (S2 kept it out of `Settings` on purpose).
+  The shot shows Push, not the seeded Sunday's rest, because the README screenshot is for the
+  ordinary case — a day with rows and blocks — not the one S3 already illustrates.
+- v1.8 S4: **1.7 → 1.8.** Nothing has been submitted, so the same rule T6 used for 1.5 → 1.7
+  applies: App Store Connect needs only a larger number than the last upload.
