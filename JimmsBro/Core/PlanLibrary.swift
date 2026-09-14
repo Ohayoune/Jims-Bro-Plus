@@ -7,8 +7,14 @@ struct PlanLibrary {
     var plans: [Plan] = []
     var activePlanId: UUID?
     var sessions: [Session] = []
+    /// D72 (v1.9): the day swaps of every plan (§6.46), `swaps.json` — beside the plans, and
+    /// deleted with a plan.
+    var swaps: [DaySwap] = []
     var engine: SessionEngine?
     var settings = Settings()
+    /// The calendar completion and the swaps read dates in. The app's is the current one; tests
+    /// pin a zone so a day is the same day everywhere.
+    var calendar: Calendar = .current
     var activePlan: Plan? { plans.first { $0.id == activePlanId } }
     func conflict(for plan: Plan) -> Plan? { plans.first { normalized($0.name) == normalized(plan.name) } }
     @discardableResult mutating func save(_ imported: Plan, conflict choice: ConflictChoice = .cancel, makeActive: Bool = false) -> UUID? {
@@ -48,6 +54,7 @@ struct PlanLibrary {
     }
     mutating func deletePlan(_ id: UUID) {
         plans.removeAll { $0.id == id }
+        swaps.removeAll { $0.planId == id }
         if activePlanId == id { activePlanId = plans.count == 1 ? plans.first?.id : nil }
     }
     @discardableResult mutating func startDay(planId: UUID, dayIndex: Int, now: Date, switching: SessionSwitch? = nil) throws -> [Effect] {
@@ -80,8 +87,10 @@ struct PlanLibrary {
             let completed = e.session
             if !sessions.contains(where: { $0.id == completed.id }) { sessions.append(completed) }
             if let index = plans.firstIndex(where: { $0.id == completed.planId }) {
-                PlanSchedule.advance(&plans[index], completedDayName: completed.dayName,
-                                     on: completed.startedAt)
+                // D37, amended by D72 (v1.9, §6.46): the pattern moves only when the workout it
+                // expected finishes; any other finished day is a swap on two dates, and the
+                // pattern stays where it was.
+                settle(completed)
                 // D53 (v1.5): steps you earn — each exercise that was at its step moves on or
                 // tries again. Only here, when the workout completes; editing history later
                 // never moves a step.
@@ -151,9 +160,11 @@ enum PlanSchedule {
         return ((index + count) % count, plan.cycle[(index + count) % count])
     }
 
-    /// The next training day at or after `today`, by the anchored projection. Home and the
-    /// calendar both read this, so "Next up" and the ring on the grid can never disagree.
-    static func next(_ plan: Plan, today: Date, calendar: Calendar = .current)
+    /// The next training day at or after `today`, by the anchored projection **alone** — the
+    /// cycle's own next entry, for Plan detail's repeat block. Since v1.9 (D72) Today's card
+    /// reads `next(_:today:swaps:calendar:)` in `DaySwap.swift`, which reads the swaps too, so
+    /// the card and the strip cannot disagree about a swapped day.
+    static func nextInPattern(_ plan: Plan, today: Date, calendar: Calendar = .current)
         -> (cycleIndex: Int, dayIndex: Int, date: Date)? {
         guard !plan.cycle.isEmpty else { return nil }
         // The anchor day is the day that was *done*, so the search starts after it. With nothing
@@ -178,8 +189,8 @@ enum PlanSchedule {
 
     /// The v1.1 signature, kept for the callers that only want "which day is next" and have no
     /// date to hand. It answers for today.
-    static func next(_ plan: Plan) -> (cycleIndex: Int, dayIndex: Int)? {
-        next(plan, today: Date()).map { ($0.cycleIndex, $0.dayIndex) }
+    static func nextInPattern(_ plan: Plan) -> (cycleIndex: Int, dayIndex: Int)? {
+        nextInPattern(plan, today: Date()).map { ($0.cycleIndex, $0.dayIndex) }
     }
 
     /// A training day the projection put **before** today that has no completed session on it —
@@ -193,8 +204,12 @@ enum PlanSchedule {
     /// run out of order). A missed day is therefore after the plan's import day and after its
     /// anchor, the day of its most recent completed workout; with nothing completed, nothing
     /// was missed.
-    static func missed(_ plan: Plan, sessions: [Session], today: Date,
-                       calendar: Calendar = .current) -> (dayIndex: Int, date: Date)? {
+    ///
+    /// D72 (v1.9, §6.46): reads the projected slots, swaps included — Monday's Push, moved to
+    /// Wednesday, is not "due Monday"; a Wednesday Push not done by Thursday is "Push was due
+    /// Wednesday"; a date whose swap says rest is never missed.
+    static func missed(_ plan: Plan, sessions: [Session], swaps: [DaySwap], today: Date,
+                       calendar: Calendar = .current) -> MissedDay? {
         guard !plan.cycle.isEmpty, let anchor = plan.cycleAnchor else { return nil }
         let anchorDay = calendar.startOfDay(for: anchor)
         let importDay = calendar.startOfDay(for: plan.importedAt)
@@ -205,9 +220,17 @@ enum PlanSchedule {
                                            to: calendar.startOfDay(for: today)) else { continue }
             guard date > anchorDay, date >= importDay else { return nil }   // before the plan expected anything
             guard !done.contains(date) else { return nil }   // you trained; nothing was missed
-            guard let (_, entry) = entry(plan, on: date, today: today, calendar: calendar),
-                  case let .day(day) = entry, plan.days.indices.contains(day) else { continue }
-            return (day, date)
+            let slot = slot(plan, on: date, swaps: swaps, today: today, calendar: calendar)
+            switch slot {
+            case let .day(day):
+                return MissedDay(date: date, slot: slot, dayIndex: day, name: plan.days[day].name)
+            case let .own(own):
+                return MissedDay(date: date, slot: slot, dayIndex: nil, name: own.name)
+            case let .borrowed(_, name):
+                return MissedDay(date: date, slot: slot, dayIndex: nil, name: name)
+            case .rest, .none:
+                continue
+            }
         }
         return nil
     }

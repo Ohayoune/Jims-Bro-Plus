@@ -24,7 +24,7 @@ final class UsabilityTests: XCTestCase {
     }
 
     private func missed(_ plan: Plan, today: Int, sessions: [Session] = []) -> Int? {
-        PlanSchedule.missed(plan, sessions: sessions, today: day(today), calendar: calendar)?.dayIndex
+        PlanSchedule.missed(plan, sessions: sessions, swaps: [], today: day(today), calendar: calendar)?.dayIndex
     }
 
     // U1: a missed workout is one the plan actually expected.
@@ -54,7 +54,7 @@ final class UsabilityTests: XCTestCase {
         XCTAssertNil(missed(rotation(anchor: 7, position: 0), today: 9, sessions: [trained]))
         // And it still looks no further back than a week: anchored on the 1st and away until
         // the 20th, only the most recent projected day is reported, not the 2nd.
-        XCTAssertNotEqual(PlanSchedule.missed(rotation(anchor: 1, position: 0), sessions: [], today: day(20),
+        XCTAssertNotEqual(PlanSchedule.missed(rotation(anchor: 1, position: 0), sessions: [], swaps: [], today: day(20),
                                               calendar: calendar)?.date, calendar.startOfDay(for: day(2)))
 
         // Home says the same thing the schedule does.

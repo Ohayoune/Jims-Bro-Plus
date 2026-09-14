@@ -9,6 +9,8 @@ struct StoreSnapshot: Equatable {
     var active: ActiveSession?
     /// D52 (v1.5): the plan being built day by day, if one was left mid-way.
     var draft: PlanDraft?
+    /// D72 (v1.9): the day swaps; a missing `swaps.json` is none.
+    var swaps: [DaySwap] = []
     var corruptFiles: [String] = []
     /// False on a first launch, so the caller knows to write the defaults it just used (N10).
     var hasSettingsFile = false
@@ -35,6 +37,8 @@ actor Store {
 
     var settingsURL: URL { root.appendingPathComponent("settings.json") }
     var plansURL: URL { root.appendingPathComponent("plans.json") }
+    /// D72 (v1.9): the day swaps, beside the plans.
+    var swapsURL: URL { root.appendingPathComponent("swaps.json") }
     var activeSessionURL: URL { root.appendingPathComponent("active-session.json") }
     /// D52 (v1.5): present only while a plan is being built day by day.
     var draftURL: URL { root.appendingPathComponent("draft.json") }
@@ -67,6 +71,9 @@ actor Store {
         if let plans: PlansPayload = read(plansURL, into: &snapshot) {
             snapshot.plans = plans.plans
             snapshot.activePlanId = plans.activePlanId
+        }
+        if let swaps: SwapsPayload = read(swapsURL, into: &snapshot) {
+            snapshot.swaps = swaps.swaps
         }
         if let active: ActiveSession = read(activeSessionURL, into: &snapshot) {
             snapshot.active = active
@@ -132,6 +139,11 @@ actor Store {
 
     func save(plans: [Plan], activePlanId: UUID?) throws {
         try write(StoreCoder.encode(PlansPayload(activePlanId: activePlanId, plans: plans)), to: plansURL)
+    }
+
+    /// D72 (v1.9): the day swaps, written whenever one is added, answered or deleted.
+    func save(swaps: [DaySwap]) throws {
+        try write(StoreCoder.encode(SwapsPayload(swaps: swaps)), to: swapsURL)
     }
 
     func save(activeSession: ActiveSession) throws {
@@ -211,7 +223,8 @@ actor Store {
         let document = ExportDocument(exportedAt: now, appVersion: appVersion,
                                       settings: snapshot.settings, plans: snapshot.plans,
                                       sessions: snapshot.sessions,
-                                      activePlanId: snapshot.activePlanId)
+                                      activePlanId: snapshot.activePlanId,
+                                      swaps: snapshot.swaps)
         return try? StoreCoder.encoder.encode(document)
     }
 
@@ -256,12 +269,17 @@ actor Store {
             try manager.createDirectory(at: sessionsDirectory, withIntermediateDirectories: true)
             try save(settings: document.settings)
             try save(plans: document.plans, activePlanId: document.activePlanId ?? document.plans.first?.id)
+            // D72 (v1.9): a backup from before swaps restores with none.
+            try save(swaps: document.swaps ?? [])
             for session in document.sessions { try save(session: session) }
         case .merge:
             let knownPlans = Set(snapshot.plans.map(\.id))
             let knownSessions = Set(snapshot.sessions.map(\.id))
+            let knownSwaps = Set(snapshot.swaps.map(\.id))
             let plans = snapshot.plans + document.plans.filter { !knownPlans.contains($0.id) }
             try save(plans: plans, activePlanId: snapshot.activePlanId ?? document.activePlanId)
+            let added = (document.swaps ?? []).filter { !knownSwaps.contains($0.id) }
+            if !added.isEmpty { try save(swaps: snapshot.swaps + added) }
             for session in document.sessions where !knownSessions.contains(session.id) {
                 try save(session: session)
             }

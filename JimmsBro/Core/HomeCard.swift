@@ -19,18 +19,14 @@ enum StartCard: Equatable {
             return .inProgress(dayName: engine.session.dayName, elapsed: engine.elapsed(now: now))
         }
         guard let plan = library.activePlan else { return .noPlan }
-        if plan.schedule == .weekday {
-            guard let (dayIndex, daysAway) = PlanSchedule.weekday(plan, today: now, calendar: calendar),
-                  let day = plan.days[safe: dayIndex] else { return .nothingScheduled }
-            return daysAway == 0
-                ? .today(planId: plan.id, dayIndex: dayIndex, dayName: day.name)
-                : .restDay(planId: plan.id, dayIndex: dayIndex, dayName: day.name,
-                           weekday: day.weekday, daysAway: daysAway)
-        }
         // D37 (v1.2): the same anchored projection the calendar draws, so "Next up" and the
-        // ring on the grid can never disagree — which is half of why v1.1 felt clunky.
-        guard let next = PlanSchedule.next(plan, today: now, calendar: calendar),
-              let day = plan.days[safe: next.dayIndex] else {
+        // ring on the grid can never disagree — which is half of why v1.1 felt clunky. D72
+        // (v1.9, §6.46): with the swaps read, on both schedules, so a swapped day is the card's
+        // as it is the strip's.
+        guard let next = PlanSchedule.next(plan, today: now, swaps: library.swaps, calendar: calendar)
+        else { return .nothingScheduled }
+        // Q4 (D76) gives an own or borrowed day a card of its own; neither can be written yet.
+        guard case let .day(dayIndex) = next.slot, let day = plan.days[safe: dayIndex] else {
             return .nothingScheduled
         }
         // And it says *when*, which v1.1 never did for a rotation: the card read "Next up ·
@@ -39,10 +35,12 @@ enum StartCard: Equatable {
         let daysAway = calendar.dateComponents([.day], from: calendar.startOfDay(for: now),
                                                to: next.date).day ?? 0
         guard daysAway > 0 else {
-            return .nextUp(planId: plan.id, dayIndex: next.dayIndex, dayName: day.name)
+            return plan.schedule == .weekday
+                ? .today(planId: plan.id, dayIndex: dayIndex, dayName: day.name)
+                : .nextUp(planId: plan.id, dayIndex: dayIndex, dayName: day.name)
         }
         let weekday = Weekday.allCases.first { $0.calendarValue == calendar.component(.weekday, from: next.date) }
-        return .restDay(planId: plan.id, dayIndex: next.dayIndex, dayName: day.name,
+        return .restDay(planId: plan.id, dayIndex: dayIndex, dayName: day.name,
                         weekday: weekday, daysAway: daysAway)
     }
 
@@ -113,7 +111,7 @@ enum RepeatBlock {
     }
     /// The highlighted chip: the entry Next up would start, not the last completed one.
     static func highlighted(_ plan: Plan) -> Int? {
-        plan.schedule == .weekday ? nil : PlanSchedule.next(plan)?.cycleIndex
+        plan.schedule == .weekday ? nil : PlanSchedule.nextInPattern(plan)?.cycleIndex
     }
 }
 
@@ -163,6 +161,9 @@ struct HomeStart: Equatable {
     /// D37 (v1.2): the training day the schedule put before today that never happened, said
     /// plainly rather than resolved behind your back. "Push was due Tuesday."
     var missed: MissedWorkout?
+    /// D72 (v1.9, §6.46): the question the shown square's date carries, if it carries one —
+    /// Q2's block under the strip.
+    var question: SwapQuestion?
     /// D44 (v1.3): the plan's progression has run its course, so Today offers the next one.
     var progressionFinished = false
     /// D50 (v1.5): the quiet link to plan one — only when the plan has no progression and
@@ -252,7 +253,8 @@ struct HomeStart: Equatable {
 
     /// A workout the schedule expected on a day that has no session on it.
     struct MissedWorkout: Equatable {
-        var dayIndex: Int
+        /// Nil for an own or borrowed day (D76), which the message names but cannot start.
+        var dayIndex: Int?
         var dayName: String
         var date: Date
         /// "Push was due Monday" — said, not silently rescheduled.
@@ -326,23 +328,26 @@ struct HomeStart: Equatable {
         // the calendar draws, and every square of it is live — a deliberate exception to
         // §6.40's table, recorded there.
         if let plan = library.activePlan {
-            start.strip = WeekStrip.days(plan: plan, sessions: library.sessions, today: now,
-                                         calendar: calendar)
+            start.strip = WeekStrip.days(plan: plan, sessions: library.sessions, swaps: library.swaps,
+                                         today: now, calendar: calendar)
         }
         start.shownOffset = start.strip.isEmpty ? 0 : min(max(offset, 0), start.strip.count - 1)
+        // D72 (v1.9, §6.46): the question the shown square's date carries, for Q2's block.
+        if let id = start.strip[safe: start.shownOffset]?.swapId {
+            start.question = library.question(for: id, now: now)
+        }
 
         // D37 (v1.2): the training day the schedule put before today that never happened, said
         // plainly rather than resolved behind your back. "Push was due Tuesday." About the plan,
         // not the day shown, so it is read whatever the square.
         if let plan = library.activePlan, plan.schedule == .rotation, library.engine == nil,
-           let missed = PlanSchedule.missed(plan, sessions: library.sessions, today: now,
-                                            calendar: calendar),
-           let day = plan.days[safe: missed.dayIndex] {
+           let missed = PlanSchedule.missed(plan, sessions: library.sessions, swaps: library.swaps,
+                                            today: now, calendar: calendar) {
             let weekday = calendar.component(.weekday, from: missed.date)
             let name = calendar.weekdaySymbols[safe: weekday - 1] ?? "then"
-            start.missed = MissedWorkout(dayIndex: missed.dayIndex, dayName: day.name,
+            start.missed = MissedWorkout(dayIndex: missed.dayIndex, dayName: missed.name,
                                          date: missed.date,
-                                         text: "\(day.name) was due \(name)")
+                                         text: "\(missed.name) was due \(name)")
         }
 
         if start.shownOffset > 0, let plan = library.activePlan,
@@ -590,23 +595,13 @@ enum SummaryText {
         guard let planId = session.planId,
               let plan = library.plans.first(where: { $0.id == planId }) else { return nil }
         let today = calendar.startOfDay(for: now)
-        var found: (name: String, date: Date)?
-        if plan.schedule == .weekday {
-            // The next weekday after today that has a day; today's is the one just done.
-            let current = calendar.component(.weekday, from: now)
-            for offset in 1...7 {
-                let weekday = (current - 1 + offset) % 7 + 1
-                if let day = plan.days.first(where: { $0.weekday?.calendarValue == weekday }),
-                   let date = calendar.date(byAdding: .day, value: offset, to: today) {
-                    found = (day.name, date)
-                    break
-                }
-            }
-        } else if let next = PlanSchedule.next(plan, today: now, calendar: calendar),
-                  let day = plan.days[safe: next.dayIndex], next.date > today {
-            found = (day.name, next.date)
-        }
-        guard let found else { return nil }
+        // The first day after today, on either schedule, swaps read (D72): today's is the one
+        // just done, whether the pattern expected it or a swap now records it.
+        guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: today),
+              let next = PlanSchedule.firstDay(plan, from: tomorrow, swaps: library.swaps,
+                                               today: now, calendar: calendar),
+              let name = next.slot.name(in: plan) else { return nil }
+        let found = (name: name, date: next.date)
         let days = calendar.dateComponents([.day], from: today,
                                            to: calendar.startOfDay(for: found.date)).day ?? 0
         let when: String

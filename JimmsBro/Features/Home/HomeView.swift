@@ -290,12 +290,15 @@ struct HomeView: View {
             Spacer(minLength: 0)
             switch message {
             case let .missed(missed):
-                Button("Do it now") {
-                    if let plan = model.activePlan {
-                        start(planId: plan.id, dayIndex: missed.dayIndex)
+                // An own or borrowed day (D76) is named but not started here until Q4 says how.
+                if let dayIndex = missed.dayIndex {
+                    Button("Do it now") {
+                        if let plan = model.activePlan {
+                            start(planId: plan.id, dayIndex: dayIndex)
+                        }
                     }
+                    .font(.footnote.weight(.medium))
                 }
-                .font(.footnote.weight(.medium))
                 Button("Dismiss") { dismissedMissed = true }
                     .font(.footnote)
                     .foregroundStyle(.secondary)

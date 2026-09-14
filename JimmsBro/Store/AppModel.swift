@@ -12,13 +12,15 @@ enum SaveFailure: Equatable {
     case deleteSession(UUID)
     /// D52 (v1.5): the draft's file.
     case draft
+    /// D72 (v1.9): `swaps.json`.
+    case swaps
 
     var message: String {
         switch self {
         case .session: return "Couldn't save the workout. It's still here — try again."
         case .draft: return "Couldn't save the draft. It's still here — try again."
         case .activeSessionWrite: return "Couldn't save your progress. The workout keeps running; try again."
-        case .activeSessionClear, .plans: return "Couldn't finish saving. Nothing was lost; try again."
+        case .activeSessionClear, .plans, .swaps: return "Couldn't finish saving. Nothing was lost; try again."
         case .settings: return "Couldn't save that setting. Try again."
         case .deleteSession: return "Couldn't delete that workout. Try again."
         }
@@ -77,6 +79,8 @@ enum SaveFailure: Equatable {
     var settings: Settings { library.settings }
     var plans: [Plan] { library.plans }
     var sessions: [Session] { library.sessions }
+    /// D72 (v1.9): the day swaps, for the calendar and the strip.
+    var swaps: [DaySwap] { library.swaps }
     var activePlan: Plan? { library.activePlan }
     var activePlanId: UUID? { library.activePlanId }
     /// History and stats show the active plan's units, else the setting.
@@ -121,6 +125,7 @@ enum SaveFailure: Equatable {
         library.plans = snapshot.plans
         library.activePlanId = snapshot.activePlanId
         library.sessions = snapshot.sessions
+        library.swaps = snapshot.swaps
         persistedSessionIds = Set(snapshot.sessions.map(\.id))
         draft = snapshot.draft
         corruptFiles = snapshot.corruptFiles
@@ -271,11 +276,26 @@ enum SaveFailure: Equatable {
     func deletePlan(_ id: UUID) async {
         library.deletePlan(id)
         await persistPlans()
+        await persistSwaps()
     }
 
     func persistPlans() async {
         do { try await store.save(plans: library.plans, activePlanId: library.activePlanId) }
         catch { saveFailure = .plans }
+    }
+
+    /// D72 (v1.9): `swaps.json`, after a completion, an answer or a deleted plan.
+    func persistSwaps() async {
+        do { try await store.save(swaps: library.swaps) } catch { saveFailure = .swaps }
+    }
+
+    /// SPEC §6.46: answers the question a taken day carries. A slide (D73) moves the plan's
+    /// anchor too, and leaving one puts it back, so `plans.json` is written when it changed.
+    func answerSwap(_ id: UUID, with slot: DaySwap.Slot) async {
+        let before = library.plans
+        library.answer(swap: id, with: slot)
+        await persistSwaps()
+        if library.plans != before { await persistPlans() }
     }
 
     // MARK: - History
@@ -405,6 +425,8 @@ enum SaveFailure: Equatable {
             do { try await store.deleteSession(id: id) } catch { saveFailure = .deleteSession(id) }
         case .draft:
             await persistDraft()
+        case .swaps:
+            await persistSwaps()
         }
     }
 

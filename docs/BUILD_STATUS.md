@@ -1,9 +1,39 @@
 # Build status
 
-Updated 2026-09-13. **v1.8 is built and green on branch `v1.8-cues` (off `main`, which holds
-v1.7): S0–S4.** v1.7 and everything before it are below,
+Updated 2026-09-14. **v1.9 is in progress on branch `v1.9-swaps` (off `main`, which holds
+v1.8): Q0–Q1 built and green, Q2–Q7 not started.** v1.8 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
+
+## v1.9 (Q0–Q7): Q0–Q1 built and green
+
+`docs/ITERATION_10_PLAN.md` is the v1.9 plan, written from the owner's notes after living with
+v1.8's strip — *"shift today's colour to the colour of the other day (without changing the plan
+itself)"*. Each milestone ends with the whole suite green on all three routes, a Release build and
+`tools/check_release.py`, and one commit on `v1.9-swaps`.
+
+After Q1:
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **354 tests, 15 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see (TQ12 joins them) |
+| `swift test` | **353 tests, 0 failures** |
+| `python3 tools/check_core.py` | **353 bodies, 6,881 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; Q1 touches no import code) |
+| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — still version 1.8 (1); Q7 turns it to 1.9 |
+| `python3 tools/check_bundle.py` | **current** (regenerated in Q1) |
+
+| Milestone | What it did | State |
+|---|---|---|
+| Q0 | The plan, the branch, the mock (the "Swapping Days" artifact, not committed) | Done |
+| Q1 | A day swapped, not a plan changed (D72) and Slide (D73), in Core: `Core/DaySwap.swift` — `DaySwap` with its five-kind `Slot`, `swaps.json` beside `plans.json` (a missing file is no swaps; an unreadable one is set aside), `PlanLibrary.swaps`, `settle` (the three completion cases: the expected day re-anchors at the projected entry and keeps the grid; what the date said writes nothing; anything else writes today's record and a question on the day whose workout was taken, with today's day as the default), `answer` (Rest, today's day, Keep, and Slide on rotations, which re-anchors as D37 did and remembers what it replaced), `question` (the options in order, the default, what was chosen); `PlanSchedule.base`/`slot` — one slot per date, swaps read — under `CalendarProjection`'s three functions (`swaps:` with no default), `WeekStrip.days` (the dot, the outline, the ring, the question on the shown square's card), `PlanSchedule.next(_:today:swaps:)` for Today's card on both schedules and the Summary's next line, and `PlanSchedule.missed`, which never misses a swapped-to-rest day and names the swapped day for Do it now; `DayEntry.own` drawn in ink on the grid; the backup's optional `swaps`; `examples/store/v1/` gains `swaps.json`, `backup-1.9.json` and `backup-1.7.json`. Nothing in the pipeline, the format, the prompts, the Workout screen, the rest or the Live Activity changed, and nothing is drawn yet: Q2 draws the marks. TQ1–TQ13 in `SwapTests`; L7 and one `LibraryCalendarPromptTests` assertion rewritten for D72. SPEC §6.8, §6.12, §6.41, §7, §8.1, §8.5 and the new §6.46 and §6.47 | Done |
+| Q2–Q7 | Today's marks (D74), the ··· in squares (D75), Change day's exercises (D76), the JSON sheet (D77), Plans in squares (D78), docs and 1.9 | Not started |
+
+### Not run in v1.9 (so far)
+
+- Nothing on the simulator or the phone shows a swap yet: Q1 is Core and the store, and Q2 draws
+  the dot, the ring and the question block. The marks are held in Core (TQ2–TQ6) and not yet seen.
 
 ## v1.8 (S0–S4): built and green
 

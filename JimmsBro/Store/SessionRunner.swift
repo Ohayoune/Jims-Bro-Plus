@@ -174,6 +174,8 @@ extension AppModel {
         }
         await tryClearActiveSession()
         await persistPlans()
+        // D72 (v1.9): a finished workout on an unexpected day is a swap, not a moved plan.
+        await persistSwaps()
     }
 
     func persistActiveSession() async throws {

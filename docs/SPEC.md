@@ -629,7 +629,7 @@ The 2026-09-09 audit's largest finding was not a defect. "5 (4–6) · 100 kg ·
 *(The other reading, kept for the record: leave the notation and explain each form once per install the first time it appears. It was the smaller change and would have left the numbers exactly as the owner reads them, but it teaches a notation rather than removing the need for one, and it says nothing on the four-hundredth day.)*
 
 ### 6.12 Calendar projection
-`Calendar.entries(month, plans, sessions, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none`, for the active plan only. `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.
+`Calendar.entries(month, plans, sessions, swaps, today) -> [DayEntry]`, `DayEntry = .completed([Session]) | .projected(planId, dayIndex) | .rest | .none | .own(Day)`, for the active plan only. *(v1.9, D72: `swaps` has no default, and `.own` is a day written just for one date, §6.46.)* `.rest` is a day the plan schedules as rest; `.none` is a day the plan says nothing about (the past, beyond the horizon, or no active plan). The two are drawn differently: `.rest` gets a grey dot, `.none` gets nothing.
 - Past and today: `.completed` for days with ≥ 1 completed session (any plan). Past days without a session are `.none`, never `.rest` — a day you didn't train is not a scheduled rest day.
 - Future days (and today if no session yet):
   - weekday plan → `.projected` for days whose weekday has a Day, `.rest` for every other weekday (a weekday plan names all its training days, so the remainder are rest).
@@ -641,12 +641,12 @@ The 2026-09-09 audit's largest finding was not a defect. "5 (4–6) · 100 kg ·
 `Plan.cycleAnchor` is the day `cyclePosition` describes, so the pattern is nailed to the calendar:
 
 - Missing a workout changes **nothing** about what any other day says.
-- The pattern moves only when a workout **finishes**, which re-anchors it, once, to the day it was actually done.
+- The pattern moves only when the workout it **expected** finishes, which re-anchors it, once, to the day it was actually done. **v1.9 (D72, §6.46)**: *"the workout it expected"* — v1.2–v1.8 said *"a workout"*, and re-anchored on any finished day; any other finished day is now a swap on two dates, where a re-anchor was, and the pattern stays where it is. Slide (D73, §6.47) is that re-anchor chosen on purpose.
 - A rest-free cycle is painted for the whole horizon, because it is now a real repeating pattern rather than a guess about tomorrow. v1.1 projected only tomorrow and left the month blank.
 - A plan that predates the anchor is anchored to today at launch, once, and written down. Nothing it says today changes; from tomorrow it stops sliding.
 - The day the schedule expected and did not get is **said**, on Today — "Push was due Monday", with **Do it now** and **Dismiss** — rather than resolved behind your back. Only the most recent one, and only within a week: a plan you came back to after a fortnight is a fresh start, not a missed Tuesday. **v1.6 (D55)**: and only a day the plan actually expected — after its import day, and after its anchor, the day of its most recent completed workout. A plan with nothing completed has missed nothing. v1.5 anchored such a plan to today and projected the pattern backwards over the week before the plan existed ("Full Body B was due Sunday", three minutes after a fresh install), and a completion re-anchored the pattern over days already lived through ("Pull was due Tuesday" after a day run out of order).
 
-Today's card and the grid in History's calendar (Home's until v1.7, D63) read the same function (`PlanSchedule.next(_:today:)`), so they cannot disagree. In v1.1 they were computed two different ways, which is the other half of why the calendar felt clunky.
+Today's card and the grid in History's calendar (Home's until v1.7, D63) read the same function (`PlanSchedule.next(_:today:)`; since v1.9 `PlanSchedule.slot`, swaps read, through `next(_:today:swaps:)` — §6.46), so they cannot disagree. In v1.1 they were computed two different ways, which is the other half of why the calendar felt clunky.
 
 **D38 (v1.2): what a cell says.** v1.1 drew every day as the same 5 pt dot — filled for done, outlined for planned, grey for rest — so a month of training looked like a month of anything else, and the shape of a week could not be read off the grid ("the spacing … is not perfectly clear"). A cell now carries the day's short name under its number, a finished day is filled in the reserved green, a planned day is outlined in the accent, and a rest day is a dash: a visible gap rather than another kind of dot. **v1.6 (D55)**: the short name is chosen *within the plan* — the first word when it is the only day of the plan that starts with it, else the initials of every word, else the day's number — so Full Body A and Full Body B read "FBA" and "FBB" rather than both "Full…", and Upper A / Lower B read "UA" / "LB". The spoken cell always says the whole name. Each cell reads as one VoiceOver sentence ("Monday 7 September. Planned: Push"). **v1.7 (D65, §6.41)**: a finished day is filled, and a planned day named, in its day's colour; the reserved green and the accent gave way to it.
 
@@ -664,7 +664,7 @@ Today's card and the grid in History's calendar (Home's until v1.7, D63) read th
 - Many plans may exist; exactly one is active (or none). Importing a plan makes it active if none is active; otherwise it asks.
 - Every plan has `cycle: [CycleEntry]`, `CycleEntry = .day(dayIndex) | .rest`, length 1–31, resolved at import (PLAN_FORMAT §3.10): explicit `cycle` for rotation plans, else the days in order with no rest; weekday plans always derive `[Mon…Sun]` with `.rest` for unlisted weekdays and ignore an explicit cycle.
 - Rotation: `cyclePosition: Int?` = index in the cycle of the last completed entry. **Next up** = the first `.day` entry after `cyclePosition` (wrapping; from index 0 if nil). Rest entries are skipped by Next up but used by the calendar.
-- On session completion for plan P, day D (matched by normalized name in P's current days): `cyclePosition` = the first index after the current position (wrapping) whose entry is D; if D isn't in the cycle, unchanged. Discarded sessions never move it. Deleted plan / unknown day: nothing happens.
+- On session completion for plan P, day D (matched by normalized name in P's current days): `cyclePosition` = the first index after the current position (wrapping) whose entry is D; if D isn't in the cycle, unchanged. Discarded sessions never move it. Deleted plan / unknown day: nothing happens. **v1.9 (D72, §6.46)**: only when D is the day the pattern projected for that date — the position becomes that date's entry and the anchor that date, a refresh that changes nothing on the grid; a plan with nothing completed still anchors on its first workout, whatever the day. Any other finished day writes a swap on two dates and moves nothing.
 - Replacing a plan: keep the position by matching the day name at the old position to the new cycle (first occurrence); if it doesn't exist, nil.
 - Weekday plans: Today shows the day whose weekday equals today (local calendar); else "Rest day" and the next weekday that has one. `cyclePosition` is unused.
 - Starting any Day from Plan detail or the calendar is always allowed regardless of the cycle. If a session is in progress it triggers the D17 popup; "Finish X and start Y" finishes X exactly like Finish (pending → skipped, advice, cycle advance) then starts Y; "Discard X and start Y" discards X.
@@ -734,7 +734,7 @@ The rule behind §6.37, made a table (`docs/ITERATION_8_PLAN.md`, T4, which prop
 Parked from iteration 7 and chosen with v1.7's plan (`docs/ITERATION_8_PLAN.md`, T5) — the one addition in a release of subtractions. History was a column of identical grey rows, and a five-year-old reads a colour before a word. **Colour says which day; the accent says tappable** (§4.0).
 
 - **A day's colour is its place in the plan's day list**: the first day green, then orange, purple, pink, teal and indigo, and the seventh green again (`DayColour.index(dayIndex:)`, `Core/DayColour.swift`). Six system colours, so they follow dark mode; none is the accent (tappable, D59), red (destructive) or yellow (a warning), and a test holds the palette to that (T23).
-- **Derived, never stored.** Nothing joins `Plan`, `Session` or `Settings`, so no file on the phone changes shape; reordering a plan's days recolours them, which is the price of leaving the on-disk contract alone. A workout's colour is its day's in its plan as the plan is now, found by the plan's id and the day's name, as the calendar finds its label (`DayColour.of(session:plans:)`); a workout whose plan is gone, or whose day was renamed, has none.
+- **Derived, never stored.** Nothing joins `Plan`, `Session` or `Settings`, so no file on the phone changes shape; reordering a plan's days recolours them, which is the price of leaving the on-disk contract alone. **v1.9 (D72)**: a swap *is* stored (`swaps.json`, §6.46) and a colour still is not — the dot under a swapped square is the pattern's day's colour, derived like every other, and a swap names its day rather than indexing it, so it survives a reorder the way a colour does not. A workout's colour is its day's in its plan as the plan is now, found by the plan's id and the day's name, as the calendar finds its label (`DayColour.of(session:plans:)`); a workout whose plan is gone, or whose day was renamed, has none.
 - **Exactly four places**, each saying *which day* and none saying *tap here*:
   1. **Today**: a filled square before the day's name — never the name itself, which is ink (§4.1) — and, since v1.8 (D69, §6.43), each exercise row's set blocks: half strength for a set to do, full once it is logged.
   2. **The calendar**: a finished day is filled, and a planned day named, in its day's colour, where the reserved green and the accent were (§4.10, D38). A day with two workouts takes the first's, the one its label names; a finished day with no colour is grey.
@@ -797,6 +797,47 @@ On a rest day the card says rest, and it says it in marks before words (`docs/IT
 - **The message still speaks**, because it is the plan's, not the day's (§6.44): a missed workout (D37) reads *"Legs was due Wednesday"* with **Do it now**, which starts the missed day exactly as before, and a progression that has run its course still offers **Plan the next one**, for the active plan — on today's rest card and on a tapped grey square. The ··· is Change plan (and Discard workout while a session is open); Plan a progression, which is about a day's exercises (D50), waits for a day's card — a coloured square, or History's Progression row (D67).
 - **Core decides it.** `StartCard.restDay` keeps its payload — the next day's index, name, weekday and distance — and `StartCard.target` still names that day, for the screenshot runs; the rest card from `HomeStart.current` has no `planId` or `dayIndex`, empty `rows`, no clock, `isRest` true, `buttonMark` `.moon` or `.check` with `buttonEnabled` false, and `HomeStart.doneTitle` for the check's words. A tapped grey square's card (S2) is the same card, from the same function. VoiceOver reads "Rest", the seven days, then the dimmed button; the moon and the z's are marks, hidden from it (TS13–TS17).
 
+### 6.46 A day swapped, not a plan changed (D72, v1.9)
+When a workout finishes on a date the active plan's pattern expected a different day — or rest — the plan is not moved (`docs/ITERATION_10_PLAN.md`, Q1). v1.2–v1.8 re-anchored a rotation the moment any workout finished (D37): do Wednesday's Legs on Monday and tomorrow became whatever follows Legs, and the whole week slid — which the owner called *changing the plan*. Two dates are written down instead, in `swaps.json` (§8.1, `Core/DaySwap.swift`):
+
+- **today**: what the pattern said (*Push*) and what happened (*Legs*);
+- **the day whose workout was taken** — the next date within the horizon (§6.12, 62 days) whose projected slot is Legs, Wednesday — what the pattern said (*Legs*) and, **applied at once**, the default: *today's* day, Push. This date carries a **question**, open until answered, gone once the date is past.
+
+Nothing in `Plan` changes: not the cycle, not `cyclePosition`, not `cycleAnchor`.
+
+**Completion, exactly** (`PlanLibrary.settle`). For a finished session of plan P on date *d* with day *X*, let *base* be the pattern's slot for *d* (`PlanSchedule.base`) and *slot* the projected one, swaps read (`PlanSchedule.slot`):
+1. *X* is *base* → the pattern re-anchors to *d*, at the entry it projected for *d* — a refresh that changes nothing on the grid, even when the cycle holds the day twice. A rotation with nothing completed has no pattern on the calendar yet (D55), so its first workout anchors it whatever the day (D37's `advance`).
+2. *X* is *slot* but not *base* (Push on Wednesday, after the swap) → nothing moves, nothing is written: it is what the date said.
+3. Otherwise → *d* is written (`original: base, replacement: X, answered: true`) — unless *base* was done on *d* already, in which case *d* keeps what it has; and if *X* is a day of this plan, the next date whose projected slot is *X* is written with today's option — *base*, or rest when today was a rest day or *base* was done on *d* already — and the question (`askedOn: d, answered: false`). No such date within the horizon → no question, only *d*.
+
+Discarded sessions, and sessions with nothing logged, write nothing; a session of another plan writes nothing (the owner's 8); a finished day the plan no longer names writes nothing. A weekday plan follows the same three cases, with *base* from its weekdays.
+
+**The answers** (`SwapQuestion.options`, `PlanLibrary.answer`), in this order:
+
+| Option | Wednesday becomes | Then |
+|---|---|---|
+| **Rest** | rest | Legs is not repeated; Push does not happen this week, and the app says nothing about it (the owner's 22) |
+| **Push** — *today's* day, the default | Push | a true swap; nothing is lost |
+| **Legs** — keep | Legs | Legs twice this week, Push not at all; the app says nothing |
+| **Slide** — rotations only (D73, §6.47) | what the pattern says once it carries on from Legs | Tuesday Rest, Wednesday Push, Thursday Pull, Friday Legs … |
+
+Two of them merge: when today was a rest day, *today's* day **is** rest, and the question offers Rest, Keep (and Slide). When today's own day was already done before the off-day workout, *today's* is not offered either — today's colour is taken — and the default is Rest (the owner's 8). **Keep** sets the date back to what the pattern said and leaves the swap in place, answered, so the ring goes faint and the question can be reopened until its date is past; the rule that a replacement equal to its original deletes the swap is for what the picker writes (D76), not for an answer. Answering persists `swaps.json`, and `plans.json` when a slide moved the anchor (`AppModel.answerSwap`).
+
+**The projection reads swaps.** `CalendarProjection.entries`, `next(days:from:)` and `week(containing:)` take `swaps: [DaySwap]` with no default, so no caller can forget them and the compiler is the pin (TQ12; the strip and the missed rule take them the same way). For a date at or after today with a swap for the active plan: `.rest` → `.rest`; `.day(name)` → `.projected` by name — a name the plan no longer has projects `.none`, as a dead cycle entry does (§6.12); `.borrowed` → `.projected` with the other plan's id and index (D76, Q4 — `.none` until Q4 hands the projection the other plans); `.own(day)` → `DayEntry.own(day)`, drawn as a planned day with no colour, in ink; `.slide` → the pattern, which the slide already re-anchored. Past dates keep D37's rule: `.completed` or `.none`. Today's card (`PlanSchedule.next(_:today:swaps:)`, on both schedules), the strip (`WeekStrip.days`), the History grid and the missed rule read the same slot, so none of them can disagree about a swapped day; the grid draws a swapped day as what it now is and nothing more — no dot, no ring (the owner's 9).
+
+**Missed** (`PlanSchedule.missed`) reads the projected slots: Monday's Push, moved to Wednesday, is not "due Monday"; a Wednesday Push not done by Thursday is *"Push was due Wednesday"*, and **Do it now** starts the swapped day; a date whose replacement is rest is never missed; a missed own or borrowed day is named by its own name, and cannot be started from the message until Q4 says how.
+
+**The strip's marks** (`WeekStrip.Square`; D74, Q2, draws them): a square whose slot is not the pattern's carries a **dot** in the pattern's colour (grey when the pattern said rest); a borrowed or own day is **outlined**; a question is a **ring** — pulsing while it asks, faint once answered — and VoiceOver reads *"Wednesday, Push, question"*. The shown square's card carries its question (`HomeStart.question`). A question is reachable while its date is today or later; past dates are history.
+
+**Where it lives.** `swaps.json` beside `plans.json` (§8.1), a `VersionedFile<SwapsPayload>`: one swap per date per plan — writing a date that has one replaces it, and a replacement equal to the original deletes it; identity is required (`id`, `planId`, `date`, `original`, `replacement`, `answered`) and `askedOn` and `slideUndo` are optional (§8.3's rule); a slot is written as a kind (`{ "kind": "day", "name": "Legs" }`), and an unknown kind is a corrupt file, not a silent rest day. A missing file is no swaps, so a v1.8 phone opens without a word; an unreadable one is set aside (§8.3). `PlanLibrary.swaps` sits beside `plans` and `sessions`; deleting a plan deletes its swaps; Delete all data removes the folder. The backup gains an optional `swaps` (§8.5), and `examples/store/v1/` freezes a `swaps.json` the app wrote, a backup that carries one and a backup as v1.7 wrote it, which does not. Sessions do not change: the done day's session is the ordinary one. A day is named, not indexed (§6.9): reordering a plan's days keeps its swaps, and renaming a day loses its swap the way it loses its colour (§6.41).
+
+### 6.47 Slide carries on from the workout you did (D73, v1.9)
+**Slide** is the question's last answer, on rotations only: D37's re-anchor, applied when chosen rather than when the workout finished. It is `PlanSchedule.advance` for the day that was done (the question's `original`) on the day it was done (`askedOn`) — Legs on Monday — so the pattern continues *after Legs*: Tuesday Rest, Wednesday Push, Thursday Pull, Friday Legs. That is what v1.8 did after every off-day workout, chosen now on purpose. The owner asked which of two readings, and whether both; the plan chose one, because two slides is one feature too many: the other reading (everything one day later — Push, Pull, Legs, Rest from Tuesday) differs only in where this week's rest falls, and both weeks agree from the next one on.
+
+- A weekday plan's days are pinned to weekdays, so there is nothing to slide: the option is not offered, and refused if asked.
+- A slide remembers the position and anchor it replaced (`slideUndo`), so reopening the question and choosing otherwise puts them back first; while a question is open, that is the only way the anchor moves.
+- The swap's replacement is `.slide` — no override, the re-anchored pattern decides — so the square carries no dot, and Monday's Legs, now the pattern's own, loses its dot too.
+
 ## 7. Data model (Core, Codable, no UI imports)
 
 ```swift
@@ -855,6 +896,22 @@ struct Settings: Codable { var units: WeightUnit; var defaultRestSeconds: Int; v
 struct Issue: Codable, Equatable { var severity: Severity; var code: String; var path: String; var message: String }   // e.g. ("error","E_REPS_INVALID","days[0].exercises[2].reps","…")
 ```
 
+**D72 (v1.9), `Core/DaySwap.swift`** — beside the plans, not in them (§6.46):
+
+```swift
+struct DaySwap: Codable, Identifiable {
+    enum Slot { case rest, day(name: String), borrowed(planId: UUID, name: String), own(Day), slide }
+    var id: UUID
+    var planId: UUID          // the active plan when it was written
+    var date: Date            // start of the local day it is about
+    var original: Slot        // what the pattern said: .rest or .day
+    var replacement: Slot     // what the date is now
+    var askedOn: Date?        // the date whose off-day workout raised the question; nil from the picker
+    var answered: Bool        // false: the ring pulses; true: it is faint
+    var slideUndo: SlideUndo? // the cyclePosition and cycleAnchor a slide replaced (D73)
+}
+```
+
 ## 8. Persistence
 
 ### 8.1 Layout
@@ -864,6 +921,7 @@ struct Issue: Codable, Equatable { var severity: Severity; var code: String; var
   plans.json               { "fileVersion": 1, "activePlanId": UUID?, "plans": [Plan] }
   active-session.json      { "fileVersion": 1, ...ActiveSession }   present only during a workout
   draft.json               { "fileVersion": 1, ...PlanDraft }       present only while a plan is built day by day (D52, v1.5)
+  swaps.json               { "fileVersion": 1, "swaps": [DaySwap] }  the day swaps (D72, v1.9, §6.46); absent means none
   goals.json               v1.5–v1.7 only (D54): no longer read or written (D68); a file left there stays, unread
   sessions/<uuid>.json     { "fileVersion": 1, ...Session }          one file per completed session
 ```
@@ -879,7 +937,7 @@ On launch, load settings, plans, active session, and all session files into memo
 Every logged set carries `loggedAt`, reps or seconds, weight and the session's unit, and sessions are immutable snapshots. A per-exercise chart over time (D13) is `ExerciseHistory.series` over the in-memory session list. No index, no migration, no extra file.
 
 ### 8.5 Export and restore
-`{ "exportedAt", "appVersion", "fileVersion": 1, "settings", "plans", "sessions": [...], "activePlanId" }` written to a temp file and offered via ShareLink. `activePlanId` was added in v1.1 and is optional, so a v1 backup still restores — it just leaves the first plan active. *(v1.5–v1.7 also wrote `goals`, D54: Replace all took the backup's, Merge added the new ones.)* Since D68 (§6.42) the key is ignored — a backup that carries it restores everything else, and nothing about goals.
+`{ "exportedAt", "appVersion", "fileVersion": 1, "settings", "plans", "sessions": [...], "activePlanId", "swaps": [...] }` written to a temp file and offered via ShareLink. `activePlanId` was added in v1.1 and is optional, so a v1 backup still restores — it just leaves the first plan active. `swaps` was added in v1.9 (D72, §6.46) and is optional too: a backup without it restores with none; Replace all takes the backup's, and Merge adds only the swaps it does not already hold, by id. *(v1.5–v1.7 also wrote `goals`, D54: Replace all took the backup's, Merge added the new ones.)* Since D68 (§6.42) the key is ignored — a backup that carries it restores everything else, and nothing about goals.
 
 **Restoring** (D31, v1.1): Settings → Import backup reads the file and reports its date, its app version, how many plans and workouts it holds, and how many of each a Merge would actually add. Nothing is written until **Merge** or **Replace all** is chosen. Merge adds only ids not already on disk and leaves the current settings, the active plan and anything edited since the backup untouched; Replace all empties the store first and takes the backup's settings and active plan. A running workout is discarded before either. A file that isn't a backup, or whose `fileVersion` is newer than this app's, is refused with a message before anything is written.
 

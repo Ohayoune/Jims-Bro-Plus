@@ -118,7 +118,7 @@ final class HomeAndAddPlanTests: XCTestCase {
         let today = calendar.date(from: DateComponents(year: 2026, month: 10, day: 1, hour: 12))!
 
         let week = CalendarProjection.week(containing: today, activePlan: library.activePlan,
-                                           sessions: [], today: today, calendar: calendar)
+                                           sessions: [], swaps: [], today: today, calendar: calendar)
         XCTAssertEqual(week.count, 7)
         XCTAssertEqual(calendar.component(.weekday, from: week[0].date), calendar.firstWeekday)
         XCTAssertTrue(week.contains { calendar.isDate($0.date, inSameDayAs: today) })
@@ -128,7 +128,7 @@ final class HomeAndAddPlanTests: XCTestCase {
         // Every day the week reports matches what the month grid says about the same day.
         for day in week {
             let month = CalendarProjection.entries(month: day.date, activePlan: library.activePlan,
-                                                    sessions: [], today: today, calendar: calendar)
+                                                    sessions: [], swaps: [], today: today, calendar: calendar)
             let same = try XCTUnwrap(month.first { calendar.isDate($0.date, inSameDayAs: day.date) })
             XCTAssertEqual(day.entry, same.entry, "\(day.date) disagrees with the month grid")
         }

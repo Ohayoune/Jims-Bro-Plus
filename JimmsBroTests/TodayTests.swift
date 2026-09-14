@@ -350,7 +350,7 @@ final class TodayTests: XCTestCase {
     func testTheStripOnAWeekdayPlan() throws {
         let plan = weekdayPlan()
         XCTAssertEqual(calendar.component(.weekday, from: day(14)), 2, "the 14th is a Monday")
-        let strip = WeekStrip.days(plan: plan, sessions: [], today: day(14), calendar: calendar)
+        let strip = WeekStrip.days(plan: plan, sessions: [], swaps: [], today: day(14), calendar: calendar)
         XCTAssertEqual(strip.count, 7)
         XCTAssertEqual(strip.map(\.offset), Array(0..<7))
         XCTAssertEqual(strip.map(\.dayName), ["Push", nil, "Pull", nil, "Legs", nil, nil])
@@ -364,7 +364,7 @@ final class TodayTests: XCTestCase {
         XCTAssertEqual(strip[2].spoken, "Wednesday, Pull")
 
         // From a Thursday the week wraps: rest, Legs, rest, rest, Push, rest, Pull.
-        let thursday = WeekStrip.days(plan: plan, sessions: [], today: day(17), calendar: calendar)
+        let thursday = WeekStrip.days(plan: plan, sessions: [], swaps: [], today: day(17), calendar: calendar)
         XCTAssertEqual(thursday.map(\.dayName), [nil, "Legs", nil, nil, "Push", nil, "Pull"])
         XCTAssertEqual(thursday.map(\.when),
                        ["Today", "Tomorrow", "Saturday", "Sunday", "Monday", "Tuesday", "Wednesday"])
@@ -396,8 +396,9 @@ final class TodayTests: XCTestCase {
     func testTheStripAgreesWithTheCalendar() throws {
         let plan = rotation(anchor: 7)
         for start in [9, 28] {
-            let strip = WeekStrip.days(plan: plan, sessions: [], today: day(start), calendar: calendar)
+            let strip = WeekStrip.days(plan: plan, sessions: [], swaps: [], today: day(start), calendar: calendar)
             let run = CalendarProjection.next(days: 7, from: day(start), activePlan: plan, sessions: [],
+                                              swaps: [],
                                               today: day(start), calendar: calendar)
             XCTAssertEqual(run.count, 7)
             for (offset, square) in strip.enumerated() {
@@ -405,6 +406,7 @@ final class TodayTests: XCTestCase {
                                                        to: calendar.startOfDay(for: day(start))))
                 XCTAssertTrue(calendar.isDate(run[offset].date, inSameDayAs: date))
                 let grid = CalendarProjection.entries(month: date, activePlan: plan, sessions: [],
+                                                      swaps: [],
                                                       today: day(start), calendar: calendar)
                 let cell = try XCTUnwrap(grid.first { calendar.isDate($0.date, inSameDayAs: date) })
                 XCTAssertEqual(cell.entry, run[offset].entry, "the strip and the grid disagree on day \(offset)")
@@ -423,11 +425,11 @@ final class TodayTests: XCTestCase {
             }
         }
         // Push done on the 7th, so the 8th is Pull: from the 9th, Legs rest Push Pull Legs rest Push.
-        let ninth = WeekStrip.days(plan: plan, sessions: [], today: day(9), calendar: calendar)
+        let ninth = WeekStrip.days(plan: plan, sessions: [], swaps: [], today: day(9), calendar: calendar)
         XCTAssertEqual(ninth.map(\.dayName), ["Legs", nil, "Push", "Pull", "Legs", nil, "Push"])
         // The 28th to the 4th of October: still seven, still the pattern — Pull Legs rest Push
         // Pull Legs rest, the rest days falling on the 30th and the 4th.
-        let straddling = WeekStrip.days(plan: plan, sessions: [], today: day(28), calendar: calendar)
+        let straddling = WeekStrip.days(plan: plan, sessions: [], swaps: [], today: day(28), calendar: calendar)
         XCTAssertEqual(straddling.map(\.dayName), ["Pull", "Legs", nil, "Push", "Pull", "Legs", nil])
         XCTAssertEqual(straddling.map(\.when),
                        ["Today", "Tomorrow", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
@@ -435,7 +437,7 @@ final class TodayTests: XCTestCase {
         // Today's workout done: today's square is the workout's day and colour, the rest as before.
         let done = CoreTestSupport.completed(plan: plan, start: day(9))
         XCTAssertEqual(done.dayName, "Push")
-        let after = WeekStrip.days(plan: plan, sessions: [done], today: day(9), calendar: calendar)
+        let after = WeekStrip.days(plan: plan, sessions: [done], swaps: [], today: day(9), calendar: calendar)
         XCTAssertEqual(after[0].dayName, "Push")
         XCTAssertEqual(after[0].dayIndex, 0)
         XCTAssertEqual(after[0].colour, .green)

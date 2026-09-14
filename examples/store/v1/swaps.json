@@ -1,0 +1,34 @@
+{
+  "fileVersion" : 1,
+  "swaps" : [
+    {
+      "answered" : true,
+      "date" : "2026-09-14T00:00:00.000Z",
+      "id" : "64F96F5E-FA8E-48DF-8FEC-21A05C92E259",
+      "original" : {
+        "kind" : "day",
+        "name" : "Push"
+      },
+      "planId" : "4A6C47C8-2F3A-4D2B-A0E4-181B9A774239",
+      "replacement" : {
+        "kind" : "day",
+        "name" : "Legs"
+      }
+    },
+    {
+      "answered" : false,
+      "askedOn" : "2026-09-14T00:00:00.000Z",
+      "date" : "2026-09-16T00:00:00.000Z",
+      "id" : "E6DEDD3F-3959-4DBA-A9CD-0069526A548D",
+      "original" : {
+        "kind" : "day",
+        "name" : "Legs"
+      },
+      "planId" : "4A6C47C8-2F3A-4D2B-A0E4-181B9A774239",
+      "replacement" : {
+        "kind" : "day",
+        "name" : "Push"
+      }
+    }
+  ]
+}

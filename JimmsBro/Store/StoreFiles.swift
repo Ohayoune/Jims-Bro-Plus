@@ -57,6 +57,12 @@ struct PlansPayload: Codable, Equatable {
     var plans: [Plan]
 }
 
+/// The body of `swaps.json` beneath its `fileVersion` (D72, v1.9, §8.1). A missing file is no
+/// swaps, so a phone from v1.8 opens without a word.
+struct SwapsPayload: Codable, Equatable {
+    var swaps: [DaySwap]
+}
+
 /// The backup document of SPEC §8.5. Its shape is the on-disk shape, so restoring it later is trivial.
 struct ExportDocument: Codable, Equatable {
     var exportedAt: Date
@@ -70,6 +76,8 @@ struct ExportDocument: Codable, Equatable {
     var activePlanId: UUID?
     // v1.5–v1.7 wrote `goals` here too (D54). D68 removed goals; a backup that carries them
     // still decodes — an unknown key is ignored — and restores everything else (T30).
+    /// v1.9 (D72): the day swaps. Optional, so a backup written before them restores with none.
+    var swaps: [DaySwap]?
 }
 
 /// D31 (v1.1): what a backup holds, so Settings can say so before anything is applied.

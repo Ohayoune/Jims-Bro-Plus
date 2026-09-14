@@ -23,9 +23,9 @@ struct CalendarView: View {
     var body: some View {
         let days = expanded
             ? CalendarProjection.entries(month: month, activePlan: model.activePlan,
-                                         sessions: model.sessions, today: Date())
+                                         sessions: model.sessions, swaps: model.swaps, today: Date())
             : CalendarProjection.week(containing: Date(), activePlan: model.activePlan,
-                                      sessions: model.sessions, today: Date())
+                                      sessions: model.sessions, swaps: model.swaps, today: Date())
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 // D59 (v1.6): ink, not accent — `.primary` inside an accent-styled row resolved
@@ -215,14 +215,16 @@ private struct DayCell: View {
     private var numberColour: Color {
         switch day.entry {
         case .completed: return dayColour
-        case .projected: return .primary
+        case .projected, .own: return .primary
         case .rest, .none: return .secondary
         }
     }
 
+    /// D76 (v1.9): an own day is planned but in no plan, so its label is ink, not a colour.
     private var labelColour: Color {
         switch day.entry {
         case .completed, .projected: return dayColour
+        case .own: return .primary
         case .rest, .none: return .secondary
         }
     }

@@ -71,11 +71,11 @@ final class ScheduleAnchorTests: XCTestCase {
     // Q47: "Next up" is the next training day at or after today, and never the one just done.
     func testNextIsTheNextTrainingDayFromToday() throws {
         let plan = plan()
-        let next = try XCTUnwrap(PlanSchedule.next(plan, today: day(7), calendar: calendar))
+        let next = try XCTUnwrap(PlanSchedule.nextInPattern(plan, today: day(7), calendar: calendar))
         XCTAssertEqual(next.dayIndex, 1, "Push was done on the anchor day; Pull is next")
         XCTAssertEqual(next.date, calendar.startOfDay(for: day(8)))
         // Three days later, without training, it is simply whatever today's pattern says next.
-        let later = try XCTUnwrap(PlanSchedule.next(plan, today: day(10), calendar: calendar))
+        let later = try XCTUnwrap(PlanSchedule.nextInPattern(plan, today: day(10), calendar: calendar))
         XCTAssertEqual(later.dayIndex, 0, "the 10th is a rest day, so the 11th's Push is next")
         XCTAssertEqual(later.date, calendar.startOfDay(for: day(11)))
     }
@@ -90,7 +90,7 @@ final class ScheduleAnchorTests: XCTestCase {
         }
         XCTAssertEqual(name, "Pull")
         let entries = CalendarProjection.entries(month: day(8), activePlan: library.activePlan,
-                                                 sessions: [], today: day(8), calendar: calendar)
+                                                 sessions: [], swaps: [], today: day(8), calendar: calendar)
         let eighth = try XCTUnwrap(entries.first { calendar.isDate($0.date, inSameDayAs: day(8)) })
         XCTAssertEqual(eighth.entry, .projected(planId: library.activePlan!.id, dayIndex: dayIndex))
     }
@@ -100,7 +100,7 @@ final class ScheduleAnchorTests: XCTestCase {
         var library = PlanLibrary()
         library.save(plan(), makeActive: true)
         // The 8th was Pull, and nothing was logged on it.
-        let missed = try XCTUnwrap(PlanSchedule.missed(plan(), sessions: [], today: day(9),
+        let missed = try XCTUnwrap(PlanSchedule.missed(plan(), sessions: [], swaps: [], today: day(9),
                                                        calendar: calendar))
         XCTAssertEqual(missed.dayIndex, 1)
         XCTAssertEqual(missed.date, calendar.startOfDay(for: day(8)))
@@ -112,7 +112,7 @@ final class ScheduleAnchorTests: XCTestCase {
         // Having trained yesterday, nothing was missed.
         var session = CoreTestSupport.session(CoreTestSupport.plan(), start: day(8))
         session.endedAt = day(8)
-        XCTAssertNil(PlanSchedule.missed(plan(), sessions: [session], today: day(9),
+        XCTAssertNil(PlanSchedule.missed(plan(), sessions: [session], swaps: [], today: day(9),
                                          calendar: calendar))
     }
 
@@ -124,7 +124,7 @@ final class ScheduleAnchorTests: XCTestCase {
         XCTAssertTrue(PlanSchedule.anchorIfNeeded(&old, lastCompleted: day(7), today: day(8),
                                                   calendar: calendar))
         XCTAssertEqual(old.cycleAnchor, calendar.startOfDay(for: day(7)))
-        XCTAssertEqual(PlanSchedule.next(old, today: day(8), calendar: calendar)?.date,
+        XCTAssertEqual(PlanSchedule.nextInPattern(old, today: day(8), calendar: calendar)?.date,
                        calendar.startOfDay(for: day(8)),
                        "Push was done on the 7th, so Pull is due today, not tomorrow")
 

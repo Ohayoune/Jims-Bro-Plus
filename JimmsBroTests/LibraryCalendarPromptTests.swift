@@ -59,9 +59,9 @@ final class LibraryCalendarPromptTests: XCTestCase {
     }
     func testCycleNextAdvancementAndReplacement() {
         var p = rotation()
-        XCTAssertEqual(PlanSchedule.next(p)?.dayIndex,0)
+        XCTAssertEqual(PlanSchedule.nextInPattern(p)?.dayIndex,0)
         for (position,next) in [(2,3),(5,0),(6,0)] {
-            p.cyclePosition=position; XCTAssertEqual(PlanSchedule.next(p)?.cycleIndex,next)
+            p.cyclePosition=position; XCTAssertEqual(PlanSchedule.nextInPattern(p)?.cycleIndex,next)
         }
         for (position,name,expected) in [(nil,"Pull",1),(0,"Pull",1),(3,"Pull",4),(5,"Legs",2)] as [(Int?,String,Int)] {
             p.cyclePosition=position; PlanSchedule.advance(&p,completedDayName:name); XCTAssertEqual(p.cyclePosition,expected)
@@ -72,9 +72,9 @@ final class LibraryCalendarPromptTests: XCTestCase {
         new.days.remove(at:1); new.cycle=[.day(0),.day(1)]
         XCTAssertNil(PlanSchedule.positionAfterReplacement(old:p,new:new))
         var simple = p; simple.cycle=[.day(0),.day(1),.day(2)]; simple.cyclePosition=2
-        XCTAssertEqual(PlanSchedule.next(simple)?.dayIndex,0)
+        XCTAssertEqual(PlanSchedule.nextInPattern(simple)?.dayIndex,0)
         simple.cyclePosition=nil; PlanSchedule.advance(&simple,completedDayName:"legs"); XCTAssertEqual(simple.cyclePosition,2)
-        simple.cyclePosition=Int.max; XCTAssertEqual(PlanSchedule.next(simple)?.dayIndex,0)
+        simple.cyclePosition=Int.max; XCTAssertEqual(PlanSchedule.nextInPattern(simple)?.dayIndex,0)
     }
     func testStartSwitchCompletionDiscardAndHistoryEdits() throws {
         // v1.1's flow: no warm-up, so a started day is on its first step. The warm-up has its
@@ -95,7 +95,11 @@ final class LibraryCalendarPromptTests: XCTestCase {
         try library.startDay(planId:p.id,dayIndex:2,now:now.addingTimeInterval(70))
         library.apply(.logSet(step:0,result:.reps(count:10,weight:60)),now:now.addingTimeInterval(80))
         library.apply(.finish,now:now.addingTimeInterval(90))
-        XCTAssertEqual(library.sessions.count,2); XCTAssertEqual(library.plans[0].cyclePosition,2)
+        // D72 (v1.9, §6.46): Legs on the day Push was expected — and done — is a swap, not a
+        // moved plan: the position stays, and the next Legs day carries a question (TQ4).
+        // Until v1.8 this asserted a position of 2.
+        XCTAssertEqual(library.sessions.count,2); XCTAssertEqual(library.plans[0].cyclePosition,0)
+        XCTAssertEqual(library.swaps.count,1); XCTAssertEqual(library.swaps.first?.original,.day(name:"Legs"))
         let id = library.sessions[0].id
         library.editSession(id,step:0,result:.reps(count:5,weight:60),now:now)
         XCTAssertEqual(library.sessions[0].steps[0].result?.reps,5)
@@ -115,7 +119,7 @@ final class LibraryCalendarPromptTests: XCTestCase {
         XCTAssertEqual(PlanSchedule.weekday(p,today:CoreTestSupport.date(8),calendar:calendar)?.daysAway,1)
         XCTAssertEqual(PlanSchedule.weekday(p,today:CoreTestSupport.date(12),calendar:calendar)?.daysAway,2)
         let month = CoreTestSupport.date(1), today = CoreTestSupport.date(8)
-        let entries = CalendarProjection.entries(month:month,activePlan:p,sessions:[],today:today,calendar:calendar)
+        let entries = CalendarProjection.entries(month:month,activePlan:p,sessions:[],swaps: [],today:today,calendar:calendar)
         XCTAssertEqual(entries.count,30)
         XCTAssertEqual(entries[8].entry,.projected(planId:p.id,dayIndex:1))
         XCTAssertEqual(entries[9].entry,.rest,"a weekday plan's unlisted weekdays are rest days")
@@ -124,9 +128,9 @@ final class LibraryCalendarPromptTests: XCTestCase {
         XCTAssertEqual(entries[0].entry,.none)
         let completed = CoreTestSupport.completed(start:today)
         let another = CoreTestSupport.completed(start:today.addingTimeInterval(3600))
-        let logged = CalendarProjection.entries(month:month,activePlan:p,sessions:[completed,another],today:today,calendar:calendar)
+        let logged = CalendarProjection.entries(month:month,activePlan:p,sessions:[completed,another],swaps: [],today:today,calendar:calendar)
         if case let .completed(sessions) = logged[7].entry { XCTAssertEqual(sessions.count,2) } else { XCTFail("Completed day") }
-        let far = CalendarProjection.entries(month:calendar.date(byAdding:.month,value:3,to:month)!,activePlan:p,sessions:[],today:today,calendar:calendar)
+        let far = CalendarProjection.entries(month:calendar.date(byAdding:.month,value:3,to:month)!,activePlan:p,sessions:[],swaps: [],today:today,calendar:calendar)
         XCTAssertTrue(far.allSatisfy { $0.entry == .none })
         var pacific = calendar; pacific.timeZone = TimeZone(identifier:"America/Los_Angeles")!
         let mondayUTC = calendar.date(from:DateComponents(year:2026,month:9,day:7,hour:1))!
@@ -136,7 +140,7 @@ final class LibraryCalendarPromptTests: XCTestCase {
     func testRotationCalendarWithAndWithoutRest() {
         var p = rotation(); p.cyclePosition=2
         let calendar = CoreTestSupport.utc(), today = CoreTestSupport.date(8)
-        let entries = CalendarProjection.entries(month:today,activePlan:p,sessions:[],today:today,calendar:calendar)
+        let entries = CalendarProjection.entries(month:today,activePlan:p,sessions:[],swaps: [],today:today,calendar:calendar)
         XCTAssertEqual(entries[8].entry,.projected(planId:p.id,dayIndex:0))
         XCTAssertEqual(entries[9].entry,.projected(planId:p.id,dayIndex:1))
         XCTAssertEqual(entries[10].entry,.projected(planId:p.id,dayIndex:2))
@@ -148,7 +152,7 @@ final class LibraryCalendarPromptTests: XCTestCase {
         XCTAssertEqual(entries[0].entry,.none)
         // Beyond the 62-day horizon nothing is painted at all.
         let far = CalendarProjection.entries(month:calendar.date(byAdding:.month,value:3,to:today)!,
-                                             activePlan:p,sessions:[],today:today,calendar:calendar)
+                                             activePlan:p,sessions:[],swaps: [],today:today,calendar:calendar)
         XCTAssertTrue(far.allSatisfy { $0.entry == .none },"no rest dots past the projection horizon")
 
         // D37 (v1.2): a rest-free cycle is painted for the whole horizon. v1.1 projected only
@@ -156,7 +160,7 @@ final class LibraryCalendarPromptTests: XCTestCase {
         // guessing; with one it is a real repeating pattern, and a blank month was the thing
         // that made the calendar feel like it did not know what it was doing.
         p.cycle=[.day(0),.day(1),.day(2)]
-        let noRest = CalendarProjection.entries(month:today,activePlan:p,sessions:[],today:today,calendar:calendar)
+        let noRest = CalendarProjection.entries(month:today,activePlan:p,sessions:[],swaps: [],today:today,calendar:calendar)
         XCTAssertEqual(noRest[8].entry,.projected(planId:p.id,dayIndex:0))
         XCTAssertEqual(noRest[9].entry,.projected(planId:p.id,dayIndex:1))
         XCTAssertEqual(noRest[10].entry,.projected(planId:p.id,dayIndex:2))
@@ -168,7 +172,7 @@ final class LibraryCalendarPromptTests: XCTestCase {
 
         // A cycle entry pointing at a deleted day is broken, not a rest day.
         var dangling = p; dangling.cycle=[.day(0),.day(9),.rest]; dangling.cyclePosition=0
-        let broken = CalendarProjection.entries(month:today,activePlan:dangling,sessions:[],today:today,calendar:calendar)
+        let broken = CalendarProjection.entries(month:today,activePlan:dangling,sessions:[],swaps: [],today:today,calendar:calendar)
         XCTAssertEqual(broken[8].entry,.none)
         XCTAssertEqual(broken[9].entry,.rest)
     }
@@ -185,7 +189,7 @@ final class LibraryCalendarPromptTests: XCTestCase {
         var pacific=CoreTestSupport.utc(); pacific.timeZone=TimeZone(identifier:"America/Los_Angeles")!
         let utcStart=CoreTestSupport.date(10,hour:1)
         let late=CoreTestSupport.completed(start:utcStart)
-        let entries=CalendarProjection.entries(month:date,activePlan:nil,sessions:[late],today:date,calendar:pacific)
+        let entries=CalendarProjection.entries(month:date,activePlan:nil,sessions:[late],swaps: [],today:date,calendar:pacific)
         if case .completed = entries[8].entry { } else { XCTFail("UTC Sept 10 01:00 belongs to Sept 9 in Pacific time") }
         XCTAssertEqual(entries[9].entry,.none)
     }

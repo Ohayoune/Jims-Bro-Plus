@@ -1,0 +1,223 @@
+{
+  "activePlanId" : "4A6C47C8-2F3A-4D2B-A0E4-181B9A774239",
+  "appVersion" : "1.7 (1)",
+  "exportedAt" : "2026-09-14T13:00:00.000Z",
+  "fileVersion" : 1,
+  "goals" : [
+    {
+      "exerciseName" : "Bench Press",
+      "units" : "kg"
+    }
+  ],
+  "plans" : [
+    {
+      "cycle" : [
+        {
+          "day" : {
+            "_0" : 0
+          }
+        },
+        {
+          "day" : {
+            "_0" : 1
+          }
+        },
+        {
+          "day" : {
+            "_0" : 2
+          }
+        },
+        {
+          "rest" : {
+
+          }
+        },
+        {
+          "day" : {
+            "_0" : 0
+          }
+        },
+        {
+          "day" : {
+            "_0" : 1
+          }
+        },
+        {
+          "day" : {
+            "_0" : 2
+          }
+        }
+      ],
+      "cycleAnchor" : "2026-09-07T00:00:00.000Z",
+      "cyclePosition" : 0,
+      "days" : [
+        {
+          "exercises" : [
+            {
+              "bodyweight" : false,
+              "id" : "C501419E-1A78-47F3-873C-2CC24FC9A32B",
+              "name" : "Bench Press",
+              "sets" : [
+                {
+                  "drops" : [
+
+                  ],
+                  "restSeconds" : 90,
+                  "weight" : 60,
+                  "work" : {
+                    "reps" : {
+                      "_0" : {
+                        "fixed" : {
+                          "_0" : 5
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "id" : "A15E9DF7-473A-4CAE-8A76-3EF78AB8D4DE",
+          "name" : "Push"
+        },
+        {
+          "exercises" : [
+            {
+              "bodyweight" : false,
+              "id" : "6DF6830A-696B-4801-9F3E-ED73897979F1",
+              "name" : "Row",
+              "sets" : [
+                {
+                  "drops" : [
+
+                  ],
+                  "restSeconds" : 90,
+                  "weight" : 60,
+                  "work" : {
+                    "reps" : {
+                      "_0" : {
+                        "fixed" : {
+                          "_0" : 5
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "id" : "1BAE8885-EE66-4161-8B7A-85F06DB29B73",
+          "name" : "Pull"
+        },
+        {
+          "exercises" : [
+            {
+              "bodyweight" : false,
+              "id" : "ECB659C4-3BEC-4B03-B267-2FC3E521E284",
+              "name" : "Squat",
+              "sets" : [
+                {
+                  "drops" : [
+
+                  ],
+                  "restSeconds" : 90,
+                  "weight" : 60,
+                  "work" : {
+                    "reps" : {
+                      "_0" : {
+                        "fixed" : {
+                          "_0" : 5
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "id" : "1ACE9D97-EBB8-43D6-8892-1109596DC3ED",
+          "name" : "Legs"
+        }
+      ],
+      "id" : "4A6C47C8-2F3A-4D2B-A0E4-181B9A774239",
+      "importedAt" : "2026-09-01T12:00:00.000Z",
+      "name" : "Push Pull Legs",
+      "schedule" : "rotation",
+      "sourceText" : "",
+      "units" : "kg",
+      "warnings" : [
+
+      ]
+    }
+  ],
+  "sessions" : [
+    {
+      "dayName" : "Legs",
+      "endedAt" : "2026-09-14T12:01:00.000Z",
+      "exercises" : [
+        {
+          "bodyweight" : false,
+          "id" : "A36C29D3-CE1B-4CB3-B1D9-DEE5F36D98C5",
+          "name" : "Squat",
+          "targets" : [
+            {
+              "drops" : [
+
+              ],
+              "restSeconds" : 90,
+              "weight" : 60,
+              "work" : {
+                "reps" : {
+                  "_0" : {
+                    "fixed" : {
+                      "_0" : 5
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "id" : "0BA860F7-5ABB-4C26-82AC-20CA2C879F2C",
+      "planId" : "4A6C47C8-2F3A-4D2B-A0E4-181B9A774239",
+      "planName" : "Push Pull Legs",
+      "startedAt" : "2026-09-14T12:00:00.000Z",
+      "steps" : [
+        {
+          "blockIndex" : 0,
+          "dropIndex" : 0,
+          "exerciseIndex" : 0,
+          "isLastInBlock" : true,
+          "isLastInRound" : true,
+          "loggedAt" : "2026-09-14T12:00:34.000Z",
+          "result" : {
+            "reps" : {
+              "count" : 5,
+              "weight" : 60
+            }
+          },
+          "setIndex" : 0,
+          "startedAt" : "2026-09-14T12:00:00.000Z",
+          "status" : "logged"
+        }
+      ],
+      "units" : "kg"
+    }
+  ],
+  "settings" : {
+    "compactNotation" : false,
+    "defaultRestSeconds" : 90,
+    "introSeen" : false,
+    "keepAwake" : true,
+    "sound" : true,
+    "transitionRestSeconds" : 120,
+    "units" : "kg",
+    "vibration" : true,
+    "warmUpSeconds" : 0,
+    "weightIncrementKg" : 2.5,
+    "weightIncrementLb" : 5,
+    "weightStepKg" : 2.5,
+    "weightStepLb" : 5
+  }
+}

@@ -131,6 +131,8 @@
 		239C9EE5C7004FFE94A5AFE6 /* DayColourTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E9046A86F1E4F4DB9240423 /* DayColourTests.swift */; };
 		EC71A36AE9AC4BE897B77115 /* DayColour.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7305E5F001F54DC3ACF882A1 /* DayColour.swift */; };
 		DD1FCC8FD8CA4A4F970BFCD3 /* DaySquare.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB132C7498504B51A9F52BBD /* DaySquare.swift */; };
+		2133AC5C7B8C47A59056C26F /* DaySwap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D16661141C43ECB3877B14 /* DaySwap.swift */; };
+		1F8D0E92420B458CA23C1500 /* SwapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFFEC4E9B5E9411A8181C1D9 /* SwapTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -289,6 +291,8 @@
 		7305E5F001F54DC3ACF882A1 /* DayColour.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayColour.swift; sourceTree = "<group>"; };
 		BB132C7498504B51A9F52BBD /* DaySquare.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaySquare.swift; sourceTree = "<group>"; };
 		8E9046A86F1E4F4DB9240423 /* DayColourTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayColourTests.swift; sourceTree = "<group>"; };
+		80D16661141C43ECB3877B14 /* DaySwap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaySwap.swift; sourceTree = "<group>"; };
+		CFFEC4E9B5E9411A8181C1D9 /* SwapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -430,6 +434,7 @@
 		8B7A6DECC0651D269EA794C7 /* JimmsBroTests */ = {
 			isa = PBXGroup;
 			children = (
+				CFFEC4E9B5E9411A8181C1D9 /* SwapTests.swift */,
 				8E9046A86F1E4F4DB9240423 /* DayColourTests.swift */,
 				116E02F6C8CC4045BCF3B05F /* TodayTests.swift */,
 				52A47BBF57B74FE383D3E2A2 /* GatesTests.swift */,
@@ -498,6 +503,7 @@
 		94A0426E8D3203DA5468CCF0 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				80D16661141C43ECB3877B14 /* DaySwap.swift */,
 				7305E5F001F54DC3ACF882A1 /* DayColour.swift */,
 				AB6D6F6D20E64623A6844375 /* PlanDraft.swift */,
 				296E62D52FE147DC91EFCE6F /* Introduction.swift */,
@@ -735,6 +741,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2133AC5C7B8C47A59056C26F /* DaySwap.swift in Sources */,
 				8736004A97C5433B89EB271A /* DaySquare.swift in Sources */,
 				4166F4BBA24D47E79D240C27 /* DayColour.swift in Sources */,
 				3E9381121D5F4776974B78C4 /* CalendarView.swift in Sources */,
@@ -807,6 +814,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1F8D0E92420B458CA23C1500 /* SwapTests.swift in Sources */,
 				239C9EE5C7004FFE94A5AFE6 /* DayColourTests.swift in Sources */,
 				8B873C0ED783406EADB72E7F /* TodayTests.swift in Sources */,
 				91B4F25683904A3BB2BA15F7 /* GatesTests.swift in Sources */,

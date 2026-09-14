@@ -23,21 +23,39 @@ enum WeekStrip {
         var colour: DayColour? = nil
         /// "Today", "Tomorrow", then the weekday in full — the words the button uses.
         var when: String
+        // D72/D74 (v1.9, §6.46): the swap's marks. Q2 draws them.
+        /// A date whose slot is not the pattern's carries a dot under the square, in the
+        /// pattern's colour — grey when the pattern said rest (`original` nil).
+        var hasDot = false
+        var original: DayColour? = nil
+        /// A borrowed or own day (D76): outlined, not filled.
+        var outline = false
+        /// The question the date carries: pulsing while it asks, faint once answered.
+        var ring: Ring = .none
+        /// The swap on this date, if one was written; `PlanLibrary.question(for:now:)` reads it.
+        var swapId: UUID? = nil
 
         /// A grey square: nothing to start on this day.
         var isRest: Bool { dayName == nil }
-        /// What VoiceOver reads for the square: "Today, Push", "Tomorrow, rest".
-        var spoken: String { "\(when), \(dayName ?? "rest")" }
+        /// What VoiceOver reads for the square: "Today, Push", "Tomorrow, rest" — and
+        /// "Wednesday, Push, question" while the ring asks.
+        var spoken: String {
+            "\(when), \(dayName ?? "rest")" + (ring == .asking ? ", question" : "")
+        }
     }
+
+    /// The yellow ring of a question (D74): none, pulsing while unanswered, faint once answered.
+    enum Ring: Equatable { case none, asking, answered }
 
     /// The seven squares, today first. A weekday plan's come from its days' weekdays and a
     /// rotation's from the anchored projection — both by way of `CalendarProjection`, so the
     /// strip is the grid's own row of days. With no plan, or a plan with no day to schedule,
     /// seven grey squares.
-    static func days(plan: Plan?, sessions: [Session], today: Date,
+    static func days(plan: Plan?, sessions: [Session], swaps: [DaySwap], today: Date,
                      calendar: Calendar = .current) -> [Square] {
         let run = CalendarProjection.next(days: count, from: today, activePlan: plan,
-                                          sessions: sessions, today: today, calendar: calendar)
+                                          sessions: sessions, swaps: swaps, today: today,
+                                          calendar: calendar)
         return (0..<count).map { offset in
             let entry = run[safe: offset]?.entry ?? .none
             var square = Square(offset: offset,
@@ -55,8 +73,27 @@ enum WeekStrip {
                 guard let session = sessions.first else { break }
                 square.dayName = session.dayName
                 square.dayIndex = plan?.days.firstIndex { normalized($0.name) == normalized(session.dayName) }
+            case let .own(day):
+                // D76: a day written just for this date — named, outlined, in no plan.
+                square.dayName = day.name
+                square.outline = true
             case .rest, .none:
                 break
+            }
+            // D72 (v1.9, §6.46): the marks of a swap, from the same slots the squares are.
+            if let plan,
+               let date = calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: today)) {
+                let base = PlanSchedule.base(plan, on: date, today: today, calendar: calendar)
+                let slot = PlanSchedule.slot(plan, on: date, swaps: swaps, today: today, calendar: calendar)
+                if let swap = PlanSchedule.swap(plan, on: date, swaps: swaps, calendar: calendar) {
+                    square.swapId = swap.id
+                    if swap.isQuestion { square.ring = swap.answered ? .answered : .asking }
+                    if slot != base {
+                        square.hasDot = true
+                        if case let .day(index) = base { square.original = DayColour.of(dayIndex: index) }
+                    }
+                }
+                if case .borrowed = slot { square.outline = true }
             }
             return square
         }

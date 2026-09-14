@@ -136,6 +136,23 @@ extension Session {
     }
 }
 
+extension DaySwap {
+    /// D72 (v1.9): the two dates and what they say are the swap, so `id`, `planId`, `date`,
+    /// `original`, `replacement` and `answered` are required; `askedOn` and `slideUndo` may
+    /// be absent (§8.2's rule).
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(id: try container.decode(UUID.self, forKey: .id),
+                  planId: try container.decode(UUID.self, forKey: .planId),
+                  date: try container.decode(Date.self, forKey: .date),
+                  original: try container.decode(Slot.self, forKey: .original),
+                  replacement: try container.decode(Slot.self, forKey: .replacement),
+                  askedOn: container.optional(.askedOn),
+                  answered: try container.decode(Bool.self, forKey: .answered),
+                  slideUndo: container.optional(.slideUndo))
+    }
+}
+
 extension Progression {
     /// D53 (v1.5): `mode` is new; a progression written by v1.3 is a calendar one.
     public init(from decoder: Decoder) throws {

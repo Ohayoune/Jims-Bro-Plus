@@ -278,6 +278,7 @@ final class HistoryTests: XCTestCase {
         let plan = upperLower()
         let monday = CoreTestSupport.date(14)   // 2026-09-14
         let week = CalendarProjection.week(containing: monday, activePlan: plan, sessions: [],
+                                           swaps: [],
                                            today: monday, calendar: calendar)
         let today = try XCTUnwrap(week.first { calendar.isDate($0.date, inSameDayAs: monday) })
         let planned = try XCTUnwrap(CalendarText.line(today, plans: [plan], calendar: calendar))
@@ -312,6 +313,7 @@ final class HistoryTests: XCTestCase {
         let plan = upperLower()
         let sunday = CoreTestSupport.date(13)   // 2026-09-13 opens the week
         let week = CalendarProjection.week(containing: sunday, activePlan: plan, sessions: [],
+                                           swaps: [],
                                            today: sunday, calendar: calendar)
         XCTAssertEqual(week.count, 7)
         let planned = week.compactMap { day -> String? in

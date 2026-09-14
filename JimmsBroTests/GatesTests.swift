@@ -45,6 +45,7 @@ final class GatesTests: XCTestCase {
         XCTAssertFalse(Gates.month(sessions: [lastMonday], today: day(13), calendar: monday))
         XCTAssertTrue(Gates.month(sessions: [lastMonday], today: day(13), calendar: sunday))
         let strip = CalendarProjection.week(containing: day(13), activePlan: nil, sessions: [lastMonday],
+                                            swaps: [],
                                             today: day(13), calendar: monday)
         XCTAssertTrue(strip.first.map { monday.isDate($0.date, inSameDayAs: day(7)) } ?? false,
                       "the gate's week is the strip's week")

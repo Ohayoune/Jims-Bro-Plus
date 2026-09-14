@@ -2,7 +2,10 @@ import Foundation
 
 /// `rest` is a scheduled rest day (a `.rest` cycle entry, or a weekday with no Day); `none` is a day
 /// the active plan says nothing about — beyond the projection horizon, in the past, or with no plan.
-enum DayEntry: Equatable { case completed([Session]), projected(planId: UUID, dayIndex: Int), rest, none }
+/// `own` (D76, v1.9) is a day written just for that date by a swap (§6.46): planned, in no plan.
+enum DayEntry: Equatable {
+    case completed([Session]), projected(planId: UUID, dayIndex: Int), rest, none, own(Day)
+}
 struct CalendarDay: Equatable { var date: Date; var entry: DayEntry }
 
 /// D65 (v1.7, §6.41): a calendar day's colour — a planned day's is its day's; a finished day's
@@ -13,7 +16,8 @@ extension DayEntry {
         switch self {
         case let .completed(sessions): return sessions.first.flatMap { DayColour.of(session: $0, plans: plans) }
         case let .projected(_, dayIndex): return DayColour.of(dayIndex: dayIndex)
-        case .rest, .none: return nil
+        // An own day is in no plan's day list, so it has no colour: drawn in ink (§6.46).
+        case .rest, .none, .own: return nil
         }
     }
 }
@@ -47,6 +51,8 @@ enum CalendarText {
             guard let plan = plans.first(where: { $0.id == planId }),
                   let day = plan.days[safe: dayIndex] else { return nil }
             return short(day.name, among: plan.days.map(\.name))
+        case let .own(day):
+            return short(day.name)
         case .rest, .none:
             return nil
         }
@@ -93,6 +99,8 @@ enum CalendarText {
         case .projected:
             let name = label(day.entry, plans: plans) ?? "a workout"
             return "\(date). Planned: \(name)"
+        case let .own(own):
+            return "\(date). Planned: \(own.name)"
         case .rest: return "\(date). Rest day"
         case .none: return date
         }
@@ -116,6 +124,8 @@ enum CalendarText {
             guard let name = plans.first(where: { $0.id == planId })?.days[safe: dayIndex]?.name
             else { return nil }
             return DayLine(text: "\(stamp) · \(name) · planned", sessions: [])
+        case let .own(own):
+            return DayLine(text: "\(stamp) · \(own.name) · planned", sessions: [])
         case .rest:
             return DayLine(text: "\(stamp) · Rest day", sessions: [])
         case .none:
@@ -129,7 +139,10 @@ enum CalendarText {
 struct DayLine: Equatable { var text: String; var sessions: [Session] }
 
 enum CalendarProjection {
-    static func entries(month: Date, activePlan: Plan?, sessions: [Session], today: Date, calendar: Calendar = .current) -> [CalendarDay] {
+    /// D72 (v1.9, §6.46): `swaps` has no default on any of the three, so no caller can forget
+    /// them and the compiler is the pin (TQ12).
+    static func entries(month: Date, activePlan: Plan?, sessions: [Session], swaps: [DaySwap],
+                        today: Date, calendar: Calendar = .current) -> [CalendarDay] {
         guard let monthInterval = calendar.dateInterval(of:.month,for:month), let days = calendar.range(of:.day,in:.month,for:month) else { return [] }
         let startToday = calendar.startOfDay(for:today)
         let completed = Dictionary(grouping:sessions.filter { $0.endedAt != nil }, by: { calendar.startOfDay(for:$0.startedAt) })
@@ -137,32 +150,32 @@ enum CalendarProjection {
             guard let date = calendar.date(byAdding:.day,value:number-1,to:monthInterval.start) else { return nil }
             let offset = calendar.dateComponents([.day],from:startToday,to:date).day ?? 0
             if offset <= 0, let sessions = completed[date], !sessions.isEmpty { return CalendarDay(date:date,entry:.completed(sessions.sorted { $0.startedAt < $1.startedAt })) }
-            guard offset >= 0 && offset <= 62, let plan = activePlan else { return CalendarDay(date:date,entry:.none) }
-            var entry: DayEntry = .none
-            if plan.schedule == .weekday {
-                // A weekday plan names every training day, so the remaining weekdays are rest days.
-                if let d = plan.days.firstIndex(where: { $0.weekday?.calendarValue == calendar.component(.weekday,from:date) }) {
-                    entry = .projected(planId:plan.id,dayIndex:d)
-                } else { entry = .rest }
-            } else if !plan.cycle.isEmpty,
-                      PlanSchedule.position(plan) == nil
-                        || date > PlanSchedule.anchorDay(plan, today: today, calendar: calendar) {
-                // Today is painted too — Home says "Next up · Pull" for today, and the grid has
-                // to agree. The exception is the anchor day itself when something *was*
-                // completed on it: that day is done, not planned. A plan that has completed
-                // nothing has no such day, so its pattern starts today.
-                // D37 (v1.2): projected from the plan's anchor date, so the pattern is nailed to
-                // the calendar. v1.1 counted forward from *today*, which meant a missed workout
-                // slid every later day by one — and by one more for each further day missed.
-                // A rest-free cycle is painted for the whole horizon now: with an anchor it is
-                // a real repeating pattern rather than a guess about tomorrow.
-                switch PlanSchedule.entry(plan, on: date, today: today, calendar: calendar)?.entry {
-                case let .day(d) where plan.days.indices.contains(d):
-                    entry = .projected(planId:plan.id,dayIndex:d)
-                case .rest: entry = .rest
-                // A cycle entry pointing at a day that no longer exists is broken, not a rest day.
-                default: entry = .none
-                }
+            guard offset >= 0 && offset <= PlanSchedule.horizonDays, let plan = activePlan else { return CalendarDay(date:date,entry:.none) }
+            // Today is painted too — Home says "Next up · Pull" for today, and the grid has
+            // to agree. The exception is the anchor day itself when something *was*
+            // completed on it: that day is done, not planned. A plan that has completed
+            // nothing has no such day, so its pattern starts today.
+            // D37 (v1.2): projected from the plan's anchor date, so the pattern is nailed to
+            // the calendar. v1.1 counted forward from *today*, which meant a missed workout
+            // slid every later day by one — and by one more for each further day missed.
+            // A rest-free cycle is painted for the whole horizon now: with an anchor it is
+            // a real repeating pattern rather than a guess about tomorrow.
+            if plan.schedule == .rotation, PlanSchedule.position(plan) != nil,
+               date <= PlanSchedule.anchorDay(plan, today: today, calendar: calendar) {
+                return CalendarDay(date: date, entry: .none)
+            }
+            // D72 (v1.9, §6.46): one slot per date — the weekday's day, the anchored cycle's
+            // entry, or the swap written over it — read from the same function Today's card
+            // and the missed rule read.
+            let entry: DayEntry
+            switch PlanSchedule.slot(plan, on: date, swaps: swaps, today: today, calendar: calendar) {
+            case let .day(d): entry = .projected(planId: plan.id, dayIndex: d)
+            case .rest: entry = .rest
+            case let .own(day): entry = .own(day)
+            // Q4 (D76) hands the projection the other plans; until then a borrowed day is a
+            // day the grid cannot name.
+            case .borrowed: entry = .none
+            case .none: entry = .none
             }
             return CalendarDay(date:date,entry:entry)
         }
@@ -172,15 +185,15 @@ enum CalendarProjection {
     /// never disagree (D37). `today` is the calendar's today, as for `entries`; the run usually
     /// starts there.
     static func next(days count: Int, from start: Date, activePlan: Plan?, sessions: [Session],
-                     today: Date, calendar: Calendar = .current) -> [CalendarDay] {
+                     swaps: [DaySwap], today: Date, calendar: Calendar = .current) -> [CalendarDay] {
         let first = calendar.startOfDay(for: start)
         guard count > 0,
               let last = calendar.date(byAdding: .day, value: count - 1, to: first) else { return [] }
-        var all = entries(month: first, activePlan: activePlan, sessions: sessions, today: today,
-                          calendar: calendar)
+        var all = entries(month: first, activePlan: activePlan, sessions: sessions, swaps: swaps,
+                          today: today, calendar: calendar)
         if !calendar.isDate(first, equalTo: last, toGranularity: .month) {
-            all += entries(month: last, activePlan: activePlan, sessions: sessions, today: today,
-                           calendar: calendar)
+            all += entries(month: last, activePlan: activePlan, sessions: sessions, swaps: swaps,
+                           today: today, calendar: calendar)
         }
         return (0..<count).compactMap { offset in
             guard let day = calendar.date(byAdding: .day, value: offset, to: first) else { return nil }
@@ -192,15 +205,15 @@ enum CalendarProjection {
     /// SPEC §4.10 (D18, v1.1): the seven days of the calendar week containing `date`, so the
     /// strip and the week's line under it describe the same days — Home's until v1.7, History's
     /// since (D63). Same entries as `entries(month:)`.
-    static func week(containing date: Date, activePlan: Plan?, sessions: [Session], today: Date,
-                     calendar: Calendar = .current) -> [CalendarDay] {
+    static func week(containing date: Date, activePlan: Plan?, sessions: [Session], swaps: [DaySwap],
+                     today: Date, calendar: Calendar = .current) -> [CalendarDay] {
         guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else { return [] }
         let month = entries(month: interval.start, activePlan: activePlan, sessions: sessions,
-                            today: today, calendar: calendar)
+                            swaps: swaps, today: today, calendar: calendar)
         // A week straddling a month boundary needs both months' entries.
         let next = calendar.date(byAdding: .day, value: 7, to: interval.start).map {
-            entries(month: $0, activePlan: activePlan, sessions: sessions, today: today,
-                    calendar: calendar)
+            entries(month: $0, activePlan: activePlan, sessions: sessions, swaps: swaps,
+                    today: today, calendar: calendar)
         } ?? []
         let all = month + next
         return (0..<7).compactMap { offset in
