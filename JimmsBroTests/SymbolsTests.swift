@@ -9,6 +9,7 @@ import XCTest
 /// P2: the exercise in symbols (D81, §6.54): TP8–TP15. TP16 is the phone's.
 /// P3: the walk, a count-up and a ring (D82, §6.55): TP17–TP22. TP23 is the phone's.
 /// P4: pages (D83, §6.56): TP24–TP28. TP29 is the phone's.
+/// P5: a bar that learns your pace (D84, §6.57): TP30–TP34. TP35 is the phone's.
 final class SymbolsTests: XCTestCase {
     private let now = CoreTestSupport.now
 
@@ -112,7 +113,7 @@ final class SymbolsTests: XCTestCase {
         let bar = try screen(engine).bar
         XCTAssertEqual(bar, WorkoutBar.of(session: engine.active), "the screen's bar is the Core one")
         XCTAssertEqual(bar.segments.map(\.sets.count), [4, 3, 3, 3, 3])
-        XCTAssertEqual(bar.segments.map(\.weight), [4, 3, 3, 3, 3], "widths by set count until P5")
+        XCTAssertEqual(bar.segments.map(\.weight), [4, 3, 3, 3, 3], "widths by set count with no history (D84)")
         XCTAssertEqual(bar.segments.map(\.blockIndex), [0, 1, 2, 3, 4])
         XCTAssertEqual(bar.segments[0].sets, [.done, .done, .done, .done])
         XCTAssertEqual(bar.segments[1].sets, [.done, .now, .todo])
@@ -993,6 +994,148 @@ final class SymbolsTests: XCTestCase {
         XCTAssertTrue(view.contains("changeExercise(screen.exerciseIndex, screen.currentName)"))
         XCTAssertFalse(app.contains("showing:"), "nothing the app keeps knows which page is looked at")
         XCTAssertFalse(activity.contains("showing:"), "nor the Lock Screen")
+    }
+
+    // MARK: P5 — a bar that learns your pace (D84, SPEC §6.57)
+
+    /// A finished Push `daysAgo` days back. Block b takes `minutes[b]` from its first set to the
+    /// next block's first set — its sets in the first three quarters, the walk in the last — and
+    /// the last block done ends at its last log. Nil is a block skipped as it came up, in no time.
+    private func pastPush(_ minutes: [Double?], daysAgo: Double, renamed: [Int: String] = [:]) throws -> Session {
+        var session = try XCTUnwrap(Session.start(plan: pushPullLegs(), dayIndex: 0,
+                                                  now: now.addingTimeInterval(-86_400 * daysAgo)))
+        for (exercise, name) in renamed { session.exercises[exercise].name = name }
+        let lastDone = minutes.lastIndex { $0 != nil }
+        var clock = session.startedAt
+        for (b, block) in SessionBlocks.indices(session).enumerated() {
+            guard let stretch = b < minutes.count ? minutes[b] : nil else {
+                session.steps[block[0]].startedAt = clock
+                for i in block { session.steps[i].status = .skipped; session.steps[i].loggedAt = clock }
+                continue
+            }
+            let seconds = stretch * 60, sets = b == lastDone ? stretch * 60 : stretch * 45
+            for (n, i) in block.enumerated() {
+                session.steps[i].startedAt = clock.addingTimeInterval(sets * Double(n) / Double(block.count))
+                session.steps[i].loggedAt = clock.addingTimeInterval(sets * Double(n + 1) / Double(block.count))
+                session.steps[i].status = .logged
+                session.steps[i].result = session.target(at: i)?.work.isTimed == true
+                    ? .duration(seconds: 40, weight: nil) : .reps(count: 8, weight: 80)
+            }
+            clock.addTimeInterval(seconds)
+        }
+        session.endedAt = clock
+        return session
+    }
+
+    private func assertMinutes(_ weights: [Double], _ minutes: [Double], _ message: String = "",
+                               file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertEqual(weights.count, minutes.count, message, file: file, line: line)
+        for (weight, minute) in zip(weights, minutes) {
+            XCTAssertEqual(weight, minute * 60, accuracy: 0.001, message, file: file, line: line)
+        }
+    }
+
+    // TP30 (D84): a day with no history is by set count, as P1 drew it — and so is a history too
+    // short to be a pace, and sessions that do not count: unfinished, later, or the day itself.
+    func testNoHistoryIsBySetCount() throws {
+        let engine = try example()
+        let day = engine.active.session
+        XCTAssertEqual(Pace.weights(day: day, history: []), [4, 3, 3, 3, 3])
+        XCTAssertEqual(try screen(engine).bar.segments.map(\.weight), [4, 3, 3, 3, 3])
+
+        let twice = try [pastPush([14, 10, 8, 8, 4], daysAgo: 2), pastPush([14, 10, 8, 8, 4], daysAgo: 4)]
+        XCTAssertEqual(Pace.weights(day: day, history: twice), [4, 3, 3, 3, 3], "two times are not a pace")
+        var unfinished = try pastPush([14, 10, 8, 8, 4], daysAgo: 6)
+        unfinished.endedAt = nil
+        let later = try pastPush([14, 10, 8, 8, 4], daysAgo: -1)
+        XCTAssertEqual(Pace.weights(day: day, history: twice + [unfinished, later, day]), [4, 3, 3, 3, 3],
+                       "an unfinished session, a later one and the day itself are not times")
+
+        XCTAssertEqual(Pace.weights(sets: [4, 3, 3], medians: [nil, nil, nil]), [4, 3, 3])
+        XCTAssertEqual(Pace.median([]), nil)
+        XCTAssertEqual(Pace.median([3, 1, 2]), 2)
+        XCTAssertEqual(Pace.median([4, 1, 3, 2]), 2.5)
+    }
+
+    // TP31 (D84): three past Pushes. Bench took 14, 12 and 15 minutes → 14; Plank 4; each time from
+    // a block's first set to the next block's first set, so the walk after it is counted in.
+    func testThreeTimesAreAPace() throws {
+        let engine = try example()
+        let history = try [pastPush([14, 10, 8, 8, 4], daysAgo: 2),
+                           pastPush([12, 10, 8, 8, 4], daysAgo: 4),
+                           pastPush([15, 10, 8, 8, 4], daysAgo: 6)]
+        assertMinutes(Pace.weights(day: engine.active.session, history: history), [14, 10, 8, 8, 4])
+
+        // Bench's sets ended at 10½ minutes; the walk to Incline's first set made it 14.
+        let past = history[0]
+        let bench = try XCTUnwrap(SessionBlocks.indices(past).first)
+        let lastLog = try XCTUnwrap(bench.compactMap { past.steps[$0].loggedAt }.max())
+        XCTAssertEqual(lastLog.timeIntervalSince(past.startedAt), 630, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(Pace.time(of: bench, in: past)), 840, accuracy: 0.001)
+
+        // The screen's bar is the pace; its marks and caret are what they were.
+        let paced = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: history,
+                                                      now: now.addingTimeInterval(800))).bar
+        assertMinutes(paced.segments.map(\.weight), [14, 10, 8, 8, 4])
+        XCTAssertEqual(paced.segments.map(\.sets), try screen(engine).bar.segments.map(\.sets))
+        XCTAssertEqual(paced.segments.map(\.caret), [false, true, false, false, false])
+        XCTAssertEqual(WorkoutBar.of(session: engine.active, weights: [1, 2]).segments.map(\.weight),
+                       [4, 3, 3, 3, 3], "weights for another day's blocks are not this day's")
+
+        // A session written by v1.2 reads as it is: a circuit from its first set to its last log,
+        // and the skips that ended the workout half an hour later are not part of it.
+        let frozen = try StoreCoder.decode(Session.self, from: try FixtureLoader.data("store/v1/session.json"))
+        let blocks = SessionBlocks.indices(frozen)
+        XCTAssertEqual(try XCTUnwrap(Pace.time(of: blocks[0], in: frozen)), 214, accuracy: 0.001)
+        XCTAssertNil(Pace.time(of: blocks[1], in: frozen), "a block never logged has no time")
+    }
+
+    // TP32 (D84): an exercise done twice takes the day's time per set × its sets — the paced
+    // blocks' minutes over their sets.
+    func testTwiceUsesTheDaysTimePerSet() throws {
+        let engine = try example()
+        let history = try [pastPush([14, 10, 8, 8, 5], daysAgo: 2),
+                           pastPush([12, 10, nil, 8, 5], daysAgo: 4),
+                           pastPush([15, 10, 8, 8, 5], daysAgo: 6)]
+        // Lateral Raise was skipped once, so it has two times; Incline's walk then ran to the
+        // skip, and Tricep Pushdown's times are its own.
+        let perSet = (14.0 + 10 + 8 + 5) / 13
+        assertMinutes(Pace.weights(day: engine.active.session, history: history),
+                      [14, 10, perSet * 3, 8, 5])
+    }
+
+    // TP33 (D84): the clamp. A 40-minute block on a day whose typical stretch is 7 is held at 14,
+    // a 1-minute one at 3½ — the median stretch, which the long block does not move.
+    func testTheClamp() throws {
+        XCTAssertEqual(Pace.weights(sets: [4, 3, 3, 3, 3], medians: [40, 1, 7, 7, 7]), [14, 3.5, 7, 7, 7])
+        let engine = try example()
+        let history = try [2.0, 4, 6].map { try pastPush([40, 1, 7, 7, 7], daysAgo: $0) }
+        assertMinutes(Pace.weights(day: engine.active.session, history: history), [14, 3.5, 7, 7, 7])
+        // A block with no pace is clamped too: 13 sets over 55 minutes, three of them 12.7, held at 12.
+        XCTAssertEqual(Pace.weights(sets: [4, 3, 3, 3, 3], medians: [40, 3, nil, 6, 6]), [12, 3, 12, 6, 6])
+    }
+
+    // TP34 (D84): a changed exercise (D42) is known by the name it now has — substituted after a
+    // logged set, or in place before one — and a block never logged goes by its sets.
+    func testAChangedExerciseAndASkippedBlock() throws {
+        var engine = try example()
+        let renamed = [1: "Incline Smith Press", 2: "Cable Lateral Raise"]
+        let history = try [2.0, 4, 6].map { try pastPush([14, 10, 8, 8, nil], daysAgo: $0) }
+            + [3.0, 5, 7].map { try pastPush([14, 11, 9, 8, nil], daysAgo: $0, renamed: renamed) }
+        // Plank was never logged: the day's time per set × 3.
+        assertMinutes(Pace.weights(day: engine.active.session, history: history),
+                      [14, 10, 8, 8, (14.0 + 10 + 8 + 8) / 13 * 3])
+
+        engine.apply(.substituteExercise(exerciseIndex: 1, name: "Incline Smith Press", weight: nil),
+                     now: now.addingTimeInterval(820))
+        engine.apply(.substituteExercise(exerciseIndex: 2, name: "Cable Lateral Raise", weight: nil),
+                     now: now.addingTimeInterval(830))
+        let session = engine.active.session
+        XCTAssertEqual(session.exercises.count, 6, "Incline had a logged set, so it was replaced")
+        XCTAssertEqual(session.exercises[2].name, "Cable Lateral Raise", "Lateral Raise had none, so renamed")
+        XCTAssertEqual(SessionBlocks.indices(session).count, 5)
+        assertMinutes(Pace.weights(day: session, history: history),
+                      [14, 11, 9, 8, (14.0 + 11 + 9 + 8) / 13 * 3])
     }
 
     /// The text from `start` up to and including the first `end` after it.

@@ -217,8 +217,13 @@ bar's order, one block per swipe, the next peeking 12 pt, the caret moving while
 page's place is what is left in its block (`PagePlace`) — behind has a check and its last set at
 70 % with **↩ Back to …**, ahead is grey with **▶ Do this now** (`jumpTo`) — and neither has inputs
 (`showsInputs`). Every page is Core's (`ExercisePage`, `WorkoutScreen.page`), the page on screen is
-the view's `showing`, never stored, and the ··· still acts on the step that is on. P5–P7 are not
-built.
+the view's `showing`, never stored, and the ··· still acts on the step that is on. P5 made the bar
+learn your pace (D84, SPEC §6.57): a segment is as long as its block usually takes you — the median
+of its past times from the third, the walk after it counted in, read from `startedAt` and `loggedAt`
+with nothing new stored — before that the day's time per set × its sets, by set count with no pace
+at all, and held between ½× and 2× the day's median stretch (`Core/Pace.swift`,
+`Pace.weights(day:history:)`, passed to `WorkoutBar.of(…, weights:)`); the Lock Screen's bar is
+unchanged. P6–P7 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

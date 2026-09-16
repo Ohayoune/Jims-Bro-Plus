@@ -447,8 +447,10 @@ enum WorkoutScreen {
             elapsed: TargetText.time(wholeSeconds(SessionStats.duration(session, now: now))),
             progress: StepCard.progress(session: session, step: index,
                                         wording: settings.wording),
-            // D83: the fill is the record and never moves; the caret is under the page.
-            bar: WorkoutBar.of(session: active, showing: shownBlock),
+            // D83: the fill is the record and never moves; the caret is under the page. D84: the
+            // widths are your pace.
+            bar: WorkoutBar.of(session: active, showing: shownBlock,
+                               weights: Pace.weights(day: session, history: history)),
             pages: pages,
             page: shown,
             currentBlock: step.blockIndex,

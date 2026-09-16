@@ -43,9 +43,8 @@ struct WorkoutBar: Equatable {
     struct Segment: Equatable {
         /// The steps' own `blockIndex`, which "Do later" (D28) keeps while it moves the block.
         var blockIndex: Int
-        /// How much of the bar the segment takes, relative to the others: its set count until
-        /// P5 gives each block its own pace (D84), so a 4-set block is a third longer than a
-        /// 3-set one from the first workout.
+        /// How much of the bar the segment takes, relative to the others: the block's pace
+        /// (D84, `Pace.weights`) when the screen passes one, and its set count otherwise.
         var weight: Double
         /// One state per step, in order — a drop and a superset member's set are steps too.
         var sets: [MarkState]
@@ -56,14 +55,18 @@ struct WorkoutBar: Equatable {
     var segments: [Segment]
 
     /// `showing` is the block being looked at, by `blockIndex` — the page on screen (D83); nil is
-    /// the current step's block. Only the caret follows it: the marks are the record.
-    static func of(session active: ActiveSession, showing: Int? = nil) -> WorkoutBar {
+    /// the current step's block. Only the caret follows it: the marks are the record. `weights`
+    /// is one per block in the bar's order (`Pace.weights`); nil, or the wrong count, is by set
+    /// count, as P1 drew it.
+    static func of(session active: ActiveSession, showing: Int? = nil, weights: [Double]? = nil) -> WorkoutBar {
         let session = active.session
         let looked = showing ?? active.currentStep.flatMap { session.steps[safe: $0]?.blockIndex }
-        return WorkoutBar(segments: SessionBlocks.indices(session).compactMap { block in
+        let blocks = SessionBlocks.indices(session)
+        let paced = weights.flatMap { $0.count == blocks.count ? $0 : nil }
+        return WorkoutBar(segments: blocks.enumerated().compactMap { position, block in
             guard let first = block.first.flatMap({ session.steps[safe: $0] }) else { return nil }
             return Segment(blockIndex: first.blockIndex,
-                           weight: Double(block.count),
+                           weight: paced?[position] ?? Double(block.count),
                            sets: block.map { MarkState.of(step: $0, session: active) },
                            caret: first.blockIndex == looked)
         })

@@ -235,8 +235,13 @@ bar's order, one block per swipe, the next peeking 12 pt, the caret moving while
 page's place is what is left in its block (`PagePlace`) — behind has a check and its last set at
 70 % with **↩ Back to …**, ahead is grey with **▶ Do this now** (`jumpTo`) — and neither has inputs
 (`showsInputs`). Every page is Core's (`ExercisePage`, `WorkoutScreen.page`), the page on screen is
-the view's `showing`, never stored, and the ··· still acts on the step that is on. P5–P7 are not
-built.
+the view's `showing`, never stored, and the ··· still acts on the step that is on. P5 made the bar
+learn your pace (D84, SPEC §6.57): a segment is as long as its block usually takes you — the median
+of its past times from the third, the walk after it counted in, read from `startedAt` and `loggedAt`
+with nothing new stored — before that the day's time per set × its sets, by set count with no pace
+at all, and held between ½× and 2× the day's median stretch (`Core/Pace.swift`,
+`Pace.weights(day:history:)`, passed to `WorkoutBar.of(…, weights:)`); the Lock Screen's bar is
+unchanged. P6–P7 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -549,7 +554,7 @@ One screen, five fixed zones, top to bottom, identical across every state below.
 
 > **Build status**: built in R2. `WorkoutScreen.model(active:history:now:)` resolves the whole screen — zones, set rows (since v1.10's D81, dots and a card), prefilled inputs, strip and primary action — as a `WorkoutScreenModel`, and the view only renders it, which is what makes "the zones never move" a unit test (O50) rather than a convention.
 
-1. **Header** (v1.10, D80, §6.53): **the bar**, and no words. The day's square at the left (v1.7, D65, §6.41), ⌄ and ··· at the right in the secondary label colour, and between them one segment per block in the order the day runs them — a 3 pt gap between segments, a tick at each set inside one, each set's mark in its state's colour (done the day's colour, now blue, not yet grey — D79, §6.52) — a caret under the segment being looked at, and the elapsed time, 11 pt monospaced, under the bar's right end. **Tap the bar** to open the Overview (§4.8), in every state including rest; the square, the bar and the elapsed time are one 44 pt target, and VoiceOver hears the stage in words (`WorkoutStage.title`, §6.15). Minimize returns to the tabs; the session and its timers keep running; Today shows the workout in progress with **Resume**. "···" holds Skip set, Skip exercise, Do later, **Change exercise** (v1.3, D42) and Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one. `WorkoutScreenModel.bar` (`WorkoutBar`, `Core/WorkoutBar.swift`) is everything the view draws, in one `Canvas`.
+1. **Header** (v1.10, D80, §6.53): **the bar**, and no words. The day's square at the left (v1.7, D65, §6.41), ⌄ and ··· at the right in the secondary label colour, and between them one segment per block in the order the day runs them, each as long as its block usually takes you (D84, §6.57) — a 3 pt gap between segments, a tick at each set inside one, each set's mark in its state's colour (done the day's colour, now blue, not yet grey — D79, §6.52) — a caret under the segment being looked at, and the elapsed time, 11 pt monospaced, under the bar's right end. **Tap the bar** to open the Overview (§4.8), in every state including rest; the square, the bar and the elapsed time are one 44 pt target, and VoiceOver hears the stage in words (`WorkoutStage.title`, §6.15). Minimize returns to the tabs; the session and its timers keep running; Today shows the workout in progress with **Resume**. "···" holds Skip set, Skip exercise, Do later, **Change exercise** (v1.3, D42) and Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one. `WorkoutScreenModel.bar` (`WorkoutBar`, `Core/WorkoutBar.swift`) is everything the view draws, in one `Canvas`.
    *(v1.2–v1.9, D34: **Header** (v1.2, D34): the **stage** the workout is in, said in words, above a progress bar of the whole day — **Warm-up**, **Exercise 2 of 5 · Set 2 of 3**, **Resting**, **Between exercises** — led by a small square in the day's colour (v1.7, D65, §6.41), the header's one mark of which day it is. Then elapsed time · progress ("Exercise 2 of 5 · Set 2 of 3", or "· drop 1 of 2", or "A · round 2 of 3" for a superset member; **v1.6 (D56)**: omitted when it would only repeat the stage, which while working it did) · **Exercises** (opens the Overview sheet, §4.8, reachable in every state including rest) · minimize (returns to the tabs; the session and its timers keep running; Home shows "<Day> in progress · <elapsed>" with **Resume**) · "···" (Skip set, Skip exercise, Do later, **Change exercise** — v1.3, D42 — Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one).)*
 2. **Exercise block** (v1.10, D81, §6.54): **in symbols, and no sentence** — and since D83 (§6.56) **a pager**, one page per block in the bar's order, the page that is on shown until the finger moves it, the next peeking 12 pt at the edge, one block per swipe; the bar's fill stays and its caret follows the page. A page behind (nothing left to do in it) has a check where the ? was and its last logged set's card at 70 %; a page ahead (a set still to do) is grey, its card its first set still to do; neither has inputs. A superset block is one page. Each page, top to bottom: **the name**, 22 pt bold, opening the exercise's history, led by a dot in the exercise's state (D79 — blue while one of its sets is now, the day's colour once every set is logged, grey ahead); in a superset block the name is the current step's exercise, changing as the round alternates. **The ?** at the right, a 24 pt circle in the secondary colour, opens a popover with the exercise's notes — and, for an exercise changed mid-workout (D42), *"was Barbell Row"* first — and is **present only when there is something behind it** (D56). **The dots**, one per step of the block, centred: filled in the day's colour when done, a blue ring round a blue centre for now, a grey ring ahead, a grey ring slashed for a skipped step; a drop is a step and so a dot, and a superset's rounds are its steps in order. **Tap a filled dot** to change that set in place: the card shows what was logged, the inputs take it and the primary reads **Save**; **tap a grey dot**, slashed or not, to do that set now (§6.6 `jumpTo`); the blue dot is the set already on — while another is being changed, it comes back to it. **The card**, the one card on the page and the only shadow, showing the set the dots point at: its range and weight at the left (**8–10** over *26 kg*; **30+** over *sec* for a hold), its **cells** at the right, one per rep (§6.54's rules). The Overview and Session detail keep their rows and the edit sheet (§4.8).
    *(v1.1–v1.9: **Exercise block**: the exercise's name (opens its history) and target line (with notes, truncated to one line), then the current exercise's set rows: finished rows show what was logged ("✓ 10 @ 80") and never how long it took (D19), the current row is highlighted with its target and last-time value, upcoming rows show their targets. A row carries the set's own target only — the exercise's notes appear once, on the target line above, rather than repeating on every row. In a block holding more than one exercise (a superset round) each row names its exercise instead of repeating the shared group tag, which would otherwise make two rows read identically. A superset shows the current round's members. Tapping a finished row opens the edit sheet; tapping an upcoming row jumps to it (§6.6 `jumpTo`).)*
@@ -1358,11 +1363,11 @@ Zone 1 loses its words (§4.5). What left: the stage title (*Exercise 2 of 5 · 
 - **One segment per block**, in the order the day runs them (`SessionBlocks.indices`, so Do later moves a segment with its block), with a 3 pt gap between segments so an exercise is the bigger unit, and **a tick at each set** inside a segment — a 1 pt cut, so it reads on a done set, the blue one and the track alike. Each step is a set here: a drop and a superset member's set take a mark of their own. Done sets fill from the left in the day's colour, the current set is one blue stretch, the rest is the grey track. **A skipped set counts for the fill** (§6.15, D34) and draws grey in its place, so the bar never says it happened.
 - **A caret** in ink beneath the segment being looked at — the page on screen's (§6.56), the current step's until the finger moves the pager (`WorkoutBar.of(session:showing:)`). Only the caret follows the page; the marks are the record.
 - **The elapsed time**, 11 pt monospaced, under the bar's right end. *(The plan's choice, C6: it is the one number the Lock Screen shows that the screen would otherwise lack; dropping it is one line.)*
-- **Widths by set count** (`Segment.weight`) until P5 gives each block its own pace (D84), so a 4-set block is a third longer than a 3-set one from the first workout.
+- **Widths by your pace** (`Segment.weight`, §6.57, D84): a segment is as long as its block usually takes you, the walk after it included, from the third time; before any block has a pace, by set count, so a 4-set block is a third longer than a 3-set one from the first workout.
 - **Tap the bar** to open the Overview (§4.8), which was the Exercises button's job. The square, the bar and the elapsed time are one target, 44 pt tall; VoiceOver hears the stage in words (`spokenHeader`, which is `WorkoutStage.title` exactly), the day's percentage and the elapsed time as its value, and a hint that it opens the Overview. §6.40's table carries the tap as an ungated row: it is the only way to the Overview and needs no history.
 - *(The owner wrote "a visual marking at each of the different set percentages … a smaller visual marker for each exercise" — sets the larger mark. The plan draws exercises as the larger unit because five gaps read and sixteen notches do not, the reading the owner reviewed through four draws without correction; round 1's notches-and-dots is the alternative.)*
 
-**Core decides it** (§6.37): `WorkoutBar` — `segments`, each with `blockIndex`, `weight`, `sets: [MarkState]` and `caret` — built by `WorkoutBar.of(session:showing:)`; `WorkoutScreenModel` gains `bar` and `spokenHeader` and loses nothing — `stage`, `completion`, `elapsed` and `progress` stay for the Lock Screen, the spoken line and the tests. The view draws the bar in one `Canvas`, no view per set: a sixteen-set day is one shape (TP1–TP6).
+**Core decides it** (§6.37): `WorkoutBar` — `segments`, each with `blockIndex`, `weight`, `sets: [MarkState]` and `caret` — built by `WorkoutBar.of(session:showing:weights:)`; `WorkoutScreenModel` gains `bar` and `spokenHeader` and loses nothing — `stage`, `completion`, `elapsed` and `progress` stay for the Lock Screen, the spoken line and the tests. The view draws the bar in one `Canvas`, no view per set: a sixteen-set day is one shape (TP1–TP6).
 
 ### 6.54 The exercise in symbols (D81, v1.10)
 Zone 2 loses its sentences (§4.5). What left: the target line (*"Aim 8–10 reps · 26 kg · Bench at 30°"*), the set rows with their labels, values and *"Last time 9 × 26 kg"*, and D59's ↺ on the row. What replaced them: **the name** with its dot, **the ?**, **the dots** and **the card**. The owner, over the round-two mock: *"remove the plus and minus for the set, the upper end of the range transparent."*
@@ -1424,6 +1429,23 @@ The owner: *"sideways swipe the screen into the current and next exercises (shou
 - **VoiceOver** reads the page on screen; a three-finger swipe turns it.
 
 **Core decides it** (§6.37): `PagePlace` — current, behind, ahead — and `ExercisePage { blockIndex, place, exerciseIndex, exerciseName, exerciseMark, notes, checked, dots, card, live, cardOpacity, firstPending, spoken }` with `card(field:)`, which follows the field only on the page holding the inputs, so a neighbour never takes the current set's number; `WorkoutScreen.page(active:block:history:current:field:edited:)`; on the model `pages`, `page`, `currentBlock`, `showing`, `showsInputs`, `currentName` and `page(_:)` for a neighbour, with `exerciseName`, `exerciseMark`, `notes`, `dots`, `card` and `spoken` now the page on screen's; `PrimaryAction.Kind.back` and `.doNow`, and `PrimaryAction.step` for the jump; `WorkoutText.back(to:)` and `.doNow`. `SessionEngine` does not change (TP24–TP29).
+
+### 6.57 A bar that learns your pace (D84, v1.10)
+The owner: *"Status bar should be smart and each 'step' should be proportional to the median time it takes to complete one exercise, with a min and max limit. (Only once a history is established)."*
+
+**A segment of the bar (§6.53) is as long as its block usually takes you.**
+
+- **A past time** of a block is from its first start (a step's `startedAt`, or a logged step's `loggedAt` when none has one) to whatever the session did next — the earliest `startedAt`, or a logged step's `loggedAt`, outside the block at or after the block's last log — so **the walk after it is counted in**, and the segment holds the ring (§6.55). When nothing followed, it ends at the block's last log. A skip's timestamp never ends a time, because ending a workout skips what is left; a block with no logged step was not done and has no time. Timed sets count as they are written: from the timer's start.
+- **A block is known by its exercises' names as they now are** (`normalized`, a superset by all of its members'): a changed exercise (D42) by the name it has now — renamed in place, or the substitute rather than the original it replaced — so its history is the new name's.
+- **The sessions** are the ones on the phone that are finished and started before this one. Nothing new is stored: `startedAt` and `loggedAt` have been written since v1.2 (D19).
+- **From the third time**, a block's stretch is **the median** of its past times.
+- **Before that**, it is **the day's time per set × its sets**: the paced blocks' stretches over their sets. **A day with no paced block is by set count**, as §6.53 drew it from the first workout.
+- **Held between ½× and 2× the day's typical stretch** — the median of the stretches, not the mean, which moves with the one long block it is meant to hold — so one long exercise cannot squeeze the others into slivers and a quick one is still findable: a 40-minute block on a day of 7s is 14, a 1-minute one 3½. A day with no paced block is not clamped.
+- **The fill, the marks and the caret do not change** (§6.56): only the widths, which the screen computes from the history it already reads. The Lock Screen's bar stays a fill by set count (D41: room for a figure and a fill, not for a pace).
+
+*(The rule is the plan's — round 1's Q7 and R9 were not answered — and it is one function, so another count or another clamp is a two-line change.)*
+
+**Core decides it** (§6.37): `Pace.weights(day:history:)` → one weight per block in the bar's order, with `Pace.weights(sets:medians:)` the rule apart from the clock, `Pace.time(of:in:)` one past time, `Pace.names(of:in:)` a block's names and `Pace.median`; `WorkoutBar.of(session:showing:weights:)` takes the weights — nil, or a count that is not the day's blocks', is by set count — and `WorkoutScreen.model` passes `Pace.weights(day:history:)` (TP30–TP35).
 
 ## 7. Data model (Core, Codable, no UI imports)
 
@@ -3274,6 +3296,19 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 | TP27 | unit | (D83, v1.10) A superset is one page | Lateral Raise and Tricep Pushdown grouped: four pages and four segments; the superset ahead has six dots, the name Lateral Raise and Do this now to step 7. Jumped to and one set logged: still page 2, the name Tricep Pushdown, dots done, now, then four not yet. Every round logged: behind, a check, the name Tricep Pushdown and the card step 12's as logged |
 | TP28 | unit | (D83, v1.10, pin) Zone 2 is a pager | Zone 2 of `WorkoutView.swift` is a `ScrollView(.horizontal)` with `.scrollTargetLayout()`, `OnePagePerSwipe`, `.containerRelativeFrame(.horizontal)`, `.scrollPosition(id: $scrolled)` and `.contentMargins(.horizontal, Self.gutter, for: .scrollContent)`, a 20 pt gutter and an 8 pt gap (a 12 pt peek), a page per `screen.pages` by block, the card at `page.cardOpacity`, the check, and `showing` set from the scroll; the file has no `TabView`, page style, arrows or page control, limits iOS 18 to `.alwaysByOne`, passes `showing` to the model from `@State`, handles Back and `jumpTo` for Do this now, empties zone 3 off the page, and names `currentName` for Change exercise; neither `AppModel.swift` nor `WorkoutActivity.swift` has `showing:` (source reads on the host routes) |
 | TP29 | device | (D83, v1.10) Pages on the phone | A swipe moves one block and the edge peeks, in light and dark; a page behind is fainter; a swipe during a rest and during the walk leaves the strip counting; Log set from the current page after swiping away and back logs what was typed; Do this now on a page ahead works that block, and the block that was on comes back once the blocks after it are done, as Do later's does; VoiceOver's three-finger swipe turns the page; the Lock Screen does not change when a page is looked at |
+
+### P5 — A bar that learns your pace (D84)
+
+`JimmsBroTests/SymbolsTests.swift` (TP30–TP34), on the plan's example with past Pushes built by `pastPush`, which lays each block's time out as its sets in the first three quarters and the walk in the last. `Pace` is `Core/Pace.swift`'s. The plan's clamp around *"the day's average stretch"* landed as the median stretch (the log says why); TP33 keeps the plan's numbers. **TP35** is the phone's.
+
+| ID | Type | Title | Expected |
+|---|---|---|---|
+| TP30 | unit | (D84, v1.10) No history is by set count | `Pace.weights` on the example with no history: 4, 3, 3, 3, 3, and the screen's bar the same; with two past Pushes, the same; with an unfinished session, a later one and the day itself added, the same. `weights(sets:medians:)` with no median is the set counts; `median` of nothing is nil, of 3, 1, 2 is 2, of 4, 1, 3, 2 is 2.5 |
+| TP31 | unit | (D84, v1.10) Three times are a pace | Past Pushes of 14/12/15, 10, 8, 8 and 4 minutes: 14, 10, 8, 8, 4 minutes. Bench's last log at 10½ minutes and its time 14, the walk to Incline's first set counted in. The screen's bar has those widths, and the marks and caret it had with no history; weights for another day's blocks are ignored. The frozen v1.2 session: its circuit's time 214 seconds, the skips that ended the workout not part of it, and a block never logged no time |
+| TP32 | unit | (D84, v1.10) Twice is the day's time per set | Lateral Raise skipped in one of three past Pushes: its stretch is (14 + 10 + 8 + 5) ÷ 13 × 3 minutes, the others 14, 10, 8, 5 |
+| TP33 | unit | (D84, v1.10) The clamp | `weights(sets: 4, 3, 3, 3, 3; medians: 40, 1, 7, 7, 7)` is 14, 3.5, 7, 7, 7, and three past Pushes of those minutes give the same; a block with no pace is held too: medians 40, 3, none, 6, 6 give 12, 3, 12, 6, 6 |
+| TP34 | unit | (D84, v1.10) A changed exercise, and a block never logged | Three past Pushes as planned and three with Incline Smith Press and Cable Lateral Raise, none with Plank logged: before any change 14, 10, 8, 8 and Plank (14 + 10 + 8 + 8) ÷ 13 × 3. Incline substituted after its logged set (six exercises) and Lateral Raise renamed in place (five blocks): 14, 11, 9, 8 and Plank (14 + 11 + 9 + 8) ÷ 13 × 3 |
+| TP35 | device | (D84, v1.10) The bar learns on the phone | After three workouts of a day, its bar's segments differ from set count the way the workouts went — a long exercise longer, a quick one shorter, none a sliver — in light and dark; the Lock Screen's bar does not change |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -6804,7 +6839,7 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 # Build status
 
 Updated 2026-09-16. **v1.10 is in progress on branch `v1.10-symbols` (off `v1.9-swaps` at
-3dc52f1): P0–P4 built and green.** v1.9 and everything before it are below,
+3dc52f1): P0–P5 built and green.** v1.9 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
 
@@ -6815,19 +6850,21 @@ v1.9 — *"I want to make everything symbols, and the app colorful"*. Each miles
 whole suite green on all three routes, a Release build and `tools/check_release.py`, and one
 commit on `v1.10-symbols`.
 
-After P4:
+After P5:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **393 tests, 22 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P4 adds one (TP28). Two earlier runs hung launching the test host while Xcode's `dtdeviceinfod` crashed; after `simctl shutdown all` and a restart of the simulator service the run above went through |
-| `swift test` | **392 tests, 0 failures** |
-| `python3 tools/check_core.py` | **392 bodies, 8,028 assertions, 0 failures** |
-| `python3 tools/reference_import.py` | **118/118 fixtures match** (P4 changes none) |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **398 tests, 22 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P5 adds none |
+| `swift test` | **397 tests, 0 failures** |
+| `python3 tools/check_core.py` | **397 bodies, 8,115 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **118/118 fixtures match** (P5 changes none) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.9 (1); 1.10 is P7's |
-| `python3 tools/check_bundle.py` | **current** (regenerated in P4) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in P5) |
 
-The simulator route and the Release build ran on P4's final code; the host routes ran again after the last document edits, since the doc pins read SPEC and TEST_CASES.
+The simulator route and the Release build ran on P5's final code; the host routes ran again after the last document edits, since the doc pins read SPEC and TEST_CASES.
+
+After P4: the simulator 393 tests (22 skipped), `swift test` 392, `check_core.py` 392 bodies and 8,028 assertions, 118/118 fixtures, Release and `check_release.py` green, the bundle current.
 
 After P3: the simulator 388 tests (21 skipped), `swift test` 387, `check_core.py` 387 bodies and 7,827 assertions, 118/118 fixtures, Release and `check_release.py` green, the bundle current.
 
@@ -6840,7 +6877,8 @@ After P2: the simulator 382 tests (21 skipped), `swift test` 381, `check_core.py
 | P2 | The exercise in symbols (D81). `Core/RepCells.swift`: `RepCells.target`, `.logged` and `.timed` from `RepCells.Bounds.of(_:range:)` — a cell per rep or per five seconds rounded up, solid to the minimum (or to what was done), faint to the top, yellow past it, a caret for the field's number, a line for last time's, a group per five, sixty at most. `Core/WorkoutScreen.swift`: `SetDot` (a step of the block, its D79 state, skipped, what VoiceOver hears), `SetCard` (range — *8–10*, *8*, *8+*, *max* — unit, the set's weight, cells, colour, and the bounds and last time so `showing(field:)` redraws the cells for the number in the field), `WorkoutScreen.notes` (*was …* first), `InputDefaults.seconds`, `PrimaryAction.Kind.save`; the model lost `targetLine` and `rows` and gained `exerciseMark` (`MarkState.of(exercise:session:)`), `notes`, `dots`, `card` and `editing`, which `WorkoutScreen.model(…, editing:)` takes from the view and ignores unless it is a logged step of the block — the inputs then take the logged result and the primary is **Save**. The strip's Undo is set during a rest or the moment a block ends, not after. Zone 2 is the name with its dot and the ? popover, the dots (`ViewThatFits` a row or `WrapLayout`), and `SetCardView` — `WrapLayout` of 8 × 22 pt cells with the caret and line above and below each; a filled dot sets `editing`, a grey one `jumpTo`s, the blue one ends a change; Save applies `.editSet`; the edit sheet left the screen; Undo shows in the strip at every size. `StepCard.setRows` and `SetRow` stay in Core for I41, I42, O57 and U34–U35 — `SetRow.mark` went. SPEC §4.5 (zones 2, 4, 5), §4.6, §6.34, §6.36, §6.52 and the new §6.54; TP8–TP16; O57, U34, U35, W7 and TP1 re-pointed with their assertions kept, U28 annotated; the log | Done |
 | P3 | The walk: a count-up and a ring (D82). `Plan.restBetweenExercises: Int?` — decoded with `container.optional` in `Core/Persistence.swift`, read by `PlanImport` as a rest (0–3600, digits accepted, `E_REST_INVALID` at `restBetweenExercises`), written by `PlanJSON.render` when set, and read the same way by `tools/reference_import.py`; three fixtures and a `restBetweenExercises` manifest check. `RestResolution.walk(plan:settings:)` — the plan's, then `Settings.transitionRestSeconds` — and `RestResolution.after(…, restBetweenExercises:)`; the engine's `restBetweenExercises` and `walk`, set from the session's plan by `PlanLibrary.refreshWalk()` at a start, before every event and at restore (`AppModel.load`); the engine refuses `adjustRest` and `skipRest` on the walk, and `startTimer` clears `blockDone`. `StatusStrip.direction`, `.ring` (`WalkRing { fraction, minimum, fromPlan, full, explanation, colour }`) and `.spoken`; `RestText.ringExplanation`; one `walkStrip` for the walk's rest and the block's line after it, with the count-up as the figure, the next exercise's name and no controls. `WorkoutScreen.model(…, walk:)` from `model.engine?.walk`. The Lock Screen counts the walk up (no `endsAt`) before the ring fills and after. The view: `WalkRingView` (58 pt, the arc in Core's colour, a green disc and a check when full), the figure 36 pt or 28 pt secondary when full, a walking figure, a blue dot and the next name, the ring's sentence in a popover. The plan and outline prompts ask for the field; the day prompt drops it; `BuiltInPlans.estimatedMinutes` walks the plan's minimum. PLAN_FORMAT §1, §2, §3.6, §4; PROMPT §1, §4, §5 and the rendered length; `schema/plan.schema.json`; SPEC §4.6, §4.7, §6.3, §6.4, §6.6, §7 and the new §6.55; TP17–TP23; Q25, Q27 and O61 re-pointed; the log | Done |
 | P4 | Pages (D83). `PagePlace` (current, behind, ahead — by what is left in the block, not its place on the bar) and `ExercisePage { blockIndex, place, exerciseIndex, exerciseName, exerciseMark, notes, checked, dots, card, live, cardOpacity, firstPending, spoken }` with `card(field:)`, built by `WorkoutScreen.page`; `WorkoutScreen.model(…, showing:)` gives the model every page (`pages`), the one on screen (`page`), `currentBlock`, `showing`, `showsInputs`, `currentName` and `page(_:)`, and the bar's caret under the page — the fill unchanged; `exerciseName`, `exerciseMark`, `notes`, `dots`, `card` and `spoken` became the page on screen's. `PrimaryAction.Kind.back` (*Back to …*) and `.doNow` (*Do this now*, `step` the block's first pending), `WorkoutText.back(to:)` and `.doNow`; `editing` is honoured in the shown block only. The view: zone 2 a `ScrollView(.horizontal)` of pages with `containerRelativeFrame`, `scrollPosition(id:)` kept level with `@State showing`, a 20 pt margin and 8 pt gap, `OnePagePerSwipe`, pages off screen hidden from VoiceOver and a three-finger swipe to turn; a check in the day's colour where the ? was, the card at `cardOpacity`; zone 3 empty off the page; ↩ and ▶ on the primary; Do this now and a grey dot `jumpTo` and then follow the page; Change exercise names the exercise that is on; a debug-only `-uiShowPage`. `SessionEngine` unchanged. SPEC §4.5 (zones 2 and 5), §6.53, §6.54 and the new §6.56; TP24–TP29; TP6 and TP15 re-pointed; the log | Done |
-| P5–P7 | The pace, Change *day* in squares, docs and 1.10 | Not started |
+| P5 | A bar that learns your pace (D84). `Core/Pace.swift`: `Pace.weights(day:history:)` — one weight per block in the bar's order: the median of the block's past times from the third, a past time running from its first start to the next start or log outside it at or after its last log (so the walk after it is counted in, and a skip never ends one), from finished sessions that started before this one, the block known by its exercises' names as they now are (a substitute by its own); before that the paced blocks' time per set × its sets; with no paced block, by set count; held between ½× and 2× the median stretch. `Pace.weights(sets:medians:)` is the rule apart from the clock, with `time(of:in:)`, `names(of:in:)` and `median`. `WorkoutBar.of(session:showing:weights:)` takes the weights (nil or a wrong count is by set count) and `WorkoutScreen.model` passes them from the history it already reads. Nothing stored, nothing in the view or the Lock Screen changed. SPEC §4.5 (zone 1), §6.53 and the new §6.57; TP30–TP35; TP3's message; the log | Done |
+| P6–P7 | Change *day* in squares, docs and 1.10 | Not started |
 
 ### Checked on the simulator (v1.10)
 
@@ -6889,6 +6927,12 @@ After P2: the simulator 382 tests (21 skipped), `swift test` 381, `check_core.py
   dim with green and olive cells, the check green, Back white with black words.
 
 ### Not run in v1.10
+
+- **P5's widths were not looked at on the simulator.** `tools/seed` writes every past step 110 seconds
+  after the one before, so each block's time is its sets × 110 and the paced bar is exactly P1's by
+  set count; a screenshot would have shown nothing P5 did. TP31 checks the screen's bar carries the
+  pace; seeing it is **TP35**, on the phone after three workouts of a day, with the Lock Screen
+  unchanged.
 
 - **P4's swipe** was not made on the simulator: the simulator tool refused the gesture ("stopped
   retrying after repeated crashes"), as it refused taps in P1–P3. The pages were reached through
@@ -8057,6 +8101,12 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.10 P4: **Back and Do this now lead with a mark** — ↩ (`arrow.uturn.backward`) and ▶ (`play.fill`) — through `PrimaryButton(systemImage:)`, as Today's Start does (D69); the view maps the kind to the symbol, as Home maps `buttonMark`.
 - v1.10 P4: **VoiceOver reads the page on screen only**, the others hidden, and a three-finger swipe turns the page (`accessibilityScrollAction`), so a VoiceOver user does not hear five exercises' dots at once.
 - v1.10 P4: **TP28 is a source pin**, as TP6 and TP15 were: the target has no UI tests. The pager was seen on the simulator through a debug-only `-uiShowPage <block>`, as P2 added `-uiEditSet`; the swipe itself joins the phone's TP29, the simulator tool having refused gestures again.
+- v1.10 P5 (D84): **a segment is as long as its block usually takes you** — the median of its past times from the third, a past time running from the block's first start to the next thing the session started, so the walk after it is counted in; before that the day's time per set × its sets; with no paced block, by set count. `Pace.weights(day:history:)`, one function; the Lock Screen's bar is unchanged.
+- v1.10 P5: **the clamp is around the median stretch, not the mean**, as the plan wrote. A mean moves with the long block it is meant to hold: on the plan's own five-exercise example a 40-minute block cannot sit on a 7-minute mean (40 alone is more than five 7s), and a mean of 12.4 would have held it at 24.8 and blown a 1-minute block up to 6.2. The median of 40, 1, 7, 7, 7 is 7, which gives TP33's 14 and 3½. A day with no paced block is not clamped, so P1's widths stand.
+- v1.10 P5: **the day's time per set is the paced blocks' stretches over their sets** (today's set counts), the one figure in the same units as the medians; the plan did not say which blocks it averaged.
+- v1.10 P5: **a block is known by the set of its exercises' names as they now are**, a superset by all its members', and a substitute (D42) by its own name and not the original's it replaced. A superset's time is not its members' times, so an exercise done alone and in a superset keeps two paces.
+- v1.10 P5: **a time ends at the next start or the next log, never at a skip.** Ending a workout skips what is left at that moment, so a skip's timestamp would have stretched the last block done by however long the phone sat before Finish; the frozen v1.2 session's circuit reads 3:34, not the half hour to its skips. A block with no logged step is not a time done, which is what the plan's *"a skipped block uses its sets"* comes to: it has no pace, so its sets.
+- v1.10 P5: **only finished sessions that started before this one count**, as Prefill's history does, so an open session and a later import never pace today.
 `````
 
 ---
@@ -10524,8 +10574,13 @@ bar's order, one block per swipe, the next peeking 12 pt, the caret moving while
 page's place is what is left in its block (`PagePlace`) — behind has a check and its last set at
 70 % with **↩ Back to …**, ahead is grey with **▶ Do this now** (`jumpTo`) — and neither has inputs
 (`showsInputs`). Every page is Core's (`ExercisePage`, `WorkoutScreen.page`), the page on screen is
-the view's `showing`, never stored, and the ··· still acts on the step that is on. P5–P7 are not
-built.
+the view's `showing`, never stored, and the ··· still acts on the step that is on. P5 made the bar
+learn your pace (D84, SPEC §6.57): a segment is as long as its block usually takes you — the median
+of its past times from the third, the walk after it counted in, read from `startedAt` and `loggedAt`
+with nothing new stored — before that the day's time per set × its sets, by set count with no pace
+at all, and held between ½× and 2× the day's median stretch (`Core/Pace.swift`,
+`Pace.weights(day:history:)`, passed to `WorkoutBar.of(…, weights:)`); the Lock Screen's bar is
+unchanged. P6–P7 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 
