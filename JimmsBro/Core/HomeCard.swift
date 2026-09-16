@@ -333,17 +333,18 @@ struct HomeStart: Equatable {
         /// The Plans list. Its symbol is the active plan's cycle, a square per entry in its
         /// day's colour and grey for rest (`DayColour.cycle(of:)`, drawn by `CycleSymbol`).
         case changePlan(cycle: [DayColour?])
-        /// D75/D76 (v1.9): the shown day's exercises, for that date alone — "Change Wednesday's
-        /// exercises", named by the strip's own when ("Today", "Tomorrow", the weekday) — with
-        /// that day's square as its symbol, grey for rest.
-        case changeExercises(dayName: String, colour: DayColour?)
+        /// D75/D76 (v1.9): the shown day's exercises, for that date alone, with that day's
+        /// square as its symbol — grey for rest, outlined for a borrowed or own day as the strip
+        /// draws it. D85 (v1.10, §6.58): named after the day, "Change Push", "Change Rest".
+        /// *(v1.9: by the strip's when, "Change Wednesday's exercises".)*
+        case changeExercises(dayName: String, colour: DayColour?, outlined: Bool)
         /// D56: while a session is open, with its alert.
         case discardWorkout
 
         var title: String {
             switch self {
             case .changePlan: return "Change plan"
-            case let .changeExercises(dayName, _): return "Change \(dayName)'s exercises"
+            case let .changeExercises(dayName, _, _): return DayChoices.title(dayName: dayName)
             case .discardWorkout: return "Discard workout"
             }
         }
@@ -549,7 +550,7 @@ struct HomeStart: Equatable {
             start.progressionFinished = true
         }
         // D61 (v1.7): the alternatives, in the order the ··· lists them (D75, §6.49): Change
-        // plan, and Change *day*'s exercises for the day shown — or Discard while a session is
+        // plan, and Change *day* for the day shown — or Discard while a session is
         // open, reached here from a tapped square (D70).
         start.alternatives = alternatives(library: library, changing: start.strip[safe: start.shownOffset],
                                           running: running)
@@ -559,7 +560,7 @@ struct HomeStart: Equatable {
     }
 
     /// D75 (v1.9, §6.49): the ··· items in their order — **Change plan**, its symbol the active
-    /// plan's cycle, and **Change *day*'s exercises** for the shown square's date, its symbol that
+    /// plan's cycle, and **Change *day*** (D85) for the shown square's date, its symbol that
     /// day's square. While a session is open the menu is v1.8's, Change plan and Discard workout
     /// (D56) last, because nothing about a day changes from Today mid-workout (the owner's 11); a
     /// card with no day to change — Nothing scheduled, or today once its workout is done — has
@@ -570,7 +571,8 @@ struct HomeStart: Equatable {
         let changePlan = Alternative.changePlan(cycle: library.activePlan.map(DayColour.cycle(of:)) ?? [])
         if running { return [changePlan, .discardWorkout] }
         guard let square else { return [changePlan] }
-        return [changePlan, .changeExercises(dayName: square.when, colour: square.colour)]
+        return [changePlan, .changeExercises(dayName: square.dayName ?? restTitle, colour: square.colour,
+                                             outlined: square.outline)]
     }
 
     /// D71 (v1.8, §6.45): the card of a day with nothing to start, today's or a tapped grey

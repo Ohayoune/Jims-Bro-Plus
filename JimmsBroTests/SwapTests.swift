@@ -744,21 +744,24 @@ final class SwapTests: XCTestCase {
         library.completeSession()
     }
 
-    // TQ25: the picker's sections — this plan first, then each other plan with days, and the
-    // own-day row last — in the strip's words for when, with the date in full.
+    // TQ25: the picker's strips — this plan first, then each other plan with days — in the
+    // strip's words for when, with the date in full. D85 (v1.10): named after the day it
+    // changes, and Custom in place of the own-day row.
     func testThePickerListsThisPlanThenTheOthersThenADayOfItsOwn() throws {
         var library = library(rotation())
         let alone = try XCTUnwrap(library.dayChoices(for: day(16), now: day(14)))
-        XCTAssertEqual(alone.title, "Change Wednesday's exercises")
+        XCTAssertEqual(alone.title, "Change Legs")
+        XCTAssertEqual(alone.day, DayChoices.Face(name: "Legs", colour: .purple, outlined: false))
+        XCTAssertEqual(alone.when, "Wednesday")
         XCTAssertEqual(alone.line, "For Wednesday 16 September only. The plan does not change.")
-        XCTAssertEqual(alone.sections.map(\.title), ["Push Pull Legs · this plan"], "no others section with one plan")
-        let mine = alone.sections[0].rows
+        XCTAssertEqual(alone.strips.map(\.title), ["Push Pull Legs"], "no other strip with one plan")
+        let mine = alone.strips[0].tiles
         XCTAssertEqual(mine.map(\.name), ["Push", "Pull", "Legs"])
         XCTAssertEqual(mine.map(\.colour), [.green, .orange, .purple])
         XCTAssertEqual(mine.map(\.outlined), [false, false, false])
         XCTAssertEqual(mine.map(\.slot), [.day(name: "Push"), .day(name: "Pull"), .day(name: "Legs")])
         XCTAssertEqual(mine.map(\.isChosen), [false, false, true], "Wednesday is Legs")
-        XCTAssertEqual(alone.ownTitle, "Write a day just for Wednesday")
+        XCTAssertEqual(DayChoices.customTitle, "Custom")
         XCTAssertEqual(alone.ownName, "Wednesday's own day")
         // D77 (v1.9): the sheet's point, which says what the JSON is and where it lands.
         XCTAssertEqual(alone.point.saveTitle, "Use for Wednesday")
@@ -771,9 +774,9 @@ final class SwapTests: XCTestCase {
                                   importedAt: day(1), sourceText: "", cycle: []))
         let other = try XCTUnwrap(library.plans.first { $0.name == "Upper Lower" })
         let both = try XCTUnwrap(library.dayChoices(for: day(16), now: day(14)))
-        XCTAssertEqual(both.sections.map(\.title), ["Push Pull Legs · this plan", "Upper Lower"],
-                       "a plan with no days has no section")
-        let theirs = both.sections[1].rows
+        XCTAssertEqual(both.strips.map(\.title), ["Push Pull Legs", "Upper Lower"],
+                       "a plan with no days has no strip")
+        let theirs = both.strips[1].tiles
         XCTAssertEqual(theirs.map(\.name), ["Upper", "Lower"])
         XCTAssertEqual(theirs.map(\.colour), [.green, .orange], "each day in its own plan's colour")
         XCTAssertEqual(theirs.map(\.outlined), [true, true], "outlined: not from this plan")
@@ -781,14 +784,16 @@ final class SwapTests: XCTestCase {
         XCTAssertEqual(theirs.map(\.isChosen), [false, false])
 
         let today = try XCTUnwrap(library.dayChoices(for: day(14), now: day(14)))
-        XCTAssertEqual(today.title, "Change Today's exercises")
+        XCTAssertEqual(today.title, "Change Push")
+        XCTAssertEqual(today.when, "Today")
         XCTAssertEqual(today.line, "For Monday 14 September only. The plan does not change.")
-        XCTAssertEqual(today.ownTitle, "Write a day just for Today")
         XCTAssertEqual(today.ownName, "Monday's own day", "the name keeps the weekday, for History")
         XCTAssertEqual(today.point.saveTitle, "Use for Today")
         XCTAssertEqual(today.point.place, "For Monday 14 September. Not saved to Push Pull Legs.")
-        XCTAssertEqual(try XCTUnwrap(library.dayChoices(for: day(15), now: day(14))).title,
-                       "Change Tomorrow's exercises")
+        let thursday = try XCTUnwrap(library.dayChoices(for: day(17), now: day(14)))
+        XCTAssertEqual(thursday.title, "Change Rest", "a rest date is changed too")
+        XCTAssertEqual(thursday.day, DayChoices.Face(name: "Rest", colour: nil, outlined: false))
+        XCTAssertNil(thursday.exercises, "no exercises to change on a rest date")
         XCTAssertNil(PlanLibrary().dayChoices(for: day(16), now: day(14)), "no plan, no picker")
     }
 
@@ -820,7 +825,7 @@ final class SwapTests: XCTestCase {
         XCTAssertEqual(wednesday.buttonTitle, "Start Wednesday's Pull")
         XCTAssertEqual(wednesday.dayIndex, 1)
         XCTAssertFalse(wednesday.isOutlined)
-        XCTAssertEqual(try XCTUnwrap(library.dayChoices(for: day(16), now: day(14))).sections[0].rows.map(\.isChosen),
+        XCTAssertEqual(try XCTUnwrap(library.dayChoices(for: day(16), now: day(14))).strips[0].tiles.map(\.isChosen),
                        [false, true, false])
 
         library.choose(.day(name: "Legs"), for: day(16), now: day(14))
@@ -1000,6 +1005,138 @@ final class SwapTests: XCTestCase {
         XCTAssertEqual(library.activePlan?.days.count, 3)
         XCTAssertNil(DayColour.of(session: try XCTUnwrap(library.sessions.last), plans: library.plans),
                      "a name no plan has: grey in History")
+    }
+
+    // MARK: - P6 (D85, v1.10): Change day in squares, with a button
+
+    // TP36: the ··· item and the picker's title read "Change Push" after the day shown — the
+    // swapped day's name once the date is swapped, and outlined for a borrowed day as the strip
+    // draws it.
+    func testChangeDayIsNamedAfterTheDayShown() throws {
+        var library = library(rotation())
+        let cycle = DayColour.cycle(of: try XCTUnwrap(library.activePlan))
+        XCTAssertEqual(card(library, on: 14).alternatives,
+                       [.changePlan(cycle: cycle), .changeExercises(dayName: "Push", colour: .green, outlined: false)])
+        XCTAssertEqual(card(library, on: 14).alternatives.last?.title, "Change Push")
+        XCTAssertEqual(try XCTUnwrap(library.dayChoices(for: day(14), now: day(14))).title, "Change Push")
+
+        library.choose(.day(name: "Pull"), for: day(14), now: day(14))
+        XCTAssertEqual(card(library, on: 14).alternatives.last?.title, "Change Pull")
+        let swapped = try XCTUnwrap(library.dayChoices(for: day(14), now: day(14)))
+        XCTAssertEqual(swapped.title, "Change Pull")
+        XCTAssertEqual(swapped.day, DayChoices.Face(name: "Pull", colour: .orange, outlined: false))
+
+        library.save(upperLower())
+        let other = try XCTUnwrap(library.plans.first { $0.name == "Upper Lower" })
+        library.choose(.borrowed(planId: other.id, name: "Lower"), for: day(16), now: day(14))
+        XCTAssertEqual(card(library, on: 14, showing: 2).alternatives.last,
+                       .changeExercises(dayName: "Lower", colour: .orange, outlined: true))
+        XCTAssertEqual(try XCTUnwrap(library.dayChoices(for: day(16), now: day(14))).day,
+                       DayChoices.Face(name: "Lower", colour: .orange, outlined: true))
+    }
+
+    // TP37: the button says what it will do — disabled "Change Legs" with nothing marked (or the
+    // tile the date already is), "Legs → Pull" with both squares, "Write a day for Wednesday"
+    // for Custom.
+    func testTheButtonNamesItsEffect() throws {
+        var library = library(rotation())
+        library.save(upperLower())
+        let other = try XCTUnwrap(library.plans.first { $0.name == "Upper Lower" })
+        let choices = try XCTUnwrap(library.dayChoices(for: day(16), now: day(14)))
+
+        let idle = ChangeDayText.confirm(choices, marked: nil)
+        XCTAssertEqual(idle.title, "Change Legs")
+        XCTAssertFalse(idle.isEnabled)
+        XCTAssertNil(idle.slot)
+        XCTAssertNil(idle.from)
+        XCTAssertNil(idle.to)
+        XCTAssertFalse(idle.opensSheet)
+        XCTAssertEqual(ChangeDayText.confirm(choices, marked: .day(.day(name: "Legs"))), idle,
+                       "the day the date already is would change nothing")
+        XCTAssertEqual(ChangeDayText.confirm(choices, marked: .day(.day(name: "Arms"))), idle,
+                       "a tile no longer in the picker is nothing marked")
+
+        let pull = ChangeDayText.confirm(choices, marked: .day(.day(name: "Pull")))
+        XCTAssertEqual(pull.title, "Legs → Pull")
+        XCTAssertEqual(pull.from, DayChoices.Face(name: "Legs", colour: .purple, outlined: false))
+        XCTAssertEqual(pull.to, DayChoices.Face(name: "Pull", colour: .orange, outlined: false))
+        XCTAssertTrue(pull.isEnabled)
+        XCTAssertEqual(pull.slot, .day(name: "Pull"))
+        XCTAssertFalse(pull.opensSheet)
+
+        let lower = ChangeDayText.confirm(choices, marked: .day(.borrowed(planId: other.id, name: "Lower")))
+        XCTAssertEqual(lower.title, "Legs → Lower")
+        XCTAssertEqual(lower.to, DayChoices.Face(name: "Lower", colour: .orange, outlined: true))
+
+        let custom = ChangeDayText.confirm(choices, marked: .custom)
+        XCTAssertEqual(custom.title, "Write a day for Wednesday")
+        XCTAssertTrue(custom.isEnabled)
+        XCTAssertTrue(custom.opensSheet)
+        XCTAssertNil(custom.slot, "Custom's sheet writes, not the button")
+        let today = try XCTUnwrap(library.dayChoices(for: day(14), now: day(14)))
+        XCTAssertEqual(ChangeDayText.confirm(today, marked: .custom).title, "Write a day for Today")
+    }
+
+    // TP38: marking writes nothing; the button writes the swap Q4's tap wrote, and the pattern's
+    // own day, confirmed, still deletes it (TQ26).
+    func testMarkingWritesNothingAndTheButtonWritesTheSwap() throws {
+        var library = library(rotation())
+        let plans = library.plans
+        let choices = try XCTUnwrap(library.dayChoices(for: day(16), now: day(14)))
+        for tile in choices.strips.flatMap(\.tiles) {
+            _ = ChangeDayText.confirm(choices, marked: .day(tile.slot))
+        }
+        _ = ChangeDayText.confirm(choices, marked: .custom)
+        XCTAssertTrue(library.swaps.isEmpty, "a mark is the screen's")
+        XCTAssertEqual(library.plans, plans)
+
+        let pull = ChangeDayText.confirm(choices, marked: .day(.day(name: "Pull")))
+        library.choose(try XCTUnwrap(pull.slot), for: choices.date, now: day(14))
+        let written = try XCTUnwrap(swap(library, on: 16))
+        XCTAssertEqual(written.original, .day(name: "Legs"))
+        XCTAssertEqual(written.replacement, .day(name: "Pull"))
+        XCTAssertNil(written.askedOn)
+        XCTAssertTrue(written.answered)
+        XCTAssertEqual(library.plans, plans, "the plan does not change")
+
+        let again = try XCTUnwrap(library.dayChoices(for: day(16), now: day(14)))
+        XCTAssertEqual(again.strips[0].tiles.map(\.isChosen), [false, true, false])
+        let legs = ChangeDayText.confirm(again, marked: .day(.day(name: "Legs")))
+        XCTAssertEqual(legs.title, "Pull → Legs")
+        library.choose(try XCTUnwrap(legs.slot), for: again.date, now: day(14))
+        XCTAssertTrue(library.swaps.isEmpty, "the pattern's own day removes the swap")
+    }
+
+    // TP39: the date's exercises open the sheet pre-filled with the day as it stands, and its
+    // Save makes that text the date's own day — named as it was, the plan untouched (TQ28).
+    func testTodaysExercisesOpenTheSheetOnTheDayAsItStands() throws {
+        var library = library(rotation())
+        let plan = try XCTUnwrap(library.activePlan)
+        let choices = try XCTUnwrap(library.dayChoices(for: day(16), now: day(14)))
+        let exercises = try XCTUnwrap(choices.exercises)
+        XCTAssertEqual(exercises.face, DayChoices.Face(name: "Legs", colour: .purple, outlined: false))
+        XCTAssertEqual(exercises.rows, [HomeStart.PreviewRow(name: "Squat", sets: 1)])
+        XCTAssertEqual(exercises.point.kind, .ownDay)
+        XCTAssertEqual(exercises.point.template, PlanJSON.render(day: plan.days[2]))
+        XCTAssertEqual(exercises.point.title, "A day just for Wednesday")
+        XCTAssertEqual(exercises.point.saveTitle, "Use for Wednesday")
+        XCTAssertEqual(choices.point.template, JSONPoint.exampleDay(name: ""), "Custom still opens on the example")
+
+        let read = PlanLibrary.ownDay(exercises.point.template, named: choices.ownName, units: plan.units,
+                                      settings: library.settings, now: day(14))
+        let own = try XCTUnwrap(read.day)
+        XCTAssertTrue(read.issues.isEmpty)
+        XCTAssertEqual(own.name, "Legs", "the day keeps its name")
+        XCTAssertEqual(own.exercises.map(\.name), ["Squat"])
+        library.choose(.own(own), for: choices.date, now: day(14))
+        XCTAssertEqual(swap(library, on: 16)?.replacement, .own(own))
+        XCTAssertEqual(library.activePlan, plan, "the plan does not change")
+
+        let reopened = try XCTUnwrap(library.dayChoices(for: day(16), now: day(14)))
+        XCTAssertEqual(reopened.day, DayChoices.Face(name: "Legs", colour: nil, outlined: true))
+        XCTAssertEqual(reopened.own, own, "Custom is the chosen tile")
+        XCTAssertEqual(reopened.strips[0].tiles.map(\.isChosen), [false, false, false])
+        XCTAssertEqual(reopened.exercises?.point.template, PlanJSON.render(day: own))
     }
 }
 

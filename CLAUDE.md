@@ -223,7 +223,14 @@ of its past times from the third, the walk after it counted in, read from `start
 with nothing new stored — before that the day's time per set × its sets, by set count with no pace
 at all, and held between ½× and 2× the day's median stretch (`Core/Pace.swift`,
 `Pace.weights(day:history:)`, passed to `WorkoutBar.of(…, weights:)`); the Lock Screen's bar is
-unchanged. P6–P7 are not built.
+unchanged. P6 made Change *day* squares with a button (D85, SPEC §6.58): the ··· item and the
+picker read **Change Push** after the day the date is now (`DayChoices.title(dayName:)`), this
+plan's days are a joined strip of tiles, every other plan's an outlined strip, **Custom** a dashed
+tile, and the date's exercises a card that opens the JSON sheet pre-filled with the day; a tap marks
+and the button — *Push → Pull*, *Write a day for Wednesday* — confirms (`ChangeDayText.confirm`),
+reversing D48 on that screen. And squares join (D86, §6.59): a cycle wraps at seven and its squares
+touch (`CycleGlyph.rows`, `.ends`), drawn by one `CycleStrip` in `DaySquare.swift` that the Plans
+list's symbol, the plan's page — today's square outlined — and the picker share. P7 is not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

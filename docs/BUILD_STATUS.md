@@ -1,7 +1,7 @@
 # Build status
 
 Updated 2026-09-16. **v1.10 is in progress on branch `v1.10-symbols` (off `v1.9-swaps` at
-3dc52f1): P0–P5 built and green.** v1.9 and everything before it are below,
+3dc52f1): P0–P6 built and green.** v1.9 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
 
@@ -12,19 +12,21 @@ v1.9 — *"I want to make everything symbols, and the app colorful"*. Each miles
 whole suite green on all three routes, a Release build and `tools/check_release.py`, and one
 commit on `v1.10-symbols`.
 
-After P5:
+After P6:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **398 tests, 22 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P5 adds none |
-| `swift test` | **397 tests, 0 failures** |
-| `python3 tools/check_core.py` | **397 bodies, 8,115 assertions, 0 failures** |
-| `python3 tools/reference_import.py` | **118/118 fixtures match** (P5 changes none) |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **404 tests, 23 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P6 adds one (TP41) |
+| `swift test` | **403 tests, 0 failures** |
+| `python3 tools/check_core.py` | **403 bodies, 8,211 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **118/118 fixtures match** (P6 changes none) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.9 (1); 1.10 is P7's |
-| `python3 tools/check_bundle.py` | **current** (regenerated in P5) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in P6) |
 
-The simulator route and the Release build ran on P5's final code; the host routes ran again after the last document edits, since the doc pins read SPEC and TEST_CASES.
+The simulator route and the Release build ran on P6's final code; the host routes ran again after the last document edits, since the doc pins read SPEC and TEST_CASES. The first two simulator runs never reached the tests — *"The test runner hung before establishing connection"*, then *"Simulator device failed to launch"* — and passed once the simulator was booted before `xcodebuild`.
+
+After P5: the simulator 398 tests (22 skipped), `swift test` 397, `check_core.py` 397 bodies and 8,115 assertions, 118/118 fixtures, Release and `check_release.py` green, the bundle current.
 
 After P4: the simulator 393 tests (22 skipped), `swift test` 392, `check_core.py` 392 bodies and 8,028 assertions, 118/118 fixtures, Release and `check_release.py` green, the bundle current.
 
@@ -40,7 +42,8 @@ After P2: the simulator 382 tests (21 skipped), `swift test` 381, `check_core.py
 | P3 | The walk: a count-up and a ring (D82). `Plan.restBetweenExercises: Int?` — decoded with `container.optional` in `Core/Persistence.swift`, read by `PlanImport` as a rest (0–3600, digits accepted, `E_REST_INVALID` at `restBetweenExercises`), written by `PlanJSON.render` when set, and read the same way by `tools/reference_import.py`; three fixtures and a `restBetweenExercises` manifest check. `RestResolution.walk(plan:settings:)` — the plan's, then `Settings.transitionRestSeconds` — and `RestResolution.after(…, restBetweenExercises:)`; the engine's `restBetweenExercises` and `walk`, set from the session's plan by `PlanLibrary.refreshWalk()` at a start, before every event and at restore (`AppModel.load`); the engine refuses `adjustRest` and `skipRest` on the walk, and `startTimer` clears `blockDone`. `StatusStrip.direction`, `.ring` (`WalkRing { fraction, minimum, fromPlan, full, explanation, colour }`) and `.spoken`; `RestText.ringExplanation`; one `walkStrip` for the walk's rest and the block's line after it, with the count-up as the figure, the next exercise's name and no controls. `WorkoutScreen.model(…, walk:)` from `model.engine?.walk`. The Lock Screen counts the walk up (no `endsAt`) before the ring fills and after. The view: `WalkRingView` (58 pt, the arc in Core's colour, a green disc and a check when full), the figure 36 pt or 28 pt secondary when full, a walking figure, a blue dot and the next name, the ring's sentence in a popover. The plan and outline prompts ask for the field; the day prompt drops it; `BuiltInPlans.estimatedMinutes` walks the plan's minimum. PLAN_FORMAT §1, §2, §3.6, §4; PROMPT §1, §4, §5 and the rendered length; `schema/plan.schema.json`; SPEC §4.6, §4.7, §6.3, §6.4, §6.6, §7 and the new §6.55; TP17–TP23; Q25, Q27 and O61 re-pointed; the log | Done |
 | P4 | Pages (D83). `PagePlace` (current, behind, ahead — by what is left in the block, not its place on the bar) and `ExercisePage { blockIndex, place, exerciseIndex, exerciseName, exerciseMark, notes, checked, dots, card, live, cardOpacity, firstPending, spoken }` with `card(field:)`, built by `WorkoutScreen.page`; `WorkoutScreen.model(…, showing:)` gives the model every page (`pages`), the one on screen (`page`), `currentBlock`, `showing`, `showsInputs`, `currentName` and `page(_:)`, and the bar's caret under the page — the fill unchanged; `exerciseName`, `exerciseMark`, `notes`, `dots`, `card` and `spoken` became the page on screen's. `PrimaryAction.Kind.back` (*Back to …*) and `.doNow` (*Do this now*, `step` the block's first pending), `WorkoutText.back(to:)` and `.doNow`; `editing` is honoured in the shown block only. The view: zone 2 a `ScrollView(.horizontal)` of pages with `containerRelativeFrame`, `scrollPosition(id:)` kept level with `@State showing`, a 20 pt margin and 8 pt gap, `OnePagePerSwipe`, pages off screen hidden from VoiceOver and a three-finger swipe to turn; a check in the day's colour where the ? was, the card at `cardOpacity`; zone 3 empty off the page; ↩ and ▶ on the primary; Do this now and a grey dot `jumpTo` and then follow the page; Change exercise names the exercise that is on; a debug-only `-uiShowPage`. `SessionEngine` unchanged. SPEC §4.5 (zones 2 and 5), §6.53, §6.54 and the new §6.56; TP24–TP29; TP6 and TP15 re-pointed; the log | Done |
 | P5 | A bar that learns your pace (D84). `Core/Pace.swift`: `Pace.weights(day:history:)` — one weight per block in the bar's order: the median of the block's past times from the third, a past time running from its first start to the next start or log outside it at or after its last log (so the walk after it is counted in, and a skip never ends one), from finished sessions that started before this one, the block known by its exercises' names as they now are (a substitute by its own); before that the paced blocks' time per set × its sets; with no paced block, by set count; held between ½× and 2× the median stretch. `Pace.weights(sets:medians:)` is the rule apart from the clock, with `time(of:in:)`, `names(of:in:)` and `median`. `WorkoutBar.of(session:showing:weights:)` takes the weights (nil or a wrong count is by set count) and `WorkoutScreen.model` passes them from the history it already reads. Nothing stored, nothing in the view or the Lock Screen changed. SPEC §4.5 (zone 1), §6.53 and the new §6.57; TP30–TP35; TP3's message; the log | Done |
-| P6–P7 | Change *day* in squares, docs and 1.10 | Not started |
+| P6 | Change *day* in squares, with a button (D85), and squares that join (D86). `Core/ChangeDay.swift`: `DayChoices` has `day` (a `Face` — name, colour, outlined — for the day the date is now, *Rest* on a rest date), `title` from `DayChoices.title(dayName:)` (*Change Push*), `when`, `strips` of `Tile`s (`face`, `slot`, `isChosen`) in place of sections and rows — this plan's filled, each other plan's outlined, titled by the plan's name — `own`, Custom's `point`, and `exercises` (`face`, `rows`, and a `point` pre-filled with `PlanJSON.render(day:)` of the day as it stands; nil on a rest date); `ownTitle` went. `ChangeDayText.confirm(_:marked:)` → `Confirm { title, from, to, isEnabled, slot, opensSheet }` for `DayChoices.Mark` (`.day(slot)`, `.custom`): disabled *Change Push* with nothing marked, the date's own tile or a vanished one; *Push → Pull* with both faces and the slot; *Write a day for Wednesday*, opening the sheet. `HomeStart.Alternative.changeExercises(dayName:colour:outlined:)` named after the shown square's day. `Core/DayColour.swift`: `CycleGlyph.width` (7), `rows(_:of:)`, `rows`, `ends(_:count:of:)`; `Core/PlanPage.swift`: `RepeatBlock.Square.isToday`. `DaySquare.swift`: `CycleStrip` — the `SquareRows` layout (seven to a row, one side for every place, `side` at most) and `StripSquare` (rounded at a row's ends, filled, outlined, dashed or ringed) — which `CycleSymbol`, the plan page's repeat block (40 pt, names beneath, today ringed, no `WrapLayout`) and `ChangeDayView` share. `ChangeDayView` redrawn: a `ScrollView` of the line, the strips at 58 pt with names beneath and *when* under the chosen tile, the dashed Custom, the exercises card (Today's `SetBlocks`, now internal) and the confirm button in the bottom slot, the title with the day's square; the ··· item's square outlined for a borrowed or own day. SPEC §4.1, §4.2, §4.3, §6.40, §6.49, §6.50, §6.51 and the new §6.58 and §6.59; TP36–TP42; TQ21, TQ22 and TQ25 amended; the log | Done |
+| P7 | Docs, checklist, bundle, 1.10 | Not started |
 
 ### Checked on the simulator (v1.10)
 
@@ -88,7 +91,31 @@ After P2: the simulator 382 tests (21 skipped), `swift test` 381, `check_core.py
   last time's line and no caret, no inputs, and **▶ Do this now**. In dark, the page behind: the card
   dim with green and olive cells, the check green, Back white with black words.
 
+- P6, on the iPhone 17 simulator with `SEED=1 SEED_PLANS=1 DEVICE="iPhone 17" tools/shot.sh <png>
+  -uiScreen changeDay [-uiMark Pull]` — the new debug-only `-uiScreen changeDay` pushes the picker
+  for today and `-uiMark` marks a tile by name. The seeded Wednesday is a rest: **▪ Change Rest**
+  with a grey square in the title, the date line, *Push Pull Legs* over three filled tiles touching
+  2 pt apart with the strip's two ends rounded, *Upper Lower* and *Full Body* over outlined tiles,
+  a dashed **Custom**, and a disabled **Change Rest** in the bottom slot. `-uiMark Pull`: Pull's tile
+  ringed in ink with a check, the button blue, **▪ Rest → ▪ Pull**. The first look ran *Full Body A*
+  and *Full Body B* together under their touching tiles and drew the rest's grey as dark blue on the
+  button, so names under tiles now take two centred lines and the button's squares sit on a chip of
+  the background. With a scratch plan seeded through `build/seed/seed` (a three-day rotation, every
+  day a workout): **▪ Change Push**, *Today* under Push's tile; in dark with `-uiMark Custom`, the
+  dashed tile ringed white with a check and **Write a day for Today**. A ten-day cycle
+  (*Push Pull Legs Rest Push Pull Legs Rest Rest Push*): on the Plans list its symbol is 7 over 3
+  and Full Body's fourteen 7 over 7, each row joined; on its page (`-uiScreen plans -uiPlanDetail`)
+  40 pt squares 7 over 3 with names beneath, today's rest outlined in ink and **Push** named in ink
+  as Next up.
+
 ### Not run in v1.10
+
+- **P6's taps and the exercises card.** The simulator tool refused the swipe that would have
+  scrolled to the card (*"stopped retrying after repeated crashes"*), so the date's exercises card
+  was not seen, nor a tap marking a tile, the button's press writing the swap and popping to Today,
+  or the sheet opening pre-filled; `-uiMark` sets the same `marked` a tap does, and TP37–TP39 cover
+  the button, the write and the pre-fill. The ··· item's *Change Push* in the menu was not opened.
+  **TP42**, a long cycle on the phone and the picker's tap and button, joins the checklist in P7.
 
 - **P5's widths were not looked at on the simulator.** `tools/seed` writes every past step 110 seconds
   after the one before, so each block's time is its sets × 110 and the paced bar is exactly P1's by

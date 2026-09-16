@@ -133,7 +133,7 @@ struct HomeView: View {
                 // D61 (v1.7): the only place the day's alternatives live. No ··· at all until
                 // there is a plan to have alternatives for. D69 (v1.8): drawn lighter than the
                 // title. D75 (v1.9, §6.49): two items that speak in squares — the plan's cycle
-                // beside Change plan, the day's square beside Change *day*'s exercises.
+                // beside Change plan, the day's square beside Change *day*.
                 if !card.alternatives.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
@@ -198,6 +198,12 @@ struct HomeView: View {
             guard let index = arguments.firstIndex(of: "-uiScreen"),
                   let name = arguments[safe: index + 1], path.isEmpty, !showingSettings else { return }
             if name == "settings" { showingSettings = true }
+            if name == "changeDay" {
+                // v1.10 (D85): the picker for today, and with `-uiMark <name>` a tile marked.
+                await model.waitUntilLoaded()
+                path.append(TodayRoute.changeExercises(Date()))
+                return
+            }
             guard name == "plans" else { return }
             path.append(TodayRoute.plans)
             // The store loads asynchronously, and a plan's destination is declared by the list,
@@ -347,7 +353,7 @@ struct HomeView: View {
             Button { path.append(TodayRoute.plans) } label: {
                 Label { Text(alternative.title) } icon: { menuSymbol(CycleSymbol(cycle: cycle)) }
             }
-        case let .changeExercises(_, colour):
+        case let .changeExercises(_, colour, outlined):
             // D76 (v1.9, §6.50): the picker, pushed onto Today, for the shown date alone.
             Button {
                 if let date = WeekStrip.date(offset: card.shownOffset, today: Date()) {
@@ -355,7 +361,7 @@ struct HomeView: View {
                 }
             } label: {
                 Label { Text(alternative.title) } icon: {
-                    menuSymbol(DaySquare(colour: colour, size: 14))
+                    menuSymbol(DaySquare(colour: colour, size: 14, outlined: outlined))
                 }
             }
         case .discardWorkout:
@@ -577,7 +583,7 @@ private struct PlanRoute: Identifiable {
 private enum TodayRoute: Hashable {
     /// ··· → Change plan: the Plans list, which was a tab until T2.
     case plans
-    /// D76 (v1.9, §6.50): ··· → Change *day*'s exercises, for that date.
+    /// D76 (v1.9, §6.50): ··· → Change *day* (D85), for that date.
     case changeExercises(Date)
 }
 
@@ -585,7 +591,7 @@ private enum TodayRoute: Hashable {
 /// sets — in the day's colour at half strength, each filling to full once logged, so the card
 /// shows progress without a fraction. Grey for a session whose day is in no plan, as the square
 /// is. The block's spoken label names the exercises; the blocks are hidden from VoiceOver.
-private struct SetBlocks: View {
+struct SetBlocks: View {
     let sets: Int
     let logged: Int
     let colour: DayColour?

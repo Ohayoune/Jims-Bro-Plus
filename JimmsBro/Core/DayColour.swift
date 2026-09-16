@@ -27,8 +27,8 @@ enum DayColour: String, CaseIterable, Codable, Hashable, Sendable {
     static func of(dayIndex: Int) -> DayColour { allCases[index(dayIndex: dayIndex)] }
 }
 
-/// D75 (v1.9, §6.49): a plan's cycle as one symbol draws it — one row of equal squares, a day's
-/// colour each and nil (grey) for rest. A cycle longer than fourteen draws its first fourteen
+/// D75 (v1.9, §6.49): a plan's cycle as one symbol draws it — equal squares, a day's colour each
+/// and nil (grey) for rest, seven to a row since D86 (v1.10, §6.59). A cycle longer than fourteen draws its first fourteen
 /// and a trailing mark, so a month-long block stays a glyph rather than a line of dust. Here
 /// beside `DayColour` so `CycleSymbol` can ask it in both targets.
 struct CycleGlyph: Equatable, Sendable {
@@ -41,5 +41,26 @@ struct CycleGlyph: Equatable, Sendable {
     init(_ cycle: [DayColour?]) {
         squares = Array(cycle.prefix(Self.limit))
         continues = cycle.count > Self.limit
+    }
+
+    /// D86 (v1.10, §6.59): the squares seven to a row — the fourteen drawn are two rows at most.
+    var rows: [[DayColour?]] { Self.rows(squares) }
+
+    /// D86: a cycle's squares wrap at seven, the second row under the first — the Plans list's
+    /// symbol, the plan's page and the picker's strips alike. No weekday letters: a rotation's
+    /// rows are not weeks.
+    static let width = 7
+
+    /// `items` in rows of `width`, in order; the last row holds what is left.
+    static func rows<Element>(_ items: [Element], of width: Int = CycleGlyph.width) -> [[Element]] {
+        guard width > 0 else { return items.isEmpty ? [] : [items] }
+        return stride(from: 0, to: items.count, by: width).map { Array(items[$0..<min($0 + width, items.count)]) }
+    }
+
+    /// D86: whether the `index`-th of `count` squares begins or ends its row — the corners a
+    /// joined row rounds, the inner ones left square.
+    static func ends(_ index: Int, count: Int, of width: Int = CycleGlyph.width) -> (first: Bool, last: Bool) {
+        guard width > 0 else { return (index == 0, index == count - 1) }
+        return (index % width == 0, index % width == width - 1 || index == count - 1)
     }
 }

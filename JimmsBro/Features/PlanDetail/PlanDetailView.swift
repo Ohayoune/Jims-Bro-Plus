@@ -153,24 +153,27 @@ struct PlanDetailView: View {
                 .joined(separator: " · "))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            // D78 (v1.9): the cycle as squares where D59's chips were, wrapping as they did —
-            // each its day's colour with its name beneath, the entry Next up would start named
-            // in ink, and a weekday plan's weekday above each.
-            WrapLayout(spacing: 10, lineSpacing: 10) {
-                ForEach(Array(RepeatBlock.squares(plan).enumerated()), id: \.offset) { _, square in
-                    VStack(spacing: 4) {
-                        if let weekday = square.weekday {
-                            Text(weekday)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                        DaySquare(colour: square.colour, size: 18)
-                        Text(square.name)
-                            .font(.caption2.weight(square.isNow ? .semibold : .regular))
-                            .foregroundStyle(square.isNow ? .primary : .secondary)
+            // D78 (v1.9): the cycle as squares where D59's chips were — each its day's colour
+            // with its name beneath, the entry Next up would start named in ink, and a weekday
+            // plan's weekday above each. D86 (v1.10, §6.59): seven to a row and touching, today's
+            // square outlined in ink.
+            let squares = RepeatBlock.squares(plan)
+            CycleStrip(count: squares.count, side: 40, spacing: 2, lineSpacing: 10) { index in
+                let square = squares[index]
+                VStack(spacing: 4) {
+                    if let weekday = square.weekday {
+                        Text(weekday)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                             .lineLimit(1)
-                            .frame(maxWidth: 88)
                     }
+                    StripSquare(colour: square.colour, ringed: square.isToday, index: index, count: squares.count)
+                    Text(square.name)
+                        .font(.caption2.weight(square.isNow ? .semibold : .regular))
+                        .foregroundStyle(square.isNow ? .primary : .secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
                 }
             }
             .accessibilityElement(children: .combine)

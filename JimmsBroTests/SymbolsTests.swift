@@ -10,6 +10,8 @@ import XCTest
 /// P3: the walk, a count-up and a ring (D82, §6.55): TP17–TP22. TP23 is the phone's.
 /// P4: pages (D83, §6.56): TP24–TP28. TP29 is the phone's.
 /// P5: a bar that learns your pace (D84, §6.57): TP30–TP34. TP35 is the phone's.
+/// P6: Change *day* in squares (D85, §6.58) is TP36–TP39, in `SwapTests` beside Q4's picker;
+/// squares that join (D86, §6.59) are TP40–TP41 here. TP42 is the phone's.
 final class SymbolsTests: XCTestCase {
     private let now = CoreTestSupport.now
 
@@ -1136,6 +1138,70 @@ final class SymbolsTests: XCTestCase {
         XCTAssertEqual(SessionBlocks.indices(session).count, 5)
         assertMinutes(Pace.weights(day: session, history: history),
                       [14, 11, 9, 8, (14.0 + 11 + 9 + 8) / 13 * 3])
+    }
+
+    // MARK: P6 — squares that join (D86, SPEC §6.59)
+
+    // TP40: seven to a row — a ten-day cycle is 7 + 3, a week one row, a fortnight two full rows,
+    // a weekday plan one row — the symbol's fourteen two rows at most, the corners a row rounds,
+    // and today's square on the plan's page.
+    func testSquaresWrapAtSeven() throws {
+        let calendar = CoreTestSupport.utc()
+        func rotation(_ days: Int) -> Plan {
+            var plan = pushPullLegs()
+            plan.cycle = (0..<days).map { $0 % 4 == 3 ? .rest : .day($0 % 4) }
+            return plan
+        }
+        func rows(_ plan: Plan) -> [Int] {
+            CycleGlyph.rows(RepeatBlock.squares(plan, today: now, calendar: calendar)).map(\.count)
+        }
+        XCTAssertEqual(rows(rotation(10)), [7, 3])
+        XCTAssertEqual(rows(rotation(7)), [7])
+        XCTAssertEqual(rows(rotation(14)), [7, 7])
+        var weekday = pushPullLegs()
+        weekday.schedule = .weekday
+        weekday.cycle = []
+        for (index, day) in [Weekday.monday, .wednesday, .friday].enumerated() { weekday.days[index].weekday = day }
+        XCTAssertEqual(rows(weekday), [7], "a weekday plan is one row")
+        XCTAssertEqual(CycleGlyph.rows([Int]()), [])
+        XCTAssertEqual(CycleGlyph(DayColour.cycle(of: rotation(10))).rows.map(\.count), [7, 3])
+        XCTAssertEqual(CycleGlyph(Array(repeating: DayColour?.some(.green), count: 31)).rows.map(\.count), [7, 7],
+                       "the symbol cuts at fourteen: two rows, then its trailing mark")
+
+        // The row's two ends are rounded and the inner corners square.
+        let ends = (0..<10).map { CycleGlyph.ends($0, count: 10) }
+        XCTAssertEqual(ends.map(\.first), [true, false, false, false, false, false, false, true, false, false])
+        XCTAssertEqual(ends.map(\.last), [false, false, false, false, false, false, true, false, false, true])
+        XCTAssertTrue(CycleGlyph.ends(0, count: 1).first && CycleGlyph.ends(0, count: 1).last)
+
+        // Today's square: a rotation's by its anchor, a weekday plan's by the weekday.
+        var anchored = rotation(10)
+        anchored.cyclePosition = 4
+        anchored.cycleAnchor = calendar.startOfDay(for: now)
+        let squares = RepeatBlock.squares(anchored, today: now, calendar: calendar)
+        XCTAssertEqual(squares.indices.filter { squares[$0].isToday }, [4])
+        let week = RepeatBlock.squares(weekday, today: now, calendar: calendar)
+        let todays = Weekday.allCases.firstIndex { $0.calendarValue == calendar.component(.weekday, from: now) }
+        XCTAssertEqual(week.indices.filter { week[$0].isToday }, todays.map { [$0] } ?? [])
+    }
+
+    // TP41: one joined strip draws a cycle everywhere — the symbol, the plan's page and the
+    // picker — and the picker is strips, not a grouped list with section headers.
+    func testOneJoinedStripDrawsTheCycleEverywhere() throws {
+        guard let square = FixtureLoader.doc("JimmsBro/DaySquare.swift"),
+              let picker = FixtureLoader.doc("JimmsBro/Features/Home/ChangeDayView.swift"),
+              let page = FixtureLoader.doc("JimmsBro/Features/PlanDetail/PlanDetailView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        XCTAssertFalse(picker.contains("List {"), "the picker is not a grouped list")
+        XCTAssertFalse(picker.contains("Section("), "the strips are the sections")
+        XCTAssertTrue(picker.contains("CycleStrip(count: strip.tiles.count, side: Self.tile, spacing: 2"),
+                      "the picker's strips are the joined drawing at tile size")
+        XCTAssertTrue(page.contains("CycleStrip(count: squares.count, side: 40, spacing: 2"),
+                      "the plan's page draws the joined strip")
+        XCTAssertFalse(page.contains("WrapLayout"), "the page's squares wrap at seven, not at the width")
+        XCTAssertTrue(square.contains("CycleStrip(count: glyph.squares.count"), "the symbol is the same drawing")
+        XCTAssertTrue(square.contains("CycleGlyph.ends(index, count: count)"), "the corners are Core's")
     }
 
     /// The text from `start` up to and including the first `end` after it.

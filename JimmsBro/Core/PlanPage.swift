@@ -42,6 +42,9 @@ extension RepeatBlock {
         /// A weekday plan's weekday above its square, "Mon"; nil on a rotation.
         var weekday: String?
         var isNow: Bool
+        /// D86 (v1.10, §6.59): the entry today falls on, outlined in ink as the calendar outlines
+        /// today — a rotation's by its anchor, a weekday plan's by the weekday.
+        var isToday = false
     }
 
     /// A rotation's repeat block as written, with the entry Next up would start marked (as the
@@ -52,13 +55,16 @@ extension RepeatBlock {
         switch plan.schedule {
         case .rotation:
             let now = PlanSchedule.nextInPattern(plan, today: today, calendar: calendar)?.cycleIndex
+            let todays = PlanSchedule.entry(plan, on: today, today: today, calendar: calendar)?.cycleIndex
             return chips(plan).enumerated().map { offset, name in
-                Square(colour: colours[offset], name: name, weekday: nil, isNow: offset == now)
+                Square(colour: colours[offset], name: name, weekday: nil, isNow: offset == now,
+                       isToday: offset == todays)
             }
         case .weekday:
+            let todays = calendar.component(.weekday, from: today)
             return Weekday.allCases.enumerated().map { offset, weekday in
                 Square(colour: colours[offset], name: plan.days.first { $0.weekday == weekday }?.name ?? "Rest",
-                       weekday: WeekdayText.short(weekday), isNow: false)
+                       weekday: WeekdayText.short(weekday), isNow: false, isToday: weekday.calendarValue == todays)
             }
         }
     }
