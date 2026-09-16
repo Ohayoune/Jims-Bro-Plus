@@ -1116,6 +1116,24 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 | TQ38 | device | (D78, v1.9) The page and the list at accessibility XL | The squares row wraps with every name legible, an open day keeps its Start reachable, and a list row's symbol stands above its name — in light and in dark |
 | TQ39 | device | (D78, v1.9) A mark left unconfirmed | Mark another plan's circle and see **Use *name***; go back to Today without tapping it and return to Plans: the active plan's circle is filled, there is no button, and Today runs the plan it ran |
 
+## TP. v1.10 — The Workout screen in symbols
+
+`docs/ITERATION_11_PLAN.md` is the plan; one subsection per milestone that lands a decision. TQ was v1.9's, so the prefix is **TP**. The plan's proposed ids are kept where they land as proposed; where one changed, the subsection says so.
+
+### P1 — Three states, three colours (D79), and the header is the bar (D80)
+
+`JimmsBroTests/SymbolsTests.swift` (TP1–TP6), on the plan's example: Push Pull Legs, Push's Barbell Bench Press 4 × 6–8 at 80 kg, Incline Dumbbell Press 3 × 8–10 at 26 kg, Lateral Raise 3 × 12–15 at 10 kg, Tricep Pushdown 3 × 10–12 at 30 kg and Plank 3 × 30+ s; Bench logged, Incline's first set logged at 10, and the rest before its second running. `MarkState` is `Core/WorkoutMarks.swift`'s, `MarkState.of(step:session:)` and `WorkoutBar` are `Core/WorkoutBar.swift`'s, `ActiveSession.currentStep` is the one "step the workout is on" (the engine's and `AppModel`'s read it), `SetRow` gained `mark`, and `WorkoutScreenModel` gained `bar` and `spokenHeader`. Two earlier cases changed: **T21** counts three ungated rows of §6.40's table — the bar's tap joins the strip and the swap's marks — and **T23** reads the `DayColour` mapping of `DaySquare.swift` alone, since the same file now maps a mark's state and *now* is the accent there (TP2). **TP6** was proposed as a ui case; it landed as a source pin, run on the host routes, with the drawing looked at on the simulator (BUILD_STATUS). TP3's "thirteen todo" in the plan was a miscount: sixteen sets less five done and one now is ten.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| TP1 | unit | (D79, v1.10) One rule for every step | On the example: Bench's and Incline's logged steps `done`; step 5, the one the rest leads to, `now`; the steps ahead and a step that does not exist `todo`. Skip step 5: it is `todo` and step 6, the working step, `now`. Give step 5 a result: `done`, and step 6 still `now`. One step is `now` among all sixteen; the states are `done`, `now`, `todo`; Incline's rows carry `done`, `done`, `now` |
+| TP2 | unit | (D79, v1.10, pin; extends T23) Three state colours | `DaySquare.swift`'s `MarkState` mapping has three cases — done `day?.color ?? DaySquare.noColour`, now `.accentColor`, todo `Color(.secondarySystemFill)` — and names no red, yellow, orange, amber or green; `noColour` is `Color.secondary.opacity(0.4)`, the grey History draws; the Lock Screen's bar tints `MarkState.done.color(day: state.dayColour)` and names neither the accent nor green (source reads on the host routes) |
+| TP3 | unit | (D80, v1.10) The bar on the example | Five segments with 4, 3, 3, 3, 3 marks and the same weights, block indices 0–4 — the model's bar is `WorkoutBar.of`'s; Bench done ×4, Incline done, now, todo; five done, one now, ten todo; the caret under Incline alone. `showing: 3` moves the caret to Tricep Pushdown and changes no mark; Do later on Lateral Raise orders the segments 0, 1, 3, 4, 2 |
+| TP4 | unit | (D80, v1.10) A skipped set fills but draws not yet | Skipping Incline's second set moves the day's completion from 5/16 to 6/16, and Incline's marks read done, todo, now — still five done on the bar |
+| TP5 | unit | (D80, v1.10; extends O50) The header speaks the stage | In the warm-up, working, resting, between exercises and a running timed set: the five zones in order, five segments, one caret and one `now`, and `spokenHeader` is `stage.title` — "Warm-up", "Exercise 1 of 5 · Set 1 of 4", "Resting", "Between exercises"; the walk's caret is under the exercise it leads to, the timed set's under Plank |
+| TP6 | unit | (D80, D79, v1.10, pin) No words in zone 1 but the elapsed time | Zone 1 of `WorkoutView.swift`, comments aside, has one `Text(` — `Text(screen.elapsed)` — and no `stage.title`, `progressLine`, "Exercises", `ProgressView` or percentage; it draws `BarView(bar: screen.bar, day: dayColour)`, the day's square, ⌄ and ···, speaks `screen.spokenHeader`, and sets `showOverview = true`. The screen's `PrimaryButton` is `ink: true`, the screen is tinted `.primary`, and the bar is a `Canvas` (source reads on the host routes) |
+| TP7 | device | (D80, v1.10) The bar at sixteen sets on a 6.1-inch screen | Ticks visible, gaps visible, the blue mark findable at arm's length — in light and in dark |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

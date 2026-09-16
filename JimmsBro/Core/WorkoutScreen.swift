@@ -142,11 +142,15 @@ struct WorkoutScreenModel: Equatable {
     var zones: [WorkoutZone]
     var step: Int
     var exerciseIndex: Int
-    /// D34 (v1.2): which stage the workout is in, and how far through the day it is.
+    /// D34 (v1.2): which stage the workout is in, and how far through the day it is. Since
+    /// v1.10 (D80, §6.53) the screen prints neither: the stage is spoken (`spokenHeader`) and
+    /// the day is the bar. Both stay for the Lock Screen and the tests.
     var stage: WorkoutStage
     var completion: Double
     var elapsed: String
     var progress: String
+    /// D80 (v1.10, §6.53): zone 1 — a segment per block, a mark per set, the caret.
+    var bar: WorkoutBar
     var exerciseName: String
     var targetLine: String
     var rows: [SetRow]
@@ -167,6 +171,10 @@ struct WorkoutScreenModel: Equatable {
     /// printed twice, one above the other. Resting, and a superset member's "A · round 2 of 3",
     /// still have something of their own to say.
     var progressLine: String? { progress == stage.title ? nil : progress }
+
+    /// D80 (v1.10): what VoiceOver hears for the header. The stage in words, exactly as D34
+    /// wrote it, and printed nowhere on the screen.
+    var spokenHeader: String { stage.title }
 }
 
 enum WorkoutScreen {
@@ -199,11 +207,16 @@ enum WorkoutScreen {
             elapsed: TargetText.time(wholeSeconds(SessionStats.duration(session, now: now))),
             progress: StepCard.progress(session: session, step: index,
                                         wording: settings.wording),
+            bar: WorkoutBar.of(session: active),
             exerciseName: exercise.name,
             targetLine: StepCard.targetLine(session: session, step: index,
                                             wording: settings.wording),
             rows: StepCard.setRows(session: session, step: index, history: history,
-                                   wording: settings.wording),
+                                   wording: settings.wording).map { row in
+                var row = row
+                row.mark = MarkState.of(step: row.stepIndex, session: active)
+                return row
+            },
             inputs: inputs(values: values, target: target, units: session.units),
             timer: timed ? timer(active: active, step: index, work: target.work,
                                  warning: target.warning, now: now) : nil,

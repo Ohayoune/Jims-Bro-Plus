@@ -71,9 +71,7 @@ struct SessionEngine {
         session.steps.indices.first { $0 > index && session.steps[$0].status == .pending }
         ?? session.steps.indices.first { session.steps[$0].status == .pending }
     }
-    private var currentStep: Int? {
-        switch phase { case let .working(i): return i; case let .resting(s): return s.nextStep; case .completed: return nil }
-    }
+    private var currentStep: Int? { active.currentStep }
     private mutating func enterWorking(_ index: Int, now: Date) {
         active.phase = .working(step: index)
         active.timerRunning = false; active.deliveredBeeps = []

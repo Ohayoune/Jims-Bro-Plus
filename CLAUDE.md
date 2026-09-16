@@ -191,8 +191,14 @@ been done three times, held between ½× and 2× (D84); **Change *day*** as join
 button that confirms and names its effect, and today's exercises editable through the JSON sheet
 pre-filled with the day (D85); and cycles drawn **seven to a row, the squares touching** (D86).
 The requirements were settled on two artifacts linked from the plan: round 1, "Workout in Symbols",
-and round 2, "Symbols, Round Two", redrawn four times on the owner's corrections. P0 is written;
-nothing else is built.
+and round 2, "Symbols, Round Two", redrawn four times on the owner's corrections. P0–P1 are built
+and green on `v1.10-symbols`: P1 gave every mark on the Workout screen a state — `MarkState`
+(`Core/WorkoutMarks.swift`, compiled into the extension too, its colour in `DaySquare.swift`) and
+`MarkState.of(step:session:)` — so done is the day's colour, now is blue and not yet grey, with the
+screen tinted ink and Log set ink; and made the header the bar — `WorkoutBar` (`Core/WorkoutBar.swift`),
+a segment per block and a mark per set in one `Canvas`, a caret, the elapsed time, a tap that opens
+the Overview, and the stage spoken, not printed (`spokenHeader`). The Lock Screen's bar fills in the
+day's colour. P2–P7 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

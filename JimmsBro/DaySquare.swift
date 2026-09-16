@@ -18,6 +18,21 @@ extension DayColour {
     }
 }
 
+/// SPEC §6.52 (D79, v1.10): a mark's state, drawn — on the Workout screen and the Lock Screen
+/// activity, and nowhere else. Done is the day's colour, grey when the day has none, as History
+/// draws it; now is the accent, which on that screen says *now* and nothing else; not yet is the
+/// system's secondary fill. The ring's traffic light (P3) and the yellow past a range (P2) are
+/// not states, and TP2 holds this mapping apart from them.
+extension MarkState {
+    func color(day: DayColour?) -> Color {
+        switch self {
+        case .done: return day?.color ?? DaySquare.noColour
+        case .now: return .accentColor
+        case .todo: return Color(.secondarySystemFill)
+        }
+    }
+}
+
 /// The small filled square that says which day. It says *which day*, never *tap here* — that is
 /// the accent's (§4.0) — and the name beside it says the same, so VoiceOver skips it. With no
 /// colour (a workout whose plan is gone, or whose day was renamed) it is grey, so a column of
@@ -31,6 +46,9 @@ struct DaySquare: View {
     /// the colour still says *which day*.
     var outlined = false
     @ScaledMetric private var scale: CGFloat = 1
+
+    /// The grey of a day with no colour — a square, a cycle's rest, a done mark (D79).
+    static let noColour = Color.secondary.opacity(0.4)
 
     /// D69 (v1.8): Today's square is as tall as the large title's capitals, so it grows on the
     /// large title's curve rather than body text's.
@@ -49,7 +67,7 @@ struct DaySquare: View {
             if outlined {
                 shape.strokeBorder(colour?.color ?? Color.primary, lineWidth: max(1.5, side / 7))
             } else {
-                shape.fill(colour?.color ?? Color.secondary.opacity(0.4))
+                shape.fill(colour?.color ?? DaySquare.noColour)
             }
         }
         .frame(width: side, height: side)
@@ -74,7 +92,7 @@ struct CycleSymbol: View {
         HStack(spacing: side / 3) {
             ForEach(Array(glyph.squares.enumerated()), id: \.offset) { _, colour in
                 RoundedRectangle(cornerRadius: side / 4, style: .continuous)
-                    .fill(colour?.color ?? Color.secondary.opacity(0.4))
+                    .fill(colour?.color ?? DaySquare.noColour)
                     .frame(width: side, height: side)
             }
             if glyph.continues {

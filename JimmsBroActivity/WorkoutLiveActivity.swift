@@ -115,8 +115,10 @@ struct WorkoutLiveActivity: Widget {
         }
     }
 
+    /// D79 (v1.10, §6.52): the bar takes the Workout screen's states — done in the day's colour,
+    /// in a break as while working, over the grey of the sets ahead.
     private func progress(_ state: WorkoutActivityState) -> some View {
         ProgressView(value: state.total > 0 ? Double(state.done) / Double(state.total) : 0)
-            .tint(state.isBreak ? Color.accentColor : .green)
+            .tint(MarkState.done.color(day: state.dayColour))
     }
 }

@@ -10,13 +10,7 @@ extension AppModel {
 
     /// The step the workout is on, whatever the phase. A block-just-finished status strip
     /// (`blockDone`) overlays `.working`, so it needs no case of its own here.
-    var currentStep: Int? {
-        switch library.engine?.phase {
-        case let .working(index): return index
-        case let .resting(state): return state.nextStep
-        case .completed, nil: return nil
-        }
-    }
+    var currentStep: Int? { library.engine?.active.currentStep }
     /// The status strip's block-just-finished state (D14, SPEC §4.7), if one is showing.
     var blockDone: BlockDone? { library.engine?.active.blockDone }
     /// Whether the most recently logged-or-skipped step can still be undone (D23).

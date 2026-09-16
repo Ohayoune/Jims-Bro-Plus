@@ -1,9 +1,61 @@
 # Build status
 
-Updated 2026-09-14. **v1.9 is built and green on branch `v1.9-swaps` (off `main`, which holds
-v1.8): Q0–Q7.** v1.8 and everything before it are below,
+Updated 2026-09-16. **v1.10 is in progress on branch `v1.10-symbols` (off `v1.9-swaps` at
+3dc52f1): P0–P1 built and green.** v1.9 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
+
+## v1.10 (P0–P7): in progress
+
+`docs/ITERATION_11_PLAN.md` is the v1.10 plan, written from the owner's notes after living with
+v1.9 — *"I want to make everything symbols, and the app colorful"*. Each milestone ends with the
+whole suite green on all three routes, a Release build and `tools/check_release.py`, and one
+commit on `v1.10-symbols`.
+
+After P1:
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **374 tests, 20 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P1 adds two (TP2, TP6) |
+| `swift test` | **373 tests, 0 failures** |
+| `python3 tools/check_core.py` | **373 bodies, 7,458 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; P1 touches no pipeline) |
+| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** — the widget extension compiles `WorkoutMarks.swift` |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.9 (1); 1.10 is P7's |
+| `python3 tools/check_bundle.py` | **current** (regenerated in P1) |
+
+| Milestone | What it did | State |
+|---|---|---|
+| P0 | The plan, the branch, the mocks (the "Workout in Symbols" and "Symbols, Round Two" artifacts, not committed) | Done |
+| P1 | Three states, three colours (D79) and the header is the bar (D80). `MarkState` — done, now, todo — in `Core/WorkoutMarks.swift`, Foundation only and compiled into the widget extension, since `DaySquare.swift` maps a state to its colour there (done the day's colour or the no-colour grey, now the accent, todo `secondarySystemFill`); the rule, `MarkState.of(step:session:)`, in `Core/WorkoutBar.swift` beside `WorkoutBar`, because it reads an `ActiveSession` the extension does not build. `ActiveSession.currentStep` became the one "step the workout is on", read by the engine and `AppModel`. `WorkoutBar.of(session:showing:)`: a segment per block in `SessionBlocks` order, weighted by its set count, a state per step, the caret under the current step's block. `WorkoutScreenModel` gained `bar` and `spokenHeader` (the stage, exactly) and `SetRow` its `mark`; nothing left the model. Zone 1 is the day's square, `BarView` — one `Canvas`: rounded segments 3 pt apart, each set filled in its state's colour and cut by a 1 pt tick, an ink caret — and the elapsed time under the bar's right end, one 44 pt button that opens the Overview and speaks the stage, then ⌄ and ··· in the secondary colour, centred on the bar's track. The screen is tinted `.primary`, so the capsules, Done, Undo and the chip are ink; **Log set** is ink (`PrimaryButton(ink:)`); the set rows' ticks take the day's colour. The Lock Screen's bar fills in the day's colour. SPEC §4.0, §4.5, §4.8, §6.15, §6.17, §6.40 (the bar's tap, ungated), §6.41 (the fifth place) and the new §6.52 and §6.53; TP1–TP7, T21 and T23 amended; the log | Done |
+| P2–P7 | The exercise in symbols, the walk, pages, the pace, Change *day* in squares, docs and 1.10 | Not started |
+
+### Checked on the simulator (v1.10)
+
+- P1, on the iPhone 17 simulator with `SEED=1 DEVICE="iPhone 17" tools/shot.sh <png> -uiScreen
+  workout -uiNoAsk -uiNoAlerts -uiAdvance 5 -uiSkipWaits -uiSkipDone` — the sample plan's first
+  block logged and the walk to the second running: the header has no words but **0:03**; the green
+  square, then four green marks, a segment of one blue mark and two grey, a long grey segment of
+  twelve marks and one of three, each cut by its ticks and set apart by rounded ends and the gap;
+  the ink caret under the second segment; ⌄ and ··· grey and level with the bar. **Log set** black
+  with white words, the −30 · +30 · Skip capsules grey with ink words, the current row's dotted
+  mark blue. In dark (`xcrun simctl ui "iPhone 17" appearance dark`): the track dark grey, the
+  ticks still cut, the caret white, **Log set** white with black words.
+
+### Not run in v1.10
+
+- **The bar's tap.** The simulator tool refused taps again ("stopped retrying after repeated
+  crashes"), so the Overview opening from the bar was not seen, nor VoiceOver's reading of it; TP6
+  pins the tap's action and the spoken label in the source. To look: the command above, then tap
+  the bar. `-uiOverview` opens the sheet directly but does not test the tap.
+- **The Lock Screen's bar** in the day's colour was not looked at: the simulator runs no Live
+  Activity from `shot.sh`. TP2 pins its tint.
+- **TP7**, the bar at sixteen sets on a 6.1-inch phone at arm's length, is the phone's; it joins
+  the checklist in P7.
+- Noticed, not changed: after the walk is skipped, `blockDone` stays until the next log (D14), so
+  a timed set started straight out of it still reads **Between exercises** as its stage — which
+  since P1 only VoiceOver and the Lock Screen say. TP5 records the timed set's caret rather than
+  its words.
 
 ## v1.9 (Q0–Q7): built and green
 

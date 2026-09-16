@@ -81,6 +81,9 @@ struct SetRow: Equatable {
     var label: String
     var value: String
     var lastTime: String?
+    /// D79 (v1.10, §6.52): the row's mark — done in the day's colour, now in blue, not yet in
+    /// grey. `WorkoutScreen.model` sets it from `MarkState.of`; nothing else reads a row's state.
+    var mark: MarkState = .todo
 }
 
 /// The step card's text, resolved without view code (SPEC §4.5).

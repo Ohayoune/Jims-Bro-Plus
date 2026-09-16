@@ -172,9 +172,13 @@ private struct WorkoutScreenView: View {
                 // Log set on iOS 26, and a tap there did nothing.
                 StatusStripView(strip: screen.strip,          // zone 4
                                 done: focused != nil ? { focused = nil } : nil)
-                PrimaryButton(title: screen.primary.title, enabled: primaryEnabled) { primaryTapped() }
+                PrimaryButton(title: screen.primary.title, enabled: primaryEnabled, ink: true) { primaryTapped() }
             }
         }
+        // D79 (v1.10, §6.52): blue is reserved on this screen — it says *now* and nothing else —
+        // so every control that would take the accent takes ink. The marks that are the current
+        // set name the accent themselves.
+        .tint(.primary)
         .task(id: screen.step) { load() }
         .onChange(of: screen.inputs) { _, _ in load(force: true) }
         .onChange(of: focused) { previous, _ in if previous == .weight { pushWeight() } }
@@ -182,87 +186,71 @@ private struct WorkoutScreenView: View {
 
     // MARK: - Zone 1
 
-    /// P6: at accessibility sizes the header reflows onto two rows rather than letting
-    /// "Exercises" wrap to four lines and push the exercise off screen (O60).
+    /// D80 (v1.10, §6.53): the header is the bar. The day's square, the bar with its caret and
+    /// the elapsed time under its right end make one 44 pt target that opens the Overview — the
+    /// Exercises button's job — then ⌄ and ···. No words on it: VoiceOver hears the stage.
+    /// *(v1.2–v1.9: the stage in words, a percentage, the bar, elapsed · progress and
+    /// Exercises, D34.)*
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // D34 (v1.2): the stage, in words, over a bar of the whole day. v1.1 said only
-            // "Exercise 2 of 5 · Set 2 of 3" in the smallest text on screen, and said nothing
-            // at all when you were in a break.
-            HStack(spacing: 8) {
-                // D65 (v1.7): the day's square leads the stage line — the header names no day
-                // (D34 made it the stage), and the square says which day without taking a line.
-                if let dayColour { DaySquare(colour: dayColour) }
-                Text(screen.stage.title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(screen.stage.isBreak ? Color.accentColor : .primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Spacer(minLength: 4)
-                Text("\(Int((screen.completion * 100).rounded()))%")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-            ProgressView(value: screen.completion)
-                .tint(screen.stage.isBreak ? Color.accentColor : Color.done)
-                .accessibilityLabel("Workout progress")
-                .accessibilityValue("\(Int((screen.completion * 100).rounded())) percent")
-                .padding(.bottom, 2)
-            HStack(spacing: 14) {
-                if !typeSize.isAccessibilitySize {
-                    Text(screen.elapsed)
-                        .font(.footnote.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .accessibilityLabel("Elapsed \(screen.elapsed)")
-                    // D56 (v1.6): nil while working, when the stage above already says it.
-                    if let progress = screen.progressLine {
-                        Text(progress)
-                            .font(.footnote)
+        HStack(alignment: .barMiddle, spacing: 4) {
+            Button { showOverview = true } label: {
+                HStack(alignment: .top, spacing: 10) {
+                    // D65 (v1.7): the header's one mark of which day it is, level with the bar.
+                    if let dayColour { DaySquare(colour: dayColour).frame(height: BarView.center * 2) }
+                    VStack(alignment: .trailing, spacing: 0) {
+                        BarView(bar: screen.bar, day: dayColour)
+                            .frame(height: BarView.height)
+                        Text(screen.elapsed)
+                            .font(.system(size: 11).monospacedDigit())
                             .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
                     }
                 }
-                Spacer(minLength: 4)
-                // P2: reachable in every state, rest included — this row never changes.
-                Button("Exercises") { showOverview = true }
-                    .font(.footnote)
-                    .lineLimit(1)
-                    .fixedSize()
-                Button { minimize() } label: { Image(systemName: "chevron.down") }
-                    .accessibilityLabel("Minimize")
-                Menu {
-                    Button("Skip set") { Task { await model.apply(.skipSet(step: screen.step)) } }
-                    Button("Skip exercise") {
-                        Task { await model.apply(.skipExercise(exerciseIndex: screen.exerciseIndex)) }
-                    }
-                    // D28 (v1.1): the machine is taken. Not the same as giving up on it.
-                    if model.canDefer(exerciseIndex: screen.exerciseIndex) {
-                        Button("Do later") {
-                            Task { await model.apply(.deferExercise(exerciseIndex: screen.exerciseIndex)) }
-                        }
-                    }
-                    // D42 (v1.3): the machine is taken and you want to do something now.
-                    if model.canSubstitute(exerciseIndex: screen.exerciseIndex) {
-                        Button("Change exercise") {
-                            changeExercise(screen.exerciseIndex, screen.exerciseName)
-                        }
-                    }
-                    // D56 (v1.6): not destructive — it saves the workout. Red read as "delete".
-                    Button("Finish workout") { finish() }
-                } label: {
-                    Image(systemName: "ellipsis")
-                }
-                .accessibilityLabel("More")
+                .padding(.vertical, BarView.inset)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .top)
+                .contentShape(Rectangle())
             }
-            .frame(minHeight: 44)
-            // D56 (v1.6): at accessibility sizes the elapsed and progress line goes too — two
-            // wrapped lines that pushed the inputs below the strip. The stage above stays, and
-            // VoiceOver still hears the position through the exercise block.
+            .buttonStyle(.plain)
+            // ⌄ and ··· centre on the bar's track, not on the bar and the time beneath it.
+            .alignmentGuide(.barMiddle) { _ in BarView.inset + BarView.center }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(screen.spokenHeader)
+            .accessibilityValue("\(Int((screen.completion * 100).rounded())) percent, elapsed \(screen.elapsed)")
+            .accessibilityHint("Opens the overview")
+            .accessibilityAddTraits(.isButton)
+            Button { minimize() } label: {
+                Image(systemName: "chevron.down").frame(width: 44, height: 44).contentShape(Rectangle())
+            }
+            .foregroundStyle(.secondary)
+            .accessibilityLabel("Minimize")
+            Menu {
+                Button("Skip set") { Task { await model.apply(.skipSet(step: screen.step)) } }
+                Button("Skip exercise") {
+                    Task { await model.apply(.skipExercise(exerciseIndex: screen.exerciseIndex)) }
+                }
+                // D28 (v1.1): the machine is taken. Not the same as giving up on it.
+                if model.canDefer(exerciseIndex: screen.exerciseIndex) {
+                    Button("Do later") {
+                        Task { await model.apply(.deferExercise(exerciseIndex: screen.exerciseIndex)) }
+                    }
+                }
+                // D42 (v1.3): the machine is taken and you want to do something now.
+                if model.canSubstitute(exerciseIndex: screen.exerciseIndex) {
+                    Button("Change exercise") {
+                        changeExercise(screen.exerciseIndex, screen.exerciseName)
+                    }
+                }
+                // D56 (v1.6): not destructive — it saves the workout. Red read as "delete".
+                Button("Finish workout") { finish() }
+            } label: {
+                Image(systemName: "ellipsis").frame(width: 44, height: 44).contentShape(Rectangle())
+            }
+            .foregroundStyle(.secondary)
+            .accessibilityLabel("More")
         }
-        .font(.footnote)
-        .padding(.horizontal, 20)
-        .padding(.top, 6)
+        .font(.body)
+        .padding(.leading, 20)
+        .padding(.trailing, 8)
+        .padding(.top, 2)
     }
 
     // MARK: - Zone 2
@@ -294,7 +282,7 @@ private struct WorkoutScreenView: View {
                 ForEach(typeSize.isAccessibilitySize ? screen.rows.filter(\.isCurrent) : screen.rows,
                         id: \.stepIndex) { row in
                     HStack(spacing: 0) {
-                        Button { tapped(row) } label: { SetRowView(row: row) }
+                        Button { tapped(row) } label: { SetRowView(row: row, day: dayColour) }
                             .buttonStyle(PressableRow())
                             .disabled(row.isCurrent)
                         // D59 (v1.6): Undo on the row that was just logged, where the eye is,
@@ -305,7 +293,7 @@ private struct WorkoutScreenView: View {
                                     .font(.title3)
                             }
                             .buttonStyle(.plain)
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(.primary)
                             .padding(.leading, 6)
                             .accessibilityLabel("Undo the last set")
                         }
@@ -569,11 +557,14 @@ private struct StatusStripView: View {
 /// One row of the current exercise's sets (zone 2).
 private struct SetRowView: View {
     let row: SetRow
+    /// D79 (v1.10): a logged row's tick is the day's colour, the current row's mark blue.
+    let day: DayColour?
 
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .foregroundStyle(row.status == .logged ? Color.done : .secondary)
+                // An icon in the system fill would all but vanish; ahead, it stays grey text.
+                .foregroundStyle(row.mark == .todo ? Color.secondary : row.mark.color(day: day))
                 .frame(width: 18)
             Text(row.label)
                 .font(.footnote)
@@ -609,6 +600,71 @@ private struct SetRowView: View {
         case .skipped: return "minus.circle"
         case .pending: return row.isCurrent ? "circle.dotted" : "circle"
         }
+    }
+}
+
+private extension VerticalAlignment {
+    /// The middle of the bar's track, so the header's glyphs line up with the bar.
+    enum BarMiddle: AlignmentID {
+        static func defaultValue(in d: ViewDimensions) -> CGFloat { d[VerticalAlignment.center] }
+    }
+    static let barMiddle = VerticalAlignment(BarMiddle.self)
+}
+
+/// D80 (v1.10, §6.53): the whole day as one shape — a segment per block with a 3 pt gap between,
+/// a mark per set inside each in its state's colour (D79) cut apart by a tick, and a caret under
+/// the segment being looked at. One `Canvas`, no view per set: a sixteen-set day is one draw.
+private struct BarView: View {
+    let bar: WorkoutBar
+    let day: DayColour?
+
+    /// The track's middle, from the top — the day's square is centred on it.
+    static let center: CGFloat = 5
+    /// The space above the bar inside the header's target.
+    static let inset: CGFloat = 4
+    static let height: CGFloat = 16
+    private static let track: CGFloat = 6
+    private static let gap: CGFloat = 3
+    private static let tick: CGFloat = 1
+
+    var body: some View {
+        Canvas { context, size in
+            let total = bar.segments.reduce(0) { $0 + $1.weight }
+            guard total > 0 else { return }
+            let usable = size.width - Self.gap * CGFloat(max(bar.segments.count - 1, 0))
+            let top = Self.center - Self.track / 2
+            var x: CGFloat = 0
+            for segment in bar.segments {
+                let width = max(0, usable * segment.weight / total)
+                let rect = CGRect(x: x, y: top, width: width, height: Self.track)
+                context.drawLayer { layer in
+                    layer.clip(to: Path(roundedRect: rect, cornerRadius: Self.track / 2))
+                    let each = width / CGFloat(max(segment.sets.count, 1))
+                    for (i, state) in segment.sets.enumerated() {
+                        let mark = CGRect(x: x + each * CGFloat(i), y: top, width: each, height: Self.track)
+                        layer.fill(Path(mark), with: .color(state.color(day: day)))
+                    }
+                    // The ticks are cuts, so they read on a done set, the blue one and the track.
+                    layer.blendMode = .destinationOut
+                    for i in stride(from: 1, to: segment.sets.count, by: 1) {
+                        let cut = CGRect(x: x + each * CGFloat(i) - Self.tick / 2, y: top,
+                                         width: Self.tick, height: Self.track)
+                        layer.fill(Path(cut), with: .color(.black))
+                    }
+                }
+                if segment.caret {
+                    var caret = Path()
+                    let mid = x + width / 2
+                    caret.move(to: CGPoint(x: mid, y: top + Self.track + 3))
+                    caret.addLine(to: CGPoint(x: mid + 4, y: size.height))
+                    caret.addLine(to: CGPoint(x: mid - 4, y: size.height))
+                    caret.closeSubpath()
+                    context.fill(caret, with: .color(.primary))
+                }
+                x += width + Self.gap
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 

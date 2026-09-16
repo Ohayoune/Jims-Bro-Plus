@@ -209,8 +209,14 @@ been done three times, held between ½× and 2× (D84); **Change *day*** as join
 button that confirms and names its effect, and today's exercises editable through the JSON sheet
 pre-filled with the day (D85); and cycles drawn **seven to a row, the squares touching** (D86).
 The requirements were settled on two artifacts linked from the plan: round 1, "Workout in Symbols",
-and round 2, "Symbols, Round Two", redrawn four times on the owner's corrections. P0 is written;
-nothing else is built.
+and round 2, "Symbols, Round Two", redrawn four times on the owner's corrections. P0–P1 are built
+and green on `v1.10-symbols`: P1 gave every mark on the Workout screen a state — `MarkState`
+(`Core/WorkoutMarks.swift`, compiled into the extension too, its colour in `DaySquare.swift`) and
+`MarkState.of(step:session:)` — so done is the day's colour, now is blue and not yet grey, with the
+screen tinted ink and Log set ink; and made the header the bar — `WorkoutBar` (`Core/WorkoutBar.swift`),
+a segment per block and a mark per set in one `Canvas`, a caret, the elapsed time, a tap that opens
+the Overview, and the stage spoken, not printed (`spokenHeader`). The Lock Screen's bar fills in the
+day's colour. P2–P7 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -461,13 +467,13 @@ Use these words in code and UI. Don't invent synonyms.
 ### 4.0 Quiet UI rules (apply everywhere)
 Rewritten in v1.1's R2 milestone. The v1 text is kept underneath each rule that changed, so the change is deliberate rather than drift.
 
-- **One primary action per screen**, full width, accent colour, bottom-anchored above the keyboard. Secondary actions that the primary task itself needs while it is running may be visible buttons — Exercises, Undo, rest −30 / +30, Skip rest — and everything else goes behind "···" or a swipe. **Today has one; its alternatives live in one ··· and nowhere else** (v1.7, D61, §6.37). *(v1: "Never more than two visible buttons besides the primary." That rule put Overview, undo and Skip behind a menu that did not exist during rest, which made them unreachable exactly when they were needed — P2.)*
+- **One primary action per screen**, full width, accent colour, bottom-anchored above the keyboard — **ink on the Workout screen**, where the accent is reserved for the current set (v1.10, D79, §6.52). Secondary actions that the primary task itself needs while it is running may be visible buttons — Exercises (since v1.10 a tap on the header's bar, D80, §6.53), Undo, rest −30 / +30, Skip rest — and everything else goes behind "···" or a swipe. **Today has one; its alternatives live in one ··· and nowhere else** (v1.7, D61, §6.37). *(v1: "Never more than two visible buttons besides the primary." That rule put Overview, undo and Skip behind a menu that did not exist during rest, which made them unreachable exactly when they were needed — P2.)*
 - **Label what the value does not explain.** A bare `10` and `80` get small-caps **REPS** and **KG** labels; a volume figure is labelled Volume. A unit suffix is not a label. Do not label what is already self-evident (no "Notes:" before notes). *(v1: "No labels for things the value already says." Two unlabelled stepper rows were the most-reported confusion in both reviews — P5.)*
 - No decorative dividers, cards inside cards, or badges. Group with whitespace, or with one grouped/inset list style used consistently on every screen (R4).
 - **Large numbers are for values you act on right now**: the input values, a running countdown, a running timer. A number you are only being told about — a set's duration, a block's duration, a volume total — is body text. *(v1: "The most important number on a screen is the largest thing on it", which made the between-exercise block duration the hero of its own screen — D19, P1.)*
 - Show a line only when it has content (no "Notes: none", no empty "Last time").
 - **A control appears when it first has something to do**, and stays (v1.7, D64, §6.40). Nothing is removed by this, only delayed: §6.40's table lists every gated control and when it appears, and a control not in it is there from the first launch. Settings is never gated (D56).
-- **Colour says which day; the accent says tappable** (v1.7, D65, §6.41). Each day of a plan has a colour by its place in the day list, drawn in four places — a square before the day's name on Today (with, since v1.8, its rows' set blocks — D69, §6.43), the calendar's finished and planned days, a square leading each History row, and a square leading the workout header and the Lock Screen's title — and nowhere else: not Start, not the tab bar, not a background. No day is the accent, red or yellow. **v1.9 (D74–D78)**: *four* is v1.7's count — the squares that name a day join them (the swap's dot and question, the ···'s symbols, the picker's rows, Plans' symbols, squares and rows; §6.41 lists them), and Start, the tab bar and the backgrounds still carry none.
+- **Colour says which day; the accent says tappable** (v1.7, D65, §6.41). Each day of a plan has a colour by its place in the day list, drawn in four places — a square before the day's name on Today (with, since v1.8, its rows' set blocks — D69, §6.43), the calendar's finished and planned days, a square leading each History row, and a square leading the workout header and the Lock Screen's title — and nowhere else: not Start, not the tab bar, not a background. No day is the accent, red or yellow. **v1.9 (D74–D78)**: *four* is v1.7's count — the squares that name a day join them (the swap's dot and question, the ···'s symbols, the picker's rows, Plans' symbols, squares and rows; §6.41 lists them), and Start, the tab bar and the backgrounds still carry none. **v1.10 (D79, §6.52): the Workout screen is the one exception, named as one** — there colour says a mark's *state*: done in the day's colour, now in the accent, not yet in grey; the accent says *now* and nothing else, so its controls and its primary button are ink.
 - Tab bar with two tabs: **Today · History** (v1.7, D62, §6.38). Today's bar carries a gear and a ···, nothing else; History's carries the same gear in the same place. Plans is Today's ··· → **Change plan** and Settings is the gear, both pushed (§4.2, §4.11). *(v1–v1.6: "Home · Plans · History · Settings. No other navigation chrome on Home." v1.7's T1 kept four — Today · Plans · History · Settings — until D62 settled how many.)*
 - **Zones do not move.** Within one task, a control keeps its position across every state of that task: nothing appears, disappears or shifts under the thumb between working, resting and timed work (§4.5, D22, P1).
 - **The app speaks in words, and keeps the notation behind a switch** (v1.6, D58, §6.36). A target reads *"Aim 4–6 reps · 100 kg"*, a past set *"Last time 10 × 100 kg"* on its own line and never with "@", an exercise *"3 sets of 8–12 reps · 60 kg"*, a superset member *"paired with Tricep Pushdown"* rather than a bare **A**, a drop *"lighter set 1 of 2"* and, on the exercise's line, *"then lighter, as many as you can"*; "AMRAP" is *"as many reps as you can"*, an effort target *"stop 2 short of failure"*, and every button says the thing rather than the term — **Use Upper Lower** (**Use this plan** until v1.9's D78, §6.51), *"repeats every 7 days"* (D59). **Settings → Compact notation** restores v1.5's forms everywhere at once. Only rendered strings have two grammars: the engine, the plan format, the prompts (§7), the exports and the fixtures know nothing about this.
@@ -523,7 +529,8 @@ One screen, five fixed zones, top to bottom, identical across every state below.
 
 > **Build status**: built in R2. `WorkoutScreen.model(active:history:now:)` resolves the whole screen — zones, set rows, prefilled inputs, strip and primary action — as a `WorkoutScreenModel`, and the view only renders it, which is what makes "the zones never move" a unit test (O50) rather than a convention.
 
-1. **Header** (v1.2, D34): the **stage** the workout is in, said in words, above a progress bar of the whole day — **Warm-up**, **Exercise 2 of 5 · Set 2 of 3**, **Resting**, **Between exercises** — led by a small square in the day's colour (v1.7, D65, §6.41), the header's one mark of which day it is. Then elapsed time · progress ("Exercise 2 of 5 · Set 2 of 3", or "· drop 1 of 2", or "A · round 2 of 3" for a superset member; **v1.6 (D56)**: omitted when it would only repeat the stage, which while working it did) · **Exercises** (opens the Overview sheet, §4.8, reachable in every state including rest) · minimize (returns to the tabs; the session and its timers keep running; Home shows "<Day> in progress · <elapsed>" with **Resume**) · "···" (Skip set, Skip exercise, Do later, **Change exercise** — v1.3, D42 — Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one).
+1. **Header** (v1.10, D80, §6.53): **the bar**, and no words. The day's square at the left (v1.7, D65, §6.41), ⌄ and ··· at the right in the secondary label colour, and between them one segment per block in the order the day runs them — a 3 pt gap between segments, a tick at each set inside one, each set's mark in its state's colour (done the day's colour, now blue, not yet grey — D79, §6.52) — a caret under the segment being looked at, and the elapsed time, 11 pt monospaced, under the bar's right end. **Tap the bar** to open the Overview (§4.8), in every state including rest; the square, the bar and the elapsed time are one 44 pt target, and VoiceOver hears the stage in words (`WorkoutStage.title`, §6.15). Minimize returns to the tabs; the session and its timers keep running; Today shows the workout in progress with **Resume**. "···" holds Skip set, Skip exercise, Do later, **Change exercise** (v1.3, D42) and Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one. `WorkoutScreenModel.bar` (`WorkoutBar`, `Core/WorkoutBar.swift`) is everything the view draws, in one `Canvas`.
+   *(v1.2–v1.9, D34: **Header** (v1.2, D34): the **stage** the workout is in, said in words, above a progress bar of the whole day — **Warm-up**, **Exercise 2 of 5 · Set 2 of 3**, **Resting**, **Between exercises** — led by a small square in the day's colour (v1.7, D65, §6.41), the header's one mark of which day it is. Then elapsed time · progress ("Exercise 2 of 5 · Set 2 of 3", or "· drop 1 of 2", or "A · round 2 of 3" for a superset member; **v1.6 (D56)**: omitted when it would only repeat the stage, which while working it did) · **Exercises** (opens the Overview sheet, §4.8, reachable in every state including rest) · minimize (returns to the tabs; the session and its timers keep running; Home shows "<Day> in progress · <elapsed>" with **Resume**) · "···" (Skip set, Skip exercise, Do later, **Change exercise** — v1.3, D42 — Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one).)*
 2. **Exercise block**: the exercise's name (opens its history) and target line (with notes, truncated to one line), then the current exercise's set rows: finished rows show what was logged ("✓ 10 @ 80") and never how long it took (D19), the current row is highlighted with its target and last-time value, upcoming rows show their targets. A row carries the set's own target only — the exercise's notes appear once, on the target line above, rather than repeating on every row. In a block holding more than one exercise (a superset round) each row names its exercise instead of repeating the shared group tag, which would otherwise make two rows read identically. A superset shows the current round's members. Tapping a finished row opens the edit sheet; tapping an upcoming row jumps to it (§6.6 `jumpTo`).
 3. **Inputs**: small-caps labels **REPS** and the unit (**KG**/**LB**) above the − value + rows; the weight row is omitted for bodyweight exercises (D21); an empty weight field reads *tap to type* in the secondary colour inside a soft outline, so a plan without weights (D46) does not show a blank gap between − and + (v1.6, D56), and while the field is empty and the exercise has no history one line under it says why — *"Type the weight you lift. The app remembers it from then on."* (`InputDefaults.weightHint`, v1.6, D57); a "72.5 suggested" chip appears under the weight when §6.11 produced one. Timed sets replace the reps row with the timer block described below; the weight row stays unless bodyweight.
 4. **Status strip** (always present; its content depends on phase, per §4.6/§4.7 below). **v1.6 (D56)**: while a field is focused its trailing slot holds **Done**, which closes the keyboard — the system keyboard toolbar drew Done as a floating pill over the lower half of the primary button on iOS 26. At accessibility text sizes the strip drops its next-set line and the set list shows the current row only, so the inputs and the button are on screen together.
@@ -549,7 +556,7 @@ There is no separate screen and no Continue gate. The moment a block's last step
 
 **v1.2 (D33)**: walking to the next machine takes as long as a rest does, and v1.1 gave it no time at all — so it now runs a real countdown of `Settings.transitionRestSeconds` (default 120 s), with the same −30 / +30 / Skip controls as any other rest, and the same alert at zero. Set that setting to 0 and v1.1's behavior comes back exactly: no countdown, and the count-up "moving on · 0:42" beneath the block's line instead. The strip clears on the next log or skip, or can be dismissed directly (`dismissBlockDone`, §6.6). Timed-set logic behaves as normal throughout — there is no state in which it is suspended.
 
-### 4.8 Overview (from "···", or the header's Exercises button)
+### 4.8 Overview (a tap on the header's bar — v1.10, D80; the header's Exercises button until v1.9)
 Every step grouped by exercise with status and set time ("10 @ 60 · 0:34"); finished blocks show duration and advice. A pending row carries the set's own target only; the exercise's note is said once, on the card, never on every row (v1.6, D55). Tap logged → edit; tap pending → jump (cancels rest, and clears any block-done strip). A **skipped** step (v1.1, D27) can also be edited: the sheet's Save now sets its result, marks it logged, and updates `loggedAt` — recovering it rather than silently doing nothing. Reachable in every workout state, including rest and a block-done strip (v1.1) — previously it was attached only to the step card and unreachable during rest.
 
 ### 4.9 Summary (rewritten in v1.1's R4)
@@ -746,7 +753,7 @@ It is not a set, it is not logged, and it does not appear in history. A session 
 ### 6.15 The stage (D34, v1.2)
 "It should be a bit more clear what stage of the workout you're on."
 
-`WorkoutStage` resolves, in Core, to one of: **Warm-up**, **Exercise k of n · Set j of m**, **Resting**, **Between exercises**, **Done** — plus a `progress` fraction of the whole day, which is logged-or-skipped steps over total steps. The header renders both; nothing about the stage is computed in a view, so the wording per state is a unit test.
+`WorkoutStage` resolves, in Core, to one of: **Warm-up**, **Exercise k of n · Set j of m**, **Resting**, **Between exercises**, **Done** — plus a `progress` fraction of the whole day, which is logged-or-skipped steps over total steps. Nothing about the stage is computed in a view, so the wording per state is a unit test. **v1.10 (D80, §6.53): the stage in words is spoken and printed on the Lock Screen, not on the screen** — the header is the bar, VoiceOver hears `WorkoutScreenModel.spokenHeader`, which is `WorkoutStage.title` exactly, and the fraction is the bar's spoken value. A skipped set still counts for the fraction and draws grey on the bar, so the bar never says it happened. *(v1.2–v1.9: "The header renders both.")*
 
 ### 6.16 Metrics (D39, v1.2)
 "Should be able to select a past workout and see … metrics for the past — I don't know exactly what metrics would be, but they should be included."
@@ -767,6 +774,7 @@ A **Live Activity** runs for as long as a workout does. It shows the stage (Warm
 - **The countdown is drawn by the system**, from a `Date`, exactly as §6.4's rest timer is. The app does not push an update per second and does not have to be awake for the number to be right.
 - **`WorkoutActivityState` is resolved in Core** from the same `ActiveSession` the workout screen reads, so the Island and the app cannot disagree. `WorkoutActivityState.swift` is compiled into both the app and the widget extension — it is the contract between them, and depends on nothing but Foundation. *(v1.2–v1.6: "the one file compiled into both".)*
 - **The day's colour rides along** (v1.7, D65, §6.41): `WorkoutActivityState.dayColour`, resolved with the plans, draws a square before the title on the Lock Screen and in the expanded Island, and the compact Island's figure takes it while working. `DayColour.swift` (a name, Foundation only) and `DaySquare.swift` (the one mapping to a `Color`) are compiled into the extension alongside it.
+- **The bar takes the Workout screen's states** (v1.10, D79, §6.52): done in the day's colour — in a break as while working — over the grey of the sets ahead, grey where the day has none. `WorkoutMarks.swift` (`MarkState`, Foundation only) is compiled into the extension beside `DaySquare.swift`, which maps a state to its colour. Nothing else about the activity changes: the title keeps the accent in a break, and the compact Island its figure in the day's colour. *(v1.2–v1.9: the accent in a break, green while working.)*
 - **ActivityKit lives behind `ActivityPresenting`**, injected exactly as `NotificationScheduling` is, so what the Lock Screen would show is a unit test rather than something only a phone can answer.
 - A state that has not changed is not pushed. A per-second tick that woke the system sixty times a minute would cost battery for no new information.
 - The activity ends when the workout does — finished **or discarded**. A countdown for a workout that no longer exists is worse than none. **The app never assumes it is the process that started it** (D60, §6.35).
@@ -1114,6 +1122,7 @@ The rule behind §6.37, made a table (`docs/ITERATION_8_PLAN.md`, T4, which prop
 | **Metrics**, **Find an exercise** and **Progression** (History) | at least one session — and, for Progression, an active plan, whose progression it opens | `Gates.metricsAndFind` |
 | **The strip and its tap** (Today's meta row) | from the first plan — deliberately *not* earned (v1.8, D70, §6.44): a square you can see but cannot tap is worse than no square, the tap starts nothing (Start still does), and the button names what the tap chose. Should the owner want the tap earned after the first workout, that is a condition in this cell and one function in `Gates` | — |
 | **The swap's marks** — the dot, the ring, the long press and the question block (Today's strip and card) | whenever a swap says so (v1.9, D74, §6.48): facts drawn from `swaps.json`, not controls to earn — a question is there because a workout raised it, and a gate would hide it from the person who just did that workout | — |
+| **The bar's tap** (the Workout screen's header) | from the first workout — deliberately *not* earned (v1.10, D80, §6.53): it is the only way to the Overview, which a workout needs from its first set and which needs no history | — |
 | **Change plan** and, since v1.9 (D75), **Change *day*'s exercises** (Today's ···) | at least one plan — and, for Change *day*'s exercises, a day's card with no session open whose date's workout is not yet done (§6.49) | `Gates.changePlan` |
 | The notifications-off line (Today) | as D57: after the first **Log set** of the run has asked for the permission, and the answer was no | `Gates.notificationsOff` |
 
@@ -1121,7 +1130,7 @@ The rule behind §6.37, made a table (`docs/ITERATION_8_PLAN.md`, T4, which prop
 - **A session is a finished one.** A workout still running earns nothing; History does not list it.
 - **Nothing is stored.** Each gate is a function of the sessions, the plans and the date (`Core/Gates.swift`), and those only grow with time and use, so "once shown it stays" needs no flag and no field in `Settings` — the on-disk contract is untouched. Deleting what earned a control takes it back: Delete all data returns the app to its first day.
 - **Week stays while the month grid is open**, so the grid can always be closed, even when the history that earned Month has been deleted under it.
-- **A control that is not there from the first launch adds its row here first**, and its function to `Gates`; the views ask `Gates` rather than counting for themselves, and a test holds the table and the type together (T21). A row whose Core cell is `—` records what the table deliberately leaves ungated — the strip, and since v1.9 the swap's marks — and T21 counts them as such.
+- **A control that is not there from the first launch adds its row here first**, and its function to `Gates`; the views ask `Gates` rather than counting for themselves, and a test holds the table and the type together (T21). A row whose Core cell is `—` records what the table deliberately leaves ungated — the strip, since v1.9 the swap's marks, and since v1.10 the bar's tap — and T21 counts them as such.
 - **Plan a progression** (Today's ···, D50) left the table with v1.9's D75 (§6.49): the item, its row and `Gates.planProgression` are gone, and T21 counts four functions.
 
 ### 6.41 A colour per day (D65, v1.7)
@@ -1136,6 +1145,7 @@ Parked from iteration 7 and chosen with v1.7's plan (`docs/ITERATION_8_PLAN.md`,
   4. **The workout header**: the square leads the stage line — the header names no day, since D34 made it the stage — and the Lock Screen activity carries it too, before its title there and in the expanded Island; the compact Island, which has room for a colour and nothing else (D41), draws its figure in it while working, and a break keeps the accent (§4.5, §6.17).
 - **v1.9 (D74–D78): the squares that name a day.** Beside the four, a day's colour fills the small squares and dots that stand for a day wherever one is chosen or a cycle is drawn: the swap's dot under a strip square and the question block's options (§6.48), the ···'s cycle symbol and the shown day's square (§6.49), the picker's rows (§6.50), and Plans — a list row's cycle symbol, the page's squares and its rows (§6.51). Each names a day; none is a control's colour, and Start and the tab bar still carry none.
 - **v1.9 (D76, §6.50): the outline**, a mark beside the fill that says *not from this plan* while the colour still says *which day*: a day borrowed from another plan for one date is outlined in that plan's colour, and a day written just for a date is outlined in ink. Today's strip, Today's square before the name and the picker's rows draw it; the calendar, History and the workout header do not — a borrowed day's session is its own plan's, coloured by it, and an own day's has no colour.
+- **v1.10 (D79, §6.52): the fifth place — *happened*, on the Workout screen.** There a logged set's mark fills in the colour of the day it belongs to, as the calendar's fill says *happened*, so the bar fills with Push's green as Push goes; and there, as an exception to §4.0 named as one, the accent is reserved for *now*. The reserved green of §4.0 (*this happened*, v1.1) was already the first day's colour; on that screen the day's colour takes the job for every day. The Lock Screen's bar takes the same (§6.17).
 - **Nowhere else**: not Start, not the tab bar, not a background, not the Summary. Core decides the colour — `HomeStart.dayColour`, `DayEntry.dayColour(plans:)`, `DayColour.of(session:plans:)`, `WorkoutActivityState.dayColour` — and the view layer owns the mapping to a `Color` in one file, `DaySquare.swift`, compiled into the app and the widget extension alike (T23 reads it).
 - **Green is also the colour reserved for "this happened"** (§4.0, v1.1) — a logged set, a record. The palette keeps it for the first day, as the plan chose: in the calendar the fill now says *happened* and the colour says *which day*, so a plan's first day reads as it did in v1.6.
 
@@ -1300,6 +1310,34 @@ The owner's notes — *"The change plan page should have each plan's squarishes"
 - `RepeatBlock.chips` stays where the cycle is still written in words — Add plan's review, the draft's outline and the prompt's repeat-block line.
 
 **Core decides it** (§6.37): `PlanText`, `RepeatBlock.squares` and `PlanPage` (`Core/PlanPage.swift`); `PlansView` and `PlanDetailView` draw what they are handed (TQ34–TQ39).
+
+### 6.52 Three states, three colours (D79, v1.10)
+The owner's words, over four drawings of the "Symbols, Round Two" mock (`docs/ITERATION_11_PLAN.md`, P1): *"incompleted exercises grey, current set blue (a reserved colour), and finished sets the colour of the day."* On the Workout screen and the Lock Screen activity, every mark that stands for a set or an exercise is in one of three colours, and the colour says its **state**:
+
+| State | Colour | Where it shows |
+|---|---|---|
+| **Done** — logged, or skipped and then given a result | the day's colour (§6.41), grey when the day has none, as History draws it | the bar's done sets; a logged set row's tick; the Lock Screen's bar |
+| **Now** — the current set, and only it | **blue**, the accent | the bar's one blue mark; the current set row's mark and highlight |
+| **Not yet** — every set ahead, and a skipped set | grey (`secondarySystemFill`) | the bar's track and the sets ahead on it |
+
+P2's dots, cells and the exercise's own dot join the table's third column when they land (D81).
+
+- **One rule, written once.** `MarkState` (`Core/WorkoutMarks.swift`, Foundation only, compiled into the extension too) and `MarkState.of(step:session:)` (`Core/WorkoutBar.swift`, beside its first caller, since the rule reads a running workout and the extension builds none): a logged step is done; the step the workout is on — the working step, or the one a rest leads to (`ActiveSession.currentStep`) — is now; every other step, a skipped one included, is not yet. A set row carries its state (`SetRow.mark`).
+- **Blue is reserved on this screen.** §4.0's *the accent says tappable* holds everywhere else; on the Workout screen the accent says *now* and nothing else is blue. The primary button is **ink** — label colour with the system background as its label, black in light and white in dark (`PrimaryButton(ink:)`) — ⌄ and ··· are the secondary label colour, and every other control takes ink, the screen being tinted `.primary`: the suggestion chip, the rest capsules, the keyboard's Done and Undo. The empty weight's outline was already grey. The rest-over figure and a timed set's warning keep the accent: both are the current set's. *(The plan's choice, C2 on the mock; the alternative is the day's colour on Log set. Blue on the button is the one answer ruled out, because it would unreserve the colour.)*
+- **Grey has one job.** Not "disabled", not "secondary": *not yet*. Nothing on the screen is disabled, since every control is earned before it appears (§6.40).
+- **The view layer maps a state to a `Color` in `DaySquare.swift`**, beside the day colours (T23, TP2): done → the day's colour or the no-colour grey (`DaySquare.noColour`), now → `.accentColor`, not yet → `Color(.secondarySystemFill)`. None is red, amber or yellow: the walk's ring (P3) is a traffic light — a duration, not a set — and yellow past the top of a range (P2) is a warning, as §6.41 keeps it.
+
+### 6.53 The header is the bar (D80, v1.10)
+Zone 1 loses its words (§4.5). What left: the stage title (*Exercise 2 of 5 · Set 2 of 3*), the percentage, the elapsed · progress line and the **Exercises** button. What stays: the day's square at the left, ⌄ and ··· at the right. Between them, **the bar**:
+
+- **One segment per block**, in the order the day runs them (`SessionBlocks.indices`, so Do later moves a segment with its block), with a 3 pt gap between segments so an exercise is the bigger unit, and **a tick at each set** inside a segment — a 1 pt cut, so it reads on a done set, the blue one and the track alike. Each step is a set here: a drop and a superset member's set take a mark of their own. Done sets fill from the left in the day's colour, the current set is one blue stretch, the rest is the grey track. **A skipped set counts for the fill** (§6.15, D34) and draws grey in its place, so the bar never says it happened.
+- **A caret** in ink beneath the segment being looked at — the current step's until P4's pages let the finger move it (`WorkoutBar.of(session:showing:)`).
+- **The elapsed time**, 11 pt monospaced, under the bar's right end. *(The plan's choice, C6: it is the one number the Lock Screen shows that the screen would otherwise lack; dropping it is one line.)*
+- **Widths by set count** (`Segment.weight`) until P5 gives each block its own pace (D84), so a 4-set block is a third longer than a 3-set one from the first workout.
+- **Tap the bar** to open the Overview (§4.8), which was the Exercises button's job. The square, the bar and the elapsed time are one target, 44 pt tall; VoiceOver hears the stage in words (`spokenHeader`, which is `WorkoutStage.title` exactly), the day's percentage and the elapsed time as its value, and a hint that it opens the Overview. §6.40's table carries the tap as an ungated row: it is the only way to the Overview and needs no history.
+- *(The owner wrote "a visual marking at each of the different set percentages … a smaller visual marker for each exercise" — sets the larger mark. The plan draws exercises as the larger unit because five gaps read and sixteen notches do not, the reading the owner reviewed through four draws without correction; round 1's notches-and-dots is the alternative.)*
+
+**Core decides it** (§6.37): `WorkoutBar` — `segments`, each with `blockIndex`, `weight`, `sets: [MarkState]` and `caret` — built by `WorkoutBar.of(session:showing:)`; `WorkoutScreenModel` gains `bar` and `spokenHeader` and loses nothing — `stage`, `completion`, `elapsed` and `progress` stay for the Lock Screen, the spoken line and the tests. The view draws the bar in one `Canvas`, no view per set: a sixteen-set day is one shape (TP1–TP6).
 
 ## 7. Data model (Core, Codable, no UI imports)
 
@@ -3080,6 +3118,24 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 | TQ37 | unit | (D78, v1.9, pin) The circle is the one way | `PlanDetailView` has no "Use this plan" and no `setActivePlan`, and draws `RepeatBlock.squares(plan)` and `PlanPage.rows(plan)` and no `RepeatBlock.chips(`; `PlansView` draws `CycleSymbol(cycle: DayColour.cycle(of: plan))`, `PlanText.howOften(plan)`, both circles, `PlanText.toUse(` and `PrimaryButton(title: PlanText.useTitle(`, calls `setActivePlan`, and has no `NavigationLink(` (source reads on the host routes) |
 | TQ38 | device | (D78, v1.9) The page and the list at accessibility XL | The squares row wraps with every name legible, an open day keeps its Start reachable, and a list row's symbol stands above its name — in light and in dark |
 | TQ39 | device | (D78, v1.9) A mark left unconfirmed | Mark another plan's circle and see **Use *name***; go back to Today without tapping it and return to Plans: the active plan's circle is filled, there is no button, and Today runs the plan it ran |
+
+## TP. v1.10 — The Workout screen in symbols
+
+`docs/ITERATION_11_PLAN.md` is the plan; one subsection per milestone that lands a decision. TQ was v1.9's, so the prefix is **TP**. The plan's proposed ids are kept where they land as proposed; where one changed, the subsection says so.
+
+### P1 — Three states, three colours (D79), and the header is the bar (D80)
+
+`JimmsBroTests/SymbolsTests.swift` (TP1–TP6), on the plan's example: Push Pull Legs, Push's Barbell Bench Press 4 × 6–8 at 80 kg, Incline Dumbbell Press 3 × 8–10 at 26 kg, Lateral Raise 3 × 12–15 at 10 kg, Tricep Pushdown 3 × 10–12 at 30 kg and Plank 3 × 30+ s; Bench logged, Incline's first set logged at 10, and the rest before its second running. `MarkState` is `Core/WorkoutMarks.swift`'s, `MarkState.of(step:session:)` and `WorkoutBar` are `Core/WorkoutBar.swift`'s, `ActiveSession.currentStep` is the one "step the workout is on" (the engine's and `AppModel`'s read it), `SetRow` gained `mark`, and `WorkoutScreenModel` gained `bar` and `spokenHeader`. Two earlier cases changed: **T21** counts three ungated rows of §6.40's table — the bar's tap joins the strip and the swap's marks — and **T23** reads the `DayColour` mapping of `DaySquare.swift` alone, since the same file now maps a mark's state and *now* is the accent there (TP2). **TP6** was proposed as a ui case; it landed as a source pin, run on the host routes, with the drawing looked at on the simulator (BUILD_STATUS). TP3's "thirteen todo" in the plan was a miscount: sixteen sets less five done and one now is ten.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| TP1 | unit | (D79, v1.10) One rule for every step | On the example: Bench's and Incline's logged steps `done`; step 5, the one the rest leads to, `now`; the steps ahead and a step that does not exist `todo`. Skip step 5: it is `todo` and step 6, the working step, `now`. Give step 5 a result: `done`, and step 6 still `now`. One step is `now` among all sixteen; the states are `done`, `now`, `todo`; Incline's rows carry `done`, `done`, `now` |
+| TP2 | unit | (D79, v1.10, pin; extends T23) Three state colours | `DaySquare.swift`'s `MarkState` mapping has three cases — done `day?.color ?? DaySquare.noColour`, now `.accentColor`, todo `Color(.secondarySystemFill)` — and names no red, yellow, orange, amber or green; `noColour` is `Color.secondary.opacity(0.4)`, the grey History draws; the Lock Screen's bar tints `MarkState.done.color(day: state.dayColour)` and names neither the accent nor green (source reads on the host routes) |
+| TP3 | unit | (D80, v1.10) The bar on the example | Five segments with 4, 3, 3, 3, 3 marks and the same weights, block indices 0–4 — the model's bar is `WorkoutBar.of`'s; Bench done ×4, Incline done, now, todo; five done, one now, ten todo; the caret under Incline alone. `showing: 3` moves the caret to Tricep Pushdown and changes no mark; Do later on Lateral Raise orders the segments 0, 1, 3, 4, 2 |
+| TP4 | unit | (D80, v1.10) A skipped set fills but draws not yet | Skipping Incline's second set moves the day's completion from 5/16 to 6/16, and Incline's marks read done, todo, now — still five done on the bar |
+| TP5 | unit | (D80, v1.10; extends O50) The header speaks the stage | In the warm-up, working, resting, between exercises and a running timed set: the five zones in order, five segments, one caret and one `now`, and `spokenHeader` is `stage.title` — "Warm-up", "Exercise 1 of 5 · Set 1 of 4", "Resting", "Between exercises"; the walk's caret is under the exercise it leads to, the timed set's under Plank |
+| TP6 | unit | (D80, D79, v1.10, pin) No words in zone 1 but the elapsed time | Zone 1 of `WorkoutView.swift`, comments aside, has one `Text(` — `Text(screen.elapsed)` — and no `stage.title`, `progressLine`, "Exercises", `ProgressView` or percentage; it draws `BarView(bar: screen.bar, day: dayColour)`, the day's square, ⌄ and ···, speaks `screen.spokenHeader`, and sets `showOverview = true`. The screen's `PrimaryButton` is `ink: true`, the screen is tinted `.primary`, and the bar is a `Canvas` (source reads on the host routes) |
+| TP7 | device | (D80, v1.10) The bar at sixteen sets on a 6.1-inch screen | Ticks visible, gaps visible, the blue mark findable at arm's length — in light and in dark |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -6609,10 +6665,62 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 `````markdown
 # Build status
 
-Updated 2026-09-14. **v1.9 is built and green on branch `v1.9-swaps` (off `main`, which holds
-v1.8): Q0–Q7.** v1.8 and everything before it are below,
+Updated 2026-09-16. **v1.10 is in progress on branch `v1.10-symbols` (off `v1.9-swaps` at
+3dc52f1): P0–P1 built and green.** v1.9 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
+
+## v1.10 (P0–P7): in progress
+
+`docs/ITERATION_11_PLAN.md` is the v1.10 plan, written from the owner's notes after living with
+v1.9 — *"I want to make everything symbols, and the app colorful"*. Each milestone ends with the
+whole suite green on all three routes, a Release build and `tools/check_release.py`, and one
+commit on `v1.10-symbols`.
+
+After P1:
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **374 tests, 20 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P1 adds two (TP2, TP6) |
+| `swift test` | **373 tests, 0 failures** |
+| `python3 tools/check_core.py` | **373 bodies, 7,458 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; P1 touches no pipeline) |
+| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** — the widget extension compiles `WorkoutMarks.swift` |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.9 (1); 1.10 is P7's |
+| `python3 tools/check_bundle.py` | **current** (regenerated in P1) |
+
+| Milestone | What it did | State |
+|---|---|---|
+| P0 | The plan, the branch, the mocks (the "Workout in Symbols" and "Symbols, Round Two" artifacts, not committed) | Done |
+| P1 | Three states, three colours (D79) and the header is the bar (D80). `MarkState` — done, now, todo — in `Core/WorkoutMarks.swift`, Foundation only and compiled into the widget extension, since `DaySquare.swift` maps a state to its colour there (done the day's colour or the no-colour grey, now the accent, todo `secondarySystemFill`); the rule, `MarkState.of(step:session:)`, in `Core/WorkoutBar.swift` beside `WorkoutBar`, because it reads an `ActiveSession` the extension does not build. `ActiveSession.currentStep` became the one "step the workout is on", read by the engine and `AppModel`. `WorkoutBar.of(session:showing:)`: a segment per block in `SessionBlocks` order, weighted by its set count, a state per step, the caret under the current step's block. `WorkoutScreenModel` gained `bar` and `spokenHeader` (the stage, exactly) and `SetRow` its `mark`; nothing left the model. Zone 1 is the day's square, `BarView` — one `Canvas`: rounded segments 3 pt apart, each set filled in its state's colour and cut by a 1 pt tick, an ink caret — and the elapsed time under the bar's right end, one 44 pt button that opens the Overview and speaks the stage, then ⌄ and ··· in the secondary colour, centred on the bar's track. The screen is tinted `.primary`, so the capsules, Done, Undo and the chip are ink; **Log set** is ink (`PrimaryButton(ink:)`); the set rows' ticks take the day's colour. The Lock Screen's bar fills in the day's colour. SPEC §4.0, §4.5, §4.8, §6.15, §6.17, §6.40 (the bar's tap, ungated), §6.41 (the fifth place) and the new §6.52 and §6.53; TP1–TP7, T21 and T23 amended; the log | Done |
+| P2–P7 | The exercise in symbols, the walk, pages, the pace, Change *day* in squares, docs and 1.10 | Not started |
+
+### Checked on the simulator (v1.10)
+
+- P1, on the iPhone 17 simulator with `SEED=1 DEVICE="iPhone 17" tools/shot.sh <png> -uiScreen
+  workout -uiNoAsk -uiNoAlerts -uiAdvance 5 -uiSkipWaits -uiSkipDone` — the sample plan's first
+  block logged and the walk to the second running: the header has no words but **0:03**; the green
+  square, then four green marks, a segment of one blue mark and two grey, a long grey segment of
+  twelve marks and one of three, each cut by its ticks and set apart by rounded ends and the gap;
+  the ink caret under the second segment; ⌄ and ··· grey and level with the bar. **Log set** black
+  with white words, the −30 · +30 · Skip capsules grey with ink words, the current row's dotted
+  mark blue. In dark (`xcrun simctl ui "iPhone 17" appearance dark`): the track dark grey, the
+  ticks still cut, the caret white, **Log set** white with black words.
+
+### Not run in v1.10
+
+- **The bar's tap.** The simulator tool refused taps again ("stopped retrying after repeated
+  crashes"), so the Overview opening from the bar was not seen, nor VoiceOver's reading of it; TP6
+  pins the tap's action and the spoken label in the source. To look: the command above, then tap
+  the bar. `-uiOverview` opens the sheet directly but does not test the tap.
+- **The Lock Screen's bar** in the day's colour was not looked at: the simulator runs no Live
+  Activity from `shot.sh`. TP2 pins its tint.
+- **TP7**, the bar at sixteen sets on a 6.1-inch phone at arm's length, is the phone's; it joins
+  the checklist in P7.
+- Noticed, not changed: after the walk is skipped, `blockDone` stays until the next log (D14), so
+  a timed set started straight out of it still reads **Between exercises** as its stage — which
+  since P1 only VoiceOver and the Lock Screen say. TP5 records the timed set's caret rather than
+  its words.
 
 ## v1.9 (Q0–Q7): built and green
 
@@ -7704,6 +7812,15 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.9 Q6: **`RepeatBlock.chips` stays** for the cycle in words — Add plan's review, the draft's outline, the prompt's repeat-block line — and only Plan detail draws squares.
 - v1.9 Q7: **version 1.9 in six places, not five.** `MARKETING_VERSION` is set per target and per configuration — the app, the `JimmsBroActivity` extension and the tests, each Debug and Release — so the plan's "five places" is six; `check_release.py` reads every one. The build number stays 1: nothing has been uploaded.
 - v1.9 Q7: **§6.41's four places are v1.7's count.** v1.9 draws a day's colour in squares that name a day — the swap's dot and question (§6.48), the ···'s symbols (§6.49), the picker's rows (§6.50), and Plans' symbols, squares and rows (§6.51) — so "exactly four places" became four places and those squares, each naming a day and none a control's colour; Start and the tab bar still carry none. Found while consolidating SPEC, with five other places where v1.8's words still read as current (§4.0's **Use this plan**, §6.29's step line, §6.34's Plans line, §6.37's block that opened its plan, §6.42's way to make a plan active), each now noted in italics.
+- v1.10 P1 (D79): **three states, three colours.** On the Workout screen and the Lock Screen's bar a mark is done in the day's colour, now in blue, not yet in grey; blue says *now* there and nothing else, so the screen is tinted ink, its primary button is ink (`PrimaryButton(ink:)`, which applies nothing when false), and ⌄ and ··· are the secondary label colour.
+- v1.10 P1: **`MarkState.of` lives in `WorkoutBar.swift`, not `WorkoutMarks.swift`** as the plan placed it. `DaySquare.swift` maps a state to a colour and is compiled into the widget extension, so `MarkState` must be too, and the rule reads an `ActiveSession`, which the extension does not build — the split `WorkoutActivityState.swift` / `WorkoutActivity.swift` already makes.
+- v1.10 P1: **`of(step:session:)` takes the `ActiveSession`**: a `Session` does not know which step is now. `ActiveSession.currentStep` is that step, and the engine's private copy and `AppModel.currentStep` now read it rather than each switching on the phase.
+- v1.10 P1: **a step is a set on the bar** — a drop and a superset member's set take a mark each, as `WorkoutStage.progress` counts steps.
+- v1.10 P1: **the ticks are 1 pt cuts** (drawn out of the segment's layer), not hairlines at the display scale: a third of a point would not survive arm's length, and a cut reads on the day's colour, the blue and the track alike. TP7 checks it on the phone.
+- v1.10 P1: **the caret is ink**: blue says now and grey says not yet, and the caret says *looked at*.
+- v1.10 P1: **the rest-over figure and a timed set's warning keep the accent** — both are the current set's. P3 redraws the walk; the rest between sets keeps its words.
+- v1.10 P1: **the set rows take the states until P2 replaces them**: a logged row's tick in the day's colour where it was the reserved green, the current row's mark blue; ahead stays grey text, since the system fill on a symbol all but vanishes.
+- v1.10 P1: **⌄ and ··· centre on the bar's track**, the elapsed time hanging beneath it, rather than on the bar and the time together. VoiceOver's value for the bar is the day's percentage and the elapsed time.
 `````
 
 ---
@@ -10129,8 +10246,14 @@ been done three times, held between ½× and 2× (D84); **Change *day*** as join
 button that confirms and names its effect, and today's exercises editable through the JSON sheet
 pre-filled with the day (D85); and cycles drawn **seven to a row, the squares touching** (D86).
 The requirements were settled on two artifacts linked from the plan: round 1, "Workout in Symbols",
-and round 2, "Symbols, Round Two", redrawn four times on the owner's corrections. P0 is written;
-nothing else is built.
+and round 2, "Symbols, Round Two", redrawn four times on the owner's corrections. P0–P1 are built
+and green on `v1.10-symbols`: P1 gave every mark on the Workout screen a state — `MarkState`
+(`Core/WorkoutMarks.swift`, compiled into the extension too, its colour in `DaySquare.swift`) and
+`MarkState.of(step:session:)` — so done is the day's colour, now is blue and not yet grey, with the
+screen tinted ink and Log set ink; and made the header the bar — `WorkoutBar` (`Core/WorkoutBar.swift`),
+a segment per block and a mark per set in one `Canvas`, a caret, the elapsed time, a tap that opens
+the Overview, and the stage spoken, not printed (`spokenHeader`). The Lock Screen's bar fills in the
+day's colour. P2–P7 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

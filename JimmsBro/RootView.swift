@@ -311,6 +311,9 @@ struct PrimaryButton: View {
     /// the play mark on Today's Start and Resume.
     var systemImage: String? = nil
     var enabled = true
+    /// D79 (v1.10, §6.52): ink rather than the accent — the Workout screen's, where blue is
+    /// reserved for the current set. Black in light, white in dark, its label the background.
+    var ink = false
     let action: () -> Void
 
     var body: some View {
@@ -323,10 +326,28 @@ struct PrimaryButton: View {
                 }
             }
             .frame(maxWidth: .infinity)
+            .modifier(Ink(label: ink && enabled))
         }
         .buttonStyle(.borderedProminent)
+        .modifier(Ink(fill: ink))
         .controlSize(.large)
         .disabled(!enabled)
+    }
+
+    /// Leaves an accent button exactly as it was: nothing is applied unless the button is ink.
+    private struct Ink: ViewModifier {
+        var label = false
+        var fill = false
+
+        func body(content: Content) -> some View {
+            if label {
+                content.foregroundStyle(Color(.systemBackground))
+            } else if fill {
+                content.tint(.primary)
+            } else {
+                content
+            }
+        }
     }
 }
 

@@ -51,11 +51,14 @@ final class DayColourTests: XCTestCase {
     }
 
     // T23: and the view layer draws each name as the system colour of that name and nothing
-    // else, so no day can be drawn in the accent, red or yellow whatever Core calls it.
+    // else, so no day can be drawn in the accent, red or yellow whatever Core calls it. Since
+    // v1.10 (D79, TP2) the same file maps a mark's state too, and *now* is the accent there, so
+    // the pin reads the day's mapping alone.
     func testEachDayColourIsTheSystemColourOfItsName() throws {
-        guard let source = FixtureLoader.doc("JimmsBro/DaySquare.swift") else {
+        guard let file = FixtureLoader.doc("JimmsBro/DaySquare.swift") else {
             throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
         }
+        let source = try XCTUnwrap(SymbolsTests.block(file, from: "extension DayColour {", to: "\n}\n"))
         for colour in DayColour.allCases {
             XCTAssertTrue(source.contains("case .\(colour.rawValue): return .\(colour.rawValue)\n"), colour.rawValue)
         }
