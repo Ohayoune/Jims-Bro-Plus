@@ -73,7 +73,7 @@ enum InputRules {
     }
 }
 
-/// One row of `StepCard.setRows` (SPEC §4.5 zone 2).
+/// One row of `StepCard.setRows` — zone 2 until v1.10, when the rows became dots (D81).
 struct SetRow: Equatable {
     var stepIndex: Int
     var status: StepStatus
@@ -81,9 +81,6 @@ struct SetRow: Equatable {
     var label: String
     var value: String
     var lastTime: String?
-    /// D79 (v1.10, §6.52): the row's mark — done in the day's colour, now in blue, not yet in
-    /// grey. `WorkoutScreen.model` sets it from `MarkState.of`; nothing else reads a row's state.
-    var mark: MarkState = .todo
 }
 
 /// The step card's text, resolved without view code (SPEC §4.5).
@@ -141,8 +138,8 @@ enum StepCard {
     /// The label a list row uses for a step. In a block holding more than one exercise (a
     /// superset), `setLine` alone gives every row the same text — "A · Set 2 of 3" — with no way
     /// to tell the two exercises apart, so the row names the exercise and drops the group tag
-    /// that is no longer telling you anything. Shared by the workout's set rows, the Overview
-    /// and Session detail, which each used to work this out for themselves.
+    /// that is no longer telling you anything. Shared by the set rows, the Overview and Session
+    /// detail, which each used to work this out for themselves.
     static func rowLabel(session: Session, step index: Int, naming: Bool,
                          wording: Wording = .plain) -> String {
         guard naming, let step = session.steps[safe: index],
@@ -158,9 +155,10 @@ enum StepCard {
         Set(session.steps.filter { $0.blockIndex == block }.map(\.exerciseIndex)).count > 1
     }
 
-    /// The target line, with the exercise's notes after a "·" when it has any. The set rows of
-    /// zone 2 pass `notes: false`: the notes belong to the exercise, and repeating them on all
-    /// four of its rows is noise, not information.
+    /// The target line, with the exercise's notes after a "·" when it has any. The set rows pass
+    /// `notes: false`: the notes belong to the exercise, and repeating them on all four of its
+    /// rows is noise, not information. Since v1.10 (D81) the Workout screen has no target line;
+    /// its ? holds the notes (`WorkoutScreen.notes`).
     static func targetLine(session: Session, step index: Int, notes: Bool = true,
                            wording: Wording = .plain) -> String {
         guard let step = session.steps[safe: index],
@@ -258,9 +256,10 @@ enum StepCard {
         return text
     }
 
-    /// The current exercise's set rows (SPEC §4.5 zone 2): every set of a straight exercise, or
-    /// just the current round's members for a superset. Written and tested in v1.1's R1
-    /// milestone; R2 renders it. `history` is history only, never the current session.
+    /// The current exercise's set rows: every set of a straight exercise, or just the current
+    /// round's members for a superset. Written and tested in v1.1's R1 milestone; zone 2 drew it
+    /// until v1.10, when the rows became dots and a card (D81), and its tests still pin the
+    /// grammar a row speaks. `history` is history only, never the current session.
     static func setRows(session: Session, step index: Int, history: [Session],
                         wording: Wording = .plain) -> [SetRow] {
         guard let step = session.steps[safe: index],

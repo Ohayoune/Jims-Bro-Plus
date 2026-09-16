@@ -12,23 +12,26 @@ v1.9 — *"I want to make everything symbols, and the app colorful"*. Each miles
 whole suite green on all three routes, a Release build and `tools/check_release.py`, and one
 commit on `v1.10-symbols`.
 
-After P1:
+After P2:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **374 tests, 20 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P1 adds two (TP2, TP6) |
-| `swift test` | **373 tests, 0 failures** |
-| `python3 tools/check_core.py` | **373 bodies, 7,458 assertions, 0 failures** |
-| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; P1 touches no pipeline) |
-| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** — the widget extension compiles `WorkoutMarks.swift` |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` | **382 tests, 21 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P2 adds one (TP15) |
+| `swift test` | **381 tests, 0 failures** |
+| `python3 tools/check_core.py` | **381 bodies, 7,637 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; P2 touches no pipeline) |
+| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.9 (1); 1.10 is P7's |
-| `python3 tools/check_bundle.py` | **current** (regenerated in P1) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in P2) |
+
+The simulator route and the Release build ran before the last change, the debug-only `-uiEditSet` launch argument (inside `#if DEBUG`, so Release compiles none of it); the Debug build that took the screenshots compiled it, and the host routes ran after it.
 
 | Milestone | What it did | State |
 |---|---|---|
 | P0 | The plan, the branch, the mocks (the "Workout in Symbols" and "Symbols, Round Two" artifacts, not committed) | Done |
 | P1 | Three states, three colours (D79) and the header is the bar (D80). `MarkState` — done, now, todo — in `Core/WorkoutMarks.swift`, Foundation only and compiled into the widget extension, since `DaySquare.swift` maps a state to its colour there (done the day's colour or the no-colour grey, now the accent, todo `secondarySystemFill`); the rule, `MarkState.of(step:session:)`, in `Core/WorkoutBar.swift` beside `WorkoutBar`, because it reads an `ActiveSession` the extension does not build. `ActiveSession.currentStep` became the one "step the workout is on", read by the engine and `AppModel`. `WorkoutBar.of(session:showing:)`: a segment per block in `SessionBlocks` order, weighted by its set count, a state per step, the caret under the current step's block. `WorkoutScreenModel` gained `bar` and `spokenHeader` (the stage, exactly) and `SetRow` its `mark`; nothing left the model. Zone 1 is the day's square, `BarView` — one `Canvas`: rounded segments 3 pt apart, each set filled in its state's colour and cut by a 1 pt tick, an ink caret — and the elapsed time under the bar's right end, one 44 pt button that opens the Overview and speaks the stage, then ⌄ and ··· in the secondary colour, centred on the bar's track. The screen is tinted `.primary`, so the capsules, Done, Undo and the chip are ink; **Log set** is ink (`PrimaryButton(ink:)`); the set rows' ticks take the day's colour. The Lock Screen's bar fills in the day's colour. SPEC §4.0, §4.5, §4.8, §6.15, §6.17, §6.40 (the bar's tap, ungated), §6.41 (the fifth place) and the new §6.52 and §6.53; TP1–TP7, T21 and T23 amended; the log | Done |
-| P2–P7 | The exercise in symbols, the walk, pages, the pace, Change *day* in squares, docs and 1.10 | Not started |
+| P2 | The exercise in symbols (D81). `Core/RepCells.swift`: `RepCells.target`, `.logged` and `.timed` from `RepCells.Bounds.of(_:range:)` — a cell per rep or per five seconds rounded up, solid to the minimum (or to what was done), faint to the top, yellow past it, a caret for the field's number, a line for last time's, a group per five, sixty at most. `Core/WorkoutScreen.swift`: `SetDot` (a step of the block, its D79 state, skipped, what VoiceOver hears), `SetCard` (range — *8–10*, *8*, *8+*, *max* — unit, the set's weight, cells, colour, and the bounds and last time so `showing(field:)` redraws the cells for the number in the field), `WorkoutScreen.notes` (*was …* first), `InputDefaults.seconds`, `PrimaryAction.Kind.save`; the model lost `targetLine` and `rows` and gained `exerciseMark` (`MarkState.of(exercise:session:)`), `notes`, `dots`, `card` and `editing`, which `WorkoutScreen.model(…, editing:)` takes from the view and ignores unless it is a logged step of the block — the inputs then take the logged result and the primary is **Save**. The strip's Undo is set during a rest or the moment a block ends, not after. Zone 2 is the name with its dot and the ? popover, the dots (`ViewThatFits` a row or `WrapLayout`), and `SetCardView` — `WrapLayout` of 8 × 22 pt cells with the caret and line above and below each; a filled dot sets `editing`, a grey one `jumpTo`s, the blue one ends a change; Save applies `.editSet`; the edit sheet left the screen; Undo shows in the strip at every size. `StepCard.setRows` and `SetRow` stay in Core for I41, I42, O57 and U34–U35 — `SetRow.mark` went. SPEC §4.5 (zones 2, 4, 5), §4.6, §6.34, §6.36, §6.52 and the new §6.54; TP8–TP16; O57, U34, U35, W7 and TP1 re-pointed with their assertions kept, U28 annotated; the log | Done |
+| P3–P7 | The walk, pages, the pace, Change *day* in squares, docs and 1.10 | Not started |
 
 ### Checked on the simulator (v1.10)
 
@@ -42,7 +45,24 @@ After P1:
   mark blue. In dark (`xcrun simctl ui "iPhone 17" appearance dark`): the track dark grey, the
   ticks still cut, the caret white, **Log set** white with black words.
 
+- P2, on the iPhone 17 Pro simulator with `SEED=1 DEVICE="iPhone 17 Pro" tools/shot.sh <png> -uiScreen
+  workout -uiNoAsk -uiNoAlerts -uiAdvance 2 -uiSkipWaits -uiSkipDone` — Barbell Bench Press with
+  two sets logged: a blue dot before the name and the ? at the right; two green dots, the blue ring
+  with its centre, a grey ring; the card **6–8** over *80 kg*, six blue cells, a gap after the fifth,
+  two faint, two faint yellow past the top, the caret under the tenth for the 10 in the field and
+  last time's line over it; Log set ink, the idle strip unchanged. Without `-uiSkipWaits` and with
+  the new debug-only `-uiEditSet` (the last logged set changed in place, as a tapped dot does): the
+  first dot green with an ink ring, the card's eight cells green with the ninth and tenth faint
+  yellow for last time, 8 × 80 in the fields, **Save**, and the rest's strip with **↶ Undo** beside
+  *set 0:00*. In dark: the card dark grey, the cells blue and dim, the yellow olive, caret and line
+  white, the grey ring still visible.
+
 ### Not run in v1.10
+
+- **P2's taps.** The simulator tool refused taps again, so a dot's tap, Save's result, a grey dot's
+  jump, the ?'s popover and the cells following − and + were not seen; TP13 and TP15 cover the
+  model and the source. To look: the command above, then tap a green dot, change the reps, Save.
+- **TP16**, zone 2 at accessibility text sizes on the phone, joins the checklist in P7.
 
 - **The bar's tap.** The simulator tool refused taps again ("stopped retrying after repeated
   crashes"), so the Overview opening from the bar was not seen, nor VoiceOver's reading of it; TP6

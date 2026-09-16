@@ -12,6 +12,7 @@
 		B6C621F8EBAA62454208A80C /* WorkoutMarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A9E79CC244634E0BC73DE0 /* WorkoutMarks.swift */; };
 		F9062EA3A5FC2E1F36F492A5 /* WorkoutMarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A9E79CC244634E0BC73DE0 /* WorkoutMarks.swift */; };
 		913F4753A56176797BB97AC4 /* WorkoutBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBC69742B66BE14076A20354 /* WorkoutBar.swift */; };
+		7DF9C2D1DFA3C300CB15E1FB /* RepCells.swift in Sources */ = {isa = PBXBuildFile; fileRef = 158020DB3FBE4D3D5E309BA1 /* RepCells.swift */; };
 		04EC8828FD320598B7B50216 /* SymbolsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B85E5934467A382512928989 /* SymbolsTests.swift */; };
 		AFA84798DF75402CA760BCF1 /* JSONLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BA5E71739BE44C69373F820 /* JSONLocator.swift */; };
 		F69F47C90CB946688B922D06 /* SwapQuestionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AF6D2A2A934919AAE328C6 /* SwapQuestionView.swift */; };
@@ -182,6 +183,7 @@
 		023EB36E39C406CC8BA45A11 /* PlanPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPage.swift; sourceTree = "<group>"; };
 		54A9E79CC244634E0BC73DE0 /* WorkoutMarks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMarks.swift; sourceTree = "<group>"; };
 		EBC69742B66BE14076A20354 /* WorkoutBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutBar.swift; sourceTree = "<group>"; };
+		158020DB3FBE4D3D5E309BA1 /* RepCells.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepCells.swift; sourceTree = "<group>"; };
 		B85E5934467A382512928989 /* SymbolsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymbolsTests.swift; sourceTree = "<group>"; };
 		6BA5E71739BE44C69373F820 /* JSONLocator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONLocator.swift; sourceTree = "<group>"; };
 		02AF6D2A2A934919AAE328C6 /* SwapQuestionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapQuestionView.swift; sourceTree = "<group>"; };
@@ -532,6 +534,7 @@
 				023EB36E39C406CC8BA45A11 /* PlanPage.swift */,
 				54A9E79CC244634E0BC73DE0 /* WorkoutMarks.swift */,
 				EBC69742B66BE14076A20354 /* WorkoutBar.swift */,
+				158020DB3FBE4D3D5E309BA1 /* RepCells.swift */,
 				6BA5E71739BE44C69373F820 /* JSONLocator.swift */,
 				80D16661141C43ECB3877B14 /* DaySwap.swift */,
 				BE8B170CD22B4192A8888D7F /* ChangeDay.swift */,
@@ -776,6 +779,7 @@
 				B810218950EC57C9DA7A71F1 /* PlanPage.swift in Sources */,
 				B6C621F8EBAA62454208A80C /* WorkoutMarks.swift in Sources */,
 				913F4753A56176797BB97AC4 /* WorkoutBar.swift in Sources */,
+				7DF9C2D1DFA3C300CB15E1FB /* RepCells.swift in Sources */,
 				AFA84798DF75402CA760BCF1 /* JSONLocator.swift in Sources */,
 				F69F47C90CB946688B922D06 /* SwapQuestionView.swift in Sources */,
 				06B92B29FAA44F848634ACFF /* ChangeDay.swift in Sources */,

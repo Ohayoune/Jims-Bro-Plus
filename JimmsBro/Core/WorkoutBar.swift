@@ -13,6 +13,15 @@ extension MarkState {
         case .pending: return index == active.currentStep ? .now : .todo
         }
     }
+
+    /// D81 (v1.10, §6.54): an exercise's own dot — now while one of its steps is, done once every
+    /// step is logged, and not yet otherwise, a skipped step included.
+    static func of(exercise: Int, session active: ActiveSession) -> MarkState {
+        let steps = active.session.steps.indices.filter { active.session.steps[$0].exerciseIndex == exercise }
+        if steps.contains(where: { of(step: $0, session: active) == .now }) { return .now }
+        if !steps.isEmpty, steps.allSatisfy({ active.session.steps[$0].status == .logged }) { return .done }
+        return .todo
+    }
 }
 
 extension ActiveSession {

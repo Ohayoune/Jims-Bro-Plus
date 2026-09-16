@@ -12,6 +12,7 @@ struct WorkoutView: View {
     @State private var showOverview = false
     @State private var showFinishConfirm = false
     @State private var showDiscardConfirm = false
+    /// D81 (v1.10): the logged set a tapped dot is changing, in place. Never stored.
     @State private var editing: Int?
     /// D42 (v1.3): the exercise Change exercise was opened for.
     @State private var changing: ChangeTarget?
@@ -29,13 +30,6 @@ struct WorkoutView: View {
             }
         }
         .sheet(isPresented: $showOverview) { OverviewView() }
-        .sheet(item: Binding(
-            get: { model.session.flatMap { s in editing.map { EditTarget(session: s, step: $0) } } },
-            set: { editing = $0?.step })) { target in
-            EditResultSheet(target: target) { result in
-                Task { await model.apply(.editSet(step: target.step, result: result)) }
-            }
-        }
         .sheet(item: $changing) { target in
             ChangeExerciseSheet(exerciseIndex: target.exerciseIndex, currentName: target.name,
                                 units: model.session?.units ?? model.displayUnits)
@@ -61,6 +55,11 @@ struct WorkoutView: View {
                    let exercise = session.exercises[safe: session.steps[step].exerciseIndex] {
                     changing = ChangeTarget(exerciseIndex: session.steps[step].exerciseIndex, name: exercise.name)
                 }
+            }
+            // Debug-only (v1.10, D81): change the last logged set in place, as a tapped dot does.
+            if ProcessInfo.processInfo.arguments.contains("-uiEditSet") {
+                try? await Task.sleep(for: .milliseconds(600))
+                editing = model.engine?.active.lastCompletedStep
             }
             #endif
         }
@@ -89,7 +88,7 @@ struct WorkoutView: View {
     @ViewBuilder private func content(now: Date) -> some View {
         if let active = model.engine?.active, model.phase != .completed,
            let screen = WorkoutScreen.model(active: active, history: model.sessions, now: now,
-                                            settings: model.settings) {
+                                            settings: model.settings, editing: editing) {
             WorkoutScreenView(screen: screen,
                               dayColour: DayColour.of(session: active.session, plans: model.plans),
                               now: now, showOverview: $showOverview,
@@ -143,7 +142,6 @@ private struct WorkoutScreenView: View {
     @State private var weightText = ""
     @State private var loadedStep: Int?
     @FocusState private var focused: Field?
-    @Environment(\.dynamicTypeSize) private var typeSize
 
     private enum Field { case reps, weight }
 
@@ -182,6 +180,8 @@ private struct WorkoutScreenView: View {
         .task(id: screen.step) { load() }
         .onChange(of: screen.inputs) { _, _ in load(force: true) }
         .onChange(of: focused) { previous, _ in if previous == .weight { pushWeight() } }
+        // A set that stops being one to change — undone, say — ends the change with it.
+        .onChange(of: screen.editing) { _, now in if now == nil { editing = nil } }
     }
 
     // MARK: - Zone 1
@@ -255,58 +255,69 @@ private struct WorkoutScreenView: View {
 
     // MARK: - Zone 2
 
+    /// D81 (v1.10, §6.54): the exercise in symbols. The name with its dot, the ? when there is
+    /// something behind it, a dot per set, and the one card. No sentence: the target line went
+    /// into the card and behind the ?, the rows into the dots. *(v1.1–v1.9: the name, a target
+    /// line and a row per set.)*
     private var exerciseBlock: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
                 NavigationLink(value: HistoryRoute.exercise(name: screen.exerciseName,
                                                            units: session?.units ?? .kg)) {
-                    Text(screen.exerciseName)
-                        .font(.title2.weight(.semibold))
-                        .multilineTextAlignment(.leading)
-                }
-                .buttonStyle(.plain)
-                Text(screen.targetLine)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(typeSize.isAccessibilitySize ? 1 : 2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(screen.spoken)
-            .accessibilityHint("Opens this exercise's history")
-            .accessibilityAddTraits(.isButton)
-
-            InsetGroup {
-                // D56 (v1.6): at accessibility sizes only the current row, so the inputs and
-                // the button are on screen together; the rest are one tap away in Exercises.
-                ForEach(typeSize.isAccessibilitySize ? screen.rows.filter(\.isCurrent) : screen.rows,
-                        id: \.stepIndex) { row in
-                    HStack(spacing: 0) {
-                        Button { tapped(row) } label: { SetRowView(row: row, day: dayColour) }
-                            .buttonStyle(PressableRow())
-                            .disabled(row.isCurrent)
-                        // D59 (v1.6): Undo on the row that was just logged, where the eye is,
-                        // rather than at the far end of a wrapping line in the strip.
-                        if row.stepIndex == screen.undoStep {
-                            Button { Task { await model.undoLast() } } label: {
-                                Image(systemName: "arrow.uturn.backward.circle")
-                                    .font(.title3)
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.primary)
-                            .padding(.leading, 6)
-                            .accessibilityLabel("Undo the last set")
-                        }
+                    HStack(spacing: 10) {
+                        Circle()
+                            .fill(screen.exerciseMark == .todo ? DotView.grey : screen.exerciseMark.color(day: dayColour))
+                            .frame(width: 12, height: 12)
+                        Text(screen.exerciseName)
+                            .font(.system(size: 22, weight: .bold))
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                .buttonStyle(.plain)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(screen.spoken)
+                .accessibilityHint("Opens this exercise's history")
+                .accessibilityAddTraits(.isButton)
+                Spacer(minLength: 0)
+                if let notes = screen.notes { NotesButton(notes: notes) }
             }
+            .frame(minHeight: 44)
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 0) { dots }
+                WrapLayout(spacing: 0, lineSpacing: 0) { dots }
+            }
+            .frame(maxWidth: .infinity)
+
+            SetCardView(card: screen.card.showing(field: InputRules.repsValue(repsText)), day: dayColour)
         }
     }
 
-    private func tapped(_ row: SetRow) {
-        switch row.status {
-        case .logged, .skipped: editing = row.stepIndex
-        case .pending: Task { await model.apply(.jumpTo(step: row.stepIndex)) }
+    /// 18 pt dots 10 pt apart, each in a 28 × 44 pt target.
+    private var dots: some View {
+        ForEach(screen.dots, id: \.step) { dot in
+            Button { tapped(dot) } label: {
+                DotView(dot: dot, day: dayColour, selected: dot.step == screen.editing)
+                    .frame(width: 28, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(dot.spoken)
+            .accessibilityHint(dot.state == .done ? "Change this set" : dot.state == .todo ? "Do this set now" : "")
+            .accessibilityAddTraits(dot.step == screen.editing || (screen.editing == nil && dot.state == .now) ? [.isSelected] : [])
+        }
+    }
+
+    /// A filled dot changes that set in place; a grey one, slashed or not, is done now (`jumpTo`);
+    /// the blue one is the set already on — while changing another, it comes back to it.
+    private func tapped(_ dot: SetDot) {
+        switch dot.state {
+        case .done: editing = dot.step
+        case .now: editing = nil
+        case .todo:
+            editing = nil
+            Task { await model.apply(.jumpTo(step: dot.step)) }
         }
     }
 
@@ -328,6 +339,20 @@ private struct WorkoutScreenView: View {
                     if let note = timer.minimumNote {
                         Text(note).font(.footnote).foregroundStyle(.secondary)
                     }
+                }
+            } else if screen.inputs.seconds {
+                // D81: a logged hold being changed takes its seconds in a field, five at a tap —
+                // a cell's worth.
+                VStack(alignment: .leading, spacing: 6) {
+                    FieldLabel("Seconds")
+                    StepperRow(text: $repsText, keyboard: .numberPad, suffix: nil, label: "Seconds",
+                               focus: $focused, field: .reps,
+                               minus: { set(reps: InputRules.stepped(seconds: InputRules.secondsValue(repsText),
+                                                                     by: RepCells.secondsPerCell, up: false)) },
+                               plus: { set(reps: InputRules.stepped(seconds: InputRules.secondsValue(repsText),
+                                                                    by: RepCells.secondsPerCell, up: true)) },
+                               filter: { InputRules.seconds($0, previous: $1) },
+                               committed: {})
                 }
             } else {
                 VStack(alignment: .leading, spacing: 6) {
@@ -396,7 +421,10 @@ private struct WorkoutScreenView: View {
     // MARK: - Zone 5
 
     private var primaryEnabled: Bool {
-        screen.primary.kind == .log ? StepCard.canLog(repsText: repsText, isTimed: false) : true
+        switch screen.primary.kind {
+        case .log, .save: return StepCard.canLog(repsText: repsText, isTimed: false)
+        case .startTimer, .doneTimer, .stopTimer, .startSet: return true
+        }
     }
 
     private func primaryTapped() {
@@ -404,7 +432,7 @@ private struct WorkoutScreenView: View {
         Task {
             // The engine logs a timed set with the weight it is holding, so make sure that is
             // what the field shows before finishing one. Reps sets pass `current` directly.
-            if screen.inputs.showsWeight, screen.primary.kind != .log {
+            if screen.inputs.showsWeight, screen.primary.kind != .log, screen.primary.kind != .save {
                 await model.apply(.setWorkWeight(step: screen.step, weight: current))
             }
             switch screen.primary.kind {
@@ -420,6 +448,13 @@ private struct WorkoutScreenView: View {
             case .startSet:
                 // D57 (v1.6): the warm-up ends and the first set's card is live.
                 await model.apply(.skipRest)
+            case .save:
+                // D81 (v1.10): the Overview's edit sheet, made inline; then back to the set that is on.
+                guard let step = screen.editing, let value = InputRules.repsValue(repsText) else { return }
+                let result: SetResult = screen.inputs.seconds ? .duration(seconds: value, weight: current)
+                                                              : .reps(count: value, weight: current)
+                await model.apply(.editSet(step: step, result: result))
+                editing = nil
             }
         }
     }
@@ -431,7 +466,7 @@ private struct WorkoutScreenView: View {
     private func load(force: Bool = false) {
         guard force || loadedStep != screen.step else { return }
         loadedStep = screen.step
-        if let restored = model.takeRestoredInputs() {
+        if screen.editing == nil, let restored = model.takeRestoredInputs() {
             repsText = restored.reps.map(String.init) ?? restored.seconds.map(String.init) ?? ""
             weightText = InputRules.weightText(restored.weight)
         } else {
@@ -453,6 +488,8 @@ private struct WorkoutScreenView: View {
 
     /// The engine keeps the displayed weight so a timed set logs the same number the card shows.
     private func pushWeight() {
+        // A set being changed holds its own weight; the set that is on keeps the one it had.
+        guard screen.editing == nil else { return }
         Task { await model.apply(.setWorkWeight(step: screen.step, weight: current)) }
     }
 }
@@ -516,12 +553,14 @@ private struct StatusStripView: View {
                     Text(detail).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
-                // D59 (v1.6): the row carries Undo now; the strip keeps it only at accessibility
-                // sizes, where the list shows the current row alone.
-                if strip.undo != nil, typeSize.isAccessibilitySize {
-                    Button("Undo") { Task { await model.undoLast() } }
-                        .font(.footnote.weight(.medium))
-                        .accessibilityLabel("Undo the last set")
+                // D81 (v1.10): Undo is the strip's again, at every size, while the rest the set
+                // started runs — the rows that carried it since D59 are dots now.
+                if strip.undo != nil {
+                    Button { Task { await model.undoLast() } } label: {
+                        Label("Undo", systemImage: "arrow.uturn.backward")
+                    }
+                    .font(.footnote.weight(.medium))
+                    .accessibilityLabel("Undo the last set")
                 }
             }
         }
@@ -554,51 +593,145 @@ private struct StatusStripView: View {
     }
 }
 
-/// One row of the current exercise's sets (zone 2).
-private struct SetRowView: View {
-    let row: SetRow
-    /// D79 (v1.10): a logged row's tick is the day's colour, the current row's mark blue.
+/// D81 (v1.10, §6.54): one set as a dot, 18 pt — filled in the day's colour when done, a blue
+/// ring round a blue centre for now, a grey ring ahead, slashed when skipped. A ring in ink
+/// around it while its set is being changed.
+private struct DotView: View {
+    let dot: SetDot
+    let day: DayColour?
+    let selected: Bool
+
+    /// Not yet's grey as a stroke. `secondarySystemFill` all but vanishes as a 2 pt ring, as it
+    /// did as the rows' icon; the mock's grey is the system's third.
+    static let grey = Color(.systemGray3)
+
+    var body: some View {
+        ZStack {
+            switch dot.state {
+            case .done:
+                Circle().fill(dot.state.color(day: day))
+            case .now:
+                Circle().strokeBorder(Color.accentColor, lineWidth: 2.5)
+                Circle().fill(Color.accentColor).padding(5)
+            case .todo:
+                Circle().strokeBorder(Self.grey, lineWidth: 2)
+                if dot.skipped {
+                    Path { path in
+                        path.move(to: CGPoint(x: 4, y: 14))
+                        path.addLine(to: CGPoint(x: 14, y: 4))
+                    }
+                    .stroke(Self.grey, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                }
+            }
+            if selected {
+                Circle().strokeBorder(Color.primary, lineWidth: 2).padding(-5)
+            }
+        }
+        .frame(width: 18, height: 18)
+    }
+}
+
+/// D81 (v1.10, §6.54): the one card — the range and the weight at the left, the cells at the
+/// right in the card's state. White on the ground, the one shadow on the page.
+private struct SetCardView: View {
+    let card: SetCard
     let day: DayColour?
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                // An icon in the system fill would all but vanish; ahead, it stays grey text.
-                .foregroundStyle(row.mark == .todo ? Color.secondary : row.mark.color(day: day))
-                .frame(width: 18)
-            Text(row.label)
-                .font(.footnote)
-                .foregroundStyle(row.isCurrent ? .primary : .secondary)
-            Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 1) {
-                Text(row.value)
-                    .font(.footnote.monospacedDigit())
-                    .foregroundStyle(row.isCurrent ? .primary : .secondary)
-                if row.isCurrent, let last = row.lastTime {
-                    Text(last).font(.caption2).foregroundStyle(.secondary)
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(card.range)
+                    .font(.system(size: 15, weight: .bold).monospacedDigit())
+                if let unit = card.unit {
+                    Text(unit).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+                }
+                if let weight = card.weight {
+                    Text(weight).font(.system(size: 11, weight: .semibold).monospacedDigit()).foregroundStyle(.secondary)
                 }
             }
-            .multilineTextAlignment(.trailing)
-        }
-        .padding(.vertical, 7)
-        .frame(minHeight: 36)
-        .contentShape(Rectangle())
-        .background(alignment: .leading) {
-            if row.isCurrent {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.accentColor.opacity(0.10))
-                    .padding(.horizontal, -8)
+            .lineLimit(1)
+            .fixedSize()
+            WrapLayout(spacing: 3.5, lineSpacing: 2) {
+                ForEach(Array(card.cells.cells.enumerated()), id: \.offset) { i, cell in
+                    CellView(cell: cell, colour: colour)
+                        // A gap after every fifth, so 12–15 counts at a glance.
+                        .padding(.trailing, card.cells.cells.indices.contains(i + 1)
+                                 && card.cells.cells[i + 1].group != cell.group ? 3 : 0)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(row.isCurrent ? [.isSelected] : [])
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18))
+        .shadow(color: .black.opacity(0.10), radius: 11, y: 8)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel([card.range, card.unit, card.weight].compactMap { $0 }.joined(separator: " "))
     }
 
-    private var icon: String {
-        switch row.status {
-        case .logged: return "checkmark.circle.fill"
-        case .skipped: return "minus.circle"
-        case .pending: return row.isCurrent ? "circle.dotted" : "circle"
+    private var colour: Color {
+        card.colour == .todo ? DotView.grey : card.colour.color(day: day)
+    }
+}
+
+/// One rep: 8 × 22 pt, the line above it last time's, the caret beneath it the field's.
+private struct CellView: View {
+    let cell: RepCells.Cell
+    let colour: Color
+
+    var body: some View {
+        VStack(spacing: 3.5) {
+            RoundedRectangle(cornerRadius: 1)
+                .fill(cell.last ? Color.primary : .clear)
+                .frame(height: 2.5)
+            RoundedRectangle(cornerRadius: 2.5)
+                .fill(fill)
+                .frame(height: 22)
+            Path { path in
+                path.move(to: CGPoint(x: 4, y: 0))
+                path.addLine(to: CGPoint(x: 8, y: 5))
+                path.addLine(to: CGPoint(x: 0, y: 5))
+                path.closeSubpath()
+            }
+            .fill(cell.caret ? Color.primary : .clear)
+            .frame(height: 5)
+        }
+        .frame(width: 8)
+    }
+
+    /// Solid, or the colour at 24 % — yellow past the top of the range, at 30 % when faint.
+    private var fill: Color {
+        switch (cell.fill, cell.over) {
+        case (.solid, false): return colour
+        case (.faint, false): return colour.opacity(0.24)
+        case (.solid, true): return .yellow
+        case (.faint, true): return Color.yellow.opacity(0.30)
+        }
+    }
+}
+
+/// D81 (v1.10): the ?, a 24 pt circle in the secondary colour, and what is behind it.
+private struct NotesButton: View {
+    let notes: String
+    @State private var open = false
+
+    var body: some View {
+        Button { open = true } label: {
+            Image(systemName: "questionmark.circle")
+                .font(.system(size: 24, weight: .regular))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .accessibilityLabel("Notes")
+        .popover(isPresented: $open) {
+            Text(notes)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 300, alignment: .leading)
+                .padding(16)
+                .presentationCompactAdaptation(.popover)
         }
     }
 }

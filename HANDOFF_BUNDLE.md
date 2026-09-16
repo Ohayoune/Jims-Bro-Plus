@@ -216,7 +216,14 @@ and green on `v1.10-symbols`: P1 gave every mark on the Workout screen a state �
 screen tinted ink and Log set ink; and made the header the bar — `WorkoutBar` (`Core/WorkoutBar.swift`),
 a segment per block and a mark per set in one `Canvas`, a caret, the elapsed time, a tap that opens
 the Overview, and the stage spoken, not printed (`spokenHeader`). The Lock Screen's bar fills in the
-day's colour. P2–P7 are not built.
+day's colour. P2 put the exercise in symbols (D81, SPEC §6.54): zone 2 is the name with its state's
+dot, a **?** only when there are notes or a change behind it (`WorkoutScreen.notes`), a dot per step
+of the block (`SetDot`), and one card of cells (`SetCard`, `Core/RepCells.swift` — solid to the
+minimum, faint to the top, yellow past it, a caret that follows the field through
+`SetCard.showing(field:)`, a line over last time); a filled dot changes its set in place with
+**Save** (`editing`, the view's, never stored), a grey dot does its set now, and Undo is the strip's
+again during the rest. `StepCard.setRows` stays in Core for its tests; no screen draws a row.
+P3–P7 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -527,14 +534,15 @@ The chatbot round-trip is this app's premise, and the v1 screen — a JSON text 
 ### 4.5 Workout screen (v1.1, D22)
 One screen, five fixed zones, top to bottom, identical across every state below. Only the zones' contents change; none of them appears, disappears, or moves position between working, resting, a timed set, or a block having just finished.
 
-> **Build status**: built in R2. `WorkoutScreen.model(active:history:now:)` resolves the whole screen — zones, set rows, prefilled inputs, strip and primary action — as a `WorkoutScreenModel`, and the view only renders it, which is what makes "the zones never move" a unit test (O50) rather than a convention.
+> **Build status**: built in R2. `WorkoutScreen.model(active:history:now:)` resolves the whole screen — zones, set rows (since v1.10's D81, dots and a card), prefilled inputs, strip and primary action — as a `WorkoutScreenModel`, and the view only renders it, which is what makes "the zones never move" a unit test (O50) rather than a convention.
 
 1. **Header** (v1.10, D80, §6.53): **the bar**, and no words. The day's square at the left (v1.7, D65, §6.41), ⌄ and ··· at the right in the secondary label colour, and between them one segment per block in the order the day runs them — a 3 pt gap between segments, a tick at each set inside one, each set's mark in its state's colour (done the day's colour, now blue, not yet grey — D79, §6.52) — a caret under the segment being looked at, and the elapsed time, 11 pt monospaced, under the bar's right end. **Tap the bar** to open the Overview (§4.8), in every state including rest; the square, the bar and the elapsed time are one 44 pt target, and VoiceOver hears the stage in words (`WorkoutStage.title`, §6.15). Minimize returns to the tabs; the session and its timers keep running; Today shows the workout in progress with **Resume**. "···" holds Skip set, Skip exercise, Do later, **Change exercise** (v1.3, D42) and Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one. `WorkoutScreenModel.bar` (`WorkoutBar`, `Core/WorkoutBar.swift`) is everything the view draws, in one `Canvas`.
    *(v1.2–v1.9, D34: **Header** (v1.2, D34): the **stage** the workout is in, said in words, above a progress bar of the whole day — **Warm-up**, **Exercise 2 of 5 · Set 2 of 3**, **Resting**, **Between exercises** — led by a small square in the day's colour (v1.7, D65, §6.41), the header's one mark of which day it is. Then elapsed time · progress ("Exercise 2 of 5 · Set 2 of 3", or "· drop 1 of 2", or "A · round 2 of 3" for a superset member; **v1.6 (D56)**: omitted when it would only repeat the stage, which while working it did) · **Exercises** (opens the Overview sheet, §4.8, reachable in every state including rest) · minimize (returns to the tabs; the session and its timers keep running; Home shows "<Day> in progress · <elapsed>" with **Resume**) · "···" (Skip set, Skip exercise, Do later, **Change exercise** — v1.3, D42 — Finish workout — Rename exercise moved to Session detail, a history-editing task, not a mid-workout one).)*
-2. **Exercise block**: the exercise's name (opens its history) and target line (with notes, truncated to one line), then the current exercise's set rows: finished rows show what was logged ("✓ 10 @ 80") and never how long it took (D19), the current row is highlighted with its target and last-time value, upcoming rows show their targets. A row carries the set's own target only — the exercise's notes appear once, on the target line above, rather than repeating on every row. In a block holding more than one exercise (a superset round) each row names its exercise instead of repeating the shared group tag, which would otherwise make two rows read identically. A superset shows the current round's members. Tapping a finished row opens the edit sheet; tapping an upcoming row jumps to it (§6.6 `jumpTo`).
+2. **Exercise block** (v1.10, D81, §6.54): **in symbols, and no sentence.** Top to bottom: **the name**, 22 pt bold, opening the exercise's history, led by a dot in the exercise's state (D79 — blue while one of its sets is now, the day's colour once every set is logged, grey ahead); in a superset block the name is the current step's exercise, changing as the round alternates. **The ?** at the right, a 24 pt circle in the secondary colour, opens a popover with the exercise's notes — and, for an exercise changed mid-workout (D42), *"was Barbell Row"* first — and is **present only when there is something behind it** (D56). **The dots**, one per step of the block, centred: filled in the day's colour when done, a blue ring round a blue centre for now, a grey ring ahead, a grey ring slashed for a skipped step; a drop is a step and so a dot, and a superset's rounds are its steps in order. **Tap a filled dot** to change that set in place: the card shows what was logged, the inputs take it and the primary reads **Save**; **tap a grey dot**, slashed or not, to do that set now (§6.6 `jumpTo`); the blue dot is the set already on — while another is being changed, it comes back to it. **The card**, the one card on the page and the only shadow, showing the set the dots point at: its range and weight at the left (**8–10** over *26 kg*; **30+** over *sec* for a hold), its **cells** at the right, one per rep (§6.54's rules). The Overview and Session detail keep their rows and the edit sheet (§4.8).
+   *(v1.1–v1.9: **Exercise block**: the exercise's name (opens its history) and target line (with notes, truncated to one line), then the current exercise's set rows: finished rows show what was logged ("✓ 10 @ 80") and never how long it took (D19), the current row is highlighted with its target and last-time value, upcoming rows show their targets. A row carries the set's own target only — the exercise's notes appear once, on the target line above, rather than repeating on every row. In a block holding more than one exercise (a superset round) each row names its exercise instead of repeating the shared group tag, which would otherwise make two rows read identically. A superset shows the current round's members. Tapping a finished row opens the edit sheet; tapping an upcoming row jumps to it (§6.6 `jumpTo`).)*
 3. **Inputs**: small-caps labels **REPS** and the unit (**KG**/**LB**) above the − value + rows; the weight row is omitted for bodyweight exercises (D21); an empty weight field reads *tap to type* in the secondary colour inside a soft outline, so a plan without weights (D46) does not show a blank gap between − and + (v1.6, D56), and while the field is empty and the exercise has no history one line under it says why — *"Type the weight you lift. The app remembers it from then on."* (`InputDefaults.weightHint`, v1.6, D57); a "72.5 suggested" chip appears under the weight when §6.11 produced one. Timed sets replace the reps row with the timer block described below; the weight row stays unless bodyweight.
-4. **Status strip** (always present; its content depends on phase, per §4.6/§4.7 below). **v1.6 (D56)**: while a field is focused its trailing slot holds **Done**, which closes the keyboard — the system keyboard toolbar drew Done as a floating pill over the lower half of the primary button on iOS 26. At accessibility text sizes the strip drops its next-set line and the set list shows the current row only, so the inputs and the button are on screen together.
-5. **Primary action**, bottom-anchored above the keyboard, full width: **Log set** while working or resting (logging during rest ends the rest early); **v1.6 (D57)**: during the *warm-up* the button reads **Start first set** and ends the warm-up (`skipRest`) — nothing has been done yet, so it never logs — while between-set and between-exercise rests keep Log set; **Start timer** / **Done** / **Stop** for a timed set, per D20. When the step waiting on the far side of a rest is a timed one, **Start timer** ends that rest and starts the work in the same tap, exactly as logging out of a rest does — the one button in the one slot is never inert.
+4. **Status strip** (always present; its content depends on phase, per §4.6/§4.7 below). **v1.6 (D56)**: while a field is focused its trailing slot holds **Done**, which closes the keyboard — the system keyboard toolbar drew Done as a floating pill over the lower half of the primary button on iOS 26. At accessibility text sizes the strip drops its next-set line, so the inputs and the button are on screen together; since v1.10 (D81) zone 2 is the name, a row of dots and one card, whose cells wrap. *(v1.6–v1.9: the set list also showed the current row only.)*
+5. **Primary action**, bottom-anchored above the keyboard, full width: **Log set** while working or resting (logging during rest ends the rest early); **v1.6 (D57)**: during the *warm-up* the button reads **Start first set** and ends the warm-up (`skipRest`) — nothing has been done yet, so it never logs — while between-set and between-exercise rests keep Log set; **Start timer** / **Done** / **Stop** for a timed set, per D20; **v1.10 (D81)**: **Save** while a logged set is being changed from its dot, which applies `.editSet` and returns to the set that is on. When the step waiting on the far side of a rest is a timed one, **Start timer** ends that rest and starts the work in the same tap, exactly as logging out of a rest does — the one button in the one slot is never inert.
 
 After logging, a step's seconds (D19) remain editable in the Overview like any other value.
 
@@ -547,7 +555,7 @@ There is one rest in the app, and it says which of three kinds it is, because "a
 | **Rest** | Between sets of an exercise, and after a superset round | The set's resolved `restSeconds` (§6.3) |
 | **Between exercises** (D33) | After a block's last step, before the next exercise | `Settings.transitionRestSeconds`, 0 = straight through, as v1.1 |
 
-The strip shows: the kind, named; the countdown m:ss; −30 s / +30 s; **Skip** (whose label names the kind — "Skip rest", "Skip warm-up"); and "Set logged · **Undo**" (D23) for as long as the rest runs. **v1.6 (D59)**: Undo sits on the set row that was just logged (↺ beside its tick, `WorkoutScreenModel.undoStep`); the strip keeps its own Undo only at accessibility text sizes, where the list shows the current row alone. While working with nothing to report the strip says what the button will start — "Rest 1:30 starts when you log", or "Then on to Barbell Row" on a block's last set (`WorkoutScreen.idleLine`) — rather than sitting blank. Alert at zero (§6.4); at zero the strip reads "Rest over · +0:12" (or "Warm-up over") until the next log. "set 0:34" (how long the set just logged took, D19) appears in the strip in small text, never as the largest element on the screen.
+The strip shows: the kind, named; the countdown m:ss; −30 s / +30 s; **Skip** (whose label names the kind — "Skip rest", "Skip warm-up"); and "Set logged · **Undo**" (D23) for as long as the rest runs — **v1.10 (D81)**: at every text size again, during the rest the set started or the moment its block ended, and not after; from then on the set's dot is the way to change it (§4.5). *(v1.6–v1.9, D59: Undo sat on the set row that was just logged, ↺ beside its tick, and the strip kept its own only at accessibility text sizes.)* `WorkoutScreenModel.undoStep` is still the step Undo would take back. While working with nothing to report the strip says what the button will start — "Rest 1:30 starts when you log", or "Then on to Barbell Row" on a block's last set (`WorkoutScreen.idleLine`) — rather than sitting blank. Alert at zero (§6.4); at zero the strip reads "Rest over · +0:12" (or "Warm-up over") until the next log. "set 0:34" (how long the set just logged took, D19) appears in the strip in small text, never as the largest element on the screen.
 
 None of the three gates anything. The next set's card is already on screen and the primary button works throughout — logging (or starting a timed set) during any of them ends it early, exactly as v1.1's rest did.
 
@@ -980,7 +988,7 @@ The path a stranger takes, made to ask for nothing it has not explained. The aud
 Where the eye lands, and what looks tappable. The audit's great-grandparent tapped headers that were blue and missed links that were small; the coach asked for presets and a search they could see.
 
 - **Today** (§4.1; Home until v1.7): Start in the bottom slot, like every primary button; headers in ink; planned days on the grid — History's since v1.7 (D63) — as a label, not a box. *(v1.6: also "the small actions as bordered buttons that wrap"; v1.7's D61 moved them into the ···.)*
-- **The workout** (§4.5, §4.6): Undo on the logged row; the idle strip names what the button will start; Plan detail's Start is a button.
+- **The workout** (§4.5, §4.6): the idle strip names what the button will start; Plan detail's Start is a button. *(v1.6–v1.9: also Undo on the logged row; since v1.10, D81, the rows are dots and Undo is the strip's again.)*
 - **Plans** (§4.3, §4.4): "kg · repeats every 7 days"; chips that wrap; an Add exercise row per day; **Use this plan** for "Set as current plan" and "Set as active"; the plan in use marked with a check in the list. *(v1.6–v1.8. Since v1.9, D78, §6.51: the list's filled circle is the mark, **Use *name*** in the bottom slot is the button, and Use this plan left Plan detail.)*
 - **History** (§4.10): labelled rows; a Find an exercise row.
 - **Settings** (§4.11, §8.6): duration presets; sentences without "prompt", "imports" or "Xcode"; the goal sheet said the app never nags (the sheet went with goals, D68).
@@ -1006,7 +1014,7 @@ The seam is unchanged: `ActivityPresenting` still has only `show` and `end`, so 
 ### 6.36 Plain words (D58, v1.6)
 The 2026-09-09 audit's largest finding was not a defect. "5 (4–6) · 100 kg · last 10 @ 100" is correct, dense and exactly what a coach reads at a glance — and it was the single biggest reason the audit's other two readers, a great-grandparent and a five-year-old, could not read the screen at all. Two readings went to the owner; **Reading B** was chosen: the app speaks plainly by default, and the notation becomes a setting.
 
-`Wording` (`.plain` / `.compact`) is chosen in one place — `Settings.compactNotation`, off on a fresh install and absent from any file written before v1.6, which reads as off. `WorkoutScreen.model(settings:)` passes it down; no view decides for itself.
+`Wording` (`.plain` / `.compact`) is chosen in one place — `Settings.compactNotation`, off on a fresh install and absent from any file written before v1.6, which reads as off. `WorkoutScreen.model(settings:)` passes it down; no view decides for itself. **Its reach since v1.10 (D81, §6.54)**: the Workout screen's exercise block has no sentence to choose for — the target line and the rows became a card and dots — so the switch reaches the screens that still speak (the Overview, Session detail, the Summary, History, the Lock Screen) and, on the Workout screen, only the strip's next line. `StepCard.setRows` keeps the rows' grammar for its tests.
 
 | | Compact (v1.5, and the switch) | Plain (the default) |
 |---|---|---|
@@ -1316,13 +1324,13 @@ The owner's words, over four drawings of the "Symbols, Round Two" mock (`docs/IT
 
 | State | Colour | Where it shows |
 |---|---|---|
-| **Done** — logged, or skipped and then given a result | the day's colour (§6.41), grey when the day has none, as History draws it | the bar's done sets; a logged set row's tick; the Lock Screen's bar |
-| **Now** — the current set, and only it | **blue**, the accent | the bar's one blue mark; the current set row's mark and highlight |
-| **Not yet** — every set ahead, and a skipped set | grey (`secondarySystemFill`) | the bar's track and the sets ahead on it |
+| **Done** — logged, or skipped and then given a result | the day's colour (§6.41), grey when the day has none, as History draws it | the bar's done sets; a done dot; the card's cells while a logged set is changed; the exercise's dot once every set is logged; the Lock Screen's bar |
+| **Now** — the current set, and only it | **blue**, the accent | the bar's one blue mark; the blue dot; the card's cells for the set that is on; the exercise's dot while one of its sets is now |
+| **Not yet** — every set ahead, and a skipped set | grey (`secondarySystemFill`; as a 2 pt ring, the system's third grey, since the fill all but vanishes as a stroke) | the bar's track and the sets ahead on it; a grey dot, slashed when skipped; the exercise's dot ahead |
 
-P2's dots, cells and the exercise's own dot join the table's third column when they land (D81).
+*(v1.10 P1: a logged set row's tick, and the current row's mark and highlight, until P2's dots replaced the rows — D81.)*
 
-- **One rule, written once.** `MarkState` (`Core/WorkoutMarks.swift`, Foundation only, compiled into the extension too) and `MarkState.of(step:session:)` (`Core/WorkoutBar.swift`, beside its first caller, since the rule reads a running workout and the extension builds none): a logged step is done; the step the workout is on — the working step, or the one a rest leads to (`ActiveSession.currentStep`) — is now; every other step, a skipped one included, is not yet. A set row carries its state (`SetRow.mark`).
+- **One rule, written once.** `MarkState` (`Core/WorkoutMarks.swift`, Foundation only, compiled into the extension too) and `MarkState.of(step:session:)` (`Core/WorkoutBar.swift`, beside its first caller, since the rule reads a running workout and the extension builds none): a logged step is done; the step the workout is on — the working step, or the one a rest leads to (`ActiveSession.currentStep`) — is now; every other step, a skipped one included, is not yet. The exercise's own dot is `MarkState.of(exercise:session:)`, beside it (D81).
 - **Blue is reserved on this screen.** §4.0's *the accent says tappable* holds everywhere else; on the Workout screen the accent says *now* and nothing else is blue. The primary button is **ink** — label colour with the system background as its label, black in light and white in dark (`PrimaryButton(ink:)`) — ⌄ and ··· are the secondary label colour, and every other control takes ink, the screen being tinted `.primary`: the suggestion chip, the rest capsules, the keyboard's Done and Undo. The empty weight's outline was already grey. The rest-over figure and a timed set's warning keep the accent: both are the current set's. *(The plan's choice, C2 on the mock; the alternative is the day's colour on Log set. Blue on the button is the one answer ruled out, because it would unreserve the colour.)*
 - **Grey has one job.** Not "disabled", not "secondary": *not yet*. Nothing on the screen is disabled, since every control is earned before it appears (§6.40).
 - **The view layer maps a state to a `Color` in `DaySquare.swift`**, beside the day colours (T23, TP2): done → the day's colour or the no-colour grey (`DaySquare.noColour`), now → `.accentColor`, not yet → `Color(.secondarySystemFill)`. None is red, amber or yellow: the walk's ring (P3) is a traffic light — a duration, not a set — and yellow past the top of a range (P2) is a warning, as §6.41 keeps it.
@@ -1338,6 +1346,28 @@ Zone 1 loses its words (§4.5). What left: the stage title (*Exercise 2 of 5 · 
 - *(The owner wrote "a visual marking at each of the different set percentages … a smaller visual marker for each exercise" — sets the larger mark. The plan draws exercises as the larger unit because five gaps read and sixteen notches do not, the reading the owner reviewed through four draws without correction; round 1's notches-and-dots is the alternative.)*
 
 **Core decides it** (§6.37): `WorkoutBar` — `segments`, each with `blockIndex`, `weight`, `sets: [MarkState]` and `caret` — built by `WorkoutBar.of(session:showing:)`; `WorkoutScreenModel` gains `bar` and `spokenHeader` and loses nothing — `stage`, `completion`, `elapsed` and `progress` stay for the Lock Screen, the spoken line and the tests. The view draws the bar in one `Canvas`, no view per set: a sixteen-set day is one shape (TP1–TP6).
+
+### 6.54 The exercise in symbols (D81, v1.10)
+Zone 2 loses its sentences (§4.5). What left: the target line (*"Aim 8–10 reps · 26 kg · Bench at 30°"*), the set rows with their labels, values and *"Last time 9 × 26 kg"*, and D59's ↺ on the row. What replaced them: **the name** with its dot, **the ?**, **the dots** and **the card**. The owner, over the round-two mock: *"remove the plus and minus for the set, the upper end of the range transparent."*
+
+**The cells** — the format of a mark, so written out:
+
+- **One cell per rep**; for a timed set **one per five seconds, rounded up** — 30–45 s would be nine cells, six solid (`RepCells.secondsPerCell`).
+- **A target** (the set that is on): **solid to the minimum**, **faint** — the colour at 24 %, no outline — **to the top of the range**. A range of one is all solid; a range with no top (as many as you can, a hold with a minimum) draws the minimum alone. A **caret** in ink beneath the cell of the number in the field — the number and the cells never disagree, so the caret moves as the number is typed or stepped. A hold waiting to start has no field and no caret.
+- **Past the top of the range** the extra cells are **yellow** — faint on a target, solid on a logged set: a warning, not a state (§6.52). Past a minimum with no top there is no top to pass, so the cells are faint, never yellow.
+- **A logged set** (a set being changed): solid to what was done, faint up to the top of the range. The cells follow the field as it changes.
+- **Last time**: a 2.5 pt line in ink above the cell the same set reached last time (`Prefill.historicalResult`, the number `SetRow.lastTime` spoke). When last time went past everything else on the card, its cell is drawn.
+- **A gap after every fifth cell**, so 12–15 counts at a glance; 8 × 22 pt each, 3.5 pt apart, wrapping onto another line when the range is long; **at most sixty cells** — three lines — because a field holds 999 reps and a hold 99,999 seconds.
+- **The range as the card writes it**: *8–10*; *8* for a range of one; *8+* with a minimum and no top; *max* with neither. A fixed count inside the exercise's range draws and writes the range, as the plain target line said it (§6.36). The line under it is the set's **weight** (*26 kg*), what the set asks rather than what the field holds, and *sec* for a hold.
+- **The card's colour** is its set's state: now for the set that is on, done for a logged set being changed, not yet for one looked at ahead (P4's pages, D83).
+
+**The dots** are 18 pt with 10 pt between, each in a 28 × 44 pt target, wrapping when a block has more than a line holds. A dot being changed wears a ring in ink. VoiceOver hears each as *"Set 2 of 3, done"* (`SetDot.spoken`), with *skipped*, *now* or *not yet* for the others.
+
+**Changing a set in place.** A tapped filled dot makes the model's `editing` that step — the view's state, passed to `WorkoutScreen.model(…, editing:)` and never stored, as Today's `shownOffset` is; a step that is not a logged one of the block is ignored, so an undone set ends the change. The inputs take the logged result — reps, or seconds for a hold, stepped five at a tap — the primary reads **Save** (`PrimaryAction.Kind.save`), and Save applies `.editSet` and comes back to the set that is on. A skipped set is given a result from the Overview (D27), not from its dot, which does it now. The Overview's edit sheet and Session detail's stay; the Workout screen no longer opens one.
+
+**Undo** is the strip's again (§4.6): during the rest the set started, or the moment its block ended, at every text size.
+
+**Core decides it**: `Core/RepCells.swift` — `RepCells { cells }`, each `Cell { fill: solid | faint, over, caret, last, group }`, built by `RepCells.target(_:reps:lastTime:)`, `.logged(_:result:lastTime:)` and `.timed(_:seconds:logged:lastTime:)` from `RepCells.Bounds.of(_:range:)`; `Core/WorkoutScreen.swift` — `SetDot { step, state, skipped, spoken }`, `SetCard { range, unit, weight, cells, colour, bounds, timed, lastTime }` with `showing(field:)` so the view redraws the cells for the number in the field without computing them, `WorkoutScreen.notes`, `InputDefaults.seconds`, and on the model `exerciseMark`, `notes`, `dots`, `card` and `editing` in place of `targetLine` and `rows`. `StepCard.setRows`, `rowLabel` and `targetLine` stay in Core — the Overview and Session detail speak with the last two, and the first keeps its tests (TP8–TP16).
 
 ## 7. Data model (Core, Codable, no UI imports)
 
@@ -2661,7 +2691,7 @@ is testable without a phone; Q71–Q73 need the device and live in `DEVICE_CHECK
 | W4 | unit | (D42, v1.3) Change an exercise before any of its sets, with a weight | Renamed in place: same exercise count, same step order and blocks, `substitutedFor` set, every target at the new weight, the card's prefill re-read |
 | W5 | unit | (D42, v1.3) Change it after one set was logged, mid-rest | A second `SessionExercise` with `replaces` pointing back; the logged step keeps the old name, the pending steps take the new one; the rest is untouched; the rows show both, named |
 | W6 | unit | (D42, v1.3) The substitute has its own history | Prefill, the card's weight, "last time" and the suggestion all read the substitute's last session, not the original's and not the plan's target |
-| W7 | unit | (D42, v1.3) The header after a split | Still "Exercise 1 of 3 · Set 2 of 2"; the exercise's line ends "· was Bench Press"; no row repeats it |
+| W7 | unit | (D42, v1.3) The header after a split | Still "Exercise 1 of 3 · Set 2 of 2"; the exercise's line ends "· was Bench Press"; no row repeats it. *(v1.10, D81: the Workout screen's ? leads with "was Bench Press"; `StepCard.targetLine`, the Overview's, still ends with it)* |
 | W8 | unit | (D42, v1.3) Finishing the substitute at the top of the range | The substitute earns the increase; the original, with one set, earns nothing; the block-done line names the substitute |
 | W9 | unit | (D42, v1.3) A superset member | Substituted alone; the group and the round are unchanged; the round's rows name all three |
 | W10 | unit | (D42, v1.3) A blank name, an unknown index, a bad weight, the same name with no weight, nothing pending, a finished session | Each refused with no effects; the same name *with* a weight changes the remaining targets' weight and nothing else |
@@ -2898,14 +2928,14 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | U25 | unit | (D59, v1.6) `WorkoutScreen.idleLine` and the idle strip | "Rest 1:30 starts when you log" on a set with rest after it; "Then on to <exercise>" on a block's last set; nil on the day's last set; the working strip's title carries it |
 | U26 | unit | (D59, v1.6) `ExerciseText.summary` | Minutes, sets, and "… kg lifted"; no clock-time duration |
 | U27 | ui | (D59, v1.6) Home | Start above the tab bar; "This week" in ink; Preview / Another day as small bordered buttons; planned days as labels without boxes, today outlined |
-| U28 | ui | (D59, v1.6) The workout | ↺ on the row just logged; the strip's Undo only at accessibility sizes; the idle strip reads "Rest … starts when you log" |
+| U28 | ui | (D59, v1.6) The workout | ↺ on the row just logged; the strip's Undo only at accessibility sizes; the idle strip reads "Rest … starts when you log". *(v1.10, D81: the rows are dots and Undo is the strip's at every size, during the rest — TP13, TP15)* |
 | U29 | ui | (D59, v1.6) Plan detail and the review | "kg · repeats every 7 days"; chips wrapping onto a second line; an Add exercise row and a bordered Start per day; **Use this plan** in the menu and on the review's toggle; a check on the plan in use in the list |
 | U30 | ui | (D59, v1.6) History and Settings | "28 min · 16 sets · 13,920 kg lifted" rows; a Find an exercise row that lists every exercise; preset buttons under the three duration rows, the current one tinted; the rewritten footers |
 | U31 | unit | (D60, v1.6) A launch with no workout | `AppModel.load` calls `end()` once even though it has shown nothing — an activity left by a run that was killed is not the app's to remember, and it is the app's to clear |
 | U32 | unit | (D60, v1.6) A launch mid-workout | The resumed state is pushed exactly once, `end()` is not called, and `shownActivity` is the state of the session on disk; an unchanged tick after it pushes nothing |
 | U33 | device | (D60, v1.6) The real activity on the phone | Start a workout, force-quit the app mid-rest, reopen: one activity, still counting, not two. Finish it — the Island and the Lock Screen clear. Force-quit mid-rest, then open the app on a day with no workout: the leftover activity goes within a second |
 | U34 | unit | (D58, v1.6) The plain grammar | `TargetText.target` reads "Aim 4–6 reps · 100 kg" (and the same for a fixed 5 inside 4–6), "As many reps as you can", "Aim at least 10 reps", "For 45 seconds", "For at least 30 seconds", "… · stop 2 short of failure"; `summary` reads "3 sets of 8–12 reps · 60 kg" and "… · then lighter, as many as you can"; `setLine` reads "Set 1 of 2 · paired with <partner>" and "lighter set 1 of 1"; a row that names its exercise carries no pairing; the current row's second line is "Last time 9 × 60 kg" and no row contains "@" |
-| U35 | unit | (D58, v1.6) Compact notation | `Settings().wording == .plain`; with `compactNotation` on, the same screen reads "8–12 · 60 kg" and "last 9 @ 60"; the setting round-trips through the store, and a file written before v1.6 reads as off |
+| U35 | unit | (D58, v1.6) Compact notation | `Settings().wording == .plain`; with `compactNotation` on, the same screen reads "8–12 · 60 kg" and "last 9 @ 60" (since v1.10, D81: `StepCard.targetLine` and `setRows` read them, and the Workout screen's card and dots are the same either way); the setting round-trips through the store, and a file written before v1.6 reads as off |
 | U36 | unit | (D58, v1.6) What the setting must not reach | `Prompts.render` is byte-identical with the switch on and off |
 | U37 | ui | (D58, v1.6) Settings → Compact notation | The toggle sits under Keep screen awake; its footer quotes the forms in force; turning it on changes the workout card, the set rows, Plan detail, the review, the Overview, Session detail and the Summary together |
 
@@ -3136,6 +3166,22 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 | TP5 | unit | (D80, v1.10; extends O50) The header speaks the stage | In the warm-up, working, resting, between exercises and a running timed set: the five zones in order, five segments, one caret and one `now`, and `spokenHeader` is `stage.title` — "Warm-up", "Exercise 1 of 5 · Set 1 of 4", "Resting", "Between exercises"; the walk's caret is under the exercise it leads to, the timed set's under Plank |
 | TP6 | unit | (D80, D79, v1.10, pin) No words in zone 1 but the elapsed time | Zone 1 of `WorkoutView.swift`, comments aside, has one `Text(` — `Text(screen.elapsed)` — and no `stage.title`, `progressLine`, "Exercises", `ProgressView` or percentage; it draws `BarView(bar: screen.bar, day: dayColour)`, the day's square, ⌄ and ···, speaks `screen.spokenHeader`, and sets `showOverview = true`. The screen's `PrimaryButton` is `ink: true`, the screen is tinted `.primary`, and the bar is a `Canvas` (source reads on the host routes) |
 | TP7 | device | (D80, v1.10) The bar at sixteen sets on a 6.1-inch screen | Ticks visible, gaps visible, the blue mark findable at arm's length — in light and in dark |
+
+### P2 — The exercise in symbols (D81)
+
+`JimmsBroTests/SymbolsTests.swift` (TP8–TP15), on the same example, with last week's Push — Incline 10, 9, 8 — as history where last time matters. `RepCells` is `Core/RepCells.swift`'s; `SetDot`, `SetCard` and `WorkoutScreen.notes` are `Core/WorkoutScreen.swift`'s; `MarkState.of(exercise:session:)` is beside `of(step:)`. `WorkoutScreenModel` lost `targetLine` and `rows` and gained `exerciseMark`, `notes`, `dots`, `card` and `editing`; `SetRow` lost P1's `mark`, which nothing sets now. Five earlier cases changed, each keeping its assertions: **O57** and **U34** read `StepCard.setRows` directly rather than through the screen, **U35** reads `targetLine` and `setRows` for the two notations and checks the card and dots are the same under both, **W7** reads the ? and the Overview's line, and **TP1** reads Incline's dots where it read its rows. **TP13** also carries the strip's Undo — during the rest the set started, not after — which the plan left unnumbered. **TP15** was proposed as a ui case and landed as a source pin, as TP6 did.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| TP8 | unit | (D81, v1.10) `RepCells.target` | 8–10 at 10 reps: ten cells, eight solid, two faint, the caret under the tenth, groups 0 × 5 then 1 × 5, none yellow, no line. At 12: twelve cells, the eleventh and twelfth yellow and faint, the caret under the twelfth. At 6: ten cells and the caret under the sixth; no number, no caret. 8 alone: eight solid. A minimum of 10 with no top: ten solid; at 13, three faint and none yellow. Last time 11 on 8–10: eleven cells, the line over the eleventh. 999 reps: sixty cells. `Bounds.of`: a fixed 10 in 8–12 is 8–12; a fixed 5 is 5–5; AMRAP is 0 with no top; 45 s is 45–45; an open hold of 30 is 30 with no top. `SetCard.range`: "8–10", "8", "10+", "max" |
+| TP9 | unit | (D81, v1.10) `RepCells.logged` | 12 on 8–10: twelve cells, ten solid and two yellow solid, no caret; 6: ten cells, six solid, four faint, none yellow |
+| TP10 | unit | (D81, v1.10) `RepCells.timed` | Five seconds a cell. 30–45 s: nine cells, six solid, three faint, no caret; 50 s logged: ten solid, the tenth yellow; 32 s: seven cells; last time 41 s: the line over the ninth |
+| TP11 | unit | (D81, v1.10) The card and last time | On the example with last week: range "8–10", weight "26 kg", no unit, colour `now`, `lastTime` 9 and the line over the ninth cell, the caret under the cell of the number in the field; `showing(field: 7)` moves the caret to the seventh and keeps the line and ten cells. With no history: no `lastTime`, no line. Plank's card: "30+", "sec", no weight, six cells, no caret |
+| TP12 | unit | (D81, v1.10) The dots | Bench with three logged: done, done, done, now. The example: Incline's steps 4, 5, 6 as done, now, todo, spoken "Set 1 of 3, done", "Set 2 of 3, now", "Set 3 of 3, not yet"; the exercise's dot `now`, Bench's `done`, Lateral Raise's `todo`. Skip step 5: todo slashed between done and now, "Set 2 of 3, skipped"; skip Incline: its dot `todo`. Two sets with a lighter set each: four dots. A superset of two × two, one logged: steps 0–3 as done, now, todo, todo, and the name is Row |
+| TP13 | unit | (D81, v1.10) Changing a logged set in place | Resting after Incline's first set: no `editing`, Log set, "Set logged · Undo". `editing: 4`: Save (`.save`), the inputs "10" and "26" with the weight shown, no seconds, no chip; the card `done` with ten solid cells, twelve in the field draws two yellow; the step still 5, the dots and zones unchanged. `editing` 6 (pending), 0 (Bench's) and 99: ignored, Log set. `.editSet` to 9 × 26: the result changes, the card is `now` on step 5 with Log set, and the rest still runs. Skip the rest: `canUndo` still, and no Undo in the strip. A logged 40 s hold: `editing: 0` takes "40" as seconds, no weight, no timer, a "sec" card of eight cells — without `editing` the timer is back; undo the hold and `editing: 0` is ignored |
+| TP14 | unit | (D81, v1.10) The ? | Incline with no notes and no change: nil. Notes "  Bench at 30°.  ": "Bench at 30°."; whitespace alone: nil; a change from Barbell Row: "was Barbell Row", with notes after it on the next line; a plan's Bench with notes: the screen's `notes` are them |
+| TP15 | unit | (D81, v1.10, pin) No sentence in zone 2 | Zone 2 of `WorkoutView.swift`, comments aside, has one `Text(` — `Text(screen.exerciseName)` — and no `targetLine`, `screen.rows`, `SetRowView`, `InsetGroup` or string literal in a `Text`; it draws `SetCardView(card: screen.card.showing(field: InputRules.repsValue(repsText)), day: dayColour)`, `NotesButton`, `DotView`, the history route and the spoken line, jumps on a grey dot and edits on a filled one. `SetCardView` has three `Text(`s: the range, the unit, the weight. The file has no `EditResultSheet`, applies `.editSet` on Save, and shows the strip's Undo at every size (source reads on the host routes) |
+| TP16 | device | (D81, v1.10; extends D56's row) Zone 2 at accessibility text sizes | At accessibility XL on a 6.1-inch phone: a long range's cells wrap inside the card, the dots wrap, and the inputs and Log set stay on screen — in light and in dark |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -6677,23 +6723,26 @@ v1.9 — *"I want to make everything symbols, and the app colorful"*. Each miles
 whole suite green on all three routes, a Release build and `tools/check_release.py`, and one
 commit on `v1.10-symbols`.
 
-After P1:
+After P2:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **374 tests, 20 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P1 adds two (TP2, TP6) |
-| `swift test` | **373 tests, 0 failures** |
-| `python3 tools/check_core.py` | **373 bodies, 7,458 assertions, 0 failures** |
-| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; P1 touches no pipeline) |
-| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'` | **BUILD SUCCEEDED** — the widget extension compiles `WorkoutMarks.swift` |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` | **382 tests, 21 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P2 adds one (TP15) |
+| `swift test` | **381 tests, 0 failures** |
+| `python3 tools/check_core.py` | **381 bodies, 7,637 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; P2 touches no pipeline) |
+| `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.9 (1); 1.10 is P7's |
-| `python3 tools/check_bundle.py` | **current** (regenerated in P1) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in P2) |
+
+The simulator route and the Release build ran before the last change, the debug-only `-uiEditSet` launch argument (inside `#if DEBUG`, so Release compiles none of it); the Debug build that took the screenshots compiled it, and the host routes ran after it.
 
 | Milestone | What it did | State |
 |---|---|---|
 | P0 | The plan, the branch, the mocks (the "Workout in Symbols" and "Symbols, Round Two" artifacts, not committed) | Done |
 | P1 | Three states, three colours (D79) and the header is the bar (D80). `MarkState` — done, now, todo — in `Core/WorkoutMarks.swift`, Foundation only and compiled into the widget extension, since `DaySquare.swift` maps a state to its colour there (done the day's colour or the no-colour grey, now the accent, todo `secondarySystemFill`); the rule, `MarkState.of(step:session:)`, in `Core/WorkoutBar.swift` beside `WorkoutBar`, because it reads an `ActiveSession` the extension does not build. `ActiveSession.currentStep` became the one "step the workout is on", read by the engine and `AppModel`. `WorkoutBar.of(session:showing:)`: a segment per block in `SessionBlocks` order, weighted by its set count, a state per step, the caret under the current step's block. `WorkoutScreenModel` gained `bar` and `spokenHeader` (the stage, exactly) and `SetRow` its `mark`; nothing left the model. Zone 1 is the day's square, `BarView` — one `Canvas`: rounded segments 3 pt apart, each set filled in its state's colour and cut by a 1 pt tick, an ink caret — and the elapsed time under the bar's right end, one 44 pt button that opens the Overview and speaks the stage, then ⌄ and ··· in the secondary colour, centred on the bar's track. The screen is tinted `.primary`, so the capsules, Done, Undo and the chip are ink; **Log set** is ink (`PrimaryButton(ink:)`); the set rows' ticks take the day's colour. The Lock Screen's bar fills in the day's colour. SPEC §4.0, §4.5, §4.8, §6.15, §6.17, §6.40 (the bar's tap, ungated), §6.41 (the fifth place) and the new §6.52 and §6.53; TP1–TP7, T21 and T23 amended; the log | Done |
-| P2–P7 | The exercise in symbols, the walk, pages, the pace, Change *day* in squares, docs and 1.10 | Not started |
+| P2 | The exercise in symbols (D81). `Core/RepCells.swift`: `RepCells.target`, `.logged` and `.timed` from `RepCells.Bounds.of(_:range:)` — a cell per rep or per five seconds rounded up, solid to the minimum (or to what was done), faint to the top, yellow past it, a caret for the field's number, a line for last time's, a group per five, sixty at most. `Core/WorkoutScreen.swift`: `SetDot` (a step of the block, its D79 state, skipped, what VoiceOver hears), `SetCard` (range — *8–10*, *8*, *8+*, *max* — unit, the set's weight, cells, colour, and the bounds and last time so `showing(field:)` redraws the cells for the number in the field), `WorkoutScreen.notes` (*was …* first), `InputDefaults.seconds`, `PrimaryAction.Kind.save`; the model lost `targetLine` and `rows` and gained `exerciseMark` (`MarkState.of(exercise:session:)`), `notes`, `dots`, `card` and `editing`, which `WorkoutScreen.model(…, editing:)` takes from the view and ignores unless it is a logged step of the block — the inputs then take the logged result and the primary is **Save**. The strip's Undo is set during a rest or the moment a block ends, not after. Zone 2 is the name with its dot and the ? popover, the dots (`ViewThatFits` a row or `WrapLayout`), and `SetCardView` — `WrapLayout` of 8 × 22 pt cells with the caret and line above and below each; a filled dot sets `editing`, a grey one `jumpTo`s, the blue one ends a change; Save applies `.editSet`; the edit sheet left the screen; Undo shows in the strip at every size. `StepCard.setRows` and `SetRow` stay in Core for I41, I42, O57 and U34–U35 — `SetRow.mark` went. SPEC §4.5 (zones 2, 4, 5), §4.6, §6.34, §6.36, §6.52 and the new §6.54; TP8–TP16; O57, U34, U35, W7 and TP1 re-pointed with their assertions kept, U28 annotated; the log | Done |
+| P3–P7 | The walk, pages, the pace, Change *day* in squares, docs and 1.10 | Not started |
 
 ### Checked on the simulator (v1.10)
 
@@ -6707,7 +6756,24 @@ After P1:
   mark blue. In dark (`xcrun simctl ui "iPhone 17" appearance dark`): the track dark grey, the
   ticks still cut, the caret white, **Log set** white with black words.
 
+- P2, on the iPhone 17 Pro simulator with `SEED=1 DEVICE="iPhone 17 Pro" tools/shot.sh <png> -uiScreen
+  workout -uiNoAsk -uiNoAlerts -uiAdvance 2 -uiSkipWaits -uiSkipDone` — Barbell Bench Press with
+  two sets logged: a blue dot before the name and the ? at the right; two green dots, the blue ring
+  with its centre, a grey ring; the card **6–8** over *80 kg*, six blue cells, a gap after the fifth,
+  two faint, two faint yellow past the top, the caret under the tenth for the 10 in the field and
+  last time's line over it; Log set ink, the idle strip unchanged. Without `-uiSkipWaits` and with
+  the new debug-only `-uiEditSet` (the last logged set changed in place, as a tapped dot does): the
+  first dot green with an ink ring, the card's eight cells green with the ninth and tenth faint
+  yellow for last time, 8 × 80 in the fields, **Save**, and the rest's strip with **↶ Undo** beside
+  *set 0:00*. In dark: the card dark grey, the cells blue and dim, the yellow olive, caret and line
+  white, the grey ring still visible.
+
 ### Not run in v1.10
+
+- **P2's taps.** The simulator tool refused taps again, so a dot's tap, Save's result, a grey dot's
+  jump, the ?'s popover and the cells following − and + were not seen; TP13 and TP15 cover the
+  model and the source. To look: the command above, then tap a green dot, change the reps, Save.
+- **TP16**, zone 2 at accessibility text sizes on the phone, joins the checklist in P7.
 
 - **The bar's tap.** The simulator tool refused taps again ("stopped retrying after repeated
   crashes"), so the Overview opening from the bar was not seen, nor VoiceOver's reading of it; TP6
@@ -7821,6 +7887,20 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.10 P1: **the rest-over figure and a timed set's warning keep the accent** — both are the current set's. P3 redraws the walk; the rest between sets keeps its words.
 - v1.10 P1: **the set rows take the states until P2 replaces them**: a logged row's tick in the day's colour where it was the reserved green, the current row's mark blue; ahead stays grey text, since the system fill on a symbol all but vanishes.
 - v1.10 P1: **⌄ and ··· centre on the bar's track**, the elapsed time hanging beneath it, rather than on the bar and the time together. VoiceOver's value for the bar is the day's percentage and the elapsed time.
+- v1.10 P2 (D81): **the exercise in symbols.** Zone 2 is the name with its dot, the ? when there is something behind it, a dot per step of the block, and one card of cells; no target line and no rows. The Overview and Session detail keep their words and the edit sheet.
+- v1.10 P2: **`StepCard.setRows` and `SetRow` stay in Core** though no screen draws a row now: v1.1's I41, I42 and O57 pin the rows' grammar, U34 and U35 the two notations', and the plan kept them. `SetRow.mark` went — P1 added it for the rows and nothing sets it.
+- v1.10 P2: **`SetCard.showing(field:)`**: the caret follows the number in the field and the model does not hold the field, so the card carries its bounds and last time and the view asks Core for the cells as the number changes. The model's own card is drawn for the prefilled number.
+- v1.10 P2: **the card writes a range with no top as *8+*, and with neither a minimum nor a top as *max*.** The plan named 8–10, a single number and *sec*; a hold with a minimum and AMRAP were left to it.
+- v1.10 P2: **the card's weight is what the set asks** (the plan's weight), not what the field holds, including while a logged set is changed — the card says what this set asks, the inputs what you lift, as the mock drew both.
+- v1.10 P2: **last time past the range gets its cell** (yellow, faint, with the line over it) rather than being dropped, so the line is never lost; and **cells stop at sixty**, three lines, since a field takes 999 reps and a hold 99,999 seconds.
+- v1.10 P2: **past a minimum with no top the cells are faint, never yellow** — there is no top to pass.
+- v1.10 P2: **a hold that is on has no caret**: it has no field, only the timer. A logged hold being changed takes its seconds in a field that steps by five, a cell's worth, and the timer leaves zone 3 while it does.
+- v1.10 P2: **the blue dot brings a change back to the set that is on.** The plan says it does nothing; with a set being changed there was otherwise no way back but Save, and it still does nothing to the workout.
+- v1.10 P2: **a grey dot ends a change** and does its set now; a tapped filled dot while another is being changed moves the change to it.
+- v1.10 P2: **Undo is the strip's during the rest the set started, or the moment its block ended** — `testStripReportsTheFinishedBlock` (O61) already expected it there with no rest — and not once the rest is over or skipped; the dot is the way from then.
+- v1.10 P2: **not yet's grey as a ring is `systemGray3`**, as the rows kept grey text for an icon: `secondarySystemFill` all but vanishes as a 2 pt stroke. The filled marks keep §6.52's colours.
+- v1.10 P2: **the name follows the current step, not a dot being changed** — in a superset, changing the partner's set leaves the name on the exercise that is on, since the ···'s Skip exercise and Change exercise act on it.
+- v1.10 P2: **zone 3 is unchanged** apart from the hold's seconds field: the mock's glyph steppers and blue reps number are not in P2's list.
 `````
 
 ---
@@ -10253,7 +10333,14 @@ and green on `v1.10-symbols`: P1 gave every mark on the Workout screen a state �
 screen tinted ink and Log set ink; and made the header the bar — `WorkoutBar` (`Core/WorkoutBar.swift`),
 a segment per block and a mark per set in one `Canvas`, a caret, the elapsed time, a tap that opens
 the Overview, and the stage spoken, not printed (`spokenHeader`). The Lock Screen's bar fills in the
-day's colour. P2–P7 are not built.
+day's colour. P2 put the exercise in symbols (D81, SPEC §6.54): zone 2 is the name with its state's
+dot, a **?** only when there are notes or a change behind it (`WorkoutScreen.notes`), a dot per step
+of the block (`SetDot`), and one card of cells (`SetCard`, `Core/RepCells.swift` — solid to the
+minimum, faint to the top, yellow past it, a caret that follows the field through
+`SetCard.showing(field:)`, a line over last time); a filled dot changes its set in place with
+**Save** (`editing`, the view's, never stored), a grey dot does its set now, and Undo is the strip's
+again during the rest. `StepCard.setRows` stays in Core for its tests; no screen draws a row.
+P3–P7 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

@@ -110,7 +110,8 @@ struct StatusStrip: Equatable {
 
 /// Zone 5. One control, one slot, whatever the work is (D20, D22).
 struct PrimaryAction: Equatable {
-    enum Kind: String, Equatable { case log, startTimer, doneTimer, stopTimer, startSet }
+    /// `save` (D81, v1.10): a logged set being changed in place, which `.editSet` applies.
+    enum Kind: String, Equatable { case log, startTimer, doneTimer, stopTimer, startSet, save }
     var title: String
     var kind: Kind
 }
@@ -130,6 +131,72 @@ struct InputDefaults: Equatable {
     /// plan's first set has no weight and no history; the sentence used to live in a note
     /// that truncated after two lines.
     var weightHint: String?
+    /// D81 (v1.10): the first field holds seconds, not reps — a logged hold being changed.
+    var seconds = false
+}
+
+/// D81 (v1.10, §6.54): one dot per step of the exercise's block, in order — a drop and a superset
+/// member's set are steps too. Its state is D79's; a skipped step is not yet, with a slash.
+struct SetDot: Equatable {
+    var step: Int
+    var state: MarkState
+    var skipped: Bool
+    /// What VoiceOver hears: "Set 2 of 3, done".
+    var spoken: String
+}
+
+/// D81 (v1.10, §6.54): zone 2's one card — the set the dots point at. Its range and weight at the
+/// left, its cells at the right in the colour of its state: now for the current set, done for a
+/// logged set being changed, not yet for one looked at ahead (P4).
+struct SetCard: Equatable {
+    /// "8–10", "8" for a range of one, "8+" with no top, "max" with neither.
+    var range: String
+    /// "sec" under a timed set's range; nil for reps.
+    var unit: String?
+    /// "26 kg" — what the set asks, not what the field holds. Nil when it names none.
+    var weight: String?
+    var cells: RepCells
+    var colour: MarkState
+    /// What the cells are drawn from, so they follow the number in the field.
+    var bounds: RepCells.Bounds
+    var timed: Bool
+    /// Reps, or seconds for a timed set, that this set reached last time.
+    var lastTime: Int?
+
+    /// The card with its cells drawn for the number in the field: the caret moves on the current
+    /// set, the solid cells on a set being changed. A hold waiting to start has no field, so its
+    /// cells stay.
+    func showing(field: Int?) -> SetCard {
+        var card = self
+        switch (colour, timed) {
+        case (.now, false): card.cells = .target(bounds, reps: field, lastTime: lastTime)
+        case (.todo, false): card.cells = .target(bounds, reps: nil, lastTime: lastTime)
+        case (.now, true), (.todo, true): card.cells = .timed(bounds, seconds: nil, lastTime: lastTime)
+        case (.done, false): card.cells = .logged(bounds, result: field ?? 0, lastTime: lastTime)
+        case (.done, true): card.cells = .timed(bounds, seconds: field ?? 0, logged: true, lastTime: lastTime)
+        }
+        return card
+    }
+
+    static func of(session: Session, step index: Int, history: [Session], colour: MarkState,
+                   field: Int?) -> SetCard? {
+        guard let step = session.steps[safe: index],
+              let exercise = session.exercises[safe: step.exerciseIndex],
+              let target = session.target(at: index) else { return nil }
+        let timed = target.work.isTimed
+        let bounds = RepCells.Bounds.of(target.work, range: step.dropIndex == 0 ? exercise.repRange : nil)
+        let last = Prefill.historicalResult(session: session, step: index, history: history)
+        let card = SetCard(range: range(bounds), unit: timed ? "sec" : nil,
+                           weight: target.weight.map { "\(TargetText.number($0)) \(session.units.rawValue)" },
+                           cells: RepCells(cells: []), colour: colour, bounds: bounds, timed: timed,
+                           lastTime: timed ? last?.seconds : last?.reps)
+        return card.showing(field: field)
+    }
+
+    static func range(_ bounds: RepCells.Bounds) -> String {
+        guard let top = bounds.maximum else { return bounds.minimum > 0 ? "\(bounds.minimum)+" : "max" }
+        return top == bounds.minimum ? "\(top)" : "\(bounds.minimum)–\(top)"
+    }
 }
 
 /// The workout's own sentences, in Core so a test can pin them (Y13's rule).
@@ -152,8 +219,15 @@ struct WorkoutScreenModel: Equatable {
     /// D80 (v1.10, §6.53): zone 1 — a segment per block, a mark per set, the caret.
     var bar: WorkoutBar
     var exerciseName: String
-    var targetLine: String
-    var rows: [SetRow]
+    /// D81 (v1.10, §6.54): zone 2 in symbols. The exercise's dot in its state; the ?'s text, nil
+    /// when there is nothing behind it; a dot per step of the block; and the one card.
+    /// *(v1.1–v1.9: a target line and a row per set.)*
+    var exerciseMark: MarkState
+    var notes: String?
+    var dots: [SetDot]
+    var card: SetCard
+    /// The logged step being changed in place, from a tapped dot — the view's, never stored.
+    var editing: Int?
     var inputs: InputDefaults
     var timer: TimerDisplay?
     var strip: StatusStrip
@@ -161,9 +235,8 @@ struct WorkoutScreenModel: Equatable {
     /// The one VoiceOver string for the exercise block (SPEC §9).
     var spoken: String
 
-    /// D59 (v1.6): the step whose row carries Undo — the last logged or skipped step, while
-    /// D23's undo is still valid. The strip's own Undo stays only at accessibility sizes,
-    /// where the list shows the current row alone.
+    /// D59 (v1.6): the last logged or skipped step, while D23's undo is still valid. Since v1.10
+    /// (D81) the rows that carried Undo are gone and the strip says it, during the rest after.
     var undoStep: Int?
 
     /// D56 (v1.6): the small line under the stage, or nil when it would only repeat it. While
@@ -178,9 +251,10 @@ struct WorkoutScreenModel: Equatable {
 }
 
 enum WorkoutScreen {
-    /// Nil only when the session is over — the Summary owns the screen then.
+    /// Nil only when the session is over — the Summary owns the screen then. `editing` is the
+    /// dot the view has tapped; a step that is not a logged one of this block is ignored.
     static func model(active: ActiveSession, history: [Session], now: Date,
-                      settings: Settings = Settings()) -> WorkoutScreenModel? {
+                      settings: Settings = Settings(), editing: Int? = nil) -> WorkoutScreenModel? {
         let session = active.session
         let index: Int
         switch active.phase {
@@ -197,6 +271,26 @@ enum WorkoutScreen {
         let timed = target.work.isTimed
         let restKind: RestKind?
         if case let .resting(rest) = active.phase { restKind = rest.kind } else { restKind = nil }
+        let block = session.steps.indices.filter { session.steps[$0].blockIndex == step.blockIndex }
+        let edited = editing.flatMap { e -> (step: Int, result: SetResult)? in
+            guard block.contains(e), session.steps[e].status == .logged,
+                  let result = session.steps[e].result else { return nil }
+            return (e, result)
+        }
+        var defaults = inputs(values: values, target: target, units: session.units)
+        if let edited, let editedExercise = session.exercises[safe: session.steps[edited.step].exerciseIndex] {
+            defaults = InputDefaults(reps: (edited.result.reps ?? edited.result.seconds).map(String.init) ?? "",
+                                   weight: InputRules.weightText(edited.result.weight),
+                                   showsWeight: !editedExercise.bodyweight || edited.result.weight != nil,
+                                   unit: session.units.rawValue)
+            defaults.seconds = edited.result.seconds != nil
+        }
+        let shown = edited.flatMap {
+            SetCard.of(session: session, step: $0.step, history: history, colour: .done,
+                       field: $0.result.reps ?? $0.result.seconds)
+        } ?? SetCard.of(session: session, step: index, history: history, colour: .now,
+                        field: InputRules.repsValue(defaults.reps))
+        guard let card = shown else { return nil }
         return WorkoutScreenModel(
             // Every state returns the same five, in the same order (D22, O50).
             zones: WorkoutZone.allCases,
@@ -209,22 +303,36 @@ enum WorkoutScreen {
                                         wording: settings.wording),
             bar: WorkoutBar.of(session: active),
             exerciseName: exercise.name,
-            targetLine: StepCard.targetLine(session: session, step: index,
-                                            wording: settings.wording),
-            rows: StepCard.setRows(session: session, step: index, history: history,
-                                   wording: settings.wording).map { row in
-                var row = row
-                row.mark = MarkState.of(step: row.stepIndex, session: active)
-                return row
+            exerciseMark: MarkState.of(exercise: step.exerciseIndex, session: active),
+            notes: notes(exercise),
+            dots: block.enumerated().map { position, i in
+                let state = MarkState.of(step: i, session: active)
+                let skipped = session.steps[i].status == .skipped
+                return SetDot(step: i, state: state, skipped: skipped,
+                              spoken: "Set \(position + 1) of \(block.count), "
+                                + (skipped ? "skipped" : state == .done ? "done" : state == .now ? "now" : "not yet"))
             },
-            inputs: inputs(values: values, target: target, units: session.units),
-            timer: timed ? timer(active: active, step: index, work: target.work,
-                                 warning: target.warning, now: now) : nil,
+            card: card,
+            editing: edited?.step,
+            inputs: defaults,
+            // A hold being changed takes a field for its seconds, so no timer stands in its place.
+            timer: timed && edited == nil ? timer(active: active, step: index, work: target.work,
+                                                  warning: target.warning, now: now) : nil,
             strip: strip(active: active, step: index, work: target.work, warning: target.warning,
                          wording: settings.wording, history: history, now: now),
-            primary: primary(work: target.work, running: active.timerRunning, resting: restKind),
+            primary: edited != nil ? PrimaryAction(title: "Save", kind: .save)
+                : primary(work: target.work, running: active.timerRunning, resting: restKind),
             spoken: StepCard.spoken(session: session, step: index),
             undoStep: active.canUndo ? active.lastCompletedStep : nil)
+    }
+
+    /// D81 (v1.10): what the ? opens — "was Barbell Row" first for a changed exercise (D42), then
+    /// the notes. Nil when there is neither, so no ? leads nowhere (D56).
+    static func notes(_ exercise: SessionExercise) -> String? {
+        var lines: [String] = []
+        if let was = exercise.substitutedFor { lines.append("was \(was)") }
+        if let note = exercise.notes?.trimmed, !note.isEmpty { lines.append(note) }
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
     }
 
     static func primary(work: WorkTarget, running: Bool, resting: RestKind? = nil) -> PrimaryAction {
@@ -293,7 +401,11 @@ enum WorkoutScreen {
                       history: [Session], now: Date) -> StatusStrip {
         let session = active.session
         var strip = StatusStrip()
-        strip.undo = active.canUndo ? "Set logged · Undo" : nil
+        // D81 (v1.10): Undo is back in the strip, during the rest the set started or the moment
+        // its block ended (§4.6's v1.2 place); after that the set's dot is the way to change it.
+        let justLogged: Bool
+        if case .resting = active.phase { justLogged = true } else { justLogged = active.blockDone != nil }
+        strip.undo = active.canUndo && justLogged ? "Set logged · Undo" : nil
 
         if case let .resting(rest) = active.phase {
             let remaining = Int(rest.endsAt.timeIntervalSince(now).rounded(.up))

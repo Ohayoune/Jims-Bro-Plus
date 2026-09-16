@@ -153,6 +153,7 @@ final class WorkoutScreenTests: XCTestCase {
     }
 
     // O57: the current exercise's rows — done, current, upcoming, skipped, and superset rounds.
+    // Since v1.10 (D81) the Workout screen draws dots and a card; the rows are Core's, pinned here.
     func testSetRowsDescribeTheCurrentExercise() throws {
         let history = [CoreTestSupport.completed([10, 10, 9])]
         var engine = CoreTestSupport.engine(CoreTestSupport.plan(sets: 3, secondExercise: true))
@@ -161,15 +162,16 @@ final class WorkoutScreenTests: XCTestCase {
 
         let screen = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: history,
                                                        now: now.addingTimeInterval(60)))
-        XCTAssertEqual(screen.rows.count, 3, "only this exercise's sets, not the whole day")
-        XCTAssertEqual(screen.rows.map(\.status), [.logged, .skipped, .pending])
-        XCTAssertEqual(screen.rows.map(\.isCurrent), [false, false, true])
-        XCTAssertEqual(screen.rows[0].value, "11 × 62.5",
+        let rows = StepCard.setRows(session: engine.session, step: screen.step, history: history)
+        XCTAssertEqual(rows.count, 3, "only this exercise's sets, not the whole day")
+        XCTAssertEqual(rows.map(\.status), [.logged, .skipped, .pending])
+        XCTAssertEqual(rows.map(\.isCurrent), [false, false, true])
+        XCTAssertEqual(rows[0].value, "11 × 62.5",
                        "D19: the row says what was lifted, not how long it took")
-        XCTAssertEqual(screen.rows[1].value, "skipped")
-        XCTAssertEqual(screen.rows[2].value, "Aim 8–12 reps · 60 kg", "an upcoming row shows its target")
+        XCTAssertEqual(rows[1].value, "skipped")
+        XCTAssertEqual(rows[2].value, "Aim 8–12 reps · 60 kg", "an upcoming row shows its target")
         // D58 (v1.6): the row's second line is a sentence, and it carries its unit.
-        XCTAssertEqual(screen.rows[2].lastTime, "Last time 9 × 60 kg",
+        XCTAssertEqual(rows[2].lastTime, "Last time 9 × 60 kg",
                        "the current row says what to beat")
         XCTAssertEqual(screen.progress, "Exercise 1 of 2 · Set 3 of 3")
 
@@ -183,22 +185,25 @@ final class WorkoutScreenTests: XCTestCase {
                          importedAt: now, sourceText: "", cycle: [.day(0)])
         let notedEngine = SessionEngine(session: CoreTestSupport.session(noted), settings: CoreTestSupport.classic, now: now)
         let withNotes = try XCTUnwrap(WorkoutScreen.model(active: notedEngine.active, history: [], now: now))
-        XCTAssertEqual(withNotes.targetLine, "Aim 8–12 reps · 80 kg · Pause on chest")
-        XCTAssertEqual(withNotes.rows.map(\.value), Array(repeating: "Aim 8–12 reps · 80 kg", count: 3),
+        XCTAssertEqual(StepCard.targetLine(session: notedEngine.session, step: withNotes.step),
+                       "Aim 8–12 reps · 80 kg · Pause on chest")
+        XCTAssertEqual(withNotes.notes, "Pause on chest", "and on the screen, behind the ? (D81)")
+        XCTAssertEqual(StepCard.setRows(session: notedEngine.session, step: withNotes.step, history: []).map(\.value), Array(repeating: "Aim 8–12 reps · 80 kg", count: 3),
                        "four rows repeating the same note is noise, not information")
 
         // A superset lists the round in front of you, not every round of the block.
         let grouped = CoreTestSupport.engine(CoreTestSupport.plan(sets: 2, secondExercise: true,
                                                                   group: "A"))
         let round = try XCTUnwrap(WorkoutScreen.model(active: grouped.active, history: [], now: now))
-        XCTAssertEqual(round.rows.count, 2)
+        let roundRows = StepCard.setRows(session: grouped.session, step: round.step, history: [])
+        XCTAssertEqual(roundRows.count, 2)
         XCTAssertEqual(round.progress, "Round 1 of 2 · Bench Press")
         // Both rows of a superset round would otherwise read "A · Set 1 of 2" and be
         // indistinguishable, which is the defect M5 fixed in the Overview and R2 must not
         // reintroduce on the screen you are actually working from.
-        XCTAssertEqual(round.rows.map(\.label), ["Bench Press · Set 1 of 2", "Row · Set 1 of 2"])
+        XCTAssertEqual(roundRows.map(\.label), ["Bench Press · Set 1 of 2", "Row · Set 1 of 2"])
         // A straight exercise keeps the plain line: there is nothing to disambiguate.
-        XCTAssertEqual(screen.rows.map(\.label),
+        XCTAssertEqual(rows.map(\.label),
                        ["Set 1 of 3", "Set 2 of 3", "Set 3 of 3"])
     }
 

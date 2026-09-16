@@ -110,8 +110,9 @@ final class ChangeExerciseTests: XCTestCase {
         XCTAssertEqual(screen.stage, .working(exercise: 1, exercises: 3, set: 2, sets: 2))
         XCTAssertEqual(screen.progress, "Exercise 1 of 3 · Set 2 of 2")
         XCTAssertEqual(screen.exerciseName, "Dumbbell Press")
-        XCTAssertTrue(screen.targetLine.hasSuffix("· was Bench Press"), screen.targetLine)
-        XCTAssertFalse(screen.rows.map(\.label).joined().contains("was"), "said once, never on every row")
+        // D81 (v1.10): said once, first behind the ?, and on the Overview's line — never on a dot.
+        XCTAssertEqual(screen.notes?.components(separatedBy: "\n").first, "was Bench Press")
+        XCTAssertTrue(StepCard.targetLine(session: engine.session, step: screen.step).hasSuffix("· was Bench Press"))
     }
 
     // W8: advice goes to the substitute; the original earns none for a job it did not finish.

@@ -484,15 +484,14 @@ final class UsabilityTests: XCTestCase {
         XCTAssertEqual(StepCard.rowLabel(session: session, step: 0, naming: true),
                        "\(session.exercises[0].name) · Set 1 of 2")
 
-        // The second line of the current row is a sentence, with its unit, and never "@".
+        // The second line of the current row is a sentence, with its unit, and never "@". Since
+        // v1.10 (D81) the Workout screen draws last time as a line over a cell; the row is Core's.
         let plan = CoreTestSupport.plan(sets: 3)
         let history = [CoreTestSupport.completed([9, 9, 9], weights: [60, 60, 60])]
-        let engine = CoreTestSupport.engine(plan)
-        let screen = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: history,
-                                                       now: now))
-        let last = try XCTUnwrap(screen.rows.first { $0.isCurrent }?.lastTime)
+        let rows = StepCard.setRows(session: CoreTestSupport.engine(plan).session, step: 0, history: history)
+        let last = try XCTUnwrap(rows.first { $0.isCurrent }?.lastTime)
         XCTAssertEqual(last, "Last time 9 × 60 kg")
-        XCTAssertFalse(screen.rows.contains { $0.value.contains("@") }, "no row uses @")
+        XCTAssertFalse(rows.contains { $0.value.contains("@") }, "no row uses @")
     }
 
     // U35: the coach's switch. The same session in the same app, in v1.5's forms — and the
@@ -509,17 +508,24 @@ final class UsabilityTests: XCTestCase {
         XCTAssertEqual(settings.wording, .compact)
         XCTAssertEqual(Settings().wording, .plain, "words are the default, on a fresh install")
 
-        let compact = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: history,
-                                                        now: now, settings: settings))
-        XCTAssertEqual(compact.targetLine, "8–12 · 60 kg")
-        XCTAssertEqual(compact.rows.first { $0.isCurrent }?.lastTime, "last 9 @ 60")
+        // The Overview's line reads the switch. Since v1.10 (D81) the Workout screen's exercise
+        // block has no sentence to choose for: the card is the same either way.
+        let session = engine.session
+        XCTAssertEqual(StepCard.targetLine(session: session, step: 0, notes: false, wording: settings.wording),
+                       "8–12 · 60 kg")
+        XCTAssertEqual(StepCard.setRows(session: session, step: 0, history: history, wording: settings.wording)
+                        .first { $0.isCurrent }?.lastTime, "last 9 @ 60")
 
         var plain = settings
         plain.compactNotation = false
+        XCTAssertEqual(StepCard.targetLine(session: session, step: 0, notes: false, wording: plain.wording),
+                       "Aim 8–12 reps · 60 kg")
+        let compact = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: history,
+                                                        now: now, settings: settings))
         let words = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: history,
                                                       now: now, settings: plain))
-        XCTAssertEqual(words.targetLine, "Aim 8–12 reps · 60 kg")
-        XCTAssertNotEqual(words.targetLine, compact.targetLine)
+        XCTAssertEqual(compact.card, words.card, "the card has no words to choose")
+        XCTAssertEqual(compact.dots, words.dots)
     }
 
     // U35: and it survives the launch — a setting that resets is worse than none.

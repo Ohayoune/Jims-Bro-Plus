@@ -198,7 +198,14 @@ and green on `v1.10-symbols`: P1 gave every mark on the Workout screen a state �
 screen tinted ink and Log set ink; and made the header the bar — `WorkoutBar` (`Core/WorkoutBar.swift`),
 a segment per block and a mark per set in one `Canvas`, a caret, the elapsed time, a tap that opens
 the Overview, and the stage spoken, not printed (`spokenHeader`). The Lock Screen's bar fills in the
-day's colour. P2–P7 are not built.
+day's colour. P2 put the exercise in symbols (D81, SPEC §6.54): zone 2 is the name with its state's
+dot, a **?** only when there are notes or a change behind it (`WorkoutScreen.notes`), a dot per step
+of the block (`SetDot`), and one card of cells (`SetCard`, `Core/RepCells.swift` — solid to the
+minimum, faint to the top, yellow past it, a caret that follows the field through
+`SetCard.showing(field:)`, a line over last time); a filled dot changes its set in place with
+**Save** (`editing`, the view's, never stored), a grey dot does its set now, and Undo is the strip's
+again during the rest. `StepCard.setRows` stays in Core for its tests; no screen draws a row.
+P3–P7 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 
