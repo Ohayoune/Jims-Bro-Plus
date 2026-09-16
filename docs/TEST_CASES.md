@@ -1118,7 +1118,7 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 
 ## TP. v1.10 — The Workout screen in symbols
 
-`docs/ITERATION_11_PLAN.md` is the plan; one subsection per milestone that lands a decision. TQ was v1.9's, so the prefix is **TP**. The plan's proposed ids are kept where they land as proposed; where one changed, the subsection says so.
+`docs/ITERATION_11_PLAN.md` is the plan; one subsection per milestone that landed a decision, P1–P6 (P7 is documents and adds no case). TQ was v1.9's, so the prefix is **TP**. The plan's proposed ids were kept where they landed as proposed; where one changed, the subsection says so — P5 took TP35 for the phone, so P6's moved up by one. The device cases (TP7, TP16, TP23, TP29, TP35, TP42) are the **v1.10 rows** of `DEVICE_CHECKLIST.md`.
 
 ### P1 — Three states, three colours (D79), and the header is the bar (D80)
 

@@ -4,9 +4,9 @@ Every `manual` case from `TEST_CASES.md`, to run on the owner's iPhone. The simu
 notifications while locked, real haptics, the silent switch, or the free-account expiry, which is why
 these are here rather than automated.
 
-Everything else — 368 automated tests plus the simulator screen checks — is green; see
+Everything else — 404 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
-**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37, **v1.7** T5, T9, T13, T24 and T29, **v1.8** TS5, TS11, TS12 and TS16, and **v1.9** TQ18, TQ19, TQ20, TQ24, TQ29, TQ33, TQ38 and TQ39. Y19 needs a TestFlight build, which needs the paid
+**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37, **v1.7** T5, T9, T13, T24 and T29, **v1.8** TS5, TS11, TS12 and TS16, **v1.9** TQ18, TQ19, TQ20, TQ24, TQ29, TQ33, TQ38 and TQ39, and **v1.10** TP7, TP16, TP23, TP29, TP35 and TP42. Y19 needs a TestFlight build, which needs the paid
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
@@ -230,6 +230,31 @@ handed to the ··· menu; on TQ29 at `DaySquare(outlined:)`; on TQ33 at the `UI
 `PlansView` and `PlanDetailView`; on TQ39 at `PlansView`'s mark, which is never stored. If no swap
 appears at all, look at `PlanLibrary.settle` (`Core/DaySwap.swift`) and whether `swaps.json` was
 written beside `plans.json`.
+
+## v1.10 rows (new in P1–P6, written with P7)
+
+Most rows need a workout running. Use a plan whose day has about sixteen sets — the built-in
+**Full Body** (15) or **Push Pull Legs**' Push (19) — so the bar has enough marks to judge. To reach
+the walk between exercises without waiting, Settings → **Between exercises** at 1 min, and log the
+first exercise's sets quickly.
+
+| Case | What to do | Expected | Result | Notes |
+|---|---|---|---|---|
+| **TP7** | Start a sixteen-set day and log a few sets. Hold the phone at arm's length and find the set that is on. Then Settings → Display & Brightness → Dark and look again | The header has no words but the elapsed time: a segment per exercise, a tick cutting each set inside one, a gap between segments. Done sets are the day's colour, the set that is on is blue, the rest grey; the blue mark is findable at arm's length. The same in dark. A tap on the bar opens the Overview |  |  |
+| **TP16** | Settings → Accessibility → Larger Text at the largest size, then start an exercise with a long range (for example 12–15, or a 30+ s hold). Look in light and in dark | The name, the dots and the card stay inside the page: the card's cells wrap onto more lines inside it, the dots wrap, and the inputs and **Log set** stay on screen together without scrolling |  |  |
+| **TP23** | With the walk at 1 min, finish an exercise on a Push day and watch the strip until well past the minute; tap the ring. Repeat on a Pull day, then in dark | The ring fills clockwise from twelve o'clock, red at the start, amber about halfway, green near the end, and then a green disc with a white check at the minute — the count-up keeps going, smaller and grey. The hues read as red, amber and green beside the day's colour (Push's and Pull's orange) in light and in dark. There is no −30 / +30 / Skip. A tap on the ring shows one sentence ("At least 1:00 between exercises…") |  |  |
+| **TP29** | Mid-workout, swipe zone 2 left and right a few times: during a set, during a rest and during the walk. On a page ahead, tap **▶ Do this now**; after a swipe back, **↩ Back to …**. Type a number into reps, swipe away and back, and **Log set**. Turn on VoiceOver and swipe three fingers left. Lock the phone while looking at another page | One swipe moves one exercise and the next page's edge peeks at the side, in light and dark; a page behind is fainter with a check, a page ahead grey, neither with inputs. The rest and the walk keep counting through a swipe. The number typed before swiping is what Log set logs. Do this now works that exercise, and the one that was on comes back after the exercises after it are done. Back returns to the page that is on. VoiceOver's three-finger swipe turns the page. The Lock Screen shows the set that is on, not the page looked at |  |  |
+| **TP35** | Finish the same day of a plan three times, with one exercise clearly longer than the others (more rest, or more sets) and one clearly quicker. Start that day a fourth time and look at the bar; then lock the phone | The segments are no longer in proportion to the sets: the long exercise's segment is longer and the quick one's shorter, and none is a sliver or fills the bar, in light and dark. The Lock Screen's bar is unchanged from before |  |  |
+| **TP42** | On a rotation plan whose days include Push, Pull and Legs: Plans → the plan → ··· → **Edit JSON**, and make `cycle` ten entries (for example `"Push", "Pull", "Legs", "rest", "Push", "Pull", "Legs", "rest", "rest", "Push"`); save. Look at the Plans list, then the plan's page. Then on Today tap ··· → **Change *day*** (for example **Change Push**), tap another tile, look at the button, go back without pressing it; open it again, mark a tile and press the button. Repeat in dark | On the list the plan's symbol is 7 squares over 3, touching, as one shape; on its page the same in larger squares with names beneath and today's square outlined. In the picker the tiles touch in a joined strip, a tapped tile takes a ring and a check, and the button reads the change with both squares (for example **Push → Pull**). Going back changes nothing; pressing the button returns to Today, which shows the change. Each reads as one thing in light and dark |  |  |
+
+For the v1.10 rows: a `fail` on TP7 points at `BarView` in `Features/Workout/WorkoutView.swift`
+and `WorkoutBar` (`Core/WorkoutBar.swift`), and the state colours at `MarkState` in
+`DaySquare.swift`; on TP16 at `DotView`, `SetCardView` and `CellView` and at `RepCells`
+(`Core/RepCells.swift`); on TP23 at `WalkRingView` and `StatusStripView` and at `StatusStrip.ring`
+(`WalkRing.colour`); on TP29 at `OnePagePerSwipe` and the pager in `WorkoutScreenView`, and at
+`WorkoutScreen.page` and `jumpTo`; on TP35 at `Pace.weights` (`Core/Pace.swift`), which reads the
+past sessions' `startedAt` and `loggedAt`; on TP42 at `CycleStrip` in `DaySquare.swift`,
+`CycleGlyph.rows` (`Core/DayColour.swift`) and `ChangeDayView`.
 
 ## When you are done
 

@@ -1,30 +1,32 @@
 # Build status
 
-Updated 2026-09-16. **v1.10 is in progress on branch `v1.10-symbols` (off `v1.9-swaps` at
-3dc52f1): P0–P6 built and green.** v1.9 and everything before it are below,
+Updated 2026-09-16. **v1.10 is built and green on branch `v1.10-symbols` (off `v1.9-swaps` at
+3dc52f1): P0–P7.** v1.9 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
 
-## v1.10 (P0–P7): in progress
+## v1.10 (P0–P7): built and green
 
 `docs/ITERATION_11_PLAN.md` is the v1.10 plan, written from the owner's notes after living with
 v1.9 — *"I want to make everything symbols, and the app colorful"*. Each milestone ends with the
 whole suite green on all three routes, a Release build and `tools/check_release.py`, and one
 commit on `v1.10-symbols`.
 
-After P6:
+After P7:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **404 tests, 23 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P6 adds one (TP41) |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **404 tests, 23 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P7 adds none |
 | `swift test` | **403 tests, 0 failures** |
 | `python3 tools/check_core.py` | **403 bodies, 8,211 assertions, 0 failures** |
-| `python3 tools/reference_import.py` | **118/118 fixtures match** (P6 changes none) |
+| `python3 tools/reference_import.py` | **118/118 fixtures match** (unchanged; P7 touches no code but the version) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` | **BUILD SUCCEEDED** |
-| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.9 (1); 1.10 is P7's |
-| `python3 tools/check_bundle.py` | **current** (regenerated in P6) |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.10 (1) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in P7) |
 
-The simulator route and the Release build ran on P6's final code; the host routes ran again after the last document edits, since the doc pins read SPEC and TEST_CASES. The first two simulator runs never reached the tests — *"The test runner hung before establishing connection"*, then *"Simulator device failed to launch"* — and passed once the simulator was booted before `xcodebuild`.
+The simulator route and the Release build ran on the version bump, P7's last change to anything compiled; the host routes ran again after the last SPEC edit, since the doc pins read SPEC.
+
+After P6: the simulator 404 tests (23 skipped), `swift test` 403, `check_core.py` 403 bodies and 8,211 assertions, 118/118 fixtures, Release and `check_release.py` green at version 1.9, the bundle current. The first two simulator runs never reached the tests — *"The test runner hung before establishing connection"*, then *"Simulator device failed to launch"* — and passed once the simulator was booted before `xcodebuild`.
 
 After P5: the simulator 398 tests (22 skipped), `swift test` 397, `check_core.py` 397 bodies and 8,115 assertions, 118/118 fixtures, Release and `check_release.py` green, the bundle current.
 
@@ -43,9 +45,21 @@ After P2: the simulator 382 tests (21 skipped), `swift test` 381, `check_core.py
 | P4 | Pages (D83). `PagePlace` (current, behind, ahead — by what is left in the block, not its place on the bar) and `ExercisePage { blockIndex, place, exerciseIndex, exerciseName, exerciseMark, notes, checked, dots, card, live, cardOpacity, firstPending, spoken }` with `card(field:)`, built by `WorkoutScreen.page`; `WorkoutScreen.model(…, showing:)` gives the model every page (`pages`), the one on screen (`page`), `currentBlock`, `showing`, `showsInputs`, `currentName` and `page(_:)`, and the bar's caret under the page — the fill unchanged; `exerciseName`, `exerciseMark`, `notes`, `dots`, `card` and `spoken` became the page on screen's. `PrimaryAction.Kind.back` (*Back to …*) and `.doNow` (*Do this now*, `step` the block's first pending), `WorkoutText.back(to:)` and `.doNow`; `editing` is honoured in the shown block only. The view: zone 2 a `ScrollView(.horizontal)` of pages with `containerRelativeFrame`, `scrollPosition(id:)` kept level with `@State showing`, a 20 pt margin and 8 pt gap, `OnePagePerSwipe`, pages off screen hidden from VoiceOver and a three-finger swipe to turn; a check in the day's colour where the ? was, the card at `cardOpacity`; zone 3 empty off the page; ↩ and ▶ on the primary; Do this now and a grey dot `jumpTo` and then follow the page; Change exercise names the exercise that is on; a debug-only `-uiShowPage`. `SessionEngine` unchanged. SPEC §4.5 (zones 2 and 5), §6.53, §6.54 and the new §6.56; TP24–TP29; TP6 and TP15 re-pointed; the log | Done |
 | P5 | A bar that learns your pace (D84). `Core/Pace.swift`: `Pace.weights(day:history:)` — one weight per block in the bar's order: the median of the block's past times from the third, a past time running from its first start to the next start or log outside it at or after its last log (so the walk after it is counted in, and a skip never ends one), from finished sessions that started before this one, the block known by its exercises' names as they now are (a substitute by its own); before that the paced blocks' time per set × its sets; with no paced block, by set count; held between ½× and 2× the median stretch. `Pace.weights(sets:medians:)` is the rule apart from the clock, with `time(of:in:)`, `names(of:in:)` and `median`. `WorkoutBar.of(session:showing:weights:)` takes the weights (nil or a wrong count is by set count) and `WorkoutScreen.model` passes them from the history it already reads. Nothing stored, nothing in the view or the Lock Screen changed. SPEC §4.5 (zone 1), §6.53 and the new §6.57; TP30–TP35; TP3's message; the log | Done |
 | P6 | Change *day* in squares, with a button (D85), and squares that join (D86). `Core/ChangeDay.swift`: `DayChoices` has `day` (a `Face` — name, colour, outlined — for the day the date is now, *Rest* on a rest date), `title` from `DayChoices.title(dayName:)` (*Change Push*), `when`, `strips` of `Tile`s (`face`, `slot`, `isChosen`) in place of sections and rows — this plan's filled, each other plan's outlined, titled by the plan's name — `own`, Custom's `point`, and `exercises` (`face`, `rows`, and a `point` pre-filled with `PlanJSON.render(day:)` of the day as it stands; nil on a rest date); `ownTitle` went. `ChangeDayText.confirm(_:marked:)` → `Confirm { title, from, to, isEnabled, slot, opensSheet }` for `DayChoices.Mark` (`.day(slot)`, `.custom`): disabled *Change Push* with nothing marked, the date's own tile or a vanished one; *Push → Pull* with both faces and the slot; *Write a day for Wednesday*, opening the sheet. `HomeStart.Alternative.changeExercises(dayName:colour:outlined:)` named after the shown square's day. `Core/DayColour.swift`: `CycleGlyph.width` (7), `rows(_:of:)`, `rows`, `ends(_:count:of:)`; `Core/PlanPage.swift`: `RepeatBlock.Square.isToday`. `DaySquare.swift`: `CycleStrip` — the `SquareRows` layout (seven to a row, one side for every place, `side` at most) and `StripSquare` (rounded at a row's ends, filled, outlined, dashed or ringed) — which `CycleSymbol`, the plan page's repeat block (40 pt, names beneath, today ringed, no `WrapLayout`) and `ChangeDayView` share. `ChangeDayView` redrawn: a `ScrollView` of the line, the strips at 58 pt with names beneath and *when* under the chosen tile, the dashed Custom, the exercises card (Today's `SetBlocks`, now internal) and the confirm button in the bottom slot, the title with the day's square; the ··· item's square outlined for a borrowed or own day. SPEC §4.1, §4.2, §4.3, §6.40, §6.49, §6.50, §6.51 and the new §6.58 and §6.59; TP36–TP42; TQ21, TQ22 and TQ25 amended; the log | Done |
-| P7 | Docs, checklist, bundle, 1.10 | Not started |
+| P7 | Docs, checklist, bundle, 1.10. SPEC §4.5's five zones rewritten once, top to bottom, as the page now is — the colour rule and the words left said once above them, the zone 2 pager and its pages as a list, zone 3 empty off the current page and the hold's seconds field, zone 4's three strips, zone 5 in ink — with the text each replaced in italics beneath; and the rest of SPEC checked against v1.9 for words that still read as current: thirty-four places caught up, each with a v1.10 note beside the text it corrects — §1's D14, D22 and D23, §3's block, §4.0's and §6.41's picker rows and workout header, §4.3's weekday squares, §4.7's first paragraph, §4.8, §4.11's walk, §5.3–§5.4, §6.3–§6.5's strip, overrun and last-time lines, §6.7, §6.18, §6.27's effort target, §6.32, §6.37, §6.43–§6.45, §6.50, §6.52's one disabled control and §9's VoiceOver — a few of them (the done screen's) stale since v1.1. `docs/DEVICE_CHECKLIST.md`'s **v1.10 rows** (TP7, TP16, TP23, TP29, TP35, TP42), with how to reach the walk and a ten-day cycle on the phone; `DECISIONS_LOG.md` gains D80's, D85's and D86's headlines and names D48's reversal on the picker, D59's Undo moved back to the strip and §4.0's one exception; `TEST_CASES.md` says where the device cases went; the README's `workout.png` retaken; version **1.10** in all six `MARKETING_VERSION` settings and in `docs/APP_STORE.md`; the handoff paragraph in `CLAUDE.md` and `AGENTS.md`; the bundle regenerated | Done |
+| — | The v1.10 device rows (TP7, TP16, TP23, TP29, TP35, TP42) | **Written, not run** — need the phone |
 
 ### Checked on the simulator (v1.10)
+
+- P7, `docs/screenshots/workout.png` for the README, on the iPhone 17 simulator with `SEED=1 SETTLE=8
+  DEVICE="iPhone 17" tools/shot.sh build/p7-workout.png -uiScreen workout -uiNoAsk -uiNoAlerts
+  -uiAdvance 2 -uiSkipDone`, downscaled to 720 px high with `sips -Z 720` like the other four — the
+  rest after Barbell Bench Press's first set: the bar with its green square, a green mark, a blue mark
+  and the grey track, the caret under the first segment and **0:05**; a blue dot before the name, the
+  ? at the right and the next page's edge; the dots green, blue, grey, grey; the card **6–8** over
+  *80 kg* with six blue cells, two faint, two faint yellow and the caret under the tenth for the 10 in
+  the field; REPS 10 and KG 80; the strip's **2:25** *Rest* with −30 · +30 · Skip, the next-set line,
+  *set 0:00* and **↶ Undo**; **Log set** in ink. It replaces the one taken on 2026-09-08, which showed the stage title,
+  the Exercises button and the set rows.
 
 - P1, on the iPhone 17 simulator with `SEED=1 DEVICE="iPhone 17" tools/shot.sh <png> -uiScreen
   workout -uiNoAsk -uiNoAlerts -uiAdvance 5 -uiSkipWaits -uiSkipDone` — the sample plan's first

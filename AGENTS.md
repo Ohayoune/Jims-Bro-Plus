@@ -191,7 +191,7 @@ been done three times, held between ½× and 2× (D84); **Change *day*** as join
 button that confirms and names its effect, and today's exercises editable through the JSON sheet
 pre-filled with the day (D85); and cycles drawn **seven to a row, the squares touching** (D86).
 The requirements were settled on two artifacts linked from the plan: round 1, "Workout in Symbols",
-and round 2, "Symbols, Round Two", redrawn four times on the owner's corrections. P0–P1 are built
+and round 2, "Symbols, Round Two", redrawn four times on the owner's corrections. P0–P7 are built
 and green on `v1.10-symbols`: P1 gave every mark on the Workout screen a state — `MarkState`
 (`Core/WorkoutMarks.swift`, compiled into the extension too, its colour in `DaySquare.swift`) and
 `MarkState.of(step:session:)` — so done is the day's colour, now is blue and not yet grey, with the
@@ -230,7 +230,14 @@ tile, and the date's exercises a card that opens the JSON sheet pre-filled with 
 and the button — *Push → Pull*, *Write a day for Wednesday* — confirms (`ChangeDayText.confirm`),
 reversing D48 on that screen. And squares join (D86, §6.59): a cycle wraps at seven and its squares
 touch (`CycleGlyph.rows`, `.ends`), drawn by one `CycleStrip` in `DaySquare.swift` that the Plans
-list's symbol, the plan's page — today's square outlined — and the picker share. P7 is not built.
+list's symbol, the plan's page — today's square outlined — and the picker share. P7 made the
+documents say so: SPEC §4.5's five zones rewritten once as the page now is, `docs/DEVICE_CHECKLIST.md`'s
+**v1.10 rows** (TP7, TP16, TP23, TP29, TP35, TP42), D79–D86 in `docs/DECISIONS_LOG.md` with D48's one
+tap reversed on the picker, D59's Undo moved back to the strip and the Workout screen named as §4.0's
+one exception, `docs/screenshots/workout.png` retaken for the README, version **1.10** on the app, the
+extension and the tests, and the bundle regenerated. Everything through P7 is built and green. What
+remains is the owner's: the device checklist (the v1.7 to v1.10 rows all need the phone), the Developer
+Program, a release Xcode and the submission (`docs/APP_STORE.md` §1 and §6).
 
 Three v1.2 rules are worth knowing before touching anything:
 
