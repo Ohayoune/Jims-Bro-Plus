@@ -169,9 +169,57 @@ enum RestText {
 /// Zone 5. One control, one slot, whatever the work is (D20, D22).
 struct PrimaryAction: Equatable {
     /// `save` (D81, v1.10): a logged set being changed in place, which `.editSet` applies.
-    enum Kind: String, Equatable { case log, startTimer, doneTimer, stopTimer, startSet, save }
+    /// `back` and `doNow` (D83, v1.10): a page off the one that is on — back to it, or `jumpTo`
+    /// the looked-at block's first set still to do.
+    enum Kind: String, Equatable { case log, startTimer, doneTimer, stopTimer, startSet, save, back, doNow }
     var title: String
     var kind: Kind
+    /// The step `doNow` jumps to; nil for every other kind.
+    var step: Int? = nil
+}
+
+/// D83 (v1.10, §6.56): where a page stands against the workout — by what is left in its block,
+/// not by where it sits on the bar, since Do later and Do this now leave sets behind the caret.
+enum PagePlace: String, Equatable {
+    /// The block holding the step that is on.
+    case current
+    /// Nothing left to do: every step logged or skipped.
+    case behind
+    /// A step still to do, and not the one that is on.
+    case ahead
+}
+
+/// D83 (v1.10, §6.56): one page of zone 2's pager — a block, as its name, its ? (or a check),
+/// its dots and its card. The model carries every page so a swipe draws its neighbours.
+struct ExercisePage: Equatable {
+    var blockIndex: Int
+    var place: PagePlace
+    /// The exercise the name is: the step that is on, on the current page; the block's last
+    /// logged set behind (its last set when none was); its first set still to do ahead. A set
+    /// being changed does not move it (P2's rule).
+    var exerciseIndex: Int
+    var exerciseName: String
+    var exerciseMark: MarkState
+    /// The ?'s text; nil when nothing is behind it, and on a checked page, where the check stands.
+    var notes: String?
+    /// Every step of the block logged: a check where the ? was.
+    var checked: Bool
+    var dots: [SetDot]
+    /// The set on this page: the one that is on; the last logged behind, faded; the first still
+    /// to do ahead, grey; or a logged set being changed from its dot.
+    var card: SetCard
+    /// Whether the card follows the number in the field — the page that holds the inputs.
+    var live: Bool
+    /// 0.7 for a page behind — "a bit more translucent" — and 1 otherwise.
+    var cardOpacity: Double
+    /// What Do this now does: the block's first step still to do, on a page ahead.
+    var firstPending: Int?
+    /// The one VoiceOver string for the page's exercise block (SPEC §9).
+    var spoken: String
+
+    /// The card as drawn: its cells for the number in the field on the live page, as built on
+    /// every other, so a neighbour never takes the set that is on's number.
+    func card(field: Int?) -> SetCard { live ? card.showing(field: field) : card }
 }
 
 /// What zone 3 starts out holding, so the view neither runs prefill nor formats numbers.
@@ -260,6 +308,9 @@ struct SetCard: Equatable {
 /// The workout's own sentences, in Core so a test can pin them (Y13's rule).
 enum WorkoutText {
     static let weightHint = "Type the weight you lift. The app remembers it from then on."
+    /// D83 (v1.10): zone 5 on a page behind, and on a page ahead.
+    static func back(to name: String) -> String { "Back to \(name)" }
+    static let doNow = "Do this now"
 }
 
 /// The whole workout screen as data. Views render it; they compute nothing.
@@ -276,22 +327,42 @@ struct WorkoutScreenModel: Equatable {
     var progress: String
     /// D80 (v1.10, §6.53): zone 1 — a segment per block, a mark per set, the caret.
     var bar: WorkoutBar
-    var exerciseName: String
-    /// D81 (v1.10, §6.54): zone 2 in symbols. The exercise's dot in its state; the ?'s text, nil
-    /// when there is nothing behind it; a dot per step of the block; and the one card.
-    /// *(v1.1–v1.9: a target line and a row per set.)*
-    var exerciseMark: MarkState
-    var notes: String?
-    var dots: [SetDot]
-    var card: SetCard
+    /// D83 (v1.10, §6.56): zone 2 is a pager — every block's page in the bar's order, the one
+    /// on screen, and the block that is on. `step` and `exerciseIndex` stay the step that is on,
+    /// which the ··· acts on whatever page is looked at.
+    var pages: [ExercisePage]
+    var page: ExercisePage
+    var currentBlock: Int
     /// The logged step being changed in place, from a tapped dot — the view's, never stored.
     var editing: Int?
     var inputs: InputDefaults
+    /// Zone 3 is drawn on the current page, and while a set is changed from any page. Off it the
+    /// defaults stay the current set's, so what was typed survives a look away.
+    var showsInputs: Bool
     var timer: TimerDisplay?
     var strip: StatusStrip
     var primary: PrimaryAction
-    /// The one VoiceOver string for the exercise block (SPEC §9).
-    var spoken: String
+
+    /// D81 (v1.10, §6.54): zone 2 in symbols, since D83 the page on screen's. The exercise's dot
+    /// in its state; the ?'s text, nil when there is nothing behind it; a dot per step of the
+    /// block; the one card; and the one VoiceOver string for the block (SPEC §9).
+    /// *(v1.1–v1.9: a target line and a row per set.)*
+    var exerciseName: String { page.exerciseName }
+    var exerciseMark: MarkState { page.exerciseMark }
+    var notes: String? { page.notes }
+    var dots: [SetDot] { page.dots }
+    var card: SetCard { page.card }
+    var spoken: String { page.spoken }
+    /// The block on screen, by `blockIndex`.
+    var showing: Int { page.blockIndex }
+    /// The exercise that is on, whatever page is on screen — the ···'s Change exercise names it.
+    var currentName: String { pages.first { $0.place == .current }?.exerciseName ?? page.exerciseName }
+
+    /// The block `offset` pages from the one on screen, or nil past either end.
+    func page(_ offset: Int) -> Int? {
+        guard let here = pages.firstIndex(where: { $0.blockIndex == showing }) else { return nil }
+        return pages[safe: here + offset]?.blockIndex
+    }
 
     /// D59 (v1.6): the last logged or skipped step, while D23's undo is still valid. Since v1.10
     /// (D81) the rows that carried Undo are gone and the strip says it, during the rest after.
@@ -310,11 +381,14 @@ struct WorkoutScreenModel: Equatable {
 
 enum WorkoutScreen {
     /// Nil only when the session is over — the Summary owns the screen then. `editing` is the
-    /// dot the view has tapped; a step that is not a logged one of this block is ignored.
-    /// `walk` is the engine's (D82): the walk's minimum and whether the plan declared it.
+    /// dot the view has tapped; a step that is not a logged one of the block on screen is
+    /// ignored. `walk` is the engine's (D82): the walk's minimum and whether the plan declared
+    /// it. `showing` is the page the finger has moved to, by `blockIndex` (D83) — the view's,
+    /// never stored; nil, or a block the day does not have, is the block that is on.
     static func model(active: ActiveSession, history: [Session], now: Date,
                       settings: Settings = Settings(), editing: Int? = nil,
-                      walk: (minimum: Int, fromPlan: Bool)? = nil) -> WorkoutScreenModel? {
+                      walk: (minimum: Int, fromPlan: Bool)? = nil,
+                      showing: Int? = nil) -> WorkoutScreenModel? {
         let session = active.session
         let index: Int
         switch active.phase {
@@ -323,7 +397,7 @@ enum WorkoutScreen {
         case .completed: return nil
         }
         guard let step = session.steps[safe: index],
-              let exercise = session.exercises[safe: step.exerciseIndex],
+              session.exercises.indices.contains(step.exerciseIndex),
               let target = session.target(at: index) else { return nil }
 
         let values = Prefill.values(session: session, step: index, history: history,
@@ -331,7 +405,11 @@ enum WorkoutScreen {
         let timed = target.work.isTimed
         let restKind: RestKind?
         if case let .resting(rest) = active.phase { restKind = rest.kind } else { restKind = nil }
-        let block = session.steps.indices.filter { session.steps[$0].blockIndex == step.blockIndex }
+        let blocks = SessionBlocks.indices(session)
+        let blockIndex = { (block: [Int]) in block.first.map { session.steps[$0].blockIndex } }
+        let shownBlock = showing.flatMap { b in blocks.contains { blockIndex($0) == b } ? b : nil }
+            ?? step.blockIndex
+        let block = blocks.first { blockIndex($0) == shownBlock } ?? []
         let edited = editing.flatMap { e -> (step: Int, result: SetResult)? in
             guard block.contains(e), session.steps[e].status == .logged,
                   let result = session.steps[e].result else { return nil }
@@ -345,12 +423,20 @@ enum WorkoutScreen {
                                    unit: session.units.rawValue)
             defaults.seconds = edited.result.seconds != nil
         }
-        let shown = edited.flatMap {
-            SetCard.of(session: session, step: $0.step, history: history, colour: .done,
-                       field: $0.result.reps ?? $0.result.seconds)
-        } ?? SetCard.of(session: session, step: index, history: history, colour: .now,
-                        field: InputRules.repsValue(defaults.reps))
-        guard let card = shown else { return nil }
+        let pages = blocks.compactMap {
+            page(active: active, block: $0, history: history, current: index,
+                 field: InputRules.repsValue(defaults.reps), edited: edited)
+        }
+        guard let shown = pages.first(where: { $0.blockIndex == shownBlock }),
+              let current = pages.first(where: { $0.place == .current }) else { return nil }
+        let onCurrent = shown.place == .current
+        let primary: PrimaryAction
+        switch (edited, shown.place) {
+        case (.some, _): primary = PrimaryAction(title: "Save", kind: .save)
+        case (nil, .current): primary = Self.primary(work: target.work, running: active.timerRunning, resting: restKind)
+        case (nil, .behind): primary = PrimaryAction(title: WorkoutText.back(to: current.exerciseName), kind: .back)
+        case (nil, .ahead): primary = PrimaryAction(title: WorkoutText.doNow, kind: .doNow, step: shown.firstPending)
+        }
         return WorkoutScreenModel(
             // Every state returns the same five, in the same order (D22, O50).
             zones: WorkoutZone.allCases,
@@ -361,10 +447,67 @@ enum WorkoutScreen {
             elapsed: TargetText.time(wholeSeconds(SessionStats.duration(session, now: now))),
             progress: StepCard.progress(session: session, step: index,
                                         wording: settings.wording),
-            bar: WorkoutBar.of(session: active),
+            // D83: the fill is the record and never moves; the caret is under the page.
+            bar: WorkoutBar.of(session: active, showing: shownBlock),
+            pages: pages,
+            page: shown,
+            currentBlock: step.blockIndex,
+            editing: edited?.step,
+            inputs: defaults,
+            showsInputs: onCurrent || edited != nil,
+            // A hold being changed takes a field for its seconds, so no timer stands in its place.
+            timer: timed && edited == nil && onCurrent
+                ? timer(active: active, step: index, work: target.work, warning: target.warning, now: now) : nil,
+            strip: strip(active: active, step: index, work: target.work, warning: target.warning,
+                         wording: settings.wording, history: history, now: now,
+                         walk: walk ?? (RestResolution.walk(plan: nil, settings: settings), false)),
+            primary: primary,
+            undoStep: active.canUndo ? active.lastCompletedStep : nil)
+    }
+
+    /// D83 (v1.10, §6.56): one block's page. `field` is the number the current set's inputs start
+    /// with; `edited` the logged set being changed, which only the page holding it shows.
+    static func page(active: ActiveSession, block: [Int], history: [Session], current: Int,
+                     field: Int?, edited: (step: Int, result: SetResult)?) -> ExercisePage? {
+        let session = active.session
+        guard let first = block.first, let last = block.last else { return nil }
+        let pending = block.first { session.steps[$0].status == .pending }
+        let place: PagePlace = block.contains(current) ? .current : pending != nil ? .ahead : .behind
+        let lastLogged = block.last { session.steps[$0].status == .logged }
+        // The name's step: P2's rule on the current page, and the card's set on the others.
+        let named: Int
+        switch place {
+        case .current: named = current
+        case .ahead: named = pending ?? first
+        case .behind: named = lastLogged ?? last
+        }
+        let changing = edited.flatMap { block.contains($0.step) ? $0 : nil }
+        let card: SetCard?
+        if let changing {
+            card = SetCard.of(session: session, step: changing.step, history: history, colour: .done,
+                              field: changing.result.reps ?? changing.result.seconds)
+        } else {
+            switch place {
+            case .current:
+                card = SetCard.of(session: session, step: current, history: history, colour: .now, field: field)
+            case .ahead:
+                card = SetCard.of(session: session, step: named, history: history, colour: .todo, field: nil)
+            case .behind:
+                let result = lastLogged.flatMap { session.steps[$0].result }
+                card = SetCard.of(session: session, step: named, history: history,
+                                  colour: result == nil ? .todo : .done, field: result.flatMap { $0.reps ?? $0.seconds })
+            }
+        }
+        guard let card, let exercise = session.exercises[safe: session.steps[named].exerciseIndex] else { return nil }
+        let checked = block.allSatisfy { session.steps[$0].status == .logged }
+        return ExercisePage(
+            blockIndex: session.steps[first].blockIndex,
+            place: place,
+            exerciseIndex: session.steps[named].exerciseIndex,
             exerciseName: exercise.name,
-            exerciseMark: MarkState.of(exercise: step.exerciseIndex, session: active),
-            notes: notes(exercise),
+            exerciseMark: MarkState.of(exercise: session.steps[named].exerciseIndex, session: active),
+            notes: checked ? nil : notes(exercise),
+            checked: checked,
             dots: block.enumerated().map { position, i in
                 let state = MarkState.of(step: i, session: active)
                 let skipped = session.steps[i].status == .skipped
@@ -373,18 +516,10 @@ enum WorkoutScreen {
                                 + (skipped ? "skipped" : state == .done ? "done" : state == .now ? "now" : "not yet"))
             },
             card: card,
-            editing: edited?.step,
-            inputs: defaults,
-            // A hold being changed takes a field for its seconds, so no timer stands in its place.
-            timer: timed && edited == nil ? timer(active: active, step: index, work: target.work,
-                                                  warning: target.warning, now: now) : nil,
-            strip: strip(active: active, step: index, work: target.work, warning: target.warning,
-                         wording: settings.wording, history: history, now: now,
-                         walk: walk ?? (RestResolution.walk(plan: nil, settings: settings), false)),
-            primary: edited != nil ? PrimaryAction(title: "Save", kind: .save)
-                : primary(work: target.work, running: active.timerRunning, resting: restKind),
-            spoken: StepCard.spoken(session: session, step: index),
-            undoStep: active.canUndo ? active.lastCompletedStep : nil)
+            live: changing != nil || (place == .current && edited == nil),
+            cardOpacity: place == .behind && changing == nil ? 0.7 : 1,
+            firstPending: place == .ahead ? pending : nil,
+            spoken: StepCard.spoken(session: session, step: named))
     }
 
     /// D81 (v1.10): what the ? opens — "was Barbell Row" first for a changed exercise (D42), then

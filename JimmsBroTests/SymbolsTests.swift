@@ -8,6 +8,7 @@ import XCTest
 /// colours (D79, SPEC §6.52) and the header is the bar (D80, §6.53): TP1–TP6. TP7 is the phone's.
 /// P2: the exercise in symbols (D81, §6.54): TP8–TP15. TP16 is the phone's.
 /// P3: the walk, a count-up and a ring (D82, §6.55): TP17–TP22. TP23 is the phone's.
+/// P4: pages (D83, §6.56): TP24–TP28. TP29 is the phone's.
 final class SymbolsTests: XCTestCase {
     private let now = CoreTestSupport.now
 
@@ -216,7 +217,7 @@ final class SymbolsTests: XCTestCase {
                      "Image(systemName: \"ellipsis\")"] {
             XCTAssertTrue(code.contains(kept), kept)
         }
-        XCTAssertTrue(view.contains("PrimaryButton(title: screen.primary.title, enabled: primaryEnabled, ink: true)"))
+        XCTAssertTrue(view.contains("PrimaryButton(title: screen.primary.title, systemImage: primaryMark, enabled: primaryEnabled,\n                              ink: true)"))
         XCTAssertTrue(view.contains(".tint(.primary)"))
         XCTAssertTrue(view.contains("Canvas {"), "the bar is one Canvas, not a view per set")
     }
@@ -728,13 +729,13 @@ final class SymbolsTests: XCTestCase {
         }
         let zone = code(try XCTUnwrap(Self.block(view, from: "// MARK: - Zone 2", to: "// MARK: - Zone 3")))
         XCTAssertEqual(zone.components(separatedBy: "Text(").count - 1, 1, "one Text in zone 2")
-        XCTAssertTrue(zone.contains("Text(screen.exerciseName)"))
+        XCTAssertTrue(zone.contains("Text(page.exerciseName)"), "since D83, a page's")
         for gone in ["targetLine", "screen.rows", "SetRowView", "InsetGroup", "Text(\""] {
             XCTAssertFalse(zone.contains(gone), gone)
         }
-        for kept in ["SetCardView(card: screen.card.showing(field: InputRules.repsValue(repsText)), day: dayColour)",
+        for kept in ["SetCardView(card: page.card(field: InputRules.repsValue(repsText)), day: dayColour)",
                      "NotesButton(notes: notes)", "DotView(dot: dot", "HistoryRoute.exercise(",
-                     ".accessibilityLabel(screen.spoken)", "model.apply(.jumpTo(step: dot.step))", "editing = dot.step"] {
+                     ".accessibilityLabel(page.spoken)", "model.apply(.jumpTo(step: dot.step))", "editing = dot.step"] {
             XCTAssertTrue(zone.contains(kept), kept)
         }
         let card = code(try XCTUnwrap(Self.block(view, from: "private struct SetCardView", to: "\n}\n")))
@@ -744,6 +745,254 @@ final class SymbolsTests: XCTestCase {
         XCTAssertTrue(view.contains("await model.apply(.editSet(step: step, result: result))"))
         XCTAssertFalse(view.contains("strip.undo != nil, typeSize.isAccessibilitySize"))
         XCTAssertTrue(view.contains("if strip.undo != nil {"))
+    }
+
+    // MARK: - P4: pages (D83)
+
+    private func page(_ engine: SessionEngine, showing: Int?, editing: Int? = nil,
+                      at seconds: Double = 800) throws -> WorkoutScreenModel {
+        try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [], now: now.addingTimeInterval(seconds),
+                                          editing: editing, showing: showing))
+    }
+
+    // TP24 (D83): a page behind — Bench on the example. The caret under it, every dot done and a
+    // check for the ?, the card its fourth set as logged at 70 % and deaf to the field, no inputs,
+    // and Back to the exercise that is on; the ··· still acts on it. A dot there changes its set.
+    func testAPageBehind() throws {
+        let engine = try example()
+        let current = try page(engine, showing: nil)
+        let bench = try page(engine, showing: 0)
+        XCTAssertEqual(bench.bar.segments.map(\.caret), [true, false, false, false, false])
+        XCTAssertEqual(bench.showing, 0)
+        XCTAssertEqual(bench.currentBlock, 1)
+        XCTAssertEqual(bench.page.place, .behind)
+        XCTAssertEqual(bench.exerciseName, "Barbell Bench Press")
+        XCTAssertEqual(bench.exerciseMark, .done)
+        XCTAssertEqual(bench.dots.map(\.state), [.done, .done, .done, .done])
+        XCTAssertTrue(bench.page.checked, "a check where the ? was")
+        XCTAssertNil(bench.notes)
+        XCTAssertEqual(bench.card, SetCard.of(session: engine.session, step: 3, history: [], colour: .done, field: 8),
+                       "the fourth set, as logged")
+        XCTAssertEqual(bench.card.cells.cells.map(\.fill), Array(repeating: .solid, count: 8))
+        XCTAssertEqual(bench.page.cardOpacity, 0.7)
+        XCTAssertFalse(bench.page.live)
+        XCTAssertEqual(bench.page.card(field: 3), bench.card, "the set that is on's number is not this card's")
+        XCTAssertNil(bench.page.firstPending)
+        XCTAssertFalse(bench.showsInputs, "zone 3 is empty")
+        XCTAssertNil(bench.timer)
+        XCTAssertEqual(bench.primary, PrimaryAction(title: "Back to Incline Dumbbell Press", kind: .back))
+        XCTAssertEqual(WorkoutText.back(to: "Plank"), "Back to Plank")
+        XCTAssertEqual(bench.step, 5, "the ··· acts on the set that is on")
+        XCTAssertEqual(bench.exerciseIndex, 1)
+        XCTAssertEqual(bench.currentName, "Incline Dumbbell Press")
+        XCTAssertEqual(bench.inputs, current.inputs, "what was typed survives a look away")
+        XCTAssertEqual(bench.strip, current.strip)
+        XCTAssertEqual(bench.zones, WorkoutZone.allCases)
+
+        // The current page, for contrast.
+        XCTAssertEqual(current.page.place, .current)
+        XCTAssertEqual(current.showing, 1)
+        XCTAssertTrue(current.showsInputs)
+        XCTAssertTrue(current.page.live)
+        XCTAssertEqual(current.page.cardOpacity, 1)
+        XCTAssertFalse(current.page.checked)
+        XCTAssertEqual(current.primary.kind, .log)
+        XCTAssertEqual(current.pages.map(\.place), [.behind, .current, .ahead, .ahead, .ahead])
+
+        // A filled dot behind changes its set there: Save, the inputs, the card opaque and live.
+        let changing = try page(engine, showing: 0, editing: 0)
+        XCTAssertEqual(changing.editing, 0)
+        XCTAssertEqual(changing.primary, PrimaryAction(title: "Save", kind: .save))
+        XCTAssertTrue(changing.showsInputs)
+        XCTAssertEqual(changing.inputs.reps, "8")
+        XCTAssertEqual(changing.inputs.weight, "80")
+        XCTAssertTrue(changing.page.live)
+        XCTAssertEqual(changing.page.cardOpacity, 1)
+        XCTAssertEqual(changing.card.colour, .done)
+        XCTAssertEqual(changing.page.card(field: 7).cells.cells.filter { $0.fill == .solid }.count, 7)
+        XCTAssertFalse(try XCTUnwrap(changing.pages[safe: 1]).live, "the current page's card waits")
+        XCTAssertEqual(changing.exerciseName, "Barbell Bench Press")
+        XCTAssertNil(try page(engine, showing: 0, editing: 4).editing, "a set on another page is not changed here")
+        XCTAssertNil(try page(engine, showing: 1, editing: 0).editing)
+
+        // A block whose last set was skipped is behind, without a check: the card its last logged set.
+        var skipped = SessionEngine(session: try XCTUnwrap(Session.start(plan: pushPullLegs(), dayIndex: 0, now: now)),
+                                    settings: CoreTestSupport.classic, now: now)
+        for step in 0..<3 {
+            skipped.apply(.logSet(step: step, result: .reps(count: 7, weight: 80)), now: now.addingTimeInterval(Double(step + 1) * 150))
+        }
+        skipped.apply(.skipSet(step: 3), now: now.addingTimeInterval(600))
+        let partly = try page(skipped, showing: 0, at: 610)
+        XCTAssertEqual(partly.page.place, .behind)
+        XCTAssertFalse(partly.page.checked)
+        XCTAssertEqual(partly.exerciseMark, .todo)
+        XCTAssertEqual(partly.dots.map(\.skipped), [false, false, false, true])
+        XCTAssertEqual(partly.card, SetCard.of(session: skipped.session, step: 2, history: [], colour: .done, field: 7))
+        XCTAssertEqual(partly.primary.kind, .back)
+    }
+
+    // TP25 (D83): a page ahead — Lateral Raise. The caret under it, grey dots and name, a grey
+    // card of its first set's target with no caret, no inputs, and Do this now, which jumps to
+    // Lateral Raise's first set out of the rest and leaves Incline's two pending to wait its turn.
+    func testAPageAheadAndDoThisNow() throws {
+        var engine = try example()
+        let lateral = try page(engine, showing: 2)
+        XCTAssertEqual(lateral.bar.segments.map(\.caret), [false, false, true, false, false])
+        XCTAssertEqual(lateral.page.place, .ahead)
+        XCTAssertEqual(lateral.exerciseName, "Lateral Raise")
+        XCTAssertEqual(lateral.exerciseMark, .todo)
+        XCTAssertEqual(lateral.dots.map(\.state), [.todo, .todo, .todo])
+        XCTAssertFalse(lateral.page.checked)
+        XCTAssertEqual(lateral.card.colour, .todo)
+        XCTAssertEqual(lateral.card.range, "12–15")
+        XCTAssertEqual(lateral.card.weight, "10 kg")
+        XCTAssertEqual(lateral.card.cells.cells.map(\.fill), Array(repeating: .solid, count: 12) + Array(repeating: .faint, count: 3))
+        XCTAssertFalse(lateral.card.cells.cells.contains(where: \.caret))
+        XCTAssertEqual(lateral.page.card(field: 13), lateral.card)
+        XCTAssertEqual(lateral.page.cardOpacity, 1)
+        XCTAssertFalse(lateral.showsInputs)
+        XCTAssertNil(lateral.timer)
+        XCTAssertEqual(lateral.page.firstPending, 7)
+        XCTAssertEqual(lateral.primary, PrimaryAction(title: "Do this now", kind: .doNow, step: 7))
+        XCTAssertEqual(WorkoutText.doNow, "Do this now")
+
+        // Do this now is `jumpTo`: out of the rest, its notification cancelled.
+        let effects = engine.apply(.jumpTo(step: try XCTUnwrap(lateral.primary.step)), now: now.addingTimeInterval(810))
+        XCTAssertTrue(effects.contains(.cancelNotification(id: .rest)))
+        XCTAssertEqual(engine.phase, .working(step: 7))
+        XCTAssertEqual(engine.active.currentStep, 7)
+        XCTAssertEqual([5, 6].map { engine.session.steps[$0].status }, [.pending, .pending], "Incline waits")
+        let on = try page(engine, showing: nil, at: 820)
+        XCTAssertEqual(on.currentBlock, 2)
+        XCTAssertEqual(on.showing, 2)
+        XCTAssertEqual(on.page.place, .current)
+        XCTAssertEqual(on.primary.kind, .log)
+        XCTAssertEqual(on.dots.map(\.state), [.now, .todo, .todo])
+        XCTAssertEqual(try page(engine, showing: 2, at: 820), on, "the explicit page that is now on is the same screen")
+
+        // Incline, behind the caret with two sets still to do, is a page ahead.
+        let incline = try page(engine, showing: 1, at: 820)
+        XCTAssertEqual(incline.page.place, .ahead)
+        XCTAssertEqual(incline.dots.map(\.state), [.done, .todo, .todo])
+        XCTAssertEqual(incline.exerciseMark, .todo)
+        XCTAssertEqual(incline.primary, PrimaryAction(title: "Do this now", kind: .doNow, step: 5))
+        XCTAssertEqual(incline.card, SetCard.of(session: engine.session, step: 5, history: [], colour: .todo, field: nil))
+
+        // Lateral Raise done, the day goes on to Tricep Pushdown, and Incline still waits.
+        for step in 7...9 {
+            engine.apply(.logSet(step: step, result: .reps(count: 12, weight: 10)), now: now.addingTimeInterval(Double(step) * 120))
+        }
+        XCTAssertEqual(engine.active.currentStep, 10)
+        let after = try page(engine, showing: 2, at: 1200)
+        XCTAssertEqual(after.page.place, .behind)
+        XCTAssertTrue(after.page.checked)
+        XCTAssertEqual(after.primary, PrimaryAction(title: "Back to Tricep Pushdown", kind: .back))
+        XCTAssertEqual(try page(engine, showing: 1, at: 1200).page.place, .ahead)
+    }
+
+    // TP26 (D83): the fill is the record — the bar's segments and marks are the same whatever page
+    // is looked at; only the caret moves. The pages are the bar's segments, in its order, after
+    // Do later too; a block the day does not have is the page that is on.
+    func testTheBarsFillDoesNotMoveWithThePage() throws {
+        var engine = try example()
+        let screens = try [0, nil, 2, 99].map { try page(engine, showing: $0) }
+        func fill(_ bar: WorkoutBar) -> [[MarkState]] { bar.segments.map(\.sets) }
+        for screen in screens {
+            XCTAssertEqual(fill(screen.bar), fill(screens[1].bar))
+            XCTAssertEqual(screen.bar.segments.map(\.weight), screens[1].bar.segments.map(\.weight))
+            XCTAssertEqual(screen.bar.segments.map(\.blockIndex), screen.pages.map(\.blockIndex))
+            XCTAssertEqual(screen.bar.segments.filter(\.caret).map(\.blockIndex), [screen.showing])
+            XCTAssertEqual(screen.completion, screens[1].completion)
+            XCTAssertEqual(screen.stage, screens[1].stage)
+            XCTAssertEqual(screen.pages, screens[1].pages, "every page is the same data wherever you are")
+        }
+        XCTAssertEqual(screens.map(\.showing), [0, 1, 2, 1], "99 is no block: the page that is on")
+        XCTAssertEqual(screens[3], screens[1])
+        XCTAssertEqual(screens[0].page(-1), nil)
+        XCTAssertEqual(screens[0].page(1), 1)
+        XCTAssertEqual(screens[2].page(1), 3)
+        XCTAssertEqual(screens[2].page(-1), 1)
+        XCTAssertNil(screens[2].page(3))
+
+        engine.apply(.deferExercise(exerciseIndex: 1), now: now.addingTimeInterval(810))
+        let deferred = try page(engine, showing: nil, at: 820)
+        XCTAssertEqual(deferred.pages.map(\.blockIndex), deferred.bar.segments.map(\.blockIndex))
+        XCTAssertEqual(deferred.exerciseName, "Lateral Raise")
+        let incline = try XCTUnwrap(deferred.pages.first { $0.blockIndex == 1 })
+        XCTAssertEqual(incline.place, .ahead)
+        XCTAssertEqual(incline.firstPending.map { engine.session.steps[$0].blockIndex }, 1)
+    }
+
+    // TP27 (D83): a superset block is one page — its rounds the dots, its name the current step's
+    // as the round alternates; ahead, the name is its first set to do; behind, its last logged.
+    func testASupersetIsOnePage() throws {
+        var plan = pushPullLegs()
+        plan.days[0].exercises[2].group = "A"
+        plan.days[0].exercises[3].group = "A"
+        var engine = SessionEngine(session: try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: now)),
+                                   settings: CoreTestSupport.classic, now: now)
+        for step in 0..<5 {
+            engine.apply(.logSet(step: step, result: .reps(count: 8, weight: 80)), now: now.addingTimeInterval(Double(step + 1) * 150))
+        }
+        let before = try page(engine, showing: nil)
+        XCTAssertEqual(before.pages.count, 4, "Bench, Incline, the superset, Plank")
+        XCTAssertEqual(before.bar.segments.count, 4)
+        let superset = try page(engine, showing: 2)
+        XCTAssertEqual(superset.page.place, .ahead)
+        XCTAssertEqual(superset.dots.count, 6, "both exercises' three rounds")
+        XCTAssertEqual(superset.exerciseName, "Lateral Raise")
+        XCTAssertEqual(superset.primary, PrimaryAction(title: "Do this now", kind: .doNow, step: 7))
+
+        engine.apply(.jumpTo(step: 7), now: now.addingTimeInterval(810))
+        XCTAssertEqual(try page(engine, showing: nil, at: 820).exerciseName, "Lateral Raise")
+        engine.apply(.logSet(step: 7, result: .reps(count: 12, weight: 10)), now: now.addingTimeInterval(830))
+        let partner = try page(engine, showing: nil, at: 840)
+        XCTAssertEqual(partner.showing, 2, "one page for the round")
+        XCTAssertEqual(partner.exerciseName, "Tricep Pushdown", "the name follows the step that is on")
+        XCTAssertEqual(partner.dots.map(\.state), [.done, .now, .todo, .todo, .todo, .todo])
+
+        for step in 8...12 {
+            engine.apply(.logSet(step: step, result: .reps(count: 11, weight: 20)), now: now.addingTimeInterval(Double(step) * 100))
+        }
+        let behind = try page(engine, showing: 2, at: 1300)
+        XCTAssertEqual(behind.page.place, .behind)
+        XCTAssertTrue(behind.page.checked)
+        XCTAssertEqual(behind.exerciseName, "Tricep Pushdown", "its last logged set's")
+        XCTAssertEqual(behind.card, SetCard.of(session: engine.session, step: 12, history: [], colour: .done, field: 11))
+    }
+
+    // TP28 (D83, pin; proposed as ui): zone 2 is a pager of pages — a horizontal scroll that lands
+    // a page per swipe, a 20 pt margin and an 8 pt gap so the next page peeks 12 pt, no page dots
+    // or arrows, a page behind at its card's opacity — kept level with the view's `showing`, which
+    // the model takes and nothing stores; zone 5's Back and Do this now; zone 3 only with inputs.
+    func testZoneTwoIsAPager() throws {
+        guard let view = FixtureLoader.doc("JimmsBro/Features/Workout/WorkoutView.swift"),
+              let app = FixtureLoader.doc("JimmsBro/Store/AppModel.swift"),
+              let activity = FixtureLoader.doc("JimmsBro/Core/WorkoutActivity.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        let zone = try XCTUnwrap(Self.block(view, from: "// MARK: - Zone 2", to: "// MARK: - Zone 3"))
+        for kept in ["ScrollView(.horizontal)", ".scrollTargetLayout()", ".modifier(OnePagePerSwipe())",
+                     ".containerRelativeFrame(.horizontal)", ".scrollPosition(id: $scrolled)",
+                     ".contentMargins(.horizontal, Self.gutter, for: .scrollContent)",
+                     "private static let gutter: CGFloat = 20", "private static let pageGap: CGFloat = 8",
+                     ".opacity(page.cardOpacity)", "ForEach(screen.pages, id: \\.blockIndex)",
+                     "showing = block == screen.currentBlock ? nil : block", "if page.checked {"] {
+            XCTAssertTrue(zone.contains(kept), kept)
+        }
+        for gone in ["TabView", ".tabViewStyle(", "chevron.left", "chevron.right", "PageControl"] {
+            XCTAssertFalse(view.contains(gone), gone)
+        }
+        XCTAssertTrue(view.contains(".viewAligned(limitBehavior: .alwaysByOne)"))
+        XCTAssertTrue(view.contains("walk: model.engine?.walk, showing: showing)"))
+        XCTAssertTrue(view.contains("@State private var showing: Int?"))
+        let primary = try XCTUnwrap(Self.block(view, from: "private func primaryTapped()", to: "\n    }\n"))
+        XCTAssertTrue(primary.contains("case .back:"))
+        XCTAssertTrue(primary.contains("await model.apply(.jumpTo(step: step))"))
+        XCTAssertTrue(view.contains("if !screen.showsInputs {"))
+        XCTAssertTrue(view.contains("changeExercise(screen.exerciseIndex, screen.currentName)"))
+        XCTAssertFalse(app.contains("showing:"), "nothing the app keeps knows which page is looked at")
+        XCTAssertFalse(activity.contains("showing:"), "nor the Lock Screen")
     }
 
     /// The text from `start` up to and including the first `end` after it.

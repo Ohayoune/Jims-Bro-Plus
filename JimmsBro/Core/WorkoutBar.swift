@@ -55,8 +55,8 @@ struct WorkoutBar: Equatable {
 
     var segments: [Segment]
 
-    /// `showing` is the block being looked at, by `blockIndex`; nil is the current step's block,
-    /// which is the only block there is to look at until P4's pages (D83) move the caret.
+    /// `showing` is the block being looked at, by `blockIndex` — the page on screen (D83); nil is
+    /// the current step's block. Only the caret follows it: the marks are the record.
     static func of(session active: ActiveSession, showing: Int? = nil) -> WorkoutBar {
         let session = active.session
         let looked = showing ?? active.currentStep.flatMap { session.steps[safe: $0]?.blockIndex }

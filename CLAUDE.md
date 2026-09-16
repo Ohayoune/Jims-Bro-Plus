@@ -212,7 +212,13 @@ on the ring for one sentence (`RestText.ringExplanation`); `StatusStrip.directio
 (`WalkRing`) and `.spoken` carry it, and the Lock Screen counts the walk up. The minimum is the
 plan's new optional `restBetweenExercises` (PLAN_FORMAT §2, PROMPT §1 and §4, three fixtures, decoded
 with `container.optional`), then the setting — read from the plan by `PlanLibrary.refreshWalk()`,
-never copied into the session. P4–P7 are not built.
+never copied into the session. P4 made zone 2 a pager (D83, SPEC §6.56): a page per block in the
+bar's order, one block per swipe, the next peeking 12 pt, the caret moving while the fill stays; a
+page's place is what is left in its block (`PagePlace`) — behind has a check and its last set at
+70 % with **↩ Back to …**, ahead is grey with **▶ Do this now** (`jumpTo`) — and neither has inputs
+(`showsInputs`). Every page is Core's (`ExercisePage`, `WorkoutScreen.page`), the page on screen is
+the view's `showing`, never stored, and the ··· still acts on the step that is on. P5–P7 are not
+built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

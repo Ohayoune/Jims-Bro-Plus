@@ -14,6 +14,9 @@ struct WorkoutView: View {
     @State private var showDiscardConfirm = false
     /// D81 (v1.10): the logged set a tapped dot is changing, in place. Never stored.
     @State private var editing: Int?
+    /// D83 (v1.10): the page the finger has moved to, by block; nil is the block that is on.
+    /// Never stored.
+    @State private var showing: Int?
     /// D42 (v1.3): the exercise Change exercise was opened for.
     @State private var changing: ChangeTarget?
 
@@ -61,6 +64,13 @@ struct WorkoutView: View {
                 try? await Task.sleep(for: .milliseconds(600))
                 editing = model.engine?.active.lastCompletedStep
             }
+            // Debug-only (v1.10, D83): look at another block's page, as a swipe does.
+            let arguments = ProcessInfo.processInfo.arguments
+            if let index = arguments.firstIndex(of: "-uiShowPage"),
+               let block = arguments[safe: index + 1].flatMap(Int.init) {
+                try? await Task.sleep(for: .milliseconds(600))
+                showing = block
+            }
             #endif
         }
         // D56 (v1.6): alerts, not confirmation dialogs. Presented from the ··· menu, a dialog
@@ -89,11 +99,12 @@ struct WorkoutView: View {
         if let active = model.engine?.active, model.phase != .completed,
            let screen = WorkoutScreen.model(active: active, history: model.sessions, now: now,
                                             settings: model.settings, editing: editing,
-                                            walk: model.engine?.walk) {
+                                            walk: model.engine?.walk, showing: showing) {
             WorkoutScreenView(screen: screen,
                               dayColour: DayColour.of(session: active.session, plans: model.plans),
                               now: now, showOverview: $showOverview,
-                              editing: $editing, minimize: { dismiss() }, finish: requestFinish,
+                              editing: $editing, showing: $showing,
+                              minimize: { dismiss() }, finish: requestFinish,
                               changeExercise: { changing = ChangeTarget(exerciseIndex: $0, name: $1) })
                 .toolbar(.hidden, for: .navigationBar)
         } else if let session = model.session, model.phase == .completed {
@@ -134,6 +145,7 @@ private struct WorkoutScreenView: View {
     let now: Date
     @Binding var showOverview: Bool
     @Binding var editing: Int?
+    @Binding var showing: Int?
     let minimize: () -> Void
     let finish: () -> Void
     /// D42 (v1.3): opens Change exercise for (exercise index, its current name).
@@ -142,6 +154,8 @@ private struct WorkoutScreenView: View {
     @State private var repsText = ""
     @State private var weightText = ""
     @State private var loadedStep: Int?
+    /// D83: the pager's own position, by block, kept level with `showing`.
+    @State private var scrolled: Int?
     @FocusState private var focused: Field?
 
     private enum Field { case reps, weight }
@@ -156,8 +170,8 @@ private struct WorkoutScreenView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     exerciseBlock                           // zone 2
                     inputs                                  // zone 3
+                        .padding(.horizontal, Self.gutter)
                 }
-                .padding(.horizontal, 20)
                 .padding(.top, 12)
                 .padding(.bottom, 16)
             }
@@ -171,7 +185,8 @@ private struct WorkoutScreenView: View {
                 // Log set on iOS 26, and a tap there did nothing.
                 StatusStripView(strip: screen.strip,          // zone 4
                                 done: focused != nil ? { focused = nil } : nil)
-                PrimaryButton(title: screen.primary.title, enabled: primaryEnabled, ink: true) { primaryTapped() }
+                PrimaryButton(title: screen.primary.title, systemImage: primaryMark, enabled: primaryEnabled,
+                              ink: true) { primaryTapped() }
             }
         }
         // D79 (v1.10, §6.52): blue is reserved on this screen — it says *now* and nothing else —
@@ -237,7 +252,7 @@ private struct WorkoutScreenView: View {
                 // D42 (v1.3): the machine is taken and you want to do something now.
                 if model.canSubstitute(exerciseIndex: screen.exerciseIndex) {
                     Button("Change exercise") {
-                        changeExercise(screen.exerciseIndex, screen.exerciseName)
+                        changeExercise(screen.exerciseIndex, screen.currentName)
                     }
                 }
                 // D56 (v1.6): not destructive — it saves the workout. Red read as "delete".
@@ -256,20 +271,64 @@ private struct WorkoutScreenView: View {
 
     // MARK: - Zone 2
 
+    /// D83 (v1.10, §6.56): zone 2 is a pager — a page per block in the bar's order, the page that
+    /// is on shown until the finger moves it, the next peeking 12 pt at the edge. No ‹ › and no
+    /// page dots: the bar's caret says which page this is. Only the pages move; the zones do not.
+    private var exerciseBlock: some View {
+        ScrollView(.horizontal) {
+            HStack(alignment: .top, spacing: Self.pageGap) {
+                ForEach(screen.pages, id: \.blockIndex) { page in
+                    exercisePage(page)
+                        .containerRelativeFrame(.horizontal)
+                        // VoiceOver reads the page on screen; a three-finger swipe turns it.
+                        .accessibilityHidden(page.blockIndex != screen.showing)
+                }
+            }
+            .scrollTargetLayout()
+        }
+        .modifier(OnePagePerSwipe())
+        .scrollPosition(id: $scrolled)
+        .contentMargins(.horizontal, Self.gutter, for: .scrollContent)
+        .scrollIndicators(.hidden)
+        // The card's shadow falls below the pager.
+        .scrollClipDisabled()
+        .accessibilityScrollAction { edge in
+            let block = edge == .trailing ? screen.page(1) : edge == .leading ? screen.page(-1) : nil
+            if let block { withAnimation(.snappy) { scrolled = block } }
+        }
+        .onAppear { scrolled = screen.showing }
+        .onChange(of: scrolled) { _, block in
+            guard let block else { return }
+            showing = block == screen.currentBlock ? nil : block
+        }
+        // Back, Do this now, a jump, or the workout moving on while the page that is on is shown.
+        .onChange(of: screen.showing) { _, block in
+            guard scrolled != block else { return }
+            withAnimation(.snappy) { scrolled = block }
+        }
+    }
+
+    /// The screen's side gutter; the pager's content margin is the same, so a page lines up with
+    /// the inputs under it.
+    private static let gutter: CGFloat = 20
+    /// Between pages, so the next one peeks `gutter − pageGap` = 12 pt at the edge.
+    private static let pageGap: CGFloat = 8
+
     /// D81 (v1.10, §6.54): the exercise in symbols. The name with its dot, the ? when there is
-    /// something behind it, a dot per set, and the one card. No sentence: the target line went
+    /// something behind it — D83: a check instead, once every set of the block is logged — a dot
+    /// per set, and the one card, at 70 % on a page behind. No sentence: the target line went
     /// into the card and behind the ?, the rows into the dots. *(v1.1–v1.9: the name, a target
     /// line and a row per set.)*
-    private var exerciseBlock: some View {
+    private func exercisePage(_ page: ExercisePage) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
-                NavigationLink(value: HistoryRoute.exercise(name: screen.exerciseName,
+                NavigationLink(value: HistoryRoute.exercise(name: page.exerciseName,
                                                            units: session?.units ?? .kg)) {
                     HStack(spacing: 10) {
                         Circle()
-                            .fill(screen.exerciseMark == .todo ? DotView.grey : screen.exerciseMark.color(day: dayColour))
+                            .fill(page.exerciseMark == .todo ? DotView.grey : page.exerciseMark.color(day: dayColour))
                             .frame(width: 12, height: 12)
-                        Text(screen.exerciseName)
+                        Text(page.exerciseName)
                             .font(.system(size: 22, weight: .bold))
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
@@ -277,27 +336,36 @@ private struct WorkoutScreenView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(screen.spoken)
+                .accessibilityLabel(page.spoken)
                 .accessibilityHint("Opens this exercise's history")
                 .accessibilityAddTraits(.isButton)
                 Spacer(minLength: 0)
-                if let notes = screen.notes { NotesButton(notes: notes) }
+                if page.checked {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 24, weight: .regular))
+                        .foregroundStyle(MarkState.done.color(day: dayColour))
+                        .frame(width: 44, height: 44)
+                        .accessibilityLabel("Every set done")
+                } else if let notes = page.notes {
+                    NotesButton(notes: notes)
+                }
             }
             .frame(minHeight: 44)
 
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 0) { dots }
-                WrapLayout(spacing: 0, lineSpacing: 0) { dots }
+                HStack(spacing: 0) { dots(page) }
+                WrapLayout(spacing: 0, lineSpacing: 0) { dots(page) }
             }
             .frame(maxWidth: .infinity)
 
-            SetCardView(card: screen.card.showing(field: InputRules.repsValue(repsText)), day: dayColour)
+            SetCardView(card: page.card(field: InputRules.repsValue(repsText)), day: dayColour)
+                .opacity(page.cardOpacity)
         }
     }
 
     /// 18 pt dots 10 pt apart, each in a 28 × 44 pt target.
-    private var dots: some View {
-        ForEach(screen.dots, id: \.step) { dot in
+    private func dots(_ page: ExercisePage) -> some View {
+        ForEach(page.dots, id: \.step) { dot in
             Button { tapped(dot) } label: {
                 DotView(dot: dot, day: dayColour, selected: dot.step == screen.editing)
                     .frame(width: 28, height: 44)
@@ -310,23 +378,30 @@ private struct WorkoutScreenView: View {
         }
     }
 
-    /// A filled dot changes that set in place; a grey one, slashed or not, is done now (`jumpTo`);
-    /// the blue one is the set already on — while changing another, it comes back to it.
+    /// A filled dot changes that set in place, on any page; a grey one, slashed or not, is done
+    /// now (`jumpTo`), and the pager follows it; the blue one is the set already on — while
+    /// changing another, it comes back to it.
     private func tapped(_ dot: SetDot) {
         switch dot.state {
         case .done: editing = dot.step
         case .now: editing = nil
         case .todo:
             editing = nil
-            Task { await model.apply(.jumpTo(step: dot.step)) }
+            Task {
+                await model.apply(.jumpTo(step: dot.step))
+                showing = nil
+            }
         }
     }
 
     // MARK: - Zone 3
 
+    /// D83: empty off the current page, unless a set is being changed from its dot there.
     private var inputs: some View {
         VStack(alignment: .leading, spacing: 18) {
-            if let timer = screen.timer {
+            if !screen.showsInputs {
+                EmptyView()
+            } else if let timer = screen.timer {
                 // A timed set takes the reps slot; the weight row below is untouched (§4.5).
                 VStack(alignment: .leading, spacing: 6) {
                     FieldLabel("Time")
@@ -366,7 +441,7 @@ private struct WorkoutScreenView: View {
                                committed: {})
                 }
             }
-            if screen.inputs.showsWeight { weightRow }
+            if screen.showsInputs, screen.inputs.showsWeight { weightRow }
         }
     }
 
@@ -424,7 +499,17 @@ private struct WorkoutScreenView: View {
     private var primaryEnabled: Bool {
         switch screen.primary.kind {
         case .log, .save: return StepCard.canLog(repsText: repsText, isTimed: false)
-        case .startTimer, .doneTimer, .stopTimer, .startSet: return true
+        case .startTimer, .doneTimer, .stopTimer, .startSet, .back: return true
+        case .doNow: return screen.primary.step != nil
+        }
+    }
+
+    /// D83 (v1.10): the pages' two buttons lead with a mark, as Today's Start does (D69).
+    private var primaryMark: String? {
+        switch screen.primary.kind {
+        case .back: return "arrow.uturn.backward"
+        case .doNow: return "play.fill"
+        case .log, .save, .startTimer, .doneTimer, .stopTimer, .startSet: return nil
         }
     }
 
@@ -433,7 +518,7 @@ private struct WorkoutScreenView: View {
         Task {
             // The engine logs a timed set with the weight it is holding, so make sure that is
             // what the field shows before finishing one. Reps sets pass `current` directly.
-            if screen.inputs.showsWeight, screen.primary.kind != .log, screen.primary.kind != .save {
+            if screen.showsInputs, screen.inputs.showsWeight, screen.primary.kind != .log, screen.primary.kind != .save {
                 await model.apply(.setWorkWeight(step: screen.step, weight: current))
             }
             switch screen.primary.kind {
@@ -456,6 +541,15 @@ private struct WorkoutScreenView: View {
                                                               : .reps(count: value, weight: current)
                 await model.apply(.editSet(step: step, result: result))
                 editing = nil
+            case .back:
+                // D83 (v1.10): the pager scrolls back to the page that is on.
+                showing = nil
+            case .doNow:
+                // D83: the looked-at block's first set still to do, now; the block that was on
+                // keeps its sets pending and waits its turn, as Do later leaves it (D28).
+                guard let step = screen.primary.step else { return }
+                await model.apply(.jumpTo(step: step))
+                showing = nil
             }
         }
     }
@@ -492,6 +586,18 @@ private struct WorkoutScreenView: View {
         // A set being changed holds its own weight; the set that is on keeps the one it had.
         guard screen.editing == nil else { return }
         Task { await model.apply(.setWorkWeight(step: screen.step, weight: current)) }
+    }
+}
+
+/// D83 (v1.10): one block per swipe. iOS 18 limits a view-aligned scroll to exactly one view;
+/// on iOS 17 `.always` limits it to a container's width, which a page is.
+private struct OnePagePerSwipe: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.scrollTargetBehavior(.viewAligned(limitBehavior: .alwaysByOne))
+        } else {
+            content.scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+        }
     }
 }
 
