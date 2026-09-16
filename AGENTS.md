@@ -175,6 +175,25 @@ changed. Everything through Q7 is built and green. What remains is the owner's: 
 checklist (the v1.7, v1.8 and v1.9 rows all need the phone), the Developer Program, a release Xcode
 and the submission (`docs/APP_STORE.md` §1 and §6).
 
+`docs/ITERATION_11_PLAN.md` is the v1.10 plan (milestones **P0–P7**), written 2026-09-16 from the
+owner's notes after living with v1.9: the Workout screen in **symbols**, and colour that means
+**state** — done in the day's colour, now in blue (reserved on that screen for the current set),
+not yet in grey (D79); the header without words, its bar one segment per exercise with a tick per
+set, tapped to open the Overview (D80); the exercise as a name with a **?** for its notes, a row of
+**dots** for its sets, and one **card of cells** for the set you are on — solid to the minimum,
+translucent to the top of the range, a caret under the reps, a line where last time reached — with
+a logged set changed in place by **Save** (D81); the walk between exercises as a **count-up and a
+ring** that fills red → amber → green over the plan's minimum, `restBetweenExercises`, the one
+field this release adds to the plan format and the on-disk contract, optional, the setting as the
+fallback (D82); **pages** — swipe to the next or previous exercise while the bar's fill stays put
+and its caret moves (D83); a bar whose segments take **your median time** per exercise once it has
+been done three times, held between ½× and 2× (D84); **Change *day*** as joined squares with a
+button that confirms and names its effect, and today's exercises editable through the JSON sheet
+pre-filled with the day (D85); and cycles drawn **seven to a row, the squares touching** (D86).
+The requirements were settled on two artifacts linked from the plan: round 1, "Workout in Symbols",
+and round 2, "Symbols, Round Two", redrawn four times on the owner's corrections. P0 is written;
+nothing else is built.
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
