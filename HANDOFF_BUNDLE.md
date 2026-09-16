@@ -1,12 +1,12 @@
 # Jimm's Bro+ — complete handoff bundle
 
-This single file contains the entire design package for a native iOS workout app, so it can be uploaded or pasted into a chat with a coding assistant. The folder version of this package (with 115 fixture files under `examples/`) is the same content; the fixtures are not inlined here because `tools/generate_fixtures.py` (included below) recreates all of them.
+This single file contains the entire design package for a native iOS workout app, so it can be uploaded or pasted into a chat with a coding assistant. The folder version of this package (with 118 fixture files under `examples/`) is the same content; the fixtures are not inlined here because `tools/generate_fixtures.py` (included below) recreates all of them.
 
 The app itself is built: v1 (M0–M7), v1.1 (R0–R6), v1.2 (V0–V8), v1.3 (X0–X6), v1.4 (Y0–Y5), v1.5 (Z0–Z6) and v1.6 (U0–U3, U5, U6; U4 waits on the owner) are implemented and green. `docs/BUILD_STATUS.md` says what was actually run, and `docs/DECISIONS_LOG.md` records every decision taken where the docs were silent. The Swift sources are not in this bundle — they are in the folder, under `JimmsBro/`, `JimmsBroActivity/` and `JimmsBroTests/`.
 
 How to use this bundle:
 1. Read `AGENTS.md` first (immediately below). It says what to read next and the hard rules.
-2. Recreate the folder: save each `### FILE:` section below to its path, then run `python3 tools/generate_fixtures.py` and `python3 tools/reference_import.py` (expect "115/115 fixtures match the manifest").
+2. Recreate the folder: save each `### FILE:` section below to its path, then run `python3 tools/generate_fixtures.py` and `python3 tools/reference_import.py` (expect "118/118 fixtures match the manifest").
 3. Read `docs/BUILD_STATUS.md` to see where the build has got to, then `docs/ITERATION_2_PLAN.md` through `docs/ITERATION_6_PLAN.md` for what v1.1 to v1.5 were.
 
 Each file below starts with a line `### FILE: <path>` followed by its full content inside a five-backtick fence, so the three- and four-backtick fences inside the documents nest correctly.
@@ -223,7 +223,14 @@ minimum, faint to the top, yellow past it, a caret that follows the field throug
 `SetCard.showing(field:)`, a line over last time); a filled dot changes its set in place with
 **Save** (`editing`, the view's, never stored), a grey dot does its set now, and Undo is the strip's
 again during the rest. `StepCard.setRows` stays in Core for its tests; no screen draws a row.
-P3–P7 are not built.
+P3 made the walk a count-up and a ring (D82, SPEC §6.55): between exercises the strip is a ring that
+fills red → amber → green over the minimum and becomes a green check, the count-up beside it and the
+next exercise's name under it, no −30 / +30 / Skip (the engine refuses them on the walk), and a tap
+on the ring for one sentence (`RestText.ringExplanation`); `StatusStrip.direction`, `.ring`
+(`WalkRing`) and `.spoken` carry it, and the Lock Screen counts the walk up. The minimum is the
+plan's new optional `restBetweenExercises` (PLAN_FORMAT §2, PROMPT §1 and §4, three fixtures, decoded
+with `container.optional`), then the setting — read from the plan by `PlanLibrary.refreshWalk()`,
+never copied into the session. P4–P7 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -316,7 +323,7 @@ Run the iOS tests from this folder:
 xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-That is **368 tests** (18 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity, v1.3's Island timer range, exercise substitution, JSON splices, history CSV and Progression, v1.4's start-before-the-side-effects rule, the four built-in plans and the introduction, v1.5's effort target, the outline-then-days draft, the progression's earned steps and the goals, v1.6's usability rules — the missed-workout guard, the chip and calendar-label rules, the first-five-minutes defaults, the Summary's next line and plain words — v1.7's Today card, tab list, calendar line, earned controls and day colours, v1.8's cueless card, week strip and rest-day rules, and v1.9's day swaps and Slide, the strip's marks and question, the ··· in squares, a day changed for one date, the JSON sheet's points and its line locator, and Plans in squares. Imports use the 115 fixtures and the manifest verbatim (the original 111, plus four for the effort target). There are no third-party dependencies, and the signing team is already set for both targets.
+That is **368 tests** (18 of them skipped on this route — see below). The suite covers imports, steps, rest, the session engine, prefill, stats, progression, plan coordination, scheduling, calendar projection, prompts, the persistence store and its migration from v1.1's files, the app model behind the screens, the workout's input rules, timers, notifications and session lifecycle, history and metrics, plan editing, backup and restore, v1.2's warm-up, transition rest, weight rounding, suggestions, anchored schedule and Live Activity, v1.3's Island timer range, exercise substitution, JSON splices, history CSV and Progression, v1.4's start-before-the-side-effects rule, the four built-in plans and the introduction, v1.5's effort target, the outline-then-days draft, the progression's earned steps and the goals, v1.6's usability rules — the missed-workout guard, the chip and calendar-label rules, the first-five-minutes defaults, the Summary's next line and plain words — v1.7's Today card, tab list, calendar line, earned controls and day colours, v1.8's cueless card, week strip and rest-day rules, and v1.9's day swaps and Slide, the strip's marks and question, the ··· in squares, a day changed for one date, the JSON sheet's points and its line locator, and Plans in squares. Imports use the 118 fixtures and the manifest verbatim (the original 111, four for the effort target and, in v1.10, three for the walk between exercises). There are no third-party dependencies, and the signing team is already set for both targets.
 
 Core can also be checked with the independently installed Command Line Tools:
 
@@ -553,16 +560,18 @@ There is one rest in the app, and it says which of three kinds it is, because "a
 |---|---|---|
 | **Warm-up** (D32) | Before the first set of the session | `Settings.warmUpSeconds`, 0 = off |
 | **Rest** | Between sets of an exercise, and after a superset round | The set's resolved `restSeconds` (§6.3) |
-| **Between exercises** (D33) | After a block's last step, before the next exercise | `Settings.transitionRestSeconds`, 0 = straight through, as v1.1 |
+| **Between exercises** (D33) | After a block's last step, before the next exercise | **v1.10 (D82)**: the plan's `restBetweenExercises`, then `Settings.transitionRestSeconds`; 0 from either = straight through, as v1.1. It is a minimum the strip counts up past (§4.7), not a countdown. *(v1.2–v1.9: the setting alone.)* |
 
-The strip shows: the kind, named; the countdown m:ss; −30 s / +30 s; **Skip** (whose label names the kind — "Skip rest", "Skip warm-up"); and "Set logged · **Undo**" (D23) for as long as the rest runs — **v1.10 (D81)**: at every text size again, during the rest the set started or the moment its block ended, and not after; from then on the set's dot is the way to change it (§4.5). *(v1.6–v1.9, D59: Undo sat on the set row that was just logged, ↺ beside its tick, and the strip kept its own only at accessibility text sizes.)* `WorkoutScreenModel.undoStep` is still the step Undo would take back. While working with nothing to report the strip says what the button will start — "Rest 1:30 starts when you log", or "Then on to Barbell Row" on a block's last set (`WorkoutScreen.idleLine`) — rather than sitting blank. Alert at zero (§6.4); at zero the strip reads "Rest over · +0:12" (or "Warm-up over") until the next log. "set 0:34" (how long the set just logged took, D19) appears in the strip in small text, never as the largest element on the screen.
+For the warm-up and the rest between sets the strip shows: the kind, named; the countdown m:ss; −30 s / +30 s; **Skip** (whose label names the kind — "Skip rest", "Skip warm-up"); and "Set logged · **Undo**" (D23) for as long as the rest runs — **v1.10 (D81)**: at every text size again, during the rest the set started or the moment its block ended, and not after; from then on the set's dot is the way to change it (§4.5). *(v1.6–v1.9, D59: Undo sat on the set row that was just logged, ↺ beside its tick, and the strip kept its own only at accessibility text sizes.)* `WorkoutScreenModel.undoStep` is still the step Undo would take back. While working with nothing to report the strip says what the button will start — "Rest 1:30 starts when you log", or "Then on to Barbell Row" on a block's last set (`WorkoutScreen.idleLine`) — rather than sitting blank. Alert at zero (§6.4); at zero the strip reads "Rest over · +0:12" (or "Warm-up over") until the next log. "set 0:34" (how long the set just logged took, D19) appears in the strip in small text, never as the largest element on the screen.
 
-None of the three gates anything. The next set's card is already on screen and the primary button works throughout — logging (or starting a timed set) during any of them ends it early, exactly as v1.1's rest did.
+None of the three gates anything. The next set's card is already on screen and the primary button works throughout — logging (or starting a timed set) during any of them ends it early, exactly as v1.1's rest did. **v1.10 (D82)**: the walk between exercises is drawn as §4.7 says — a count-up and a ring, with no −30 / +30 / Skip — and the other two keep their countdown, controls and words.
 
 ### 4.7 Between exercises: the status strip's block-done state (D14, revised in v1.1; timed in v1.2's D33)
 There is no separate screen and no Continue gate. The moment a block's last step is logged or skipped, the next step's card appears immediately and the exercise block (zone 2) already shows the next exercise. The status strip reads the finished block's line — "Barbell Row done · 9:40 · try 72.5 kg next time".
 
-**v1.2 (D33)**: walking to the next machine takes as long as a rest does, and v1.1 gave it no time at all — so it now runs a real countdown of `Settings.transitionRestSeconds` (default 120 s), with the same −30 / +30 / Skip controls as any other rest, and the same alert at zero. Set that setting to 0 and v1.1's behavior comes back exactly: no countdown, and the count-up "moving on · 0:42" beneath the block's line instead. The strip clears on the next log or skip, or can be dismissed directly (`dismissBlockDone`, §6.6). Timed-set logic behaves as normal throughout — there is no state in which it is suspended.
+**v1.10 (D82, §6.55): the walk is a count-up and a ring.** From the moment the block ends until the next set is logged or started, the strip is a **58 pt ring** at its left, the **count-up** from 0:00 as its large figure, and beneath the figure a walking figure, a blue dot and **the next exercise's name**. The ring fills clockwise over the walk's **minimum** — the plan's `restBetweenExercises`, then `Settings.transitionRestSeconds` (§6.3) — turning from red through amber to green; full, it is a green disc with a white check, and the count-up goes on, smaller and in the secondary colour, so you still see how long you have stood there. The alert fires when the ring fills — the rest's `endsAt`, where the countdown's zero was. **Tap the ring** for one sentence, `RestText.ringExplanation`: *"At least 2:00 between exercises. Your plan's minimum — when the ring is full, you're ready."* (*"Your minimum in Settings"* when the plan declared none). There is no −30 / +30 / Skip: a count-up has nothing to skip, and the engine refuses `adjustRest` and `skipRest` on this kind. **Log set** ends the walk, and so does **Start timer**, which since v1.10 clears the block's line as a log does. A minimum of 0 is straight through: no rest, and the ring is full from the start. The finished block's line — *"Barbell Row done · 9:40 · try 72.5 kg next time"* — is what VoiceOver hears with the figure and the next name (`StatusStrip.spoken`); in print the advice is the Summary's. The Lock Screen and the Island count the walk up from its start (§6.17), before the ring fills and after. `dismissBlockDone` still clears the strip directly (§6.6). Timed-set logic behaves as normal throughout.
+
+*(v1.2–v1.9, D33: walking to the next machine ran a real countdown of `Settings.transitionRestSeconds` (default 120 s), with the same −30 / +30 / Skip controls as any other rest and the same alert at zero; the strip said "Between exercises" over the countdown and the block's line beneath it. Set to 0, v1.1's behavior came back: no countdown, and the count-up "moving on · 0:42" beneath the block's line.)*
 
 ### 4.8 Overview (a tap on the header's bar — v1.10, D80; the header's Exercises button until v1.9)
 Every step grouped by exercise with status and set time ("10 @ 60 · 0:34"); finished blocks show duration and advice. A pending row carries the set's own target only; the exercise's note is said once, on the card, never on every row (v1.6, D55). Tap logged → edit; tap pending → jump (cancels rest, and clears any block-done strip). A **skipped** step (v1.1, D27) can also be edited: the sheet's Save now sets its result, marks it logged, and updates `loggedAt` — recovering it rather than silently doing nothing. Reachable in every workout state, including rest and a block-done strip (v1.1) — previously it was attached only to the step card and unreachable during rest.
@@ -637,7 +646,7 @@ Resolved at import into every Set Target as `restSeconds: Int`. Fallback chain, 
 
 At execution, after logging step i, with n = nextStep(after: i):
 - n == nil → the session completes.
-- `steps[i].isLastInBlock` and n is in a different block → **between exercises** (D14, timed in v1.2's D33): a rest of `Settings.transitionRestSeconds`, with the block's line in the strip. The Set Target's own `restSeconds` is not used here — the gap between two exercises is about the room, not about the set. `transitionRestSeconds = 0` means no countdown, which is v1.1's behavior.
+- `steps[i].isLastInBlock` and n is in a different block → **between exercises** (D14, timed in v1.2's D33): a rest of the **walk**, with the block's line in the strip. **v1.10 (D82)**: the walk is `plan.restBetweenExercises → Settings.transitionRestSeconds` (`RestResolution.walk`) — the plan's as it is when the block ends, read from the plan the session belongs to (`PlanLibrary.refreshWalk`), not copied into the session. The Set Target's own `restSeconds` is not used here — the gap between two exercises is about the room, not about the set. A walk of 0 means no rest, which is v1.1's behavior. *(v1.2–v1.9: `Settings.transitionRestSeconds` alone.)*
 - `!steps[i].isLastInRound` (the next step is a drop of this set, or the next superset member) → 0: the next step card appears immediately.
 - otherwise → countdown of `restSeconds` of step i's Set Target, except for grouped exercises where the rest after a round is the first explicit `restSeconds` found among the group's members in listed order, else the fallback chain. A value of 0 means no timer.
 
@@ -647,6 +656,7 @@ If n is in the same block but earlier (the user jumped ahead and comes back), th
 
 ### 6.4 Rest timer
 - State is `RestState(endsAt: Date, nextStep: Int, startedAt: Date)`. Remaining = `endsAt − now`, recomputed on every tick (TimelineView, 1 s) and on every foreground event. Never store a countdown integer.
+- **A count-up is a Date too (v1.10, D82).** The walk between exercises keeps `startedAt` and `endsAt = startedAt + minimum`; the strip shows `now − startedAt` (the block's `BlockDone.startedAt`, the same moment) and the ring `(now − startedAt) / minimum`, capped at 1. At `endsAt` the phase becomes working(nextStep) as any rest's does, and the count-up goes on from `BlockDone.startedAt` until the next log or timer start. `StatusStrip.direction` says which way the figure runs.
 - On rest start: schedule one local notification, identifier `"rest-timer"`, fire date `endsAt`, title "Rest over", body "Next: <exercise> · set k of n · <target>". Always `removePendingNotificationRequests(withIdentifiers: ["rest-timer"])` before scheduling and on skip/jump/finish/discard/app-quit-of-session.
 - +30 s / −30 s: `endsAt += 30` (or −30); if `endsAt <= now` the rest ends immediately. Reschedule the notification after each adjustment.
 - At `endsAt` while foregrounded: haptic (`.success`) and the sound (if enabled), overlay dismisses, phase → working(nextStep). Overrun label shows `now − endsAt` until the next log.
@@ -717,10 +727,10 @@ Rules:
 - Whenever the phase becomes `working(step)` (from any event), set `steps[step].startedAt = now` unless the step is a timed set, whose `startedAt` is set by `.startTimer` instead. Re-entering a step (jump back) resets it.
 - `startTimer(step)`: timed sets only; sets `startedAt = now`, phase stays working. Effects: fixed duration → `scheduleNotification("set-end", endsAt)` and, if `warningBeepSeconds` is set, `scheduleNotification("set-warning", endsAt − w)`; open duration with a minimum → `scheduleNotification("set-minimum", startedAt + min)`. `stopTimer`/`timerDone`/`timerElapsed`/skip/jump emit `cancelNotification` for all three ids. `stopTimer` (open) / `timerDone` (fixed, early) log `floor(now − startedAt)` seconds via the normal logSet path; `timerElapsed` (fixed, at zero) logs the full duration.
 - `nextStep(after i)`: first pending step with index > i; else first pending step with any index; else nil.
-- `logSet(i)`: set result, status = logged, `loggedAt = now`. Let n = nextStep(after: i). If n == nil → completed. Else per §6.3: a block ended → `blockDone` is recorded for the strip and, when `transitionRestSeconds > 0`, phase → `resting(kind: .betweenExercises)`; rest 0 → working(n); else `resting(kind: .betweenSets, endsAt: now + rest, nextStep: n)` + scheduleNotification.
+- `logSet(i)`: set result, status = logged, `loggedAt = now`. Let n = nextStep(after: i). If n == nil → completed. Else per §6.3: a block ended → `blockDone` is recorded for the strip and, when the walk (§6.3) is greater than 0, phase → `resting(kind: .betweenExercises)`; rest 0 → working(n); else `resting(kind: .betweenSets, endsAt: now + rest, nextStep: n)` + scheduleNotification.
 - `skipSet(i)`: status = skipped, `loggedAt = now`, then the same advance logic but **never starts a between-sets countdown** — you skipped the set, you do not need the rest after it. A skipped set that ends a block still gets the between-exercises rest (v1.2): the walk to the next machine happens either way.
 - `skipExercise`: mark that exercise's pending steps skipped (loggedAt = now), then the block-done strip if a block ended and another remains, else working(nextStep(after: current)) or completed.
-- `dismissBlockDone`: clears the strip's block-done line; it does not end a between-exercises rest, which has its own Skip.
+- `dismissBlockDone`: clears the strip's block-done line; it does not end a between-exercises rest. **v1.10 (D82)**: `adjustRest` and `skipRest` are refused on a `.betweenExercises` rest — the walk has no −30 / +30 / Skip (§4.7) — and `startTimer` clears `blockDone` when the timer starts, as a log does. *(v1.2–v1.9: the walk had its own Skip.)*
 - `substituteExercise(e, name, weight)` (v1.3, D42, §6.18): the exercise's **pending** steps become steps of `name`; logged and skipped ones keep their exercise. No phase change, no reorder, no change to `blockIndex` — a running rest keeps running. Refused when the session is completed, the name is blank, the exercise has nothing pending, or the name is unchanged and no weight was given.
 - A session starts in `resting(kind: .warmUp, nextStep: firstStep)` when `Settings.warmUpSeconds > 0` (D32, §6.14), and on the first step otherwise.
 - Any event that changes phase away from resting emits `cancelNotification`.
@@ -780,6 +790,7 @@ Everything is a `Metric`: a label, an already-formatted value, and a one-line no
 A **Live Activity** runs for as long as a workout does. It shows the stage (Warm-up, Rest, Between exercises, or the exercise's name), the line under it ("Bench Press · set 2 of 4 · 8–12 · 60 kg"), the timer, and a bar of the day's progress. In the Dynamic Island it is the same three states compact, expanded and minimal.
 
 - **The countdown is drawn by the system**, from a `Date`, exactly as §6.4's rest timer is. The app does not push an update per second and does not have to be awake for the number to be right.
+- **The walk counts up** (v1.10, D82, §6.55): between exercises the state has no `endsAt` and a `startedAt` at the walk's start, so the system draws it upward — while the walk's rest runs and after it, titled *Between exercises*, until the next set is logged or started. The ring is the app's; the Lock Screen has the figure. *(v1.2–v1.9: the walk counted down to its end, then showed the next exercise's name with no timer.)*
 - **`WorkoutActivityState` is resolved in Core** from the same `ActiveSession` the workout screen reads, so the Island and the app cannot disagree. `WorkoutActivityState.swift` is compiled into both the app and the widget extension — it is the contract between them, and depends on nothing but Foundation. *(v1.2–v1.6: "the one file compiled into both".)*
 - **The day's colour rides along** (v1.7, D65, §6.41): `WorkoutActivityState.dayColour`, resolved with the plans, draws a square before the title on the Lock Screen and in the expanded Island, and the compact Island's figure takes it while working. `DayColour.swift` (a name, Foundation only) and `DaySquare.swift` (the one mapping to a `Color`) are compiled into the extension alongside it.
 - **The bar takes the Workout screen's states** (v1.10, D79, §6.52): done in the day's colour — in a break as while working — over the grey of the sets ahead, grey where the day has none. `WorkoutMarks.swift` (`MarkState`, Foundation only) is compiled into the extension beside `DaySquare.swift`, which maps a state to its colour. Nothing else about the activity changes: the title keeps the accent in a break, and the compact Island its figure in the day's colour. *(v1.2–v1.9: the accent in a break, green while working.)*
@@ -1369,6 +1380,19 @@ Zone 2 loses its sentences (§4.5). What left: the target line (*"Aim 8–10 rep
 
 **Core decides it**: `Core/RepCells.swift` — `RepCells { cells }`, each `Cell { fill: solid | faint, over, caret, last, group }`, built by `RepCells.target(_:reps:lastTime:)`, `.logged(_:result:lastTime:)` and `.timed(_:seconds:logged:lastTime:)` from `RepCells.Bounds.of(_:range:)`; `Core/WorkoutScreen.swift` — `SetDot { step, state, skipped, spoken }`, `SetCard { range, unit, weight, cells, colour, bounds, timed, lastTime }` with `showing(field:)` so the view redraws the cells for the number in the field without computing them, `WorkoutScreen.notes`, `InputDefaults.seconds`, and on the model `exerciseMark`, `notes`, `dots`, `card` and `editing` in place of `targetLine` and `rows`. `StepCard.setRows`, `rowLabel` and `targetLine` stay in Core — the Overview and Session detail speak with the last two, and the first keeps its tests (TP8–TP16).
 
+### 6.55 The walk: a count-up and a ring (D82, v1.10)
+The owner: *"the timer should move up, but next to it there should be a circle that gradually fills up, turning from red to green. Once full, a checkmark appears. The circle represents the minimum time to take between exercises (as declared in the plan guide). When you tap the circle it gives you a really short explanation."* "Move up" is read as counting up, not as moving higher on the screen — the zones do not move (D22).
+
+**The minimum** is the plan's, then the setting's (§6.3): `Plan.restBetweenExercises`, whole seconds 0–3600, optional in the format (PLAN_FORMAT §2, §3.6, validated as a rest, `E_REST_INVALID` at `restBetweenExercises`) and on disk (`Core/Persistence.swift` decodes it with `container.optional`, so every `plans.json` written before v1.10 and the frozen `examples/store/v1/plans.json` read nil), rendered by `PlanJSON.render` so an edit keeps it, and asked for by the plan and outline prompts (PROMPT §1, §4) — *"restBetweenExercises: whole seconds to walk between exercises; if unspecified, 120"* — and not by the day prompt, since a day cannot carry a plan's field. The session does not copy it: the engine's `restBetweenExercises` is set from the session's plan by `PlanLibrary.refreshWalk()` when a session begins, before every event and when one is restored, and nil hands the walk to `Settings.transitionRestSeconds`. A day's estimate on the built-in picker walks the same minimum.
+
+**The strip** (§4.7) while the walk lasts — its rest running, or after it with the block's line still up — is `StatusStrip.kind == .blockDone`, `restKind == .betweenExercises`, `direction == .up`, the count-up in `countdown`, the next exercise's name in `next`, the finished block's line in `title`, what VoiceOver hears in `spoken`, no rest controls, and `ring: WalkRing { fraction, minimum, fromPlan, full, explanation, colour }`. While the rest runs the minimum is the rest's own span; after it, the engine's `walk`. `WalkRing.colour(fraction:)` runs `#FF3B30` → `#FF9F0A` over the first half and `#FF9F0A` → `#34C759` over the second, and is `#34C759` from full. The ring's traffic light is not a state (§6.52): it says *how long*, not *which set*, and it appears nowhere but the walk.
+
+**The view** draws the ring 58 pt with a 5.5 pt track in the system's tertiary fill, the arc from twelve o'clock with round caps, and full, a filled disc with a white check; the figure 36 pt heavy rounded while filling and 28 pt secondary when full; a walking figure, a 10 pt blue dot (`MarkState.now`) and the next name in caption semibold beneath it. Tapping the ring opens a popover with `ring.explanation`. When the ring fills VoiceOver hears *"Ready for the next exercise"*.
+
+**The Lock Screen** (§6.17) counts the walk up from its start — `WorkoutActivityState.endsAt` nil and `startedAt` the walk's start, so `timerCountsDown` is false — before the ring fills and after, titled *Between exercises*. The notification (§6.4) is where it was, at `endsAt`.
+
+Tests: TP17–TP22 in `SymbolsTests`, TP23 on the phone. *(v1.2–v1.9: §4.7's countdown with −30 / +30 / Skip.)*
+
 ## 7. Data model (Core, Codable, no UI imports)
 
 ```swift
@@ -1383,6 +1407,7 @@ struct Plan: Codable, Identifiable {
     var warnings: [Issue]                 // W_* from import
     var cycle: [CycleEntry]               // resolved at import (§6.8)
     var cyclePosition: Int?
+    var restBetweenExercises: Int?        // v1.10 (D82): the walk's minimum, seconds; nil → the setting
 }
 struct Day: Codable, Identifiable { var id: UUID; var name: String; var weekday: Weekday?; var exercises: [Exercise] }
 struct Exercise: Codable, Identifiable { var id: UUID; var name: String; var group: String?; var notes: String?; var repRange: RepRange?; var bodyweight: Bool; var sets: [SetTarget] }
@@ -1520,6 +1545,7 @@ This is the JSON the app imports. A chatbot writes it from the prompt in `docs/P
   "name": "Push Pull Legs",
   "units": "kg",
   "defaultRestSeconds": 90,
+  "restBetweenExercises": 120,
   "schedule": "rotation",
   "cycle": ["Push", "rest"],
   "days": [
@@ -1548,6 +1574,7 @@ This is the JSON the app imports. A chatbot writes it from the prompt in `docs/P
 | `name` | string | no | Missing/blank → "Imported plan <yyyy-MM-dd>" + `W_DEFAULT_NAME`. Max 100 chars (truncate + `W_NAME_TRUNCATED`). |
 | `units` | "kg" \| "lb" | no | Case-insensitive; "kgs", "lbs", "pounds", "kilograms" accepted. Missing → user's setting. Other → `E_UNITS_INVALID`. |
 | `defaultRestSeconds` | int ≥ 0 | no | Fallback for all days. |
+| `restBetweenExercises` | int 0–3600 | no | **v1.10 (D82).** Seconds to walk between exercises — the minimum the Workout screen's ring fills over (SPEC §6.55). Missing → the user's *Between exercises* setting, at the moment of the walk. 0 = straight through. Read as every rest is: `"90"` accepted (§3.7); negative, over 3600 or non-integer → `E_REST_INVALID` at `restBetweenExercises`. |
 | `schedule` | "rotation" \| "weekday" | no | Missing → inferred: every day has a weekday → weekday; none has → rotation; mixed → `E_SCHEDULE_MIXED`. Present but conflicting with the days → the days win with `W_SCHEDULE_INFERRED`. |
 | `days` | array of Day | yes | 1–31 entries. Empty/missing → `E_NO_DAYS`. Over 31 → `E_LIMIT_EXCEEDED`. |
 | `cycle` | array of string | no | The repeating block: day names in order with `"rest"` for rest days, e.g. `["Push","Pull","Legs","rest"]`. See §3.10. |
@@ -1649,6 +1676,8 @@ Weights keep one decimal place (62.5 stays; 62.55 → 62.6 with `W_WEIGHT_ROUNDE
 ### 3.6 Rest fallback chain
 Per set: `set.restSeconds → exercise.restSeconds → day.defaultRestSeconds → plan.defaultRestSeconds → user default (at import)`. Resolved values are stored on every Set Target. Missing everywhere → user default and no warning.
 
+Between exercises (v1.10, D82): `plan.restBetweenExercises → user's Between exercises setting (at the walk)`. Not a set's rest, and not resolved into the Set Targets: the plan keeps the value as written (nil when absent), and the walk reads it when a block ends (SPEC §6.3). A set's own `restSeconds` is never used for the walk.
+
 ### 3.7 Numbers given as strings
 Any integer field accepts a string of digits (`"3"`, `"90"`). Any number field accepts a numeric string with `.` or `,` as the decimal separator. Anything else → the field's `E_*_INVALID`.
 
@@ -1722,7 +1751,7 @@ Errors block import. Warnings are shown in Preview and saved on the plan. `path`
 | `E_TARGET_MISSING` | error | A set has neither reps nor duration |
 | `E_TARGET_CONFLICT` | error | A set has both reps and duration |
 | `E_WEIGHT_INVALID` | error | §3.3 rejected forms |
-| `E_REST_INVALID` | error | Rest negative, > 3600, or non-integer (any level) |
+| `E_REST_INVALID` | error | Rest negative, > 3600, or non-integer (any level, and `restBetweenExercises` since v1.10) |
 | `E_WEEKDAY_INVALID` | error | Unrecognized weekday string |
 | `E_WEEKDAY_DUPLICATE` | error | Two days share a weekday |
 | `E_WEEKDAY_MISSING` | error | Explicit `schedule: "weekday"` and a day lacks `weekday` |
@@ -1781,6 +1810,7 @@ FORMAT (schemaVersion 1):
   "name": "Push Pull Legs",
   "units": "{{units}}",
   "defaultRestSeconds": {{defaultRest}},
+  "restBetweenExercises": 120,
   "schedule": "rotation",
   "cycle": ["Push", "rest"],
   "days": [
@@ -1810,6 +1840,7 @@ RULES
 - repRange: give every rep exercise a working range for weight progression, e.g. "8-12". Omit if reps already is a range. For fixed targets choose a range containing it (10 → "8-12", 5 → "4-6"). No repRange for timed exercises.
 - weight: number in {{units}}, without unit text. Omit for bodyweight or unspecified weight.
 - restSeconds: always include whole seconds. If unspecified: 120-180 for heavy compounds, 60-90 for isolation, 30-60 for circuits/core.
+- restBetweenExercises: whole seconds to walk between exercises; if unspecified, 120.
 - drops: list on exercise or individual set, e.g. [{"weight":20},{"weight":15}], done immediately after the main set with no rest. Reps default to AMRAP.
 - Supersets/circuits: same group letter, consecutive exercises, equal set counts. Rest after each round.
 - Names: specific and consistent ("Barbell Back Squat", not "Squats"); reuse spelling across days for history matching.
@@ -1823,7 +1854,7 @@ My plan:
 
 The user types or pastes their description after "My plan:".
 
-Rendered length: 3,510 characters with kg and rest 90. Keep it under 4,000. Chat apps may handle longer pastes differently; see `COPY_PASTE_NOTES.md`. 
+Rendered length: 3,745 characters with kg and rest 90 (v1.10, with `restBetweenExercises`; 3,510 when the length was first checked, before `inReserve`). Keep it under 4,000. Chat apps may handle longer pastes differently; see `COPY_PASTE_NOTES.md`. 
 
 ## 2. Fix-it prompt (Import error → Copy fix-it prompt)
 
@@ -1873,7 +1904,7 @@ The reply format is `docs/PROGRESSION_FORMAT.md`.
 
 ## 4. Outline prompt (Add plan → Build it day by day → Copy outline prompt)
 
-**v1.5 (D52).** A plan built in several pastes, for long plans and free chatbot tiers. The outline first: the header, the day names and the repeat block, no exercises. It carries the plan prompt's marker, so pasting it into the app is refused the same way.
+**v1.5 (D52).** A plan built in several pastes, for long plans and free chatbot tiers. The outline first: the header, the day names and the repeat block, no exercises. **v1.10 (D82)**: the header includes the walk between exercises, `restBetweenExercises`, as the plan prompt's does. It carries the plan prompt's marker, so pasting it into the app is refused the same way.
 
 ```
 JIMMSBRO-PLAN-PROMPT-V1
@@ -1885,6 +1916,7 @@ FORMAT (schemaVersion 1):
   "name": "Push Pull Legs",
   "units": "{{units}}",
   "defaultRestSeconds": {{defaultRest}},
+  "restBetweenExercises": 120,
   "schedule": "rotation",
   "cycle": ["Push", "Pull", "Legs", "Push", "Pull", "Legs", "rest"],
   "days": [ { "name": "Push" }, { "name": "Pull" }, { "name": "Legs" } ]
@@ -1894,6 +1926,7 @@ RULES
 - days: training days in order, each with a name only — NO exercises yet. Do not list rest days as days.
 - schedule: rotation = repeat days in order. Use weekday only for a fixed weekly schedule; give every day a weekday (monday…sunday) and omit cycle.
 - cycle: rotation's full repeating block, using day names and "rest", including rest days. This drives the calendar.
+- restBetweenExercises: whole seconds to walk between exercises; if unspecified, 120.
 - Keep the day names short and distinct; I will ask for each day's exercises separately, one per message.
 - Return ALL JSON, never abbreviate with "...".
 
@@ -1902,7 +1935,7 @@ My plan:
 
 ## 5. Day prompt (Add plan → Build it day by day → Copy day prompt)
 
-**v1.5 (D52).** One per day of the outline. `{{day}}` is the day's name, `{{outline}}` the outline as a listing (`Prompts.outlineListing`), `{{units}}` the outline's units. The rules are the plan prompt's minus the three the outline settled (days, schedule, cycle), computed from the same text in the app so they cannot drift.
+**v1.5 (D52).** One per day of the outline. `{{day}}` is the day's name, `{{outline}}` the outline as a listing (`Prompts.outlineListing`), `{{units}}` the outline's units. The rules are the plan prompt's minus the four the outline settled (days, schedule, cycle and, since v1.10, `restBetweenExercises` — a day cannot carry a plan's field), computed from the same text in the app so they cannot drift.
 
 ```
 JIMMSBRO-PLAN-PROMPT-V1
@@ -2584,9 +2617,9 @@ two exercises was given no time at all.
 | Q22 | unit | (D32, v1.2) −30 / Skip / log during a warm-up | Adjusting keeps the kind; Skip goes to the first set; logging out of it logs the set, exactly as any other rest |
 | Q23 | unit | (D32, v1.2) A warm-up that runs out | Becomes the first set, alerts at zero, and logs nothing — a warm-up is not a set |
 | Q24 | unit | (D32, v1.2) `warmUpSeconds = 0` | Starts on the first set with nothing to schedule: v1.1 exactly |
-| Q25 | unit | (D33, v1.2) Log a block's last set | A `betweenExercises` rest of `transitionRestSeconds`, with the next exercise already on screen, −30 / +30 / Skip, and the finished block's line on the strip |
+| Q25 | unit | (D33, v1.2) Log a block's last set | A `betweenExercises` rest of `transitionRestSeconds`, with the next exercise already on screen, −30 / +30 / Skip, and the finished block's line on the strip. *(v1.10, D82: the strip counts up — 0:05 — beside a ring of 120, names the next exercise, keeps the block's line as its title, and has no −30 / +30 / Skip; TP20)* |
 | Q26 | unit | (D33, v1.2) **Skip** a block's last set | Still gets the walk; a skipped set mid-block still gets no rest |
-| Q27 | unit | (D33, v1.2) `transitionRestSeconds = 0` | The v1.1 block-done strip with its count-up, and no countdown |
+| Q27 | unit | (D33, v1.2) `transitionRestSeconds = 0` | The v1.1 block-done strip with its count-up, and no countdown. *(v1.10, D82: the count-up is the strip's figure, 0:42, and the ring is full; the model is given the engine's `walk`)* |
 | Q28 | unit | (D33, v1.2) A rest between sets | Still resolved from the set (§6.3), not from the new setting |
 | Q29 | unit | (D34, v1.2) `WorkoutStage` through a whole session | Warm-up → Exercise 1 of 2 · Set 1 of 3 → Resting → Between exercises, each named, and each break flagged as one |
 | Q30 | unit | (D34, v1.2) `WorkoutStage.progress` | Counts logged **and** skipped sets over the day's sets, so the bar moves within a long exercise |
@@ -2837,7 +2870,7 @@ Type **check** = a script in `tools/` that must exit 0; it runs on the host with
 | Z13 | unit | (D52, v1.5) `PlanDrafting.assemble` | Incomplete is `E_DRAFT_INCOMPLETE` saying how many are left; complete gives the outline's name, units, block and days with every exercise, no issues, the canonical text, and a plan the importer takes again; a weekday outline lends its weekdays |
 | Z14 | unit | (D52, v1.5) `draft.json` | Written on the outline and after each paste; read back on relaunch with the fragments as pasted; a file without slots decodes with empty ones; a corrupt one is set aside and named; Discard and Delete all data remove it |
 | Z15 | unit | (D52, v1.5) The model end to end | No draft refuses a paste and an assembly; outline, three pastes (one refused), assemble without saving, `saveDraftPlan` saves it active and the draft goes; a cancelled name conflict keeps the draft and Keep both resolves it; Home's card is the saved plan's |
-| Z16 | unit | (D52, v1.5) The prompts | Both carry the marker and no placeholder; the outline prompt says NO exercises; the day prompt names the day, lists the outline, uses the outline's units and drops the days/schedule/cycle rules; every rule line of the day prompt is a line of the plan prompt; both refused if pasted back; a seven-day outline's day prompt is under 4,000 characters; §4 and §5 of PROMPT.md match the code |
+| Z16 | unit | (D52, v1.5) The prompts | Both carry the marker and no placeholder; the outline prompt says NO exercises; the day prompt names the day, lists the outline, uses the outline's units and drops the days/schedule/cycle rules (and, since v1.10, the `restBetweenExercises` rule — TP18); every rule line of the day prompt is a line of the plan prompt; both refused if pasted back; a seven-day outline's day prompt is under 4,000 characters; §4 and §5 of PROMPT.md match the code |
 | Z17 | manual | (D52, v1.5) Add plan → Create with a chatbot → **Build it day by day**, with a free ChatGPT tab | The outline pastes into slots; each day prompt fits one reply; a slot refused says which day and why; leave the app and come back to "Continue · 2 of 3 days pasted"; Review plan, Save plan; the plan is on Home and the draft is gone |
 
 ### Z4 — progression by performance (D53)
@@ -3183,6 +3216,20 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 | TP15 | unit | (D81, v1.10, pin) No sentence in zone 2 | Zone 2 of `WorkoutView.swift`, comments aside, has one `Text(` — `Text(screen.exerciseName)` — and no `targetLine`, `screen.rows`, `SetRowView`, `InsetGroup` or string literal in a `Text`; it draws `SetCardView(card: screen.card.showing(field: InputRules.repsValue(repsText)), day: dayColour)`, `NotesButton`, `DotView`, the history route and the spoken line, jumps on a grey dot and edits on a filled one. `SetCardView` has three `Text(`s: the range, the unit, the weight. The file has no `EditResultSheet`, applies `.editSet` on Save, and shows the strip's Undo at every size (source reads on the host routes) |
 | TP16 | device | (D81, v1.10; extends D56's row) Zone 2 at accessibility text sizes | At accessibility XL on a 6.1-inch phone: a long range's cells wrap inside the card, the dots wrap, and the inputs and Log set stay on screen — in light and in dark |
 
+### P3 — The walk: a count-up and a ring (D82)
+
+`JimmsBroTests/SymbolsTests.swift` (TP17–TP22), on two lifts of one set each so a log ends a block, with the plan's walk as each case gives it; and the manifest through `ImportTests` and `tools/reference_import.py`, with three new fixtures — `valid/rest-between-exercises.json` (90, with its rests and the step that ends the block checked), `valid/rest-between-exercises-string.json` (`"90"`) and `invalid/rest-between-exercises-negative.json` (-1) — and a new manifest check, `restBetweenExercises`, which `rest-precedence.json` also carries as null. The plan's one proposed fixture became three, one per case of TP18, so both importers read each. The plan named the code `E_REST_NEGATIVE`; the format's code for every bad rest is `E_REST_INVALID`, and that is the one reused. Three earlier cases changed, each noted on its row: **Q25**, **Q27** and **O61**.
+
+| ID | Kind | Case | Expected |
+|---|---|---|---|
+| TP17 | unit | (D82, v1.10) The walk is the plan's, then the setting's | `RestResolution.after` between blocks: `.blockDone(rest: 90)` with the plan's 90 and the setting's 120; 120 when the plan has none; 0 from the plan's zero and from the setting's; a rest between sets stays the set's 45. Through `PlanLibrary`: logging the block's last set of a plan with 90 starts a `betweenExercises` rest ending at +90, and the engine's `walk` is (90, from the plan). A day's estimate with the plan's 600 equals one with the setting's 600 |
+| TP18 | unit | (D82, v1.10; extends the manifest) The format reads the walk | The fixture imports with 90 and no `W_UNKNOWN_FIELD`, its sets' rests stay 60; `"90"` imports as 90; `rest-precedence.json` has nil; -1 has no plan and `E_REST_INVALID` at `restBetweenExercises`. The plan prompt carries `"restBetweenExercises": 120` and its rule, the outline prompt the rule, the day prompt neither; the example JSON has it and still imports (M9). The manifest's check agrees with `reference_import.py` (118/118) |
+| TP19 | unit | (D82, v1.10) On disk | The frozen `examples/store/v1/plans.json` decodes with every plan's walk nil; a plan with 90 round-trips through `StoreCoder` equal, one without stays nil; `PlanJSON.render` writes the field only when it is set; a rename and a day replaced as JSON both keep 90 |
+| TP20 | unit | (D82, v1.10) The strip between exercises | At 0, 45 and 90 s of a 90 s walk: kind `.blockDone`, `restKind` `.betweenExercises`, direction up, figure 0:00, 0:45, 1:30, fraction 0, ½, 1, full only at 1, no rest controls, next "Row", primary Log set; the colour red, amber, green; the spoken line leads "Between exercises, 0:45. at least 1:30. next, Row". After `restElapsed` at 90: working, and at 200 s the figure 3:20, full, minimum 90, still up, no controls. `adjustRest` and `skipRest` change nothing on the walk, and the warm-up keeps its controls. Log set clears the block's line; Start timer on a timed next set clears it too and the strip is `.timed` with no ring. A zero walk: working at once, the ring full, 0:00. The Lock Screen's state during the walk and after has no `endsAt`, starts at the walk's start, counts up, titled "Between exercises", a break |
+| TP21 | unit | (D82, v1.10; extends Q25's notification) The alert is at the ring's end | Logging the block's last set with a 90 s walk schedules the rest notification at +90; `restElapsed` at +90 plays the end alert |
+| TP22 | unit | (D82, v1.10) The ring explains itself | `RestText.ringExplanation`: "At least 2:00 between exercises. Your plan's minimum — when the ring is full, you're ready."; with the setting's 90, "At least 1:30 … Your minimum in Settings — …"; with 0, "No minimum between exercises. The ring starts full — go when you're ready."; `WalkRing.explanation` is the same sentence |
+| TP23 | device | (D82, v1.10) The ring on the phone | The ring's hue at 0, ½ and 1 reads red, amber and green on a Push day and on a Pull day beside the orange, in light and dark; the check appears at the minimum, the count-up keeps going, and a tap on the ring shows its sentence |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|
@@ -3356,7 +3403,7 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 | O58 | unit | (D14, v1.1) Run a whole multi-exercise day through, logging every set | The session completes without `dismissBlockDone` ever being applied and without entering any phase but working and resting — zero Continue taps |
 | O59 | unit | (v1.1) `.logged` feedback on Log set | Played exactly once per logged set, and not for an edit, a skip, or an input the engine rejected |
 | O60 | ui | (P6, v1.1) The workout screen at accessibility XL | No zone clipped or pushed off screen; the input numbers keep their size; the layout reflows around them |
-| O61 | unit | (D14, v1.1) The status strip once a block ends | Names the finished block with its duration, carries that exercise's advice, and reports the count-up "moving on" time |
+| O61 | unit | (D14, v1.1) The status strip once a block ends | Names the finished block with its duration, carries that exercise's advice, and reports the count-up "moving on" time. *(v1.10, D82: the count-up is the strip's figure, direction up; the block's line stays the title, spoken)* |
 | O62 | unit | (D20, D22, v1.1) A timed set's primary action | **Start timer**, then **Done** (fixed) or **Stop** (open), in the same bottom slot the reps sets use; the timer replaces the reps row and the weight row stays |
 
 | O63 | unit | (D18, v1.1) `HomeStart.current` for every schedule state | Rotation and weekday name the day and the plan and read "Start &lt;day&gt;"; a rest day reads "Rest day", says which day is next, and offers "Start &lt;day&gt; early" (*v1.6–v1.8's S2*: the next day's name and **Start Thursday's Lower**; *since S3, D71*: **Rest** and **No exercise Today**, with Thursday's Lower one tap away on the strip); a running session reads "Resume &lt;day&gt; · N min"; no plan reads "No plan yet" with **Add plan** |
@@ -6712,7 +6759,7 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 # Build status
 
 Updated 2026-09-16. **v1.10 is in progress on branch `v1.10-symbols` (off `v1.9-swaps` at
-3dc52f1): P0–P1 built and green.** v1.9 and everything before it are below,
+3dc52f1): P0–P3 built and green.** v1.9 and everything before it are below,
 unchanged except where a later milestone corrected them; the device checklist, the Developer
 Program, a release Xcode and the submission itself are the owner's.
 
@@ -6723,26 +6770,29 @@ v1.9 — *"I want to make everything symbols, and the app colorful"*. Each miles
 whole suite green on all three routes, a Release build and `tools/check_release.py`, and one
 commit on `v1.10-symbols`.
 
-After P2:
+After P3:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` | **382 tests, 21 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P2 adds one (TP15) |
-| `swift test` | **381 tests, 0 failures** |
-| `python3 tools/check_core.py` | **381 bodies, 7,637 assertions, 0 failures** |
-| `python3 tools/reference_import.py` | **115/115 fixtures match** (unchanged; P2 touches no pipeline) |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **388 tests, 21 skipped, 0 failures** — the skips are the pins that read the source tree, which the simulator's sandbox cannot see; P3 adds none |
+| `swift test` | **387 tests, 0 failures** |
+| `python3 tools/check_core.py` | **387 bodies, 7,827 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **118/118 fixtures match** (three new for `restBetweenExercises`) |
 | `xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version 1.9 (1); 1.10 is P7's |
-| `python3 tools/check_bundle.py` | **current** (regenerated in P2) |
+| `python3 tools/check_bundle.py` | **current** (regenerated in P3 with `--regenerated`, the fixtures having changed through the generator) |
 
-The simulator route and the Release build ran before the last change, the debug-only `-uiEditSet` launch argument (inside `#if DEBUG`, so Release compiles none of it); the Debug build that took the screenshots compiled it, and the host routes ran after it.
+The simulator route and the Release build ran on P3's final code; the host routes ran again after the last document edits, since the doc pins read SPEC, PROMPT and TEST_CASES.
+
+After P2: the simulator 382 tests (21 skipped), `swift test` 381, `check_core.py` 381 bodies and 7,637 assertions, 115/115 fixtures, Release and `check_release.py` green, the bundle current.
 
 | Milestone | What it did | State |
 |---|---|---|
 | P0 | The plan, the branch, the mocks (the "Workout in Symbols" and "Symbols, Round Two" artifacts, not committed) | Done |
 | P1 | Three states, three colours (D79) and the header is the bar (D80). `MarkState` — done, now, todo — in `Core/WorkoutMarks.swift`, Foundation only and compiled into the widget extension, since `DaySquare.swift` maps a state to its colour there (done the day's colour or the no-colour grey, now the accent, todo `secondarySystemFill`); the rule, `MarkState.of(step:session:)`, in `Core/WorkoutBar.swift` beside `WorkoutBar`, because it reads an `ActiveSession` the extension does not build. `ActiveSession.currentStep` became the one "step the workout is on", read by the engine and `AppModel`. `WorkoutBar.of(session:showing:)`: a segment per block in `SessionBlocks` order, weighted by its set count, a state per step, the caret under the current step's block. `WorkoutScreenModel` gained `bar` and `spokenHeader` (the stage, exactly) and `SetRow` its `mark`; nothing left the model. Zone 1 is the day's square, `BarView` — one `Canvas`: rounded segments 3 pt apart, each set filled in its state's colour and cut by a 1 pt tick, an ink caret — and the elapsed time under the bar's right end, one 44 pt button that opens the Overview and speaks the stage, then ⌄ and ··· in the secondary colour, centred on the bar's track. The screen is tinted `.primary`, so the capsules, Done, Undo and the chip are ink; **Log set** is ink (`PrimaryButton(ink:)`); the set rows' ticks take the day's colour. The Lock Screen's bar fills in the day's colour. SPEC §4.0, §4.5, §4.8, §6.15, §6.17, §6.40 (the bar's tap, ungated), §6.41 (the fifth place) and the new §6.52 and §6.53; TP1–TP7, T21 and T23 amended; the log | Done |
 | P2 | The exercise in symbols (D81). `Core/RepCells.swift`: `RepCells.target`, `.logged` and `.timed` from `RepCells.Bounds.of(_:range:)` — a cell per rep or per five seconds rounded up, solid to the minimum (or to what was done), faint to the top, yellow past it, a caret for the field's number, a line for last time's, a group per five, sixty at most. `Core/WorkoutScreen.swift`: `SetDot` (a step of the block, its D79 state, skipped, what VoiceOver hears), `SetCard` (range — *8–10*, *8*, *8+*, *max* — unit, the set's weight, cells, colour, and the bounds and last time so `showing(field:)` redraws the cells for the number in the field), `WorkoutScreen.notes` (*was …* first), `InputDefaults.seconds`, `PrimaryAction.Kind.save`; the model lost `targetLine` and `rows` and gained `exerciseMark` (`MarkState.of(exercise:session:)`), `notes`, `dots`, `card` and `editing`, which `WorkoutScreen.model(…, editing:)` takes from the view and ignores unless it is a logged step of the block — the inputs then take the logged result and the primary is **Save**. The strip's Undo is set during a rest or the moment a block ends, not after. Zone 2 is the name with its dot and the ? popover, the dots (`ViewThatFits` a row or `WrapLayout`), and `SetCardView` — `WrapLayout` of 8 × 22 pt cells with the caret and line above and below each; a filled dot sets `editing`, a grey one `jumpTo`s, the blue one ends a change; Save applies `.editSet`; the edit sheet left the screen; Undo shows in the strip at every size. `StepCard.setRows` and `SetRow` stay in Core for I41, I42, O57 and U34–U35 — `SetRow.mark` went. SPEC §4.5 (zones 2, 4, 5), §4.6, §6.34, §6.36, §6.52 and the new §6.54; TP8–TP16; O57, U34, U35, W7 and TP1 re-pointed with their assertions kept, U28 annotated; the log | Done |
-| P3–P7 | The walk, pages, the pace, Change *day* in squares, docs and 1.10 | Not started |
+| P3 | The walk: a count-up and a ring (D82). `Plan.restBetweenExercises: Int?` — decoded with `container.optional` in `Core/Persistence.swift`, read by `PlanImport` as a rest (0–3600, digits accepted, `E_REST_INVALID` at `restBetweenExercises`), written by `PlanJSON.render` when set, and read the same way by `tools/reference_import.py`; three fixtures and a `restBetweenExercises` manifest check. `RestResolution.walk(plan:settings:)` — the plan's, then `Settings.transitionRestSeconds` — and `RestResolution.after(…, restBetweenExercises:)`; the engine's `restBetweenExercises` and `walk`, set from the session's plan by `PlanLibrary.refreshWalk()` at a start, before every event and at restore (`AppModel.load`); the engine refuses `adjustRest` and `skipRest` on the walk, and `startTimer` clears `blockDone`. `StatusStrip.direction`, `.ring` (`WalkRing { fraction, minimum, fromPlan, full, explanation, colour }`) and `.spoken`; `RestText.ringExplanation`; one `walkStrip` for the walk's rest and the block's line after it, with the count-up as the figure, the next exercise's name and no controls. `WorkoutScreen.model(…, walk:)` from `model.engine?.walk`. The Lock Screen counts the walk up (no `endsAt`) before the ring fills and after. The view: `WalkRingView` (58 pt, the arc in Core's colour, a green disc and a check when full), the figure 36 pt or 28 pt secondary when full, a walking figure, a blue dot and the next name, the ring's sentence in a popover. The plan and outline prompts ask for the field; the day prompt drops it; `BuiltInPlans.estimatedMinutes` walks the plan's minimum. PLAN_FORMAT §1, §2, §3.6, §4; PROMPT §1, §4, §5 and the rendered length; `schema/plan.schema.json`; SPEC §4.6, §4.7, §6.3, §6.4, §6.6, §7 and the new §6.55; TP17–TP23; Q25, Q27 and O61 re-pointed; the log | Done |
+| P4–P7 | Pages, the pace, Change *day* in squares, docs and 1.10 | Not started |
 
 ### Checked on the simulator (v1.10)
 
@@ -6768,7 +6818,23 @@ The simulator route and the Release build ran before the last change, the debug-
   *set 0:00*. In dark: the card dark grey, the cells blue and dim, the yellow olive, caret and line
   white, the grey ring still visible.
 
+- P3, on the iPhone 17 Pro simulator with `SEED=1 SETTLE=12 DEVICE="iPhone 17 Pro" tools/shot.sh <png>
+  -uiScreen workout -uiNoAsk -uiNoAlerts -uiAdvance 5 -uiSkipWaits` — the sample plan's first
+  exercise logged and the walk to **Incline Dumbbell Press** running, with the seeded setting's 2:00 as the minimum (the sample plan declares
+  none). At **0:08** the ring's grey track with a short red arc from twelve o'clock, **0:08** large
+  beside it, the walking figure, a blue dot and *Incline Dumbbell Press* under it, **↶ Undo** at the
+  right, no −30 · +30 · Skip, Log set ink. At **1:09** the arc past half and amber. At **2:19** a
+  green disc with a white check and **2:19** smaller and grey, still counting. In dark at 2:23: the
+  same green disc and check, the figure grey, Log set white.
+
 ### Not run in v1.10
+
+- **P3's tap on the ring** and its popover were not tried, the simulator tool having refused taps
+  in P1 and P2; TP22 pins the sentence and the view's popover shows `ring.explanation`. Nor was
+  **the Lock Screen's count-up** seen (no Live Activity from `shot.sh`), nor VoiceOver's reading of
+  the strip or the *Ready* announcement. **TP23**, the ring's hues on Push and Pull days in light and
+  dark, joins the checklist in P7. A plan that declares `restBetweenExercises` was not imported on
+  the simulator; TP17 and TP20 run one through `PlanLibrary`.
 
 - **P2's taps.** The simulator tool refused taps again, so a dot's tap, Save's result, a grey dot's
   jump, the ?'s popover and the cells following − and + were not seen; TP13 and TP15 cover the
@@ -7901,6 +7967,18 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.10 P2: **not yet's grey as a ring is `systemGray3`**, as the rows kept grey text for an icon: `secondarySystemFill` all but vanishes as a 2 pt stroke. The filled marks keep §6.52's colours.
 - v1.10 P2: **the name follows the current step, not a dot being changed** — in a superset, changing the partner's set leaves the name on the exercise that is on, since the ···'s Skip exercise and Change exercise act on it.
 - v1.10 P2: **zone 3 is unchanged** apart from the hold's seconds field: the mock's glyph steppers and blue reps number are not in P2's list.
+- v1.10 P3 (D82): **the walk is a count-up and a ring.** Between exercises the strip is a 58 pt ring filling red → amber → green over the walk's minimum, the count-up from 0:00 as the large figure, and the next exercise's name under it; full, a green disc with a white check and the figure smaller in secondary. No −30 / +30 / Skip — the engine refuses `adjustRest` and `skipRest` on the walk. The alert is at `endsAt`, where the countdown's zero was.
+- v1.10 P3: **the minimum is `Plan.restBetweenExercises`, then the setting**, and the session does not copy it: the plan said the on-disk contract changes once, on `Plan`, so the engine's `restBetweenExercises` is set from the session's plan by `PlanLibrary.refreshWalk()` — at a session's start, before every event, and at restore. A plan edited mid-walk changes the next walk, not the one running.
+- v1.10 P3: **the fields went on `StatusStrip`, not `TimerDisplay`** as the plan named: `TimerDisplay` is zone 3's timed set and the walk is zone 4's, so the strip gained `direction`, `ring: WalkRing` and `spoken`. The Lock Screen needed no new field: a state with no `endsAt` and a `startedAt` already counts up (`timerCountsDown`), so the ContentState running on a phone keeps its shape.
+- v1.10 P3: **one kind, `.blockDone`, for the whole walk** — while its rest runs and after, until Log set or Start timer — so the strip does not change shape when the ring fills. While the rest runs the ring's minimum is the rest's own span; after it, the engine's walk. A zero walk and a skipped exercise's block line draw the ring the same way (full, and filling without an alert, respectively).
+- v1.10 P3: **Start timer ends the walk**, clearing `blockDone` when the timer starts. Before, a timed set started after a walk kept the block's line, and the strip checked it before the running timer, so the timer's strip never showed; the plan's "Log set — or Start timer — already ends the walk" was true of the phase and not of the strip.
+- v1.10 P3: **the Lock Screen counts the walk up after the ring fills too**, titled *Between exercises*, until the block's line clears — the strip's walk, one layer out. Before, the Island showed the next exercise's name with no timer once the countdown ended.
+- v1.10 P3: **the block's line — its advice included — is spoken, not printed**, during the walk: the round-two mock's walk strip is the ring, the figure and the next name, and the plan leaves "the next exercise's name" as the strip's words. The Summary keeps the advice in print.
+- v1.10 P3: **the ring's sentence says whose minimum it is** — *"Your plan's minimum"* or *"Your minimum in Settings"* — where the plan wrote the plan's alone, because D55 forbids a sentence that is untrue for a plan without the field; and a zero walk has its own sentence, since "At least 0:00" says nothing.
+- v1.10 P3: **the ring's colours are Core's** (`WalkRing.colour`): `#FF3B30` → `#FF9F0A` over the first half, `#FF9F0A` → `#34C759` over the second, straight sRGB mixes, green from full. The mock mixed in OKLCH; iOS 17 has no colour mixing, and a tested function beats three colours a view picks.
+- v1.10 P3: **the prompt asks for the walk in the plan and the outline prompts, on a line of its own, and the day prompt drops it** with days, schedule and cycle. The plan put one clause on the two `restSeconds` lines, §1's and §5's; §5 is a single day, which cannot carry a plan's field, and its rules are computed from §1's, so a clause there would have asked every day for a field the importer ignores.
+- v1.10 P3: **three fixtures, not one** — the field as a number, as digits, and negative — so both importers read every case TP18 names; and **`E_REST_INVALID`**, not the plan's `E_REST_NEGATIVE`, which the format never had.
+- v1.10 P3: **a day's estimate on the built-in picker walks the plan's minimum** (`BuiltInPlans.estimatedMinutes`), so the minutes and the workout agree.
 `````
 
 ---
@@ -8708,6 +8786,9 @@ tells the user something untrue.
     "defaultRestSeconds": {
       "$ref": "#/$defs/rest"
     },
+    "restBetweenExercises": {
+      "$ref": "#/$defs/rest"
+    },
     "schedule": {
       "type": "string",
       "enum": [
@@ -9207,7 +9288,7 @@ def _clip_name(v, path, default, issues, default_code=True):
 def normalize_name(s): return re.sub(r"\s+", " ", s.strip()).lower()
 
 
-KNOWN_PLAN = {"schemaVersion", "name", "units", "defaultRestSeconds", "schedule", "cycle", "days"}
+KNOWN_PLAN = {"schemaVersion", "name", "units", "defaultRestSeconds", "restBetweenExercises", "schedule", "cycle", "days"}
 KNOWN_DAY = {"name", "weekday", "defaultRestSeconds", "exercises"}
 KNOWN_EX = {"name", "group", "notes", "sets", "reps", "repRange", "durationSeconds", "warningBeep", "bodyweight", "weight", "restSeconds", "drops", "inReserve", "rir"}
 KNOWN_SET = {"reps", "durationSeconds", "warningBeep", "weight", "restSeconds", "drops", "inReserve", "rir"}
@@ -9292,6 +9373,8 @@ def normalize(obj, settings=DEFAULT_SETTINGS, today=None):
     name = _clip_name(raw.get("name"), "name", f"Imported plan {today}", issues)
     units = _parse_units(raw.get("units"), "units", settings, issues)
     plan_rest = _parse_int_field(raw.get("defaultRestSeconds"), "defaultRestSeconds", "E_REST_INVALID", 0, LIMITS["rest"], issues, "defaultRestSeconds")
+    # v1.10 (D82): the walk between exercises, read as every rest is.
+    walk = _parse_int_field(raw.get("restBetweenExercises"), "restBetweenExercises", "E_REST_INVALID", 0, LIMITS["rest"], issues, "restBetweenExercises")
     days_raw = raw.get("days")
     if not isinstance(days_raw, list) or not days_raw:
         issues.append(err("E_NO_DAYS", "days", "The plan has no days. Add at least one day with exercises."))
@@ -9550,7 +9633,7 @@ def normalize(obj, settings=DEFAULT_SETTINGS, today=None):
             e["sets"] = sets; e["explicitRest"] = e.pop("rest"); e.pop("set_specs")
         d.pop("rest", None)
 
-    plan = {"name": name, "units": units, "schedule": schedule, "cycle": cycle, "days": days}
+    plan = {"name": name, "units": units, "schedule": schedule, "cycle": cycle, "days": days, "restBetweenExercises": walk}
     if any(i["severity"] == "error" for i in issues): return None, issues
     return plan, issues
 
@@ -9642,6 +9725,7 @@ def check_manifest(root):
                     elif key == "workPerSet": got = {k: [_work_str(s["work"]) for s in plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["sets"]] for k in exp}
                     elif key == "stepOrder": got = {k: [f'{s["exerciseIndex"]}.{s["setIndex"]}' + (f'.{s["dropIndex"]}' if s["dropIndex"] else "") for s in flatten(plan["days"][int(k)])] for k in exp}
                     elif key == "cycle": got = plan["cycle"]
+                    elif key == "restBetweenExercises": got = plan["restBetweenExercises"]
                     elif key == "bodyweight": got = {k: plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["bodyweight"] for k in exp}
                     elif key == "warningPerSet": got = {k: [s["warningBeepSeconds"] for s in plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["sets"]] for k in exp}
                     elif key == "inReservePerSet": got = {k: [s["inReserve"] for s in plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["sets"]] for k in exp}
@@ -9782,6 +9866,12 @@ wj(V, "in-reserve.json", {"name": "Effort", "days": [{"name": "A", "exercises": 
     {"name": "Dumbbell Curl", "sets": 1, "reps": 12, "weight": 12, "restSeconds": 60}]}]})
 wj(V, "in-reserve-alias.json", {"name": "Effort alias", "days": [{"name": "A", "exercises": [
     {"name": "Lat Pulldown", "reps": "10-12", "weight": 50, "restSeconds": 90, "sets": [{"rir": "2"}, {"inReserve": 0}]}]}]})
+# v1.10 (D82): the walk between exercises, declared by the plan — as a number and as digits.
+wj(V, "rest-between-exercises.json", {"name": "Walk", "defaultRestSeconds": 60, "restBetweenExercises": 90, "days": [{"name": "A", "exercises": [
+    {"name": "Barbell Row", "sets": 2, "reps": "8-10", "weight": 60},
+    {"name": "Dumbbell Curl", "sets": 2, "reps": "10-12", "weight": 12}]}]})
+wj(V, "rest-between-exercises-string.json", {"name": "Walk in digits", "restBetweenExercises": "90", "days": [{"name": "A", "exercises": [
+    {"name": "Barbell Row", "sets": 2, "reps": 10}]}]})
 wj(V, "rest-precedence.json", {"name": "Rest chain", "defaultRestSeconds": 100, "days": [
     {"name": "Day A", "defaultRestSeconds": 80, "exercises": [
         {"name": "Ex 1", "sets": 2, "reps": 10},
@@ -9921,6 +10011,7 @@ wj(I, "rest-negative.json", {"name": "X", "days": [{"name": "A", "exercises": [{
 wj(I, "rest-too-long.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10, "restSeconds": 3601}]}]})
 wj(I, "rest-fraction.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10, "restSeconds": 90.5}]}]})
 wj(I, "rest-string-unit.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10, "restSeconds": "1m30"}]}]})
+wj(I, "rest-between-exercises-negative.json", {"name": "X", "restBetweenExercises": -1, "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10}]}]})
 wj(I, "rest-day-level-invalid.json", {"name": "X", "days": [{"name": "A", "defaultRestSeconds": -10, "exercises": [{"name": "Row", "sets": 3, "reps": 10}]}]})
 wj(I, "weekday-invalid.json", {"name": "X", "schedule": "weekday", "days": [{"name": "A", "weekday": "Funday", "exercises": [{"name": "Row", "sets": 3, "reps": 10}]}]})
 wj(I, "weekday-duplicate.json", {"name": "X", "days": [
@@ -10008,7 +10099,9 @@ fixtures = [
   V("bodyweight.json", ["W_WARNING_BEEP_IGNORED","W_BODYWEIGHT_WEIGHT_IGNORED","W_BODYWEIGHT_WEIGHT_IGNORED"],
     bodyweight={"0.0":True, "0.1":True, "0.2":False, "0.3":True, "0.4":False, "0.5":True}, weightPerSet={"0.2":[10]*3, "0.3":[None,None], "0.1":[None]*3},
     warningPerSet={"0.4":[None,None]}, dropTargets={"0.5.0":[["amrap",None]]}),
-  V("rest-precedence.json", restPerSet={"0.0":[80,80], "0.1":[70,70], "0.2":[70,60], "0.3":[0], "1.0":[100]}),
+  V("rest-between-exercises.json", restBetweenExercises=90, restPerSet={"0.0":[60,60], "0.1":[60,60]}, restAfterStep={"0:0":60, "0:1":"transition"}),
+  V("rest-between-exercises-string.json", restBetweenExercises=90),
+  V("rest-precedence.json", restBetweenExercises=None, restPerSet={"0.0":[80,80], "0.1":[70,70], "0.2":[70,60], "0.3":[0], "1.0":[100]}),
   V("lenient-values.json", ["W_RANGE_SWAPPED","W_WEIGHT_UNIT_IGNORED","W_WEIGHT_ROUNDED"], units="kg", bodyweight={"0.2":True, "0.3":False}, repRange={"0.0":[8,12], "0.1":[8,12], "0.2":None, "0.3":None, "0.4":None},
     exerciseNames={"0":["Barbell Bench Press","Incline Press","Pull-Up","Dip","Curl","Hammer Curl"]},
     stepsPerDay=[17],
@@ -10104,6 +10197,7 @@ fixtures = [
   I("rest-too-long.json", ("E_REST_INVALID", f"{E0}.restSeconds")),
   I("rest-fraction.json", ("E_REST_INVALID", f"{E0}.restSeconds")),
   I("rest-string-unit.json", ("E_REST_INVALID", f"{E0}.restSeconds")),
+  I("rest-between-exercises-negative.json", ("E_REST_INVALID", "restBetweenExercises")),
   I("rest-day-level-invalid.json", ("E_REST_INVALID", "days[0].defaultRestSeconds")),
   I("weekday-invalid.json", ("E_WEEKDAY_INVALID", "days[0].weekday")),
   I("weekday-duplicate.json", ("E_WEEKDAY_DUPLICATE", "days[1].weekday")),
@@ -10119,7 +10213,7 @@ fixtures = [
 man = {
   "_readme": "Expected import outcomes for every file in examples/. Run with settings units=kg, defaultRestSeconds=90, today=2026-09-04 (for default plan names). "
              "valid: 'warnings' is the exact multiset of warning codes; 'checks' keys: planName, units, schedule, dayNames, weekdays, stepsPerDay, exerciseNames{'d':[..]}, groups{'d':[..]}, notes{'d.e':..}, "
-             "restPerSet{'d.e':[..]}, weightPerSet{'d.e':[..]}, workPerSet{'d.e':['fixed:10'|'range:8-12'|'amrap'|'amrap:10'|'duration:45']}, stepOrder{'d':['e.s',..]}, restAfterStep{'d:stepIndex':seconds} (rest started after logging that step, all later steps pending), repRange{'d.e':[min,max]|null}, cycle[...names or 'rest'], dropsPerSet{'d.e':[n per set]}, dropTargets{'d.e.s':[[work,weight],..]}. stepOrder entries are 'e.s' or 'e.s.d' for drops; restAfterStep values are seconds or 'transition'; workPerSet also 'open' | 'open:30'; warningPerSet{'d.e':[seconds|null]} (resolved warning-beep offset); bodyweight{'d.e':bool}. "
+             "restPerSet{'d.e':[..]}, weightPerSet{'d.e':[..]}, workPerSet{'d.e':['fixed:10'|'range:8-12'|'amrap'|'amrap:10'|'duration:45']}, stepOrder{'d':['e.s',..]}, restAfterStep{'d:stepIndex':seconds} (rest started after logging that step, all later steps pending), repRange{'d.e':[min,max]|null}, cycle[...names or 'rest'], dropsPerSet{'d.e':[n per set]}, dropTargets{'d.e.s':[[work,weight],..]}. stepOrder entries are 'e.s' or 'e.s.d' for drops; restAfterStep values are seconds or 'transition'; workPerSet also 'open' | 'open:30'; warningPerSet{'d.e':[seconds|null]} (resolved warning-beep offset); bodyweight{'d.e':bool}; restBetweenExercises (the plan's walk, seconds or null). "
              "invalid: every listed error (code + path) must be reported; 'exact' (default true) also requires no other errors.",
   "settings": {"units": "kg", "defaultRestSeconds": 90, "today": "2026-09-04"},
   "fixtures": fixtures,
@@ -10340,7 +10434,14 @@ minimum, faint to the top, yellow past it, a caret that follows the field throug
 `SetCard.showing(field:)`, a line over last time); a filled dot changes its set in place with
 **Save** (`editing`, the view's, never stored), a grey dot does its set now, and Undo is the strip's
 again during the rest. `StepCard.setRows` stays in Core for its tests; no screen draws a row.
-P3–P7 are not built.
+P3 made the walk a count-up and a ring (D82, SPEC §6.55): between exercises the strip is a ring that
+fills red → amber → green over the minimum and becomes a green check, the count-up beside it and the
+next exercise's name under it, no −30 / +30 / Skip (the engine refuses them on the walk), and a tap
+on the ring for one sentence (`RestText.ringExplanation`); `StatusStrip.direction`, `.ring`
+(`WalkRing`) and `.spoken` carry it, and the Lock Screen counts the walk up. The minimum is the
+plan's new optional `restBetweenExercises` (PLAN_FORMAT §2, PROMPT §1 and §4, three fixtures, decoded
+with `container.optional`), then the setting — read from the plan by `PlanLibrary.refreshWalk()`,
+never copied into the session. P4–P7 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

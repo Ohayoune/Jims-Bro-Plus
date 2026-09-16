@@ -289,7 +289,9 @@ final class WorkoutScreenTests: XCTestCase {
         let title = try XCTUnwrap(screen.strip.title)
         XCTAssertTrue(title.hasPrefix("Bench Press done · 0:40"), title)
         XCTAssertTrue(title.contains("Try 62.5 kg next time"), title)
-        XCTAssertEqual(screen.strip.detail, "moving on · 0:42")
+        // D82 (v1.10): the count-up is the strip's figure, beside the ring.
+        XCTAssertEqual(screen.strip.countdown, "0:42", "v1.1–v1.9: \"moving on · 0:42\" in small text")
+        XCTAssertEqual(screen.strip.direction, .up)
         XCTAssertFalse(screen.strip.showsRestControls, "there is no rest to adjust between blocks")
         XCTAssertEqual(screen.strip.undo, "Set logged · Undo", "P3: still one tap back")
         // The next exercise is already the one on screen — that is the point of removing the gate.

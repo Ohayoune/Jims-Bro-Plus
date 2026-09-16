@@ -105,7 +105,7 @@ enum BuiltInPlans {
         }
         var seconds = Double(settings.warmUpSeconds)
         let blocks = Set(session.steps.map(\.blockIndex)).count
-        seconds += Double(max(0, blocks - 1) * settings.transitionRestSeconds)
+        seconds += Double(max(0, blocks - 1) * RestResolution.walk(plan: plan.restBetweenExercises, settings: settings))
         for (index, step) in session.steps.enumerated() {
             guard let target = session.target(at: index) else { continue }
             switch target.work {

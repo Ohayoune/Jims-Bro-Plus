@@ -26,6 +26,9 @@
     "defaultRestSeconds": {
       "$ref": "#/$defs/rest"
     },
+    "restBetweenExercises": {
+      "$ref": "#/$defs/rest"
+    },
     "schedule": {
       "type": "string",
       "enum": [

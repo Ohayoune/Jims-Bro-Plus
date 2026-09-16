@@ -310,7 +310,7 @@ private struct PlanNormalizer {
         return (Exercise(name: ename, group: group == "" ? nil : group, notes: notes, repRange: repRange, bodyweight: bodyweight, sets: targets), rest)
     }
     mutating func plan(_ input: RawJSON) -> Plan? {
-        let planFields: Set<String> = ["schemaVersion","name","units","defaultRestSeconds","schedule","cycle","days"]
+        let planFields: Set<String> = ["schemaVersion","name","units","defaultRestSeconds","restBetweenExercises","schedule","cycle","days"]
         let dayFields: Set<String> = ["name","weekday","defaultRestSeconds","exercises"]
         var raw = input, wrapped = false, bareDay = false
         if input.object?["days"] != nil { }
@@ -330,6 +330,8 @@ private struct PlanNormalizer {
             else { issue("E_UNITS_INVALID", "units", "units must be \"kg\" or \"lb\", got \(u.display).") }
         }
         let planRest = integer(raw["defaultRestSeconds"], "defaultRestSeconds", "E_REST_INVALID", 0...3600)
+        // D82 (v1.10): the walk between exercises, read as every rest is (PLAN_FORMAT §2, §4).
+        let walk = integer(raw["restBetweenExercises"], "restBetweenExercises", "E_REST_INVALID", 0...3600)
         guard let rawDays = raw["days"]?.array, !rawDays.isEmpty else { issue("E_NO_DAYS", "days", "The plan has no days. Add at least one day with exercises."); return nil }
         guard rawDays.count <= 31 else { issue("E_LIMIT_EXCEEDED", "days", "Use no more than 31 days."); return nil }
         let hasWeekdays = rawDays.map { $0["weekday"] != nil }
@@ -417,6 +419,7 @@ private struct PlanNormalizer {
                 if !unknownDay && days.indices.contains(where: { !cycle.contains(.day($0)) }) { issue("W_CYCLE_MISSING_DAY", "cycle", "Some days never appear in the cycle.") }
             } else { issue("E_CYCLE_INVALID", "cycle", "cycle must be a list of 1 to 31 day names or rest.") }
         }
-        return Plan(name: pname, units: units, schedule: schedule, days: days, importedAt: now, sourceText: "", cycle: cycle)
+        return Plan(name: pname, units: units, schedule: schedule, days: days, importedAt: now, sourceText: "", cycle: cycle,
+                    restBetweenExercises: walk)
     }
 }

@@ -7,6 +7,7 @@ import XCTest
 /// v1.10 (`docs/ITERATION_11_PLAN.md`) — the Workout screen in symbols. P1: three states, three
 /// colours (D79, SPEC §6.52) and the header is the bar (D80, §6.53): TP1–TP6. TP7 is the phone's.
 /// P2: the exercise in symbols (D81, §6.54): TP8–TP15. TP16 is the phone's.
+/// P3: the walk, a count-up and a ring (D82, §6.55): TP17–TP22. TP23 is the phone's.
 final class SymbolsTests: XCTestCase {
     private let now = CoreTestSupport.now
 
@@ -490,6 +491,228 @@ final class SymbolsTests: XCTestCase {
         let session = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: now))
         let noted = SessionEngine(session: session, settings: CoreTestSupport.classic, now: now)
         XCTAssertEqual(try screen(noted, at: 5).notes, "Pause on the chest.")
+    }
+
+    // MARK: - P3: the walk (D82)
+
+    /// Two exercises of one set each, so logging step 0 ends a block; the plan's walk as given.
+    private func twoLifts(walk: Int?) -> Plan {
+        var plan = CoreTestSupport.plan(sets: 1, secondExercise: true)
+        plan.restBetweenExercises = walk
+        return plan
+    }
+
+    // TP17 (D82): between blocks the plan's walk comes before the setting's; the setting when
+    // the plan has none; zero from either means straight through.
+    func testTheWalkIsThePlansThenTheSettings() throws {
+        let setting = Settings(warmUpSeconds: 0, transitionRestSeconds: 120)
+        func advance(_ walk: Int?, _ settings: Settings) throws -> Advance {
+            let session = try XCTUnwrap(Session.start(plan: twoLifts(walk: walk), dayIndex: 0, now: now))
+            return RestResolution.after(0, next: 1, steps: session.steps, exercises: session.exercises,
+                                        settings: settings, restBetweenExercises: walk)
+        }
+        XCTAssertEqual(try advance(90, setting), .blockDone(rest: 90), "the plan's, before the setting's")
+        XCTAssertEqual(try advance(nil, setting), .blockDone(rest: 120), "the setting's, when the plan has none")
+        XCTAssertEqual(try advance(0, setting), .blockDone(rest: 0), "the plan's zero is straight through")
+        XCTAssertEqual(try advance(nil, CoreTestSupport.classic), .blockDone(rest: 0), "and so is the setting's")
+        // A set's own rest never becomes the walk, and the rest between sets never becomes the plan's.
+        let three = try XCTUnwrap(Session.start(plan: CoreTestSupport.plan(sets: 3, rest: 45), dayIndex: 0, now: now))
+        XCTAssertEqual(RestResolution.after(0, next: 1, steps: three.steps, exercises: three.exercises,
+                                            settings: setting, restBetweenExercises: 90), .rest(45))
+
+        // Through the library, which reads the plan the session belongs to.
+        var library = PlanLibrary()
+        library.settings = setting
+        let id = try XCTUnwrap(library.save(twoLifts(walk: 90), makeActive: true))
+        try library.startDay(planId: id, dayIndex: 0, now: now)
+        library.apply(.logSet(step: 0, result: .reps(count: 10, weight: 60)), now: now)
+        guard case let .resting(rest)? = library.engine?.phase else { return XCTFail("expected the walk") }
+        XCTAssertEqual(rest.kind, .betweenExercises)
+        XCTAssertEqual(rest.endsAt, now.addingTimeInterval(90))
+        XCTAssertEqual(library.engine?.walk.minimum, 90)
+        XCTAssertEqual(library.engine?.walk.fromPlan, true)
+        // The day's estimate walks the plan's minimum too.
+        XCTAssertEqual(BuiltInPlans.estimatedMinutes(twoLifts(walk: 600), dayIndex: 0, settings: setting),
+                       BuiltInPlans.estimatedMinutes(twoLifts(walk: nil), dayIndex: 0,
+                                                     settings: Settings(warmUpSeconds: 0, transitionRestSeconds: 600)))
+    }
+
+    // TP18 (D82): the fixture imports with 90 and "90" alike; -1 is refused at the field. The
+    // manifest's `restBetweenExercises` check, which `reference_import.py` also reads, covers
+    // the same three files in `ImportTests`.
+    func testThePlanFormatReadsTheWalk() throws {
+        func run(_ path: String) throws -> ImportResult {
+            PlanImport.run(try FixtureLoader.text(path), settings: Settings(units: .kg, defaultRestSeconds: 90), now: now)
+        }
+        let number = try run("valid/rest-between-exercises.json")
+        XCTAssertEqual(number.plan?.restBetweenExercises, 90)
+        XCTAssertFalse(number.issues.contains { $0.code == "W_UNKNOWN_FIELD" }, "a known field, not an ignored one")
+        XCTAssertEqual(number.plan?.days[0].exercises[0].sets.map(\.restSeconds), [60, 60],
+                       "the walk is not a set's rest, and does not resolve into one")
+        XCTAssertEqual(try run("valid/rest-between-exercises-string.json").plan?.restBetweenExercises, 90)
+        XCTAssertNil(try run("valid/rest-precedence.json").plan?.restBetweenExercises, "absent is nil, not 120")
+        let negative = try run("invalid/rest-between-exercises-negative.json")
+        XCTAssertNil(negative.plan)
+        XCTAssertTrue(negative.issues.contains { $0.code == "E_REST_INVALID" && $0.path == "restBetweenExercises" })
+        // The prompts ask for it in the plan and the outline, and never for one day.
+        let settings = Settings(units: .kg, defaultRestSeconds: 90)
+        XCTAssertTrue(Prompts.render(settings: settings).contains("\"restBetweenExercises\": 120"))
+        XCTAssertTrue(Prompts.render(settings: settings).contains("- restBetweenExercises: whole seconds to walk between exercises; if unspecified, 120."))
+        XCTAssertTrue(Prompts.outline(settings: settings).contains("- restBetweenExercises:"))
+        XCTAssertFalse(Prompts.dayTemplate.contains("restBetweenExercises"), "a day cannot carry a plan's field")
+        XCTAssertEqual(Prompts.exampleJSON.contains("restBetweenExercises"), true)
+    }
+
+    // TP19 (D82): on disk — the frozen v1 plan decodes with nil, a plan with the field
+    // round-trips, and an edit keeps it.
+    func testTheWalkOnDisk() throws {
+        let frozen = try StoreCoder.decode(PlansPayload.self, from: try FixtureLoader.data("store/v1/plans.json"))
+        XCTAssertFalse(frozen.plans.isEmpty)
+        XCTAssertTrue(frozen.plans.allSatisfy { $0.restBetweenExercises == nil })
+
+        let plan = twoLifts(walk: 90)
+        let decoded = try StoreCoder.decode(PlansPayload.self,
+                                            from: try StoreCoder.encode(PlansPayload(activePlanId: plan.id, plans: [plan])))
+        XCTAssertEqual(decoded.plans.first?.restBetweenExercises, 90)
+        XCTAssertEqual(decoded.plans.first, plan)
+        let without = try StoreCoder.decode(PlansPayload.self,
+                                            from: try StoreCoder.encode(PlansPayload(activePlanId: nil, plans: [twoLifts(walk: nil)])))
+        XCTAssertNil(without.plans.first?.restBetweenExercises)
+
+        XCTAssertTrue(PlanJSON.render(plan).contains("\"restBetweenExercises\": 90"))
+        XCTAssertFalse(PlanJSON.render(twoLifts(walk: nil)).contains("restBetweenExercises"))
+        let edited = PlanEdit.apply(.renameExercise(day: 0, exercise: 0, name: "Bench"), to: plan,
+                                    settings: Settings(), now: now)
+        XCTAssertEqual(edited.plan?.restBetweenExercises, 90, "an edit to the plan keeps its walk")
+        let spliced = PlanEdit.apply(.replaceDayJSON(day: 0, text: PlanJSON.render(day: plan.days[0])), to: plan,
+                                     settings: Settings(), now: now)
+        XCTAssertEqual(spliced.plan?.restBetweenExercises, 90, "and so does a day replaced as JSON")
+    }
+
+    // TP20 (D82): the strip between exercises counts up beside a ring that fills over the
+    // minimum — 0, ½, then 1 with a check at the minimum and after, the count-up going on —
+    // with no −30 / +30 / Skip and Log set throughout; Start timer ends it as Log set does.
+    func testTheWalkCountsUpBesideARing() throws {
+        var library = PlanLibrary()
+        library.settings = Settings(warmUpSeconds: 0, transitionRestSeconds: 120)
+        let id = try XCTUnwrap(library.save(twoLifts(walk: 90), makeActive: true))
+        try library.startDay(planId: id, dayIndex: 0, now: now)
+        library.apply(.logSet(step: 0, result: .reps(count: 10, weight: 60)), now: now)
+        let engine = try XCTUnwrap(library.engine)
+
+        func screen(at seconds: Double, _ active: ActiveSession? = nil) throws -> WorkoutScreenModel {
+            try XCTUnwrap(WorkoutScreen.model(active: active ?? engine.active, history: [],
+                                              now: now.addingTimeInterval(seconds),
+                                              settings: library.settings, walk: engine.walk))
+        }
+        for (seconds, fraction, figure) in [(0.0, 0.0, "0:00"), (45, 0.5, "0:45"), (90, 1, "1:30")] {
+            let strip = try screen(at: seconds).strip
+            XCTAssertEqual(strip.kind, .blockDone)
+            XCTAssertEqual(strip.restKind, .betweenExercises)
+            XCTAssertEqual(strip.direction, .up)
+            XCTAssertEqual(strip.countdown, figure)
+            XCTAssertEqual(try XCTUnwrap(strip.ring).fraction, fraction, accuracy: 0.0001)
+            XCTAssertEqual(strip.ring?.full, fraction == 1)
+            XCTAssertFalse(strip.showsRestControls, "a count-up has nothing to skip")
+            XCTAssertEqual(strip.next, "Row")
+            XCTAssertEqual(try screen(at: seconds).primary.kind, .log, "Log set, throughout")
+        }
+        // The colour runs red, amber, green.
+        XCTAssertEqual(try screen(at: 0).strip.ring?.colour, WalkRing.red)
+        XCTAssertEqual(try screen(at: 45).strip.ring?.colour, WalkRing.amber)
+        XCTAssertEqual(try screen(at: 90).strip.ring?.colour, WalkRing.green)
+        XCTAssertEqual(try XCTUnwrap(try screen(at: 45).strip.spoken).hasPrefix("Between exercises, 0:45. at least 1:30. next, Row"), true)
+
+        // The ring fills and the rest ends where it always did; the count-up keeps going.
+        var after = engine
+        after.apply(.restElapsed, now: now.addingTimeInterval(90))
+        XCTAssertEqual(after.phase, .working(step: 1))
+        let later = try screen(at: 200, after.active).strip
+        XCTAssertEqual(later.countdown, "3:20", "counted from the walk's start, past the minimum")
+        XCTAssertEqual(later.ring?.full, true)
+        XCTAssertEqual(later.ring?.minimum, 90)
+        XCTAssertEqual(later.direction, .up)
+        XCTAssertFalse(later.showsRestControls)
+
+        // −30 / +30 / Skip leave this kind of rest; the warm-up keeps them.
+        var walking = engine
+        XCTAssertEqual(walking.apply(.adjustRest(seconds: 30), now: now.addingTimeInterval(5)), [])
+        XCTAssertEqual(walking.apply(.skipRest, now: now.addingTimeInterval(5)), [])
+        XCTAssertEqual(walking.active, engine.active)
+        var warm = SessionEngine(session: try XCTUnwrap(Session.start(plan: twoLifts(walk: 90), dayIndex: 0, now: now)),
+                                 settings: Settings(warmUpSeconds: 300), now: now)
+        XCTAssertFalse(warm.apply(.adjustRest(seconds: 30), now: now).isEmpty)
+        XCTAssertTrue(try XCTUnwrap(WorkoutScreen.model(active: warm.active, history: [], now: now)).strip.showsRestControls)
+
+        // Log set ends the walk, and so does Start timer.
+        var logged = engine
+        logged.apply(.logSet(step: 1, result: .reps(count: 10, weight: 60)), now: now.addingTimeInterval(30))
+        XCTAssertNil(logged.active.blockDone)
+        var timedPlan = CoreTestSupport.plan(sets: 1)
+        timedPlan.days[0].exercises.append(Exercise(name: "Plank", bodyweight: true,
+            sets: [SetTarget(work: .duration(seconds: 45), restSeconds: 60)]))
+        timedPlan.restBetweenExercises = 90
+        var timed = SessionEngine(session: try XCTUnwrap(Session.start(plan: timedPlan, dayIndex: 0, now: now)),
+                                  settings: CoreTestSupport.classic, now: now)
+        timed.restBetweenExercises = 90
+        timed.apply(.logSet(step: 0, result: .reps(count: 10, weight: 60)), now: now)
+        XCTAssertNotNil(timed.active.blockDone)
+        timed.apply(.startTimer(step: 1), now: now.addingTimeInterval(20))
+        XCTAssertTrue(timed.active.timerRunning)
+        XCTAssertNil(timed.active.blockDone, "starting the set ends the walk")
+        let timedStrip = try XCTUnwrap(WorkoutScreen.model(active: timed.active, history: [],
+                                                          now: now.addingTimeInterval(25))).strip
+        XCTAssertNil(timedStrip.ring)
+        XCTAssertEqual(timedStrip.kind, .timed)
+
+        // A zero minimum is full from the start.
+        var straight = SessionEngine(session: try XCTUnwrap(Session.start(plan: twoLifts(walk: 0), dayIndex: 0, now: now)),
+                                     settings: Settings(warmUpSeconds: 0, transitionRestSeconds: 120), now: now)
+        straight.restBetweenExercises = 0
+        straight.apply(.logSet(step: 0, result: .reps(count: 10, weight: 60)), now: now)
+        XCTAssertEqual(straight.phase, .working(step: 1))
+        let full = try XCTUnwrap(WorkoutScreen.model(active: straight.active, history: [], now: now,
+                                                    walk: straight.walk)).strip
+        XCTAssertEqual(full.ring?.full, true)
+        XCTAssertEqual(full.countdown, "0:00")
+
+        // The Lock Screen counts the walk up too, before the ring fills and after.
+        let island = try XCTUnwrap(WorkoutActivityState.of(engine.active, now: now.addingTimeInterval(10)))
+        XCTAssertNil(island.endsAt)
+        XCTAssertEqual(island.startedAt, now)
+        XCTAssertFalse(island.timerCountsDown)
+        XCTAssertEqual(island.title, "Between exercises")
+        XCTAssertTrue(island.isBreak)
+        let islandAfter = try XCTUnwrap(WorkoutActivityState.of(after.active, now: now.addingTimeInterval(200)))
+        XCTAssertEqual(islandAfter.startedAt, now)
+        XCTAssertFalse(islandAfter.timerCountsDown)
+    }
+
+    // TP21 (D82): the alert is scheduled for `endsAt`, as it was — which is now the moment the
+    // ring fills.
+    func testTheWalksAlertIsAtTheRingsEnd() throws {
+        var engine = SessionEngine(session: try XCTUnwrap(Session.start(plan: twoLifts(walk: 90), dayIndex: 0, now: now)),
+                                   settings: Settings(warmUpSeconds: 0, transitionRestSeconds: 120), now: now)
+        engine.restBetweenExercises = 90
+        let effects = engine.apply(.logSet(step: 0, result: .reps(count: 10, weight: 60)), now: now)
+        XCTAssertTrue(effects.contains { effect in
+            if case let .scheduleNotification(id, at, _) = effect { return id == .rest && at == now.addingTimeInterval(90) }
+            return false
+        })
+        let alert = engine.apply(.restElapsed, now: now.addingTimeInterval(90))
+        XCTAssertTrue(alert.contains(.playAlert(.end)), "the sound plays when the ring fills")
+    }
+
+    // TP22 (D82): the ring's one sentence names the minimum in m:ss, and whose it is.
+    func testTheRingExplainsItself() {
+        XCTAssertEqual(RestText.ringExplanation(minimum: 120, fromPlan: true),
+                       "At least 2:00 between exercises. Your plan's minimum — when the ring is full, you're ready.")
+        XCTAssertEqual(RestText.ringExplanation(minimum: 90, fromPlan: false),
+                       "At least 1:30 between exercises. Your minimum in Settings — when the ring is full, you're ready.")
+        XCTAssertEqual(RestText.ringExplanation(minimum: 0, fromPlan: true),
+                       "No minimum between exercises. The ring starts full — go when you're ready.")
+        XCTAssertEqual(WalkRing(fraction: 1, minimum: 150, fromPlan: true).explanation,
+                       RestText.ringExplanation(minimum: 150, fromPlan: true))
     }
 
     // TP15 (D81, pin): zone 2 prints no sentence — the name, and the card's range, unit and

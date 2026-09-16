@@ -1,0 +1,16 @@
+{
+  "name": "Walk in digits",
+  "restBetweenExercises": "90",
+  "days": [
+    {
+      "name": "A",
+      "exercises": [
+        {
+          "name": "Barbell Row",
+          "sets": 2,
+          "reps": 10
+        }
+      ]
+    }
+  ]
+}

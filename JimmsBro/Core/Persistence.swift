@@ -76,7 +76,9 @@ extension Plan {
             cycle: container.value(.cycle, or: days.indices.map(CycleEntry.day)),
             cyclePosition: container.optional(.cyclePosition),
             cycleAnchor: container.optional(.cycleAnchor),
-            progression: container.optional(.progression))
+            progression: container.optional(.progression),
+            // D82 (v1.10): optional, so every plans.json written before it reads as it did.
+            restBetweenExercises: container.optional(.restBetweenExercises))
     }
 }
 

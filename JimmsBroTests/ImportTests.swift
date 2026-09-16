@@ -166,6 +166,8 @@ final class ImportTests: XCTestCase {
         case "dayNames": return try json(p.days.map(\.name))
         case "weekdays": return try json(p.days.map { $0.weekday?.rawValue })
         case "cycle": return try json(p.cycle.map { if case let .day(i) = $0 { return p.days[i].name }; return "rest" })
+        // TP18 (v1.10, D82): the plan's walk between exercises, or null.
+        case "restBetweenExercises": return p.restBetweenExercises.map { .number(Double($0)) } ?? .null
         default:
             guard case let .object(entries) = expected else { XCTFail("Unexpected check shape \(key)"); return .null }
             var result: [String:JSONValue] = [:]

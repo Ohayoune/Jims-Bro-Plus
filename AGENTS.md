@@ -205,7 +205,14 @@ minimum, faint to the top, yellow past it, a caret that follows the field throug
 `SetCard.showing(field:)`, a line over last time); a filled dot changes its set in place with
 **Save** (`editing`, the view's, never stored), a grey dot does its set now, and Undo is the strip's
 again during the rest. `StepCard.setRows` stays in Core for its tests; no screen draws a row.
-P3–P7 are not built.
+P3 made the walk a count-up and a ring (D82, SPEC §6.55): between exercises the strip is a ring that
+fills red → amber → green over the minimum and becomes a green check, the count-up beside it and the
+next exercise's name under it, no −30 / +30 / Skip (the engine refuses them on the walk), and a tap
+on the ring for one sentence (`RestText.ringExplanation`); `StatusStrip.direction`, `.ring`
+(`WalkRing`) and `.spoken` carry it, and the Lock Screen counts the walk up. The minimum is the
+plan's new optional `restBetweenExercises` (PLAN_FORMAT §2, PROMPT §1 and §4, three fixtures, decoded
+with `container.optional`), then the setting — read from the plan by `PlanLibrary.refreshWalk()`,
+never copied into the session. P4–P7 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

@@ -10,6 +10,7 @@ This is the JSON the app imports. A chatbot writes it from the prompt in `docs/P
   "name": "Push Pull Legs",
   "units": "kg",
   "defaultRestSeconds": 90,
+  "restBetweenExercises": 120,
   "schedule": "rotation",
   "cycle": ["Push", "rest"],
   "days": [
@@ -38,6 +39,7 @@ This is the JSON the app imports. A chatbot writes it from the prompt in `docs/P
 | `name` | string | no | Missing/blank → "Imported plan <yyyy-MM-dd>" + `W_DEFAULT_NAME`. Max 100 chars (truncate + `W_NAME_TRUNCATED`). |
 | `units` | "kg" \| "lb" | no | Case-insensitive; "kgs", "lbs", "pounds", "kilograms" accepted. Missing → user's setting. Other → `E_UNITS_INVALID`. |
 | `defaultRestSeconds` | int ≥ 0 | no | Fallback for all days. |
+| `restBetweenExercises` | int 0–3600 | no | **v1.10 (D82).** Seconds to walk between exercises — the minimum the Workout screen's ring fills over (SPEC §6.55). Missing → the user's *Between exercises* setting, at the moment of the walk. 0 = straight through. Read as every rest is: `"90"` accepted (§3.7); negative, over 3600 or non-integer → `E_REST_INVALID` at `restBetweenExercises`. |
 | `schedule` | "rotation" \| "weekday" | no | Missing → inferred: every day has a weekday → weekday; none has → rotation; mixed → `E_SCHEDULE_MIXED`. Present but conflicting with the days → the days win with `W_SCHEDULE_INFERRED`. |
 | `days` | array of Day | yes | 1–31 entries. Empty/missing → `E_NO_DAYS`. Over 31 → `E_LIMIT_EXCEEDED`. |
 | `cycle` | array of string | no | The repeating block: day names in order with `"rest"` for rest days, e.g. `["Push","Pull","Legs","rest"]`. See §3.10. |
@@ -139,6 +141,8 @@ Weights keep one decimal place (62.5 stays; 62.55 → 62.6 with `W_WEIGHT_ROUNDE
 ### 3.6 Rest fallback chain
 Per set: `set.restSeconds → exercise.restSeconds → day.defaultRestSeconds → plan.defaultRestSeconds → user default (at import)`. Resolved values are stored on every Set Target. Missing everywhere → user default and no warning.
 
+Between exercises (v1.10, D82): `plan.restBetweenExercises → user's Between exercises setting (at the walk)`. Not a set's rest, and not resolved into the Set Targets: the plan keeps the value as written (nil when absent), and the walk reads it when a block ends (SPEC §6.3). A set's own `restSeconds` is never used for the walk.
+
 ### 3.7 Numbers given as strings
 Any integer field accepts a string of digits (`"3"`, `"90"`). Any number field accepts a numeric string with `.` or `,` as the decimal separator. Anything else → the field's `E_*_INVALID`.
 
@@ -212,7 +216,7 @@ Errors block import. Warnings are shown in Preview and saved on the plan. `path`
 | `E_TARGET_MISSING` | error | A set has neither reps nor duration |
 | `E_TARGET_CONFLICT` | error | A set has both reps and duration |
 | `E_WEIGHT_INVALID` | error | §3.3 rejected forms |
-| `E_REST_INVALID` | error | Rest negative, > 3600, or non-integer (any level) |
+| `E_REST_INVALID` | error | Rest negative, > 3600, or non-integer (any level, and `restBetweenExercises` since v1.10) |
 | `E_WEEKDAY_INVALID` | error | Unrecognized weekday string |
 | `E_WEEKDAY_DUPLICATE` | error | Two days share a weekday |
 | `E_WEEKDAY_MISSING` | error | Explicit `schedule: "weekday"` and a day lacks `weekday` |

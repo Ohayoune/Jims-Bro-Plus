@@ -32,6 +32,13 @@ struct SessionEngine {
     private(set) var active: ActiveSession
     var settings: Settings
     var history: [Session]
+    /// D82 (v1.10): the plan's walk between exercises, set by `PlanLibrary` from the plan the
+    /// session belongs to. Not stored: the plan is on disk, and nil hands the walk to the setting.
+    var restBetweenExercises: Int?
+    /// The walk's minimum as the ring draws it, and whether the plan declared it.
+    var walk: (minimum: Int, fromPlan: Bool) {
+        (RestResolution.walk(plan: restBetweenExercises, settings: settings), restBetweenExercises != nil)
+    }
     var session: Session { active.session }
     var phase: Phase { active.phase }
     var loggedCount: Int { session.steps.filter { $0.status == .logged }.count }
@@ -110,16 +117,18 @@ struct SessionEngine {
         let next = nextStep(after: index)
         guard let next else { return complete(now: now) }
         let advance = RestResolution.after(index, next: next, steps: session.steps,
-                                          exercises: session.exercises, settings: settings)
+                                          exercises: session.exercises, settings: settings,
+                                          restBetweenExercises: restBetweenExercises)
         switch advance {
         case .completed: return complete(now: now)
         case let .blockDone(seconds):
             let finishedBlock = session.steps[index].blockIndex
             enterWorking(next, now: now)
             active.blockDone = BlockDone(finishedBlock: finishedBlock, startedAt: now)
-            // D33 (v1.2): a real countdown for the walk to the next machine. Unlike a rest
-            // between sets, a *skipped* set still gets it — the walk happens either way — and
-            // the next exercise's card is already on screen throughout, so it gates nothing.
+            // D33 (v1.2): a real rest for the walk to the next machine. Unlike a rest between
+            // sets, a *skipped* set still gets it — the walk happens either way — and the next
+            // exercise's card is already on screen throughout, so it gates nothing. D82 (v1.10):
+            // the strip counts it up and fills a ring to `endsAt`; the alert is where it was.
             guard seconds > 0 else { return [] }
             return startRest(seconds: seconds, next: next, kind: .betweenExercises, now: now)
         case let .rest(seconds):
@@ -225,15 +234,17 @@ struct SessionEngine {
             if session.exercises.indices.contains(e) { active.session.exercises[e].advice = nil }
             enterWorking(i, now: now)
         case let .adjustRest(seconds):
-            // Works on all three kinds: the warm-up and the walk between exercises are as
-            // adjustable as a rest between sets, and for the same reason.
-            guard case var .resting(rest) = phase else { return [] }
+            // The warm-up is as adjustable as a rest between sets, and for the same reason. D82
+            // (v1.10): the walk is not — its end is the plan's minimum, and it counts up past it.
+            guard case var .resting(rest) = phase, rest.kind != .betweenExercises else { return [] }
             rest.endsAt = rest.endsAt.addingTimeInterval(Double(seconds))
             effects.append(.cancelNotification(id: .rest))
             if rest.endsAt <= now { active.lastRestEndedAt = rest.endsAt; enterWorking(rest.nextStep, now: now) }
             else { active.phase = .resting(rest); effects.append(.scheduleNotification(id: .rest, at: rest.endsAt, body: nextBody(rest.nextStep))) }
         case .skipRest, .restElapsed:
             guard case let .resting(rest) = phase else { return [] }
+            // D82: a count-up has nothing to skip; Log set or Start timer ends the walk.
+            if case .skipRest = event, rest.kind == .betweenExercises { return [] }
             if case .restElapsed = event {
                 guard now >= rest.endsAt else { return [] }
                 if now.timeIntervalSince(rest.endsAt) < 1 { effects.append(.playAlert(.end)) }
@@ -251,6 +262,8 @@ struct SessionEngine {
             }
             guard case let .working(current) = phase, current == i, !active.timerRunning, let target = session.target(at: i), target.work.isTimed else { return [] }
             active.session.steps[i].startedAt = now; active.timerRunning = true; active.deliveredBeeps = []
+            // D82 (v1.10): starting the set ends the walk, as logging one does (§4.6).
+            active.blockDone = nil
             effects += AlertIdentifier.work.map { .cancelNotification(id: $0) }
             switch target.work {
             case let .duration(n):

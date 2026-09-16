@@ -1,5 +1,5 @@
 {
-  "_readme": "Expected import outcomes for every file in examples/. Run with settings units=kg, defaultRestSeconds=90, today=2026-09-04 (for default plan names). valid: 'warnings' is the exact multiset of warning codes; 'checks' keys: planName, units, schedule, dayNames, weekdays, stepsPerDay, exerciseNames{'d':[..]}, groups{'d':[..]}, notes{'d.e':..}, restPerSet{'d.e':[..]}, weightPerSet{'d.e':[..]}, workPerSet{'d.e':['fixed:10'|'range:8-12'|'amrap'|'amrap:10'|'duration:45']}, stepOrder{'d':['e.s',..]}, restAfterStep{'d:stepIndex':seconds} (rest started after logging that step, all later steps pending), repRange{'d.e':[min,max]|null}, cycle[...names or 'rest'], dropsPerSet{'d.e':[n per set]}, dropTargets{'d.e.s':[[work,weight],..]}. stepOrder entries are 'e.s' or 'e.s.d' for drops; restAfterStep values are seconds or 'transition'; workPerSet also 'open' | 'open:30'; warningPerSet{'d.e':[seconds|null]} (resolved warning-beep offset); bodyweight{'d.e':bool}. invalid: every listed error (code + path) must be reported; 'exact' (default true) also requires no other errors.",
+  "_readme": "Expected import outcomes for every file in examples/. Run with settings units=kg, defaultRestSeconds=90, today=2026-09-04 (for default plan names). valid: 'warnings' is the exact multiset of warning codes; 'checks' keys: planName, units, schedule, dayNames, weekdays, stepsPerDay, exerciseNames{'d':[..]}, groups{'d':[..]}, notes{'d.e':..}, restPerSet{'d.e':[..]}, weightPerSet{'d.e':[..]}, workPerSet{'d.e':['fixed:10'|'range:8-12'|'amrap'|'amrap:10'|'duration:45']}, stepOrder{'d':['e.s',..]}, restAfterStep{'d:stepIndex':seconds} (rest started after logging that step, all later steps pending), repRange{'d.e':[min,max]|null}, cycle[...names or 'rest'], dropsPerSet{'d.e':[n per set]}, dropTargets{'d.e.s':[[work,weight],..]}. stepOrder entries are 'e.s' or 'e.s.d' for drops; restAfterStep values are seconds or 'transition'; workPerSet also 'open' | 'open:30'; warningPerSet{'d.e':[seconds|null]} (resolved warning-beep offset); bodyweight{'d.e':bool}; restBetweenExercises (the plan's walk, seconds or null). invalid: every listed error (code + path) must be reported; 'exact' (default true) also requires no other errors.",
   "settings": {
     "units": "kg",
     "defaultRestSeconds": 90,
@@ -754,10 +754,41 @@
       }
     },
     {
+      "file": "valid/rest-between-exercises.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "restBetweenExercises": 90,
+        "restPerSet": {
+          "0.0": [
+            60,
+            60
+          ],
+          "0.1": [
+            60,
+            60
+          ]
+        },
+        "restAfterStep": {
+          "0:0": 60,
+          "0:1": "transition"
+        }
+      }
+    },
+    {
+      "file": "valid/rest-between-exercises-string.json",
+      "outcome": "valid",
+      "warnings": [],
+      "checks": {
+        "restBetweenExercises": 90
+      }
+    },
+    {
       "file": "valid/rest-precedence.json",
       "outcome": "valid",
       "warnings": [],
       "checks": {
+        "restBetweenExercises": null,
         "restPerSet": {
           "0.0": [
             80,
@@ -1886,6 +1917,16 @@
         {
           "code": "E_REST_INVALID",
           "path": "days[0].exercises[0].restSeconds"
+        }
+      ]
+    },
+    {
+      "file": "invalid/rest-between-exercises-negative.json",
+      "outcome": "invalid",
+      "errors": [
+        {
+          "code": "E_REST_INVALID",
+          "path": "restBetweenExercises"
         }
       ]
     },

@@ -33,14 +33,19 @@ func flatten(day: Day) -> [Step] { StepBuilder.flatten(day) }
 /// walking to the next machine takes as long as a rest does, and v1.1 allowed it none.
 enum Advance: Equatable { case completed, blockDone(rest: Int), rest(Int) }
 enum RestResolution {
+    /// D82 (v1.10, §6.3): the walk between exercises — the plan's `restBetweenExercises`, then
+    /// the setting. Zero from either means straight through.
+    static func walk(plan: Int?, settings: Settings) -> Int {
+        max(0, plan ?? settings.transitionRestSeconds)
+    }
     static func after(_ index: Int, next: Int?, steps: [SessionStep], exercises: [SessionExercise],
-                      settings: Settings = Settings()) -> Advance {
+                      settings: Settings = Settings(), restBetweenExercises: Int? = nil) -> Advance {
         guard let next else { return .completed }
         guard let step = steps[safe: index], let nextStep = steps[safe: next] else { return .completed }
         if nextStep.blockIndex < step.blockIndex || (step.isLastInBlock && step.blockIndex != nextStep.blockIndex) {
             // D33: the gap between two exercises is about the room, not about the set that
-            // just ended, so it comes from the setting rather than from the set's own rest.
-            return .blockDone(rest: max(0, settings.transitionRestSeconds))
+            // just ended, so it comes from the plan or the setting rather than the set's rest.
+            return .blockDone(rest: walk(plan: restBetweenExercises, settings: settings))
         }
         guard step.isLastInRound else { return .rest(0) }
         guard let exercise = exercises[safe: step.exerciseIndex], let target = exercise.targets[safe: step.setIndex] else { return .rest(0) }

@@ -32,9 +32,22 @@ extension WorkoutActivityState {
             .replacingOccurrences(of: "Next: ", with: "")
             ?? session.dayName
 
+        // D82 (v1.10): the walk between exercises counts up, on the Lock Screen as on the strip
+        // — no `endsAt`, so the system draws it upward from the walk's start — and it goes on
+        // past the ring's minimum until the next set is logged or started.
+        if case let .resting(rest) = active.phase, rest.kind == .betweenExercises {
+            return WorkoutActivityState(title: rest.kind.title, detail: detail, endsAt: nil,
+                                        startedAt: active.blockDone?.startedAt ?? rest.startedAt,
+                                        done: done, total: session.steps.count, isBreak: true)
+        }
         if case let .resting(rest) = active.phase {
             return WorkoutActivityState(title: rest.kind.title, detail: detail,
                                         endsAt: rest.endsAt, startedAt: rest.startedAt,
+                                        done: done, total: session.steps.count, isBreak: true)
+        }
+        if let blockDone = active.blockDone, !active.timerRunning {
+            return WorkoutActivityState(title: RestKind.betweenExercises.title, detail: detail,
+                                        endsAt: nil, startedAt: blockDone.startedAt,
                                         done: done, total: session.steps.count, isBreak: true)
         }
         let name = session.exercises[safe: session.steps[index].exerciseIndex]?.name

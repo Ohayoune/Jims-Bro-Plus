@@ -95,11 +95,14 @@ final class WarmUpAndTransitionTests: XCTestCase {
                                                        now: now.addingTimeInterval(5)))
         XCTAssertEqual(screen.exerciseName, "Row", "the next exercise is already on screen")
         XCTAssertEqual(screen.strip.restKind, .betweenExercises)
-        XCTAssertTrue(screen.strip.showsRestControls, "−30 / +30 / Skip, like any other rest")
-        XCTAssertEqual(screen.strip.countdown, "1:55")
-        XCTAssertEqual(screen.strip.title, "Between exercises")
-        XCTAssertEqual(try XCTUnwrap(screen.strip.next).hasPrefix("Bench Press done"), true,
-                       "and it still says what just finished, on its own line")
+        // D82 (v1.10): the walk counts up beside a ring and has no −30 / +30 / Skip.
+        XCTAssertFalse(screen.strip.showsRestControls, "v1.2–v1.9: −30 / +30 / Skip, like any other rest")
+        XCTAssertEqual(screen.strip.countdown, "0:05", "v1.2–v1.9: 1:55, counting down")
+        XCTAssertEqual(screen.strip.direction, .up)
+        XCTAssertEqual(screen.strip.ring?.minimum, 120)
+        XCTAssertEqual(screen.strip.next, "Row", "v1.10: the next exercise, beside the walk")
+        XCTAssertEqual(try XCTUnwrap(screen.strip.title).hasPrefix("Bench Press done"), true,
+                       "and it still says what just finished, to VoiceOver")
     }
 
     // Q26: a *skipped* set that ends a block still gets the walk. Skipping the set does not
@@ -118,17 +121,20 @@ final class WarmUpAndTransitionTests: XCTestCase {
         XCTAssertEqual(rest.kind, .betweenExercises)
     }
 
-    // Q27: set it to 0 and v1.1's behavior comes back exactly — no countdown, the block-done
-    // strip with its count-up instead.
+    // Q27: set it to 0 and v1.1's behavior comes back — no countdown, the block-done strip with
+    // its count-up instead; since v1.10 (D82) the count-up is the strip's figure and the ring
+    // starts full.
     func testTransitionRestOffRestoresTheBlockDoneStrip() throws {
         var engine = engine(CoreTestSupport.plan(sets: 1, secondExercise: true),
                             CoreTestSupport.classic)
         engine.apply(.logSet(step: 0, result: .reps(count: 12, weight: 60)), now: now)
         XCTAssertEqual(engine.phase, .working(step: 1))
         let screen = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [],
-                                                       now: now.addingTimeInterval(42)))
+                                                       now: now.addingTimeInterval(42),
+                                                       walk: engine.walk))
         XCTAssertEqual(screen.strip.kind, .blockDone)
-        XCTAssertEqual(screen.strip.detail, "moving on · 0:42")
+        XCTAssertEqual(screen.strip.countdown, "0:42", "v1.1–v1.9: \"moving on · 0:42\" in small text")
+        XCTAssertEqual(screen.strip.ring?.full, true)
         XCTAssertFalse(screen.strip.showsRestControls)
     }
 

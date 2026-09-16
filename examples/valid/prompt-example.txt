@@ -3,6 +3,7 @@
   "name": "Push Pull Legs",
   "units": "kg",
   "defaultRestSeconds": 90,
+  "restBetweenExercises": 120,
   "schedule": "rotation",
   "cycle": ["Push", "rest"],
   "days": [

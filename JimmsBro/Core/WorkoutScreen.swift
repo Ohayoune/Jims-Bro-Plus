@@ -106,6 +106,64 @@ struct StatusStrip: Equatable {
     var restKind: RestKind?
     /// "Skip rest", "Skip warm-up", "Skip" — the button names what it ends.
     var skipTitle: String = RestKind.betweenSets.skipTitle
+    /// D82 (v1.10): which way `countdown` runs — down for a rest, up for the walk.
+    var direction: TimerDirection = .down
+    /// D82 (v1.10, §6.55): the walk between exercises' ring; nil in every other state.
+    var ring: WalkRing?
+    /// What VoiceOver hears for the walk, whose print is a ring, a figure and a name.
+    var spoken: String?
+}
+
+enum TimerDirection: String, Equatable { case up, down }
+
+/// D82 (v1.10, §6.55): the ring beside the walk's count-up. It fills clockwise over the walk's
+/// minimum — the plan's `restBetweenExercises`, then the setting — turning red, amber, green,
+/// and when full it is a green disc with a check. A minimum of zero is full from the start.
+struct WalkRing: Equatable {
+    /// 0…1 of the minimum, never past 1.
+    var fraction: Double
+    var minimum: Int
+    /// Whether the plan declared the minimum, or the setting stood in (§6.3).
+    var fromPlan: Bool
+    var full: Bool { fraction >= 1 }
+    /// Tap the ring: one sentence (`RestText.ringExplanation`).
+    var explanation: String { RestText.ringExplanation(minimum: minimum, fromPlan: fromPlan) }
+    /// The ring's colour at its fraction — the view draws it, Core decides it.
+    var colour: RGB { WalkRing.colour(fraction: fraction) }
+
+    struct RGB: Equatable { var red: Double; var green: Double; var blue: Double }
+    static let red = RGB(red: 1, green: 59 / 255, blue: 48 / 255)          // #FF3B30
+    static let amber = RGB(red: 1, green: 159 / 255, blue: 10 / 255)       // #FF9F0A
+    static let green = RGB(red: 52 / 255, green: 199 / 255, blue: 89 / 255) // #34C759
+
+    /// Red to amber over the first half, amber to green over the second; green when full.
+    static func colour(fraction: Double) -> RGB {
+        let f = min(1, max(0, fraction))
+        func mix(_ a: RGB, _ b: RGB, _ t: Double) -> RGB {
+            RGB(red: a.red + (b.red - a.red) * t, green: a.green + (b.green - a.green) * t,
+                blue: a.blue + (b.blue - a.blue) * t)
+        }
+        guard f < 1 else { return green }
+        return f < 0.5 ? mix(red, amber, f * 2) : mix(amber, green, (f - 0.5) * 2)
+    }
+
+    static func of(startedAt: Date, minimum: Int, fromPlan: Bool, now: Date) -> WalkRing {
+        let fraction = minimum > 0 ? now.timeIntervalSince(startedAt) / Double(minimum) : 1
+        return WalkRing(fraction: min(1, max(0, fraction)), minimum: max(0, minimum), fromPlan: fromPlan)
+    }
+}
+
+/// The rest's own sentences, in Core so a test can pin them (Y13's rule).
+enum RestText {
+    /// D82: what a tap on the ring says. It names where the minimum came from, because the
+    /// plan's and the setting's are different promises (D55: nothing untrue).
+    static func ringExplanation(minimum: Int, fromPlan: Bool) -> String {
+        guard minimum > 0 else {
+            return "No minimum between exercises. The ring starts full — go when you're ready."
+        }
+        let whose = fromPlan ? "Your plan's minimum" : "Your minimum in Settings"
+        return "At least \(TargetText.time(minimum)) between exercises. \(whose) — when the ring is full, you're ready."
+    }
 }
 
 /// Zone 5. One control, one slot, whatever the work is (D20, D22).
@@ -253,8 +311,10 @@ struct WorkoutScreenModel: Equatable {
 enum WorkoutScreen {
     /// Nil only when the session is over — the Summary owns the screen then. `editing` is the
     /// dot the view has tapped; a step that is not a logged one of this block is ignored.
+    /// `walk` is the engine's (D82): the walk's minimum and whether the plan declared it.
     static func model(active: ActiveSession, history: [Session], now: Date,
-                      settings: Settings = Settings(), editing: Int? = nil) -> WorkoutScreenModel? {
+                      settings: Settings = Settings(), editing: Int? = nil,
+                      walk: (minimum: Int, fromPlan: Bool)? = nil) -> WorkoutScreenModel? {
         let session = active.session
         let index: Int
         switch active.phase {
@@ -319,7 +379,8 @@ enum WorkoutScreen {
             timer: timed && edited == nil ? timer(active: active, step: index, work: target.work,
                                                   warning: target.warning, now: now) : nil,
             strip: strip(active: active, step: index, work: target.work, warning: target.warning,
-                         wording: settings.wording, history: history, now: now),
+                         wording: settings.wording, history: history, now: now,
+                         walk: walk ?? (RestResolution.walk(plan: nil, settings: settings), false)),
             primary: edited != nil ? PrimaryAction(title: "Save", kind: .save)
                 : primary(work: target.work, running: active.timerRunning, resting: restKind),
             spoken: StepCard.spoken(session: session, step: index),
@@ -398,7 +459,8 @@ enum WorkoutScreen {
     /// true at a time: a block that just ended never starts a rest (§6.3).
     static func strip(active: ActiveSession, step: Int, work: WorkTarget, warning: Int?,
                       wording: Wording = .plain,
-                      history: [Session], now: Date) -> StatusStrip {
+                      history: [Session], now: Date,
+                      walk: (minimum: Int, fromPlan: Bool) = (120, false)) -> StatusStrip {
         let session = active.session
         var strip = StatusStrip()
         // D81 (v1.10): Undo is back in the strip, during the rest the set started or the moment
@@ -406,6 +468,22 @@ enum WorkoutScreen {
         let justLogged: Bool
         if case .resting = active.phase { justLogged = true } else { justLogged = active.blockDone != nil }
         strip.undo = active.canUndo && justLogged ? "Set logged · Undo" : nil
+
+        // D82 (v1.10, §6.55): the walk between exercises counts up beside a ring — while its
+        // rest runs to the ring's end, and after, until Log set or Start timer ends it. The
+        // rest's own span is the minimum while it runs; the plan's or the setting's after.
+        if case let .resting(rest) = active.phase, rest.kind == .betweenExercises {
+            return walkStrip(strip, session: session, blockDone: active.blockDone,
+                             startedAt: rest.startedAt, next: rest.nextStep,
+                             minimum: wholeSeconds(rest.endsAt.timeIntervalSince(rest.startedAt)),
+                             fromPlan: walk.fromPlan, now: now)
+        }
+        if case .working = active.phase, let blockDone = active.blockDone,
+           StepCard.blockDoneLine(session: session, blockDone: blockDone) != nil {
+            return walkStrip(strip, session: session, blockDone: blockDone,
+                             startedAt: blockDone.startedAt, next: step,
+                             minimum: walk.minimum, fromPlan: walk.fromPlan, now: now)
+        }
 
         if case let .resting(rest) = active.phase {
             let remaining = Int(rest.endsAt.timeIntervalSince(now).rounded(.up))
@@ -424,22 +502,7 @@ enum WorkoutScreen {
             // truncated its own advice. "Next:" would be redundant here anyway: the next
             // exercise is already the heading on screen.
             strip.detail = rest.kind == .warmUp ? nil : lastSetLine(session)
-            if rest.kind == .betweenExercises, let blockDone = active.blockDone,
-               let line = StepCard.blockDoneLine(session: session, blockDone: blockDone) {
-                strip.next = line
-                // The block's line is a sentence with the advice in it; "set 0:34" is not worth
-                // truncating it for, and the Overview keeps the set durations anyway (D19).
-                strip.detail = nil
-            }
             strip.showsRestControls = true
-            return strip
-        }
-
-        if let blockDone = active.blockDone,
-           let line = StepCard.blockDoneLine(session: session, blockDone: blockDone) {
-            strip.kind = .blockDone
-            strip.title = line
-            strip.detail = "moving on · " + TargetText.time(wholeSeconds(now.timeIntervalSince(blockDone.startedAt)))
             return strip
         }
 
@@ -462,6 +525,35 @@ enum WorkoutScreen {
         // since v1.6 (D59) it says what the button will start, rather than sitting blank.
         strip.title = idleLine(session: session, step: step)
         strip.detail = lastSetLine(session)
+        return strip
+    }
+
+    /// D82 (v1.10, §6.55): the walk's strip — the count-up in the large figure, the ring, the
+    /// next exercise's name, and no −30 / +30 / Skip. The finished block's line, advice and
+    /// all, is what VoiceOver hears; the Summary keeps the advice in print (§4.7).
+    private static func walkStrip(_ base: StatusStrip, session: Session, blockDone: BlockDone?,
+                                  startedAt: Date, next: Int, minimum: Int, fromPlan: Bool,
+                                  now: Date) -> StatusStrip {
+        var strip = base
+        let start = blockDone?.startedAt ?? startedAt
+        let elapsed = TargetText.time(wholeSeconds(max(0, now.timeIntervalSince(start))))
+        let ring = WalkRing.of(startedAt: start, minimum: minimum, fromPlan: fromPlan, now: now)
+        strip.kind = .blockDone
+        strip.restKind = .betweenExercises
+        strip.skipTitle = RestKind.betweenExercises.skipTitle
+        strip.direction = .up
+        strip.countdown = elapsed
+        strip.ring = ring
+        strip.title = blockDone.flatMap { StepCard.blockDoneLine(session: session, blockDone: $0) }
+            ?? RestKind.betweenExercises.title
+        let name = session.steps[safe: next].flatMap { session.exercises[safe: $0.exerciseIndex]?.name }
+        strip.next = name
+        var spoken = ["\(RestKind.betweenExercises.title), \(elapsed)",
+                      ring.full ? "ready" : "at least \(TargetText.time(ring.minimum))"]
+        if let name { spoken.append("next, \(name)") }
+        if let line = strip.title, line != RestKind.betweenExercises.title { spoken.append(line) }
+        strip.spoken = spoken.joined(separator: ". ")
+        strip.showsRestControls = false
         return strip
     }
 

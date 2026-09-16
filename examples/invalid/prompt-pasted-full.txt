@@ -7,6 +7,7 @@ FORMAT (schemaVersion 1):
   "name": "Push Pull Legs",
   "units": "kg",
   "defaultRestSeconds": 90,
+  "restBetweenExercises": 120,
   "schedule": "rotation",
   "cycle": ["Push", "rest"],
   "days": [
@@ -36,6 +37,7 @@ RULES
 - repRange: give every rep exercise a working range for weight progression, e.g. "8-12". Omit if reps already is a range. For fixed targets choose a range containing it (10 → "8-12", 5 → "4-6"). No repRange for timed exercises.
 - weight: number in kg, without unit text. Omit for bodyweight or unspecified weight.
 - restSeconds: always include whole seconds. If unspecified: 120-180 for heavy compounds, 60-90 for isolation, 30-60 for circuits/core.
+- restBetweenExercises: whole seconds to walk between exercises; if unspecified, 120.
 - drops: list on exercise or individual set, e.g. [{"weight":20},{"weight":15}], done immediately after the main set with no rest. Reps default to AMRAP.
 - Supersets/circuits: same group letter, consecutive exercises, equal set counts. Rest after each round.
 - Names: specific and consistent ("Barbell Back Squat", not "Squats"); reuse spelling across days for history matching.

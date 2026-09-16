@@ -13,6 +13,7 @@ enum PlanJSON {
         out += "  \"schemaVersion\": 1,\n"
         out += "  \"name\": \(string(plan.name)),\n"
         out += "  \"units\": \"\(plan.units.rawValue)\",\n"
+        if let walk = plan.restBetweenExercises { out += "  \"restBetweenExercises\": \(walk),\n" }
         out += "  \"schedule\": \"\(plan.schedule.rawValue)\",\n"
         if !plan.cycle.isEmpty {
             let names = plan.cycle.map { entry -> String in

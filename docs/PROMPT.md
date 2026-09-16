@@ -14,6 +14,7 @@ FORMAT (schemaVersion 1):
   "name": "Push Pull Legs",
   "units": "{{units}}",
   "defaultRestSeconds": {{defaultRest}},
+  "restBetweenExercises": 120,
   "schedule": "rotation",
   "cycle": ["Push", "rest"],
   "days": [
@@ -43,6 +44,7 @@ RULES
 - repRange: give every rep exercise a working range for weight progression, e.g. "8-12". Omit if reps already is a range. For fixed targets choose a range containing it (10 → "8-12", 5 → "4-6"). No repRange for timed exercises.
 - weight: number in {{units}}, without unit text. Omit for bodyweight or unspecified weight.
 - restSeconds: always include whole seconds. If unspecified: 120-180 for heavy compounds, 60-90 for isolation, 30-60 for circuits/core.
+- restBetweenExercises: whole seconds to walk between exercises; if unspecified, 120.
 - drops: list on exercise or individual set, e.g. [{"weight":20},{"weight":15}], done immediately after the main set with no rest. Reps default to AMRAP.
 - Supersets/circuits: same group letter, consecutive exercises, equal set counts. Rest after each round.
 - Names: specific and consistent ("Barbell Back Squat", not "Squats"); reuse spelling across days for history matching.
@@ -56,7 +58,7 @@ My plan:
 
 The user types or pastes their description after "My plan:".
 
-Rendered length: 3,510 characters with kg and rest 90. Keep it under 4,000. Chat apps may handle longer pastes differently; see `COPY_PASTE_NOTES.md`. 
+Rendered length: 3,745 characters with kg and rest 90 (v1.10, with `restBetweenExercises`; 3,510 when the length was first checked, before `inReserve`). Keep it under 4,000. Chat apps may handle longer pastes differently; see `COPY_PASTE_NOTES.md`. 
 
 ## 2. Fix-it prompt (Import error → Copy fix-it prompt)
 
@@ -106,7 +108,7 @@ The reply format is `docs/PROGRESSION_FORMAT.md`.
 
 ## 4. Outline prompt (Add plan → Build it day by day → Copy outline prompt)
 
-**v1.5 (D52).** A plan built in several pastes, for long plans and free chatbot tiers. The outline first: the header, the day names and the repeat block, no exercises. It carries the plan prompt's marker, so pasting it into the app is refused the same way.
+**v1.5 (D52).** A plan built in several pastes, for long plans and free chatbot tiers. The outline first: the header, the day names and the repeat block, no exercises. **v1.10 (D82)**: the header includes the walk between exercises, `restBetweenExercises`, as the plan prompt's does. It carries the plan prompt's marker, so pasting it into the app is refused the same way.
 
 ```
 JIMMSBRO-PLAN-PROMPT-V1
@@ -118,6 +120,7 @@ FORMAT (schemaVersion 1):
   "name": "Push Pull Legs",
   "units": "{{units}}",
   "defaultRestSeconds": {{defaultRest}},
+  "restBetweenExercises": 120,
   "schedule": "rotation",
   "cycle": ["Push", "Pull", "Legs", "Push", "Pull", "Legs", "rest"],
   "days": [ { "name": "Push" }, { "name": "Pull" }, { "name": "Legs" } ]
@@ -127,6 +130,7 @@ RULES
 - days: training days in order, each with a name only — NO exercises yet. Do not list rest days as days.
 - schedule: rotation = repeat days in order. Use weekday only for a fixed weekly schedule; give every day a weekday (monday…sunday) and omit cycle.
 - cycle: rotation's full repeating block, using day names and "rest", including rest days. This drives the calendar.
+- restBetweenExercises: whole seconds to walk between exercises; if unspecified, 120.
 - Keep the day names short and distinct; I will ask for each day's exercises separately, one per message.
 - Return ALL JSON, never abbreviate with "...".
 
@@ -135,7 +139,7 @@ My plan:
 
 ## 5. Day prompt (Add plan → Build it day by day → Copy day prompt)
 
-**v1.5 (D52).** One per day of the outline. `{{day}}` is the day's name, `{{outline}}` the outline as a listing (`Prompts.outlineListing`), `{{units}}` the outline's units. The rules are the plan prompt's minus the three the outline settled (days, schedule, cycle), computed from the same text in the app so they cannot drift.
+**v1.5 (D52).** One per day of the outline. `{{day}}` is the day's name, `{{outline}}` the outline as a listing (`Prompts.outlineListing`), `{{units}}` the outline's units. The rules are the plan prompt's minus the four the outline settled (days, schedule, cycle and, since v1.10, `restBetweenExercises` — a day cannot carry a plan's field), computed from the same text in the app so they cannot drift.
 
 ```
 JIMMSBRO-PLAN-PROMPT-V1

@@ -144,6 +144,7 @@ enum SaveFailure: Equatable {
             library.engine = snapshot.active.map {
                 SessionEngine(active: $0, settings: snapshot.settings, history: snapshot.sessions)
             }
+            library.refreshWalk()
         }
         // D37 (v1.2): a rotation imported before anchors existed has a cycle position but no
         // date to hang it on. Anchoring it to today keeps "next up" saying exactly what v1.1

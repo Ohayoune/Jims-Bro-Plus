@@ -33,9 +33,12 @@ struct Plan: Codable, Identifiable, Equatable {
     /// D44 (v1.3): the chatbot's week-by-week targets, attached to this plan. Nil for a plan
     /// without one, which is exactly a v1.2 plan.
     var progression: Progression?
+    /// D82 (v1.10): the walk between exercises, in whole seconds, as the plan declares it — the
+    /// ring's minimum. Nil when the plan says nothing, and then the setting decides (§6.3).
+    var restBetweenExercises: Int?
     enum CodingKeys: String, CodingKey {
         case id, name, units, schedule, days, importedAt, sourceText, warnings, cycle,
-             cyclePosition, cycleAnchor, progression
+             cyclePosition, cycleAnchor, progression, restBetweenExercises
     }
 }
 

@@ -34,7 +34,8 @@ struct WorkoutActivityState: Equatable, Hashable, Codable, Sendable {
     /// 3600 s, a warm-up 30 min, and an open hold that long is not a set.
     static let longestTimer: TimeInterval = 3599
 
-    /// Whether the timer counts down to `endsAt` or up from `startedAt`.
+    /// Whether the timer counts down to `endsAt` or up from `startedAt` — its direction. A
+    /// running timed set and, since v1.10 (D82), the walk between exercises count up.
     var timerCountsDown: Bool { endsAt != nil }
 
     /// The closed range the system timer draws — `Text(timerInterval:)` needs one and crashes

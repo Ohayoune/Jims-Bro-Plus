@@ -90,6 +90,12 @@ wj(V, "in-reserve.json", {"name": "Effort", "days": [{"name": "A", "exercises": 
     {"name": "Dumbbell Curl", "sets": 1, "reps": 12, "weight": 12, "restSeconds": 60}]}]})
 wj(V, "in-reserve-alias.json", {"name": "Effort alias", "days": [{"name": "A", "exercises": [
     {"name": "Lat Pulldown", "reps": "10-12", "weight": 50, "restSeconds": 90, "sets": [{"rir": "2"}, {"inReserve": 0}]}]}]})
+# v1.10 (D82): the walk between exercises, declared by the plan — as a number and as digits.
+wj(V, "rest-between-exercises.json", {"name": "Walk", "defaultRestSeconds": 60, "restBetweenExercises": 90, "days": [{"name": "A", "exercises": [
+    {"name": "Barbell Row", "sets": 2, "reps": "8-10", "weight": 60},
+    {"name": "Dumbbell Curl", "sets": 2, "reps": "10-12", "weight": 12}]}]})
+wj(V, "rest-between-exercises-string.json", {"name": "Walk in digits", "restBetweenExercises": "90", "days": [{"name": "A", "exercises": [
+    {"name": "Barbell Row", "sets": 2, "reps": 10}]}]})
 wj(V, "rest-precedence.json", {"name": "Rest chain", "defaultRestSeconds": 100, "days": [
     {"name": "Day A", "defaultRestSeconds": 80, "exercises": [
         {"name": "Ex 1", "sets": 2, "reps": 10},
@@ -229,6 +235,7 @@ wj(I, "rest-negative.json", {"name": "X", "days": [{"name": "A", "exercises": [{
 wj(I, "rest-too-long.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10, "restSeconds": 3601}]}]})
 wj(I, "rest-fraction.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10, "restSeconds": 90.5}]}]})
 wj(I, "rest-string-unit.json", {"name": "X", "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10, "restSeconds": "1m30"}]}]})
+wj(I, "rest-between-exercises-negative.json", {"name": "X", "restBetweenExercises": -1, "days": [{"name": "A", "exercises": [{"name": "Row", "sets": 3, "reps": 10}]}]})
 wj(I, "rest-day-level-invalid.json", {"name": "X", "days": [{"name": "A", "defaultRestSeconds": -10, "exercises": [{"name": "Row", "sets": 3, "reps": 10}]}]})
 wj(I, "weekday-invalid.json", {"name": "X", "schedule": "weekday", "days": [{"name": "A", "weekday": "Funday", "exercises": [{"name": "Row", "sets": 3, "reps": 10}]}]})
 wj(I, "weekday-duplicate.json", {"name": "X", "days": [
@@ -316,7 +323,9 @@ fixtures = [
   V("bodyweight.json", ["W_WARNING_BEEP_IGNORED","W_BODYWEIGHT_WEIGHT_IGNORED","W_BODYWEIGHT_WEIGHT_IGNORED"],
     bodyweight={"0.0":True, "0.1":True, "0.2":False, "0.3":True, "0.4":False, "0.5":True}, weightPerSet={"0.2":[10]*3, "0.3":[None,None], "0.1":[None]*3},
     warningPerSet={"0.4":[None,None]}, dropTargets={"0.5.0":[["amrap",None]]}),
-  V("rest-precedence.json", restPerSet={"0.0":[80,80], "0.1":[70,70], "0.2":[70,60], "0.3":[0], "1.0":[100]}),
+  V("rest-between-exercises.json", restBetweenExercises=90, restPerSet={"0.0":[60,60], "0.1":[60,60]}, restAfterStep={"0:0":60, "0:1":"transition"}),
+  V("rest-between-exercises-string.json", restBetweenExercises=90),
+  V("rest-precedence.json", restBetweenExercises=None, restPerSet={"0.0":[80,80], "0.1":[70,70], "0.2":[70,60], "0.3":[0], "1.0":[100]}),
   V("lenient-values.json", ["W_RANGE_SWAPPED","W_WEIGHT_UNIT_IGNORED","W_WEIGHT_ROUNDED"], units="kg", bodyweight={"0.2":True, "0.3":False}, repRange={"0.0":[8,12], "0.1":[8,12], "0.2":None, "0.3":None, "0.4":None},
     exerciseNames={"0":["Barbell Bench Press","Incline Press","Pull-Up","Dip","Curl","Hammer Curl"]},
     stepsPerDay=[17],
@@ -412,6 +421,7 @@ fixtures = [
   I("rest-too-long.json", ("E_REST_INVALID", f"{E0}.restSeconds")),
   I("rest-fraction.json", ("E_REST_INVALID", f"{E0}.restSeconds")),
   I("rest-string-unit.json", ("E_REST_INVALID", f"{E0}.restSeconds")),
+  I("rest-between-exercises-negative.json", ("E_REST_INVALID", "restBetweenExercises")),
   I("rest-day-level-invalid.json", ("E_REST_INVALID", "days[0].defaultRestSeconds")),
   I("weekday-invalid.json", ("E_WEEKDAY_INVALID", "days[0].weekday")),
   I("weekday-duplicate.json", ("E_WEEKDAY_DUPLICATE", "days[1].weekday")),
@@ -427,7 +437,7 @@ fixtures = [
 man = {
   "_readme": "Expected import outcomes for every file in examples/. Run with settings units=kg, defaultRestSeconds=90, today=2026-09-04 (for default plan names). "
              "valid: 'warnings' is the exact multiset of warning codes; 'checks' keys: planName, units, schedule, dayNames, weekdays, stepsPerDay, exerciseNames{'d':[..]}, groups{'d':[..]}, notes{'d.e':..}, "
-             "restPerSet{'d.e':[..]}, weightPerSet{'d.e':[..]}, workPerSet{'d.e':['fixed:10'|'range:8-12'|'amrap'|'amrap:10'|'duration:45']}, stepOrder{'d':['e.s',..]}, restAfterStep{'d:stepIndex':seconds} (rest started after logging that step, all later steps pending), repRange{'d.e':[min,max]|null}, cycle[...names or 'rest'], dropsPerSet{'d.e':[n per set]}, dropTargets{'d.e.s':[[work,weight],..]}. stepOrder entries are 'e.s' or 'e.s.d' for drops; restAfterStep values are seconds or 'transition'; workPerSet also 'open' | 'open:30'; warningPerSet{'d.e':[seconds|null]} (resolved warning-beep offset); bodyweight{'d.e':bool}. "
+             "restPerSet{'d.e':[..]}, weightPerSet{'d.e':[..]}, workPerSet{'d.e':['fixed:10'|'range:8-12'|'amrap'|'amrap:10'|'duration:45']}, stepOrder{'d':['e.s',..]}, restAfterStep{'d:stepIndex':seconds} (rest started after logging that step, all later steps pending), repRange{'d.e':[min,max]|null}, cycle[...names or 'rest'], dropsPerSet{'d.e':[n per set]}, dropTargets{'d.e.s':[[work,weight],..]}. stepOrder entries are 'e.s' or 'e.s.d' for drops; restAfterStep values are seconds or 'transition'; workPerSet also 'open' | 'open:30'; warningPerSet{'d.e':[seconds|null]} (resolved warning-beep offset); bodyweight{'d.e':bool}; restBetweenExercises (the plan's walk, seconds or null). "
              "invalid: every listed error (code + path) must be reported; 'exact' (default true) also requires no other errors.",
   "settings": {"units": "kg", "defaultRestSeconds": 90, "today": "2026-09-04"},
   "fixtures": fixtures,

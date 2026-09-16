@@ -236,7 +236,7 @@ def _clip_name(v, path, default, issues, default_code=True):
 def normalize_name(s): return re.sub(r"\s+", " ", s.strip()).lower()
 
 
-KNOWN_PLAN = {"schemaVersion", "name", "units", "defaultRestSeconds", "schedule", "cycle", "days"}
+KNOWN_PLAN = {"schemaVersion", "name", "units", "defaultRestSeconds", "restBetweenExercises", "schedule", "cycle", "days"}
 KNOWN_DAY = {"name", "weekday", "defaultRestSeconds", "exercises"}
 KNOWN_EX = {"name", "group", "notes", "sets", "reps", "repRange", "durationSeconds", "warningBeep", "bodyweight", "weight", "restSeconds", "drops", "inReserve", "rir"}
 KNOWN_SET = {"reps", "durationSeconds", "warningBeep", "weight", "restSeconds", "drops", "inReserve", "rir"}
@@ -321,6 +321,8 @@ def normalize(obj, settings=DEFAULT_SETTINGS, today=None):
     name = _clip_name(raw.get("name"), "name", f"Imported plan {today}", issues)
     units = _parse_units(raw.get("units"), "units", settings, issues)
     plan_rest = _parse_int_field(raw.get("defaultRestSeconds"), "defaultRestSeconds", "E_REST_INVALID", 0, LIMITS["rest"], issues, "defaultRestSeconds")
+    # v1.10 (D82): the walk between exercises, read as every rest is.
+    walk = _parse_int_field(raw.get("restBetweenExercises"), "restBetweenExercises", "E_REST_INVALID", 0, LIMITS["rest"], issues, "restBetweenExercises")
     days_raw = raw.get("days")
     if not isinstance(days_raw, list) or not days_raw:
         issues.append(err("E_NO_DAYS", "days", "The plan has no days. Add at least one day with exercises."))
@@ -579,7 +581,7 @@ def normalize(obj, settings=DEFAULT_SETTINGS, today=None):
             e["sets"] = sets; e["explicitRest"] = e.pop("rest"); e.pop("set_specs")
         d.pop("rest", None)
 
-    plan = {"name": name, "units": units, "schedule": schedule, "cycle": cycle, "days": days}
+    plan = {"name": name, "units": units, "schedule": schedule, "cycle": cycle, "days": days, "restBetweenExercises": walk}
     if any(i["severity"] == "error" for i in issues): return None, issues
     return plan, issues
 
@@ -671,6 +673,7 @@ def check_manifest(root):
                     elif key == "workPerSet": got = {k: [_work_str(s["work"]) for s in plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["sets"]] for k in exp}
                     elif key == "stepOrder": got = {k: [f'{s["exerciseIndex"]}.{s["setIndex"]}' + (f'.{s["dropIndex"]}' if s["dropIndex"] else "") for s in flatten(plan["days"][int(k)])] for k in exp}
                     elif key == "cycle": got = plan["cycle"]
+                    elif key == "restBetweenExercises": got = plan["restBetweenExercises"]
                     elif key == "bodyweight": got = {k: plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["bodyweight"] for k in exp}
                     elif key == "warningPerSet": got = {k: [s["warningBeepSeconds"] for s in plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["sets"]] for k in exp}
                     elif key == "inReservePerSet": got = {k: [s["inReserve"] for s in plan["days"][int(k.split(".")[0])]["exercises"][int(k.split(".")[1])]["sets"]] for k in exp}

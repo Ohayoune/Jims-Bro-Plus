@@ -88,11 +88,20 @@ struct PlanLibrary {
         }
         let started = SessionEngine(session:session,settings:settings,history:sessions,now:now)
         engine = started
+        refreshWalk()
         // Carries the warm-up's notification (D32) as well as the save.
         effects += started.initialEffects
         return effects
     }
+    /// D82 (v1.10): hands the engine its plan's walk between exercises, as the plan is now —
+    /// read from the plan rather than stored in the session, so nothing on disk changes but the
+    /// plan. Called when a session begins, before every event, and when one is restored.
+    mutating func refreshWalk() {
+        guard let planId = engine?.session.planId else { return }
+        engine?.restBetweenExercises = plans.first { $0.id == planId }?.restBetweenExercises
+    }
     @discardableResult mutating func apply(_ event: Event, now: Date) -> [Effect] {
+        refreshWalk()
         let effects = engine?.apply(event,now:now) ?? []
         if effects.contains(.sessionCompleted) { completeSession() }
         return effects

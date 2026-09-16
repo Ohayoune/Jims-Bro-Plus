@@ -88,7 +88,8 @@ struct WorkoutView: View {
     @ViewBuilder private func content(now: Date) -> some View {
         if let active = model.engine?.active, model.phase != .completed,
            let screen = WorkoutScreen.model(active: active, history: model.sessions, now: now,
-                                            settings: model.settings, editing: editing) {
+                                            settings: model.settings, editing: editing,
+                                            walk: model.engine?.walk) {
             WorkoutScreenView(screen: screen,
                               dayColour: DayColour.of(session: active.session, plans: model.plans),
                               now: now, showOverview: $showOverview,
@@ -501,8 +502,83 @@ private struct StatusStripView: View {
     let strip: StatusStrip
     /// D56 (v1.6): set while a field is focused; the trailing slot then holds Done.
     var done: (() -> Void)? = nil
+    /// D82 (v1.10): the ring's one sentence, open.
+    @State private var explaining = false
 
     var body: some View {
+        if let ring = strip.ring { walk(ring) } else { rest }
+    }
+
+    /// D82 (v1.10, §6.55): between exercises the strip changes shape, and only then — the ring at
+    /// its left, the count-up large beside it, and under the figure the walk to the next
+    /// exercise, whose dot is blue because it is the one on. No −30 / +30 / Skip.
+    private func walk(_ ring: WalkRing) -> some View {
+        HStack(alignment: .center, spacing: 14) {
+            Button { explaining = true } label: { WalkRingView(ring: ring) }
+                .buttonStyle(.plain)
+                .popover(isPresented: $explaining, arrowEdge: .bottom) {
+                    Text(ring.explanation)
+                        .font(.subheadline)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(width: 260, alignment: .leading)
+                        .padding()
+                        .presentationCompactAdaptation(.popover)
+                }
+                .accessibilityLabel(ring.full ? "Ready" : "The minimum between exercises")
+                .accessibilityHint(ring.explanation)
+            VStack(alignment: .leading, spacing: 5) {
+                if let countdown = strip.countdown {
+                    Text(countdown)
+                        // Full, the count-up steps back: it only says how long you have stood there.
+                        .font(.system(size: ring.full ? 28 : 36, weight: .heavy, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(ring.full ? Color.secondary : Color.primary)
+                        .contentTransition(.numericText(countsDown: false))
+                }
+                if let next = strip.next, !typeSize.isAccessibilitySize {
+                    HStack(spacing: 6) {
+                        Image(systemName: "figure.walk")
+                        Circle().fill(MarkState.now.color(day: nil)).frame(width: 10, height: 10)
+                        Text(next).lineLimit(1)
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(strip.spoken ?? "")
+            Spacer(minLength: 0)
+            if let done {
+                doneButton(done)
+            } else if strip.undo != nil {
+                undoButton
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+        .onChange(of: ring.full) { _, full in
+            guard full else { return }
+            AccessibilityNotification.Announcement("Ready for the next exercise").post()
+        }
+    }
+
+    private func doneButton(_ action: @escaping () -> Void) -> some View {
+        Button("Done", action: action)
+            .font(.footnote.weight(.semibold))
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .controlSize(.small)
+            .accessibilityHint("Closes the keyboard")
+    }
+
+    private var undoButton: some View {
+        Button { Task { await model.undoLast() } } label: {
+            Label("Undo", systemImage: "arrow.uturn.backward")
+        }
+        .font(.footnote.weight(.medium))
+        .accessibilityLabel("Undo the last set")
+    }
+
+    private var rest: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 if let countdown = strip.countdown {
@@ -525,12 +601,7 @@ private struct StatusStripView: View {
                 }
                 Spacer(minLength: 0)
                 if let done {
-                    Button("Done", action: done)
-                        .font(.footnote.weight(.semibold))
-                        .buttonStyle(.bordered)
-                        .buttonBorderShape(.capsule)
-                        .controlSize(.small)
-                        .accessibilityHint("Closes the keyboard")
+                    doneButton(done)
                 } else if strip.showsRestControls, !typeSize.isAccessibilitySize { restControls }
             }
             // At accessibility sizes three capsules will not share a row with the countdown
@@ -555,13 +626,7 @@ private struct StatusStripView: View {
                 Spacer(minLength: 0)
                 // D81 (v1.10): Undo is the strip's again, at every size, while the rest the set
                 // started runs — the rows that carried it since D59 are dots now.
-                if strip.undo != nil {
-                    Button { Task { await model.undoLast() } } label: {
-                        Label("Undo", systemImage: "arrow.uturn.backward")
-                    }
-                    .font(.footnote.weight(.medium))
-                    .accessibilityLabel("Undo the last set")
-                }
+                if strip.undo != nil { undoButton }
             }
         }
         .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
@@ -590,6 +655,35 @@ private struct StatusStripView: View {
         .buttonStyle(.bordered)
         .buttonBorderShape(.capsule)
         .controlSize(.small)
+    }
+}
+
+/// D82 (v1.10, §6.55): the walk's ring, 58 pt — a track in the system's fill, the arc from the
+/// top clockwise over the minimum in Core's red → amber → green, and full, a green disc with a
+/// white check. The colour is `WalkRing.colour`; this only draws it.
+private struct WalkRingView: View {
+    let ring: WalkRing
+
+    var body: some View {
+        let rgb = ring.colour
+        let colour = Color(red: rgb.red, green: rgb.green, blue: rgb.blue)
+        ZStack {
+            Circle().stroke(Color(.tertiarySystemFill), lineWidth: 5.5)
+            Circle()
+                .trim(from: 0, to: ring.fraction)
+                .stroke(colour, style: StrokeStyle(lineWidth: 5.5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            if ring.full {
+                Circle().fill(colour)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .padding(2.75)
+        .frame(width: 58, height: 58)
+        .contentShape(Circle())
+        .animation(.linear(duration: 1), value: ring.fraction)
     }
 }
 
