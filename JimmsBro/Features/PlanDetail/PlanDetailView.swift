@@ -17,6 +17,8 @@ struct PlanDetailView: View {
     @State private var open: Set<Int> = []
     /// D25/D26 (v1.1): Replace opens Import pre-filled with this plan's JSON, targeting its id.
     @State private var replacing = false
+    /// D94 (v1.11): Say what should change pushes its screen.
+    @State private var changing = false
     /// D25 (v1.1): Delete now confirms here too, matching every other delete path.
     @State private var confirmDelete = false
     /// D29 (v1.1): basic plan editing, so a one-word change doesn't mean a round trip to a chatbot.
@@ -125,6 +127,7 @@ struct PlanDetailView: View {
                 .sheet(isPresented: $replacing) {
                     ImportView(replacingPlanId: planId, prefillText: plan.sourceText).environment(model)
                 }
+                .navigationDestination(isPresented: $changing) { ChangePlanView(planId: planId) }
             } else {
                 ContentUnavailableView("Plan deleted", systemImage: "trash")
             }
@@ -269,9 +272,11 @@ struct PlanDetailView: View {
                 // D78 (v1.9): the plan is changed from the Plans list's circle, the one way.
                 Button("Rename") { draftName = plan.name; renaming = true }
                 Button(copied ? "Copied" : "Copy JSON") { Clipboard.write(plan.sourceText); copied = true }
-                // D43 (v1.3): the plan's text, editable; and a day pasted in whole — the way
-                // to finish a week the chatbot cut short.
-                Button("Edit JSON") { replacing = true }
+                // D94 (v1.11, §6.67): the change said in words, before the text.
+                Button(ChangeRequest.menuItem) { changing = true }
+                // D43 (v1.3): the plan's text, editable — Edit the text since D95 (§6.68); and a
+                // day pasted in whole — the way to finish a week the chatbot cut short.
+                Button("Edit the text") { replacing = true }
                 Button("Add day from JSON") { fragment = .addDay }
                 Button("Delete", role: .destructive) { confirmDelete = true }
             } label: {
