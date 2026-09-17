@@ -1203,6 +1203,55 @@ What the owner asked for on 2026-09-13, after walking T0–T6 and before v1.7 we
 | TP41 | unit | (D86, v1.10, pin) One joined strip everywhere | `ChangeDayView.swift` has no `List {` and no `Section(` and draws `CycleStrip` at tile size 2 pt apart; `PlanDetailView.swift` draws `CycleStrip` 40 pt, 2 pt apart, and no `WrapLayout`; `CycleSymbol` draws `CycleStrip` of its glyph's squares, and `StripSquare` takes its corners from `CycleGlyph.ends` |
 | TP42 | device | (D85, D86, v1.10) A long cycle reads as one thing | A 10-day cycle in the Plans list, on its page and in the picker reads as one thing at each size, 7 over 3, today's square outlined on the page; in the picker a tile marks with a ring and a check, the button reads **Push → Pull** with both squares, nothing changes until it is pressed, and Today shows the change after it — in light and dark |
 
+## TN. v1.11 — The round trip
+
+`docs/ITERATION_12_PLAN.md` is the plan; one subsection per milestone that lands a decision, N1–N5. TP was v1.10's, so the prefix is **TN**. The plan is cut for a parallel build: N1 is the trunk, and **N2–N5 are tracks that each fill their own block below and nothing else** — the ids each block reserves are the plan's proposals, and a track that needs more takes the next free id after the last block's range and says so in its block. N6 (the merge) and N7 (documents) renumber what landed. The v1.11 device cases join `DEVICE_CHECKLIST.md` in N7.
+
+### N1 — The trunk: the amendments, the seam, the files (D87, D89, D95)
+
+`JimmsBroTests/TripTests.swift` (TN1–TN6), with the change prompt's template pinned in `PromptPinningTests` beside M9's. `TripStage`, `TripStrip` and `TripButtons` are `Core/Trip.swift`'s (compiled into the widget extension too, since `DaySquare.swift` draws the strip); `PlanEdit.ExerciseFields`, `ExerciseChange` and `PlanEdit.edited` are `Core/PlanEdit.swift`'s; `Prompts.change` and `PlanImport.changePromptMarker` are the change prompt's. Five earlier cases changed: **T21** counts five ungated rows of §6.40's table — a chatbot screen's ··· and its Edit the text join the strip, the swap's marks and the bar's tap; **Y12** and **Y13** read *Send the prompt* where the introduction named *Create with a chatbot*, and Y13 pins it and a *built-in plan* to Core (`TripButtons.ask()`, `BuiltInPlans.all`) rather than to Add plan's source, which N2 rewrites; **Z3** no longer pins `PromptText.copyStep` and `.mechanism` to Add plan and Progression, whose screens lose both (D87); and **W37**, **Z24** and the goals case of the store migration call `Prompts.progression` with no `includeHistory`, W37's *without* reading a plan with no history (J5). TN3 was proposed through the sheet's two initializers; it landed on the Core fields both initializers share, since a view cannot run on the host routes.
+
+| ID | Type | Title | Expected |
+|---|---|---|---|
+| TN1 | unit | (D89, v1.11) The strip for every stage | `TripStrip.names` is Prompt, Chat, Paste; ask *now, todo, todo*; paste *done, done, now*; review *done, done, done*; refused *done, now, todo* at `fixAt` 1 (the default) and *done, done, now* at 2; every stage at `fixAt` 0–3 has three marks and at most one `now`; the refused strip at Chat speaks "Prompt, done. Chat, now. Paste, not yet." |
+| TN2 | unit | (D87, D88, v1.11) The bottom slot's words | `TripButtons.ask()` is *Send the prompt* / *Copy the prompt*; `ask("the outline prompt")` sends the outline prompt and `ask("the prompt for Pull")` copies the prompt for Pull; `.paste` is *Paste* with no secondary; `.effect("Use Push Pull Legs")` carries the title and no secondary |
+| TN3 | unit | (D93's seam, v1.11) The exercise sheet's two forms agree | On Bench Press 3 × 8–12 at 60 kg, rest 90: untouched fields save and change nothing, and the value form of no change is the exercise; renamed Dumbbell Bench Press, 4 sets, reps and range 6-8, 32 kg, rest 120, 2 in reserve, the changes are those seven in the sheet's order, and the value form (`PlanEdit.edited`) and the operation form (each change's `PlanEdit.Operation` through `PlanEdit.apply` on the one-exercise plan) render the same exercise JSON, both with those numbers on every set; clearing the range, the weight and in reserve agrees the same way; reps "eight" cannot be saved; a set count of 0 is refused by the value form as by the operation form |
+| TN4 | unit | (D94, v1.11) The change prompt | `Prompts.change` on a two-exercise plan starts with `JIMMSBRO-CHANGE-PROMPT-V1`, asks for the WHOLE plan in one json code block, carries the request verbatim under WHAT TO CHANGE and `PlanJSON.render(plan)` under MY PLAN — not `planListing` — the plan's increment and unit, no MY HISTORY, no `{{` and no three backticks; a request containing `{{plan}}` stays those words and the plan appears once; pasted back it is `E_PROMPT_PASTED`; the plan fenced in a reply imports. The template is PROMPT.md §7's block, verbatim (`PromptPinningTests`) |
+| TN5 | unit | (D87, D89, v1.11, pin) The rule is SPEC's and the sentence the introduction's | `Introduction.mechanism` is "The app never talks to the chatbot itself; you carry the text both ways.", the first page (*A plan, then Start*) contains it and no other page does, and `Prompts.render(settings:)` does not; SPEC §6.60 names Ask, Paste, Review and Refused as its bulleted states, and §6.62 reads *Prompt*, *Chat*, *Paste* as `TripStrip.names` (source reads on the host routes) |
+| TN6 | unit | (v1.11, pin) The tracks find their files and their blocks | This section has five `###` blocks, N1–N5, in order; `project.pbxproj` builds `Trip`, `ImportTrip`, `DraftTrip`, `ProgressionScreen`, `ProgressionLadder`, `DayEdit`, `ExerciseNames`, `PlanDiff`, `ChangeRequest`, `PromptButtons`, `DayEditorView`, `ChangePlanView`, `ExerciseEditSheet` and the five test files, and has a `Shared` group; `Package.swift` runs the five test files (source reads on the host routes) |
+
+### N2 — Add plan: Ask, Paste, Review, Refused (D88, D90, D91)
+
+`JimmsBroTests/RoundTripImportTests.swift`. Reserved: TN7–TN16.
+
+| ID | Type | Title | Expected |
+|---|---|---|---|
+| TN7–TN16 | — | (filled by N2) | |
+
+### N3 — Progression: tiles, the ladders, Start step 1 (D92)
+
+`JimmsBroTests/RoundTripProgressionTests.swift`. Reserved: TN17–TN22.
+
+| ID | Type | Title | Expected |
+|---|---|---|---|
+| TN17–TN22 | — | (filled by N3) | |
+
+### N4 — Today's exercises, edited in place (D93)
+
+`JimmsBroTests/DayEditTests.swift`. Reserved: TN23–TN31.
+
+| ID | Type | Title | Expected |
+|---|---|---|---|
+| TN23–TN31 | — | (filled by N4) | |
+
+### N5 — Say what should change (D94)
+
+`JimmsBroTests/PlanDiffTests.swift`. Reserved: TN32–TN37.
+
+| ID | Type | Title | Expected |
+|---|---|---|---|
+| TN32–TN37 | — | (filled by N5) | |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

@@ -11,6 +11,10 @@ struct ImportResult {
 }
 enum PlanImport {
     static let promptMarker = "JIMMSBRO-PLAN-PROMPT-V1"
+    /// D94 (v1.11): the change prompt carries the whole plan as JSON, so pasted back it would
+    /// import as the plan it describes; its marker and no fence is the prompt, as for the plan
+    /// prompt's.
+    static let changePromptMarker = "JIMMSBRO-CHANGE-PROMPT-V1"
     static let maxBytes = 1_048_576
     /// `allowEmptyDays` is D52's outline (v1.5): a plan whose days have names and no exercises
     /// yet. Everything else is refused exactly as for a plan.
@@ -38,7 +42,7 @@ enum PlanImport {
         let regex = try? NSRegularExpression(pattern: pattern)
         let matches = regex?.matches(in: text, range: NSRange(text.startIndex..., in: text)) ?? []
         let fences = matches.compactMap { Range($0.range(at: 1), in: text).map { String(text[$0]).trimmed } }.filter { !$0.isEmpty }
-        if text.contains(promptMarker) && fences.isEmpty { return failure("E_PROMPT_PASTED", "That's the prompt. Paste the chatbot's JSON reply instead.") }
+        if (text.contains(promptMarker) || text.contains(changePromptMarker)) && fences.isEmpty { return failure("E_PROMPT_PASTED", "That's the prompt. Paste the chatbot's JSON reply instead.") }
         if fences.count > 1 { return failure("E_MULTIPLE_OBJECTS", "Found more than one code block. Paste just one plan.") }
         var body: String
         var surrounding = false

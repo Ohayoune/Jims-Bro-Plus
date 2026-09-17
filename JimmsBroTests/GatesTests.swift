@@ -133,12 +133,15 @@ final class GatesTests: XCTestCase {
         // D70 (v1.8): a row whose Core cell is "—" records what the table leaves ungated on
         // purpose — the strip and its tap, live from the first plan, and since v1.9 (D74) the
         // swap's marks, which are facts drawn from `swaps.json` rather than controls to earn; and
-        // since v1.10 (D80) the bar's tap, the only way to the Overview.
+        // since v1.10 (D80) the bar's tap, the only way to the Overview; and since v1.11 (D95) a
+        // chatbot screen's ··· and its Edit the text, which come with the screen.
         let ungated = rows.filter { $0.hasSuffix("| — |") }
-        XCTAssertEqual(ungated.count, 3, "§6.40 records three deliberately ungated rows: the strip, the swap's marks and the bar's tap")
+        XCTAssertEqual(ungated.count, 5, "§6.40 records five deliberately ungated rows: the strip, the swap's marks, the bar's tap, a chatbot screen's ··· and Edit the text")
         XCTAssertTrue(ungated.contains { $0.contains("strip and its tap") }, "no ungated row is the strip's")
         XCTAssertTrue(ungated.contains { $0.contains("question") }, "no ungated row is the swap's marks")
         XCTAssertTrue(ungated.contains { $0.contains("The bar's tap") }, "no ungated row is the bar's tap")
+        XCTAssertTrue(ungated.contains { $0.contains("chatbot screen's ···") }, "no ungated row is a chatbot screen's ···")
+        XCTAssertTrue(ungated.contains { $0.contains("Edit the text") }, "no ungated row is Edit the text")
         XCTAssertEqual(named.count + ungated.count, rows.count, "a row of §6.40 names no Gates function")
         XCTAssertEqual(named.sorted(), functions.sorted(), "§6.40's table and Gates disagree")
     }

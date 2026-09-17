@@ -49,12 +49,17 @@ final class IntroductionTests: XCTestCase {
         XCTAssertEqual(AppTab.history.title, "History")
         XCTAssertTrue(AppTab.allCases.contains(.history))
         XCTAssertTrue(Introduction.namedControls.contains(AppTab.history.title))
+        // "Send the prompt" is Core's (D88, v1.11), and a "built-in plan" is one of Core's four —
+        // the screens that draw them are rewritten in v1.11's tracks, so the pin is the data.
+        XCTAssertEqual(TripButtons.ask().primary, "Send the prompt")
+        XCTAssertTrue(Introduction.namedControls.contains(TripButtons.ask().primary))
+        XCTAssertEqual(BuiltInPlans.all.count, 4)
 
         let literals: [(control: String, file: String, literal: String)] = [
-            ("Create with a chatbot", "JimmsBro/Features/Import/ImportView.swift", "Text(\"Create with a chatbot\")"),
+            // D88 (v1.11): every chatbot screen's primary button is Core's, drawn by one view.
+            ("Send the prompt", "JimmsBro/Features/Shared/PromptButtons.swift", "buttons.primary"),
             // D67 (v1.7): History's row since the owner's review.
             ("Progression", "JimmsBro/Features/History/HistoryView.swift", "Text(\"Progression\")"),
-            ("built-in plan", "JimmsBro/Features/Import/ImportView.swift", "Label(\"Choose a built-in plan\""),
             // D78 (v1.9): at the list's top right, since the bottom slot is the circle's Use.
             ("Add plan", "JimmsBro/Features/Plans/PlansView.swift", "Button(\"Add plan\") { addPlan = .plan }"),
         ]

@@ -178,8 +178,31 @@ RULES
 ```
 
 ## 6. Behavior notes for the app
-- All five prompts are plain strings in `Core/Prompts.swift` with a `render(settings:)` / `render(errors:)` function, unit-tested (placeholders substituted, marker present, length bound).
+- All six prompts are plain strings in `Core/Prompts.swift` with a render function (`render(settings:)`, `render(errors:)`, `progression`, `outline`, `day`, `change`), unit-tested (placeholders substituted, marker present, length bound) and pinned to this document block by block.
+- **v1.11 (D94).** The change prompt's marker, `JIMMSBRO-CHANGE-PROMPT-V1`, follows §1's rule: the marker and no fenced code block is the prompt itself (`E_PROMPT_PASTED`). It matters more there than anywhere, because that prompt holds a whole plan's JSON, which would otherwise import as the plan it describes.
 - After **Copy prompt**, show a toast for 3 s. Don't navigate away.
 - The prompt marker line must never appear in the JSON example, or a chatbot might echo it inside the plan.
 - The example JSON inside the plan prompt is also exposed as `Prompts.exampleJSON` so a test can import it (TEST_CASES M4). `examples/valid/prompt-example.txt` is that same text; `examples/invalid/prompt-pasted-full.txt` preserves the original full prompt as an unchanged regression fixture; the shortened prompt has its own automated marker test.
 - Never put three backticks anywhere in either prompt (see the marker rule above).
+
+## 7. Change prompt (Plan detail → ··· → Say what should change → Send the prompt)
+
+**v1.11 (D94).** The owner says what should change in one sentence — *"Swap the barbell bench press for dumbbells. Pull is too long, drop one exercise."* — and the chatbot replies with the whole plan, changed. The app reads the reply as any plan (`PlanImport.run`), shows what changed, and applies it as an edit.
+
+The line `JIMMSBRO-CHANGE-PROMPT-V1` is this prompt's marker, with §1's rule (§6). `{{request}}` is the sentence as typed, verbatim; `{{plan}}` is the plan's canonical JSON (`PlanJSON.render`), **not** §3's listing — the reply must be a whole plan, and the listing leaves out rest, notes and in reserve. `{{units}}` and `{{increment}}` come from the plan and Settings, as in §3. No history: the request is about the plan. The prompt is not shortened for length (`COPY_PASTE_NOTES.md`).
+
+```
+JIMMSBRO-CHANGE-PROMPT-V1
+Change the plan below as I ask, and reply with the WHOLE plan as ONE complete JSON object in a single code block tagged json, in exactly the same format, with nothing changed that I did not ask for. Keep every exact name you do not change.
+
+RULES
+- Every weight must be loadable: a multiple of {{increment}} {{units}}.
+- Return ALL JSON, never abbreviate with "...".
+
+WHAT TO CHANGE
+{{request}}
+
+MY PLAN
+{{plan}}
+
+```

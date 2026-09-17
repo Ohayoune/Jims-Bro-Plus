@@ -9,6 +9,7 @@ No third-party dependencies.
 import json, re, sys, os, datetime
 
 MARKER = "JIMMSBRO-PLAN-PROMPT-V1"
+CHANGE_MARKER = "JIMMSBRO-CHANGE-PROMPT-V1"  # D94 (v1.11): the change prompt carries the plan
 MAX_BYTES = 1_048_576
 LIMITS = dict(days=31, exercises=50, sets=50, reps=1000, weight=10000, rest=3600, duration=86400, name=100, notes=500)
 WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
@@ -53,7 +54,7 @@ def extract(text):
         return None, [err("E_EMPTY", "", "Nothing to import. Paste the JSON the chatbot produced.")]
     fences = [m.group(1) for m in re.finditer(r"```[A-Za-z0-9_-]*[ \t]*\r?\n?(.*?)```", t, re.S)]
     fences = [f.strip() for f in fences if f.strip()]
-    if MARKER in t and not fences:
+    if (MARKER in t or CHANGE_MARKER in t) and not fences:
         return None, [err("E_PROMPT_PASTED", "", "That's the prompt. Paste the chatbot's JSON reply instead.")]
     if fences:
         if len(fences) > 1:

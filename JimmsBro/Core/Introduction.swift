@@ -17,9 +17,10 @@ enum Introduction {
         IntroPage(
             symbol: "figure.strengthtraining.traditional",
             title: "A plan, then Start",
-            body: "Jimm's Bro+ runs your workout for you. Pick a plan, tap Start, and the app "
-                + "walks you through the day one set at a time: the exercise, the target, and "
-                + "the weight you lifted last time."),
+            body: "Jimm's Bro+ runs your workout for you. Pick a plan — a built-in one, or one a "
+                + "chatbot writes for you — tap Start, and the app walks you through the day one "
+                + "set at a time: the exercise, the target, and the weight you lifted last time. "
+                + mechanism),
         IntroPage(
             symbol: "timer",
             title: "Log the set, rest, repeat",
@@ -37,15 +38,19 @@ enum Introduction {
             symbol: "text.bubble",
             title: "Your plan, your way",
             body: "Start with a built-in plan, or have a chatbot write one from your own "
-                + "description: Add plan's Create with a chatbot copies the prompt, and its "
+                + "description: Add plan's Send the prompt hands it the prompt, and its "
                 + "reply pastes straight back in. Later, Progression asks the chatbot to plan "
                 + "your next weeks from what you actually lifted."),
     ]
 
+    /// D87 (v1.11, SPEC §6.26): the one sentence the app still owes a first-time user about the
+    /// round trip, said here once rather than under every chatbot screen.
+    static let mechanism = "The app never talks to the chatbot itself; you carry the text both ways."
+
     /// The controls the pages name. Each must exist by exactly this name somewhere in the
     /// app, which is what pins the copy to the screens (Y13).
     static let namedControls = [
-        "Start", "Log set", "Add plan", "Create with a chatbot", "History", "Progression",
+        "Start", "Log set", "Add plan", "Send the prompt", "History", "Progression",
         "built-in plan",
     ]
 

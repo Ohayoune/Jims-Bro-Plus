@@ -323,12 +323,12 @@ final class StepProgressionTests: XCTestCase {
     // Z24: the prompt says what a step is.
     func testThePromptSaysWhatAStepIs() {
         let plan = plan()
-        let earned = Prompts.progression(plan: plan, history: [], weeks: 8, includeHistory: false, settings: settings, now: now, mode: .performance)
+        let earned = Prompts.progression(plan: plan, history: [], weeks: 8, settings: settings, now: now, mode: .performance)
         XCTAssertTrue(earned.contains("as 8 steps"))
         XCTAssertTrue(earned.contains("\"steps\": 8"))
         XCTAssertTrue(earned.contains("I move to the next step only when I hit the current one"))
         XCTAssertFalse(earned.contains("{{"))
-        let weekly = Prompts.progression(plan: plan, history: [], weeks: 4, includeHistory: false, settings: settings, now: now, mode: .calendar)
+        let weekly = Prompts.progression(plan: plan, history: [], weeks: 4, settings: settings, now: now, mode: .calendar)
         XCTAssertTrue(weekly.contains("One step is one calendar week"))
         XCTAssertFalse(weekly.contains("only when I hit"))
         XCTAssertLessThan(earned.count, Prompts.progressionBound)

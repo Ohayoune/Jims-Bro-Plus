@@ -20,13 +20,11 @@ final class ClarityTests: XCTestCase {
         XCTAssertTrue(PromptText.progressionRow.contains("chatbot") && PromptText.progressionRow.contains("lifted"))
     }
 
-    // Z3: the views show the Core sentences, not copies of them.
+    // Z3: the views show the Core sentences, not copies of them. (Until v1.11 Add plan and
+    // Progression were pinned to `copyStep` and `mechanism` too; D87 takes both sentences off
+    // those screens and puts the mechanism on the introduction's first page, TN5.)
     func testTheViewsShowTheCoreSentences() throws {
         let pins: [(file: String, literal: String)] = [
-            ("JimmsBro/Features/Import/ImportView.swift", "PromptText.copyStep"),
-            ("JimmsBro/Features/Import/ImportView.swift", "PromptText.mechanism"),
-            ("JimmsBro/Features/PlanDetail/ProgressionView.swift", "PromptText.copyStep"),
-            ("JimmsBro/Features/PlanDetail/ProgressionView.swift", "PromptText.mechanism"),
             // D67 (v1.7): the Progression row is History's since the owner's review.
             ("JimmsBro/Features/History/HistoryView.swift", "PromptText.progressionRow"),
             // D61 (v1.7): Today's ··· takes its titles from Core, `HomeStart.Alternative.title`.

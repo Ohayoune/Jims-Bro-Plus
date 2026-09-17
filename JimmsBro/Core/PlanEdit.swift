@@ -560,3 +560,97 @@ enum PlanEdit {
         return RepRange(min: low, max: high)
     }
 }
+
+// MARK: - D29, D93 (v1.11): the exercise sheet's fields, in two forms
+
+extension PlanEdit {
+    /// One field of the exercise sheet that changed, with no address: the operation form turns it
+    /// into a `PlanEdit.Operation` for an exercise of a saved plan, the value form applies it to
+    /// an exercise that belongs to no plan (a day written for one date, D93).
+    enum ExerciseChange: Equatable {
+        case name(String)
+        case setCount(Int)
+        case reps(String)
+        case range(String?)
+        case weight(Double?)
+        case rest(Int)
+        case inReserve(Int?)
+
+        func operation(day: Int, exercise: Int) -> Operation {
+            switch self {
+            case let .name(name): return .renameExercise(day: day, exercise: exercise, name: name)
+            case let .setCount(count): return .setSetCount(day: day, exercise: exercise, count: count)
+            case let .reps(text): return .setReps(day: day, exercise: exercise, text: text)
+            case let .range(text): return .setRepRange(day: day, exercise: exercise, text: text)
+            case let .weight(weight): return .setWeight(day: day, exercise: exercise, weight: weight)
+            case let .rest(seconds): return .setRest(day: day, exercise: exercise, seconds: seconds)
+            case let .inReserve(value): return .setInReserve(day: day, exercise: exercise, value: value)
+            }
+        }
+    }
+
+    /// The exercise sheet's fields as the sheet holds them — text, and a count — so what it can
+    /// save, and what saving changes, is decided here rather than in the view (SPEC §4.3, D29).
+    struct ExerciseFields: Equatable {
+        var name: String
+        var sets: Int
+        var reps: String
+        var range: String
+        var weight: String
+        var rest: String
+        /// D51 (v1.5): the effort target, empty when the plan did not say.
+        var reserve: String
+
+        /// The fields as the sheet opens on `exercise`.
+        init(_ exercise: Exercise) {
+            name = exercise.name
+            sets = exercise.sets.count
+            reps = exercise.sets.first.map { PlanEdit.text(for: $0.work) } ?? ""
+            range = exercise.repRange.map { "\($0.min)-\($0.max)" } ?? ""
+            weight = InputRules.weightText(exercise.sets.first?.weight)
+            rest = exercise.sets.first.map { String($0.restSeconds) } ?? ""
+            reserve = exercise.sets.first?.inReserve.map(String.init) ?? ""
+        }
+
+        var canSave: Bool {
+            !name.trimmed.isEmpty
+                && PlanEdit.parseWork(reps) != nil
+                && (range.trimmed.isEmpty || PlanEdit.parseRange(range) != nil)
+                && (rest.isEmpty || InputRules.secondsValue(rest).map { (0...3600).contains($0) } == true)
+                && (reserve.isEmpty || Int(reserve).map { (0...20).contains($0) } == true)
+        }
+
+        /// Only the fields that actually changed from `exercise`, so an untouched exercise is
+        /// untouched — in the order the sheet has always committed them.
+        func changes(from exercise: Exercise) -> [ExerciseChange] {
+            var changes: [ExerciseChange] = []
+            if name.trimmed != exercise.name { changes.append(.name(name)) }
+            if sets != exercise.sets.count { changes.append(.setCount(sets)) }
+            if let work = PlanEdit.parseWork(reps), work != exercise.sets.first?.work { changes.append(.reps(reps)) }
+            let newRange = range.trimmed.isEmpty ? nil : PlanEdit.parseRange(range)
+            if newRange != exercise.repRange { changes.append(.range(range.trimmed.isEmpty ? nil : range)) }
+            let newWeight = InputRules.weightValue(weight)
+            if newWeight != exercise.sets.first?.weight { changes.append(.weight(newWeight)) }
+            if let seconds = InputRules.secondsValue(rest), seconds != exercise.sets.first?.restSeconds {
+                changes.append(.rest(seconds))
+            }
+            let newReserve = reserve.isEmpty ? nil : Int(reserve)
+            if newReserve != exercise.sets.first?.inReserve { changes.append(.inReserve(newReserve)) }
+            return changes
+        }
+    }
+
+    /// The value form (D93): `changes` applied to `exercise` alone, by the same structural edits
+    /// the operation form makes, without the pipeline — the caller runs that on the whole day
+    /// (`ChangeDay.ownDay`), where an exercise out of its day cannot be judged. Nil when a change
+    /// does not apply, as the operation form refuses it with `E_EDIT_INVALID`.
+    static func edited(_ exercise: Exercise, _ changes: [ExerciseChange]) -> Exercise? {
+        var plan = Plan(name: "", units: .kg, schedule: .rotation, days: [Day(name: "", exercises: [exercise])],
+                        importedAt: Date(timeIntervalSince1970: 0), sourceText: "", cycle: [.day(0)])
+        for change in changes {
+            guard let next = mutated(change.operation(day: 0, exercise: 0), plan) else { return nil }
+            plan = next
+        }
+        return plan.days.first?.exercises.first
+    }
+}

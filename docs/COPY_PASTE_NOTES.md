@@ -11,3 +11,5 @@ A reply cut off mid-object reports `E_NOT_JSON` with an end-of-file/position mes
 The regression tests include a large valid 31-day, 50-exercise-per-day plan, preservation of its complete source text, a truncated copy of that plan, exactly-at-limit and over-limit inputs, and multibyte input over the byte limit. These test Core string handling, not the system clipboard.
 
 Actual iPhone copying/pasting, paste permissions, rich-text conversion, and the Import editor are pending M4/device validation. The original prompt-pasted and prompt-example fixtures remain unchanged; a separate test covers the new rendered prompt. There is no claim that every chatbot or clipboard implementation accepts the same maximum length.
+
+**v1.11 (D94).** The change prompt (`PROMPT.md` §7) carries the whole plan as JSON and is **not shortened**: the progression prompt drops history to stay under 9,000 characters, but there is nothing to drop from a plan, and a cut plan would come back as a wrong plan. A long plan's change prompt can cross ChatGPT's 10,000-character attachment threshold; the attachment is still the whole text.

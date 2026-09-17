@@ -120,6 +120,10 @@ struct CycleStrip<Place: View>: View {
     var side: CGFloat
     var spacing: CGFloat = 2
     var lineSpacing: CGFloat = 2
+    /// D91 (v1.11): the places a plan built day by day has not filled yet. Not drawn here — the
+    /// caller's place draws a hollow day (`StripSquare(outlined:)`) — but carried by the strip so
+    /// the review and its squares read one set.
+    var hollow: Set<Int> = []
     @ViewBuilder let place: (Int) -> Place
 
     var body: some View {
@@ -139,6 +143,8 @@ struct StripSquare: View {
     var dashed = false
     /// D86: today's square, outlined in ink as the calendar outlines today.
     var ringed = false
+    /// D89 (v1.11): a fill that is not a day's — the trip strip's ink, accent and grey.
+    var tint: Color? = nil
     let index: Int
     let count: Int
 
@@ -161,7 +167,7 @@ struct StripSquare: View {
                         } else if outlined {
                             shape.strokeBorder(colour?.color ?? Color.primary, lineWidth: line)
                         } else {
-                            shape.fill(colour?.color ?? DaySquare.noColour)
+                            shape.fill(tint ?? colour?.color ?? DaySquare.noColour)
                         }
                         if ringed {
                             shape.inset(by: outlined || dashed ? line : 0)
@@ -217,5 +223,80 @@ struct SquareRows: Layout {
             }
             y += height + lineSpacing
         }
+    }
+}
+
+/// D89 (v1.11, §6.62): **the trip strip** — Prompt, Chat, Paste — three joined squares with a
+/// word beneath each, at the top of every chatbot screen's Ask, Paste and Refused states. The
+/// squares behind are ink with a check, the one you are at the accent, the ones ahead grey; each
+/// carries its glyph until it is done. D86's joined drawing at strip size: large and centred on
+/// Add plan, small above the button on Progression and Say what should change.
+struct TripStripView: View {
+    let strip: TripStrip
+    /// A square's side at the default text size.
+    var side: CGFloat = 56
+    @ScaledMetric private var scale: CGFloat = 1
+
+    /// A document, a speech bubble, a clipboard.
+    static let glyphs = ["doc.text", "bubble.left", "doc.on.clipboard"]
+
+    var body: some View {
+        let side = self.side * min(scale, 1.5)
+        let count = TripStrip.names.count
+        CycleStrip(count: count, side: side, spacing: 2) { index in
+            let mark = index < strip.marks.count ? strip.marks[index] : .todo
+            VStack(spacing: 6) {
+                StripSquare(tint: Self.fill(mark), index: index, count: count)
+                    .overlay {
+                        Image(systemName: mark == .done ? "checkmark" : Self.glyphs[index])
+                            .font(.system(size: side * 0.36, weight: .semibold))
+                            .foregroundStyle(Self.glyph(mark))
+                    }
+                Text(TripStrip.names[index])
+                    .font(side >= 44 ? .subheadline : .caption)
+                    .fontWeight(mark == .now ? .semibold : .regular)
+                    .foregroundStyle(mark == .todo ? Color.secondary : Color.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(strip.spoken)
+    }
+
+    /// Done is ink, not a day's colour: on these screens there is no day yet.
+    static func fill(_ mark: MarkState) -> Color {
+        switch mark {
+        case .done: return .primary
+        case .now: return .accentColor
+        case .todo: return Color(.secondarySystemFill)
+        }
+    }
+
+    static func glyph(_ mark: MarkState) -> Color {
+        switch mark {
+        case .done: return Color(.systemBackground)
+        case .now: return .white
+        case .todo: return .secondary
+        }
+    }
+}
+
+/// D87 (v1.11, §6.60): the Refused state's sentence (`IssueText.friendly`, D26) in a red band
+/// under the strip, with the mark that says so. The path and the code stay behind Details.
+struct RefusedBand: View {
+    let sentence: String
+
+    var body: some View {
+        Label {
+            Text(sentence).foregroundStyle(.primary)
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+        }
+        .font(.subheadline)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }

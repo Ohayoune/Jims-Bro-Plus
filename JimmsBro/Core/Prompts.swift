@@ -226,14 +226,14 @@ MY PLAN
         }
     }
 
-    /// The prompt for `plan`, over `weeks`, with the plan as a compact listing and — when asked
-    /// and there is any — the last sessions of every exercise in it. Kept under the paste bound
-    /// by shortening the history first, never the plan.
-    static func progression(plan: Plan, history: [Session], weeks: Int, includeHistory: Bool,
+    /// The prompt for `plan`, over `weeks`, with the plan as a compact listing and — whenever
+    /// there is any — the last sessions of every exercise in it (v1.11, J5: no switch says
+    /// otherwise). Kept under the paste bound by shortening the history first, never the plan.
+    static func progression(plan: Plan, history: [Session], weeks: Int,
                             settings: Settings, now: Date = Date(), mode: ProgressionMode = .calendar) -> String {
         let increment = TargetText.number(settings.weightIncrement(for: plan.units))
         func render(sessionsPerExercise: Int) -> String {
-            let listing = includeHistory && sessionsPerExercise > 0
+            let listing = sessionsPerExercise > 0
                 ? historyListing(plan: plan, history: history, now: now, sessionsPerExercise: sessionsPerExercise) : ""
             return progressionTemplate
                 .replacingOccurrences(of: "{{steps}}", with: String(weeks))
@@ -321,6 +321,40 @@ MY PLAN
         }
         return lines.joined(separator: "\n")
     }
+    // MARK: - D94 (v1.11): the change prompt
+
+    static let changeMarker = PlanImport.changePromptMarker
+    /// Pinned to docs/PROMPT.md §7 by `PromptPinningTests`. The plan goes in as its canonical
+    /// JSON, not the listing: the reply must be a whole plan, and the listing leaves out rest,
+    /// notes and in reserve. Not shortened for length — a cut plan would be a wrong plan.
+    static let changeTemplate = #"""
+JIMMSBRO-CHANGE-PROMPT-V1
+Change the plan below as I ask, and reply with the WHOLE plan as ONE complete JSON object in a single code block tagged json, in exactly the same format, with nothing changed that I did not ask for. Keep every exact name you do not change.
+
+RULES
+- Every weight must be loadable: a multiple of {{increment}} {{units}}.
+- Return ALL JSON, never abbreviate with "...".
+
+WHAT TO CHANGE
+{{request}}
+
+MY PLAN
+{{plan}}
+"""#
+
+    /// The change prompt for `plan`, with `request` as it was typed. The request is put in
+    /// last-but-one and never searched for placeholders, so a request that happens to contain
+    /// `{{plan}}` stays the words it was.
+    static func change(plan: Plan, request: String, settings: Settings) -> String {
+        let pieces = changeTemplate.components(separatedBy: "{{request}}")
+        let head = pieces[0]
+            .replacingOccurrences(of: "{{units}}", with: plan.units.rawValue)
+            .replacingOccurrences(of: "{{increment}}", with: TargetText.number(settings.weightIncrement(for: plan.units)))
+        let tail = pieces.dropFirst().joined(separator: "{{request}}")
+            .replacingOccurrences(of: "{{plan}}", with: PlanJSON.render(plan))
+        return head + request + tail
+    }
+
     static func render(errors: [Issue]) -> String {
         let errors = errors.filter { $0.severity == .error }
         var lines = errors.prefix(20).map { "- \($0.path): \($0.message)" }

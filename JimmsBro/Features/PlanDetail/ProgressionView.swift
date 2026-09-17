@@ -13,7 +13,6 @@ struct ProgressionView: View {
     @State private var weeks = 8
     /// D53 (v1.5): steps you earn, unless the owner's "legacy" calendar is wanted.
     @State private var mode: ProgressionMode = .performance
-    @State private var useHistory = true
     @State private var text = ""
     @State private var issues: [Issue] = []
     @State private var review: ReviewItem?
@@ -179,19 +178,12 @@ struct ProgressionView: View {
                      ? "An exercise moves to its next step when a workout hits the current one — every set at or above its reps, within a rep. Miss it and the step repeats."
                      : "The next step every calendar week, whatever happened.")
             }
-            if model.hasHistory(for: planId) {
-                Section {
-                    Toggle("Use my history", isOn: $useHistory)
-                } footer: {
-                    Text("The prompt includes your last sessions of each exercise, so the chatbot progresses from what you actually did.")
-                }
-            }
             // D50 (v1.5): the step explains the mechanism, the button is the accent one, and
             // the footer says the app never talks to the chatbot itself.
             Section {
                 step(1, PromptText.copyStep) {
                     Button(copied ? "Copied" : "Copy prompt") {
-                        if let prompt = model.progressionPrompt(for: planId, weeks: weeks, includeHistory: useHistory, mode: mode) {
+                        if let prompt = model.progressionPrompt(for: planId, weeks: weeks, mode: mode) {
                             Clipboard.write(prompt)
                         }
                         copied = true

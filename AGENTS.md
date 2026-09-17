@@ -254,7 +254,13 @@ are the trunk** (every SPEC amendment, the shared Core seam, every new file regi
 project while empty, one reserved test block per track), **N2–N5 are four independent tracks** with
 a file-ownership table, built in separate worktrees at the same time, and **N6 merges** them in
 order before N7's documents. Nothing in it touches the on-disk contract, the pipeline, the formats,
-the fixtures, the Workout screen or History. N0 is written; nothing else is built.
+the fixtures, the Workout screen or History. N0 is written, and N1 — the trunk — is built and green on
+`v1.11-round-trip`: SPEC §6.60–§6.68 and D87–D95, `Core/Trip.swift` (`TripStage`, `TripStrip`, `TripButtons`),
+`TripStripView` and `RefusedBand` in `DaySquare.swift`, `PromptButtons` in `Features/Shared`, `ExerciseEditSheet`
+in its own file with a value form over Core's `PlanEdit.ExerciseFields`, the change prompt (`PROMPT.md` §7,
+`Prompts.change`), the mechanism sentence on the introduction's first page, every file N2–N5 fill registered
+while empty, and TEST_CASES' TN section with a block per track (TN1–TN6 in `TripTests`). N2–N5 are next, and
+can run at once.
 
 Three v1.2 rules are worth knowing before touching anything:
 
