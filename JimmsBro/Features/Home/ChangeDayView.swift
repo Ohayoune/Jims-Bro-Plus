@@ -6,8 +6,9 @@ import SwiftUI
 /// tiles under theirs, one dashed tile, **Custom**, and the date's exercises as they stand. No
 /// section headers and no grouped list: the strips are the sections (D86's `CycleStrip` at tile
 /// size). A tap marks a tile; the button at the bottom says what it will do
-/// (`ChangeDayText.confirm`) and is the only thing that writes. The exercises card and Custom
-/// open the JSON sheet, whose Save says where the text lands.
+/// (`ChangeDayText.confirm`) and is the only thing that writes. Custom opens the JSON sheet,
+/// whose Save says where the text lands; since D93 (v1.11, §6.66) the exercises card opens the
+/// day's editor (`DayEditorView`), where that sheet is the ···'s Edit the text.
 struct ChangeDayView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
@@ -15,8 +16,10 @@ struct ChangeDayView: View {
     /// The tile tapped — the screen's, never stored: leave without confirming and nothing has
     /// changed.
     @State private var marked: DayChoices.Mark?
-    /// The JSON sheet open, and on what: Custom's point or the date's exercises'.
+    /// Custom's JSON sheet, open.
     @State private var writing: JSONPoint?
+    /// D93: the day's editor, pushed on the date's exercises as they were when the card was tapped.
+    @State private var editor: DayChoices.Exercises?
     /// The sheet's Save made the text the date's day: back to Today once the sheet is down.
     @State private var used = false
 
@@ -83,10 +86,18 @@ struct ChangeDayView: View {
         .bottomAction {
             confirmButton(confirm, choices: choices)
         }
+        .navigationDestination(isPresented: Binding(get: { editor != nil }, set: { if !$0 { editor = nil } })) {
+            if let editor {
+                // The day written or removed: back to Today past the picker, in one pop.
+                DayEditorView(date: date, exercises: editor) { dismiss() }
+            }
+        }
         #if DEBUG
         .task {
-            // Debug-only: `-uiScreen changeDay -uiMark Pull` shows a marked tile and its button.
+            // Debug-only: `-uiScreen changeDay -uiMark Pull` shows a marked tile and its button;
+            // `-uiEditor` opens the day's editor.
             let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains("-uiEditor"), editor == nil { editor = choices.exercises }
             guard let index = arguments.firstIndex(of: "-uiMark"), let name = arguments[safe: index + 1] else { return }
             marked = name == DayChoices.customTitle
                 ? .custom : choices.strips.flatMap(\.tiles).first { $0.name == name }.map { .day($0.slot) }
@@ -146,9 +157,9 @@ struct ChangeDayView: View {
     }
 
     /// D85: the date's exercises as they stand — its square and name, each exercise with its
-    /// sets as blocks, and a chevron — opening the sheet pre-filled with the day.
+    /// sets as blocks, and a chevron — opening the day's editor (D93).
     private func exercisesCard(_ exercises: DayChoices.Exercises) -> some View {
-        Button { writing = exercises.point } label: {
+        Button { editor = exercises } label: {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 10) {
                     DaySquare(colour: exercises.face.colour, size: 14, outlined: exercises.face.outlined)
@@ -178,7 +189,7 @@ struct ChangeDayView: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(exercises.face.name): " + exercises.rows.map(\.name).joined(separator: ", "))
-        .accessibilityHint(exercises.point.title)
+        .accessibilityHint(exercises.title)
     }
 
     /// The one button: disabled *Change Push* until a tile is marked, then *Push → Pull* with

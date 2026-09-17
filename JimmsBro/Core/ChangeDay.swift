@@ -8,10 +8,10 @@ import Foundation
 /// plan's days a strip of outlined tiles under theirs; and last one dashed tile, **Custom**, a
 /// day written just for that date. A tap marks a tile and the button confirms (`ChangeDayText`),
 /// writing the date's swap (§6.46), answered and asked by nobody; the pattern's own day removes
-/// it. Under the strips, the date's exercises as they stand open the JSON sheet pre-filled with
-/// the day. Three kinds, and on the strip three marks: a day of this plan filled in its colour,
-/// a day of another plan outlined in *its* plan's colour, and a day written for the date
-/// outlined in ink — the outline says *not from this plan*, the colour still says *which day*.
+/// it. Under the strips, the date's exercises as they stand open the day's editor (D93, §6.66),
+/// where the JSON sheet pre-filled with the day is the ···'s Edit the text. Three kinds, and on
+/// the strip three marks: a day of this plan filled in its colour, a day of another plan
+/// outlined in *its* plan's colour, and a day written for the date outlined in ink — the outline says *not from this plan*, the colour still says *which day*.
 struct DayChoices: Equatable {
     /// A day as a square draws it: its name, its colour, and whether it is outlined.
     struct Face: Equatable {
@@ -49,12 +49,37 @@ struct DayChoices: Equatable {
     }
 
     /// D85: the date's exercises as they stand, under the strips — the day's square and name,
-    /// its exercises with their set blocks — opening the JSON sheet pre-filled with the day.
+    /// its exercises with their set blocks. Since D93 (v1.11, §6.66) the card opens the day's
+    /// editor on `day`, and the sheet on the day is the editor's ··· → **Edit the text**.
     struct Exercises: Equatable {
         var face: Face
         var rows: [HomeStart.PreviewRow]
-        /// The sheet: the day's own JSON, and Save reading "Use for Wednesday".
+        /// The sheet on the day as it stands: the day's own JSON, and Save reading "Use for
+        /// Wednesday".
         var point: JSONPoint
+        /// D93: what the editor opens on — the date's own day when it has one, else the day the
+        /// date is now.
+        var day: Day
+        /// "Change Push", after the shown day, as the picker's title.
+        var title: String
+        /// "Wednesday 16 September", beside the title.
+        var date: String
+        /// "Use for Wednesday": the editor's button.
+        var use: String
+        /// The active plan's units, in which the day is checked, as the sheet checked it.
+        var units: WeightUnit
+        /// The name a nameless day takes: "Wednesday's own day".
+        var ownName: String
+        /// The ···'s **Back to Push as written** — only when the date has a day of its own.
+        var back: Back?
+    }
+
+    /// D93: the date's own day removed — the pattern's own day chosen, which is the swap's delete
+    /// path (TQ26), or answers the question the date carries.
+    struct Back: Equatable {
+        /// "Back to Push as written", after the pattern's day for the date.
+        var title: String
+        var slot: DaySwap.Slot
     }
 
     var date: Date
@@ -89,6 +114,50 @@ struct DayChoices: Equatable {
 
     /// "Change Push": the ··· item and the picker's title, after the day the date is now (D85).
     static func title(dayName: String) -> String { "Change \(dayName)" }
+
+    /// A day's exercises as Today draws them: each name with its sets as blocks.
+    static func rows(_ day: Day) -> [HomeStart.PreviewRow] {
+        day.exercises.map { HomeStart.PreviewRow(name: $0.name, sets: $0.sets.count) }
+    }
+}
+
+/// D93 (v1.11, §6.66): what the day's editor asks of Core. The editor holds the day as edited so
+/// far and nothing else; these read it, check it and name what its buttons do.
+extension DayChoices.Exercises {
+    /// Whether the day differs from the one the editor opened on, as text — an exercise's id is
+    /// not an edit, and a day read back from the text has new ones. **Use for Wednesday** waits
+    /// for one: a day used unchanged would change nothing but its outline.
+    func isEdited(_ edited: Day) -> Bool {
+        PlanJSON.render(day: edited) != PlanJSON.render(day: day)
+    }
+
+    /// The ···'s **Edit the text**: the sheet on the day as edited so far, its Save putting the
+    /// text's day back in the editor — "Replace Push" — where Use still writes it.
+    func textPoint(_ edited: Day) -> JSONPoint {
+        var sheet = point
+        sheet.template = PlanJSON.render(day: edited)
+        sheet.saveTitle = ChangeDayText.replace(dayName: edited.name)
+        return sheet
+    }
+
+    /// Text read as the sheet reads a day for the date (`PlanLibrary.ownDay`): generously, then by
+    /// the importer as that day alone in the plan's units — refused with the importer's sentence.
+    func checked(_ text: String, settings: Settings, now: Date) -> (day: Day?, issues: [Issue]) {
+        PlanLibrary.ownDay(text, named: ownName, units: units, settings: settings, now: now)
+    }
+
+    /// A day as edited, rendered and read back: an empty day, a bad range — what the importer
+    /// refuses — is refused here the same way.
+    func checked(_ edited: Day, settings: Settings, now: Date) -> (day: Day?, issues: [Issue]) {
+        checked(PlanJSON.render(day: edited), settings: settings, now: now)
+    }
+
+    /// **Use for Wednesday**: the slot the picker writes for the date — the day as the importer
+    /// read it back, held by the swap (`.own`), named as it was — or what refused it.
+    func used(_ edited: Day, settings: Settings, now: Date) -> (slot: DaySwap.Slot?, issues: [Issue]) {
+        let read = checked(edited, settings: settings, now: now)
+        return (read.day.map { .own($0) }, read.issues)
+    }
 }
 
 /// D85 (v1.10, §6.58): the picker's one button, which says what it will do. A tap marks; only
@@ -127,6 +196,22 @@ enum ChangeDayText {
                            isEnabled: true, slot: slot, opensSheet: false)
         }
     }
+
+    // D93 (v1.11, §6.66): the day's editor.
+
+    /// The dashed row at the end of the card, and the title of the sheet it opens.
+    static let addExercise = "Add exercise"
+    /// The ···'s last item (D95).
+    static let editText = "Edit the text"
+
+    /// The ···'s item that removes the date's own day: "Back to Push as written".
+    static func back(dayName: String) -> String { "Back to \(dayName) as written" }
+
+    /// Edit the text's Save: the text's day goes back into the editor, and nothing is written.
+    static func replace(dayName: String) -> String { "Replace \(dayName)" }
+
+    /// Add exercise's row for a name that matches nothing, added as typed.
+    static func addTyped(_ name: String) -> String { "Add “\(name)”" }
 }
 
 extension PlanLibrary {
@@ -183,11 +268,26 @@ extension PlanLibrary {
             break
         }
         let ownName = weekdayName + DayChoices.ownSuffix
+        // D93: Back to the day the pattern gives the date, offered once the date has its own.
+        let back = own.map { _ -> DayChoices.Back in
+            let base = PlanSchedule.base(plan, on: day, today: now, calendar: calendar)
+            let name = base.name(in: plan)
+            return DayChoices.Back(title: ChangeDayText.back(dayName: name ?? HomeStart.restTitle),
+                                   slot: name.map { .day(name: $0) } ?? .rest)
+        }
         let exercises = current.map { shown in
-            DayChoices.Exercises(
+            let sheet = JSONPoint.ownDay(when: when, date: fullDate, name: ownName, plan: plan, own: shown)
+            return DayChoices.Exercises(
                 face: face,
-                rows: shown.exercises.map { HomeStart.PreviewRow(name: $0.name, sets: $0.sets.count) },
-                point: .ownDay(when: when, date: fullDate, name: ownName, plan: plan, own: shown))
+                rows: DayChoices.rows(shown),
+                point: sheet,
+                day: shown,
+                title: DayChoices.title(dayName: face.name),
+                date: fullDate,
+                use: sheet.saveTitle,
+                units: plan.units,
+                ownName: ownName,
+                back: back)
         }
         return DayChoices(
             date: day,
