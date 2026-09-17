@@ -41,6 +41,7 @@ BUNDLED = [
     "docs/ITERATION_9_PLAN.md",
     "docs/ITERATION_10_PLAN.md",
     "docs/ITERATION_11_PLAN.md",
+    "docs/ITERATION_12_PLAN.md",
     "docs/PRIVACY.md",
     "docs/APP_STORE.md",
     "docs/CODE_HEALTH_REVIEW.md",

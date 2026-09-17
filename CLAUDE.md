@@ -239,6 +239,23 @@ extension and the tests, and the bundle regenerated. Everything through P7 is bu
 remains is the owner's: the device checklist (the v1.7 to v1.10 rows all need the phone), the Developer
 Program, a release Xcode and the submission (`docs/APP_STORE.md` §1 and §6).
 
+`docs/ITERATION_12_PLAN.md` is the v1.11 plan (milestones **N0–N7**), written 2026-09-16 from
+the owner's note that the JSON screens *"feel like an instruction manual"*: every point where the
+app hands text to a chatbot and takes its reply back becomes one screen in three states — **Ask**,
+**Paste**, **Review** — under one rule, *show the result, not the format* (D87), with the trip as
+three joined squares (D89), **Send the prompt** through the share sheet and **Copy the prompt**
+beneath it (D88, the owner's J1), the built-in plans as a row of squares (D90), day by day offered
+only when a reply comes cut short (D91), Progression's choices as pre-marked tiles and its review as
+ladders (D92), today's exercises edited in place — §6.58's parked editor, unparked (D93) — a change
+**said in words** and reviewed as a diff (D94, `PROMPT.md` §7), and the text behind the ··· at every
+point as **Edit the text** with D77 kept (D95). The requirements were settled on the "The Round Trip"
+artifact linked from the plan, J1–J7 chosen 2026-09-16. The plan is cut for a faster build: **N0–N1
+are the trunk** (every SPEC amendment, the shared Core seam, every new file registered in the
+project while empty, one reserved test block per track), **N2–N5 are four independent tracks** with
+a file-ownership table, built in separate worktrees at the same time, and **N6 merges** them in
+order before N7's documents. Nothing in it touches the on-disk contract, the pipeline, the formats,
+the fixtures, the Workout screen or History. N0 is written; nothing else is built.
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
