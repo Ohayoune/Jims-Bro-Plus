@@ -1,29 +1,28 @@
 import SwiftUI
 
 /// SPEC §4.3 / §6.21 (D44, v1.3): **Progression**, the chatbot round-trip run the other way.
-/// One screen: with no progression, the period, "Use my history", the three steps Add plan
-/// already taught, the reply, and a review before it is saved; with one, what it says and
-/// where you are in it, **Plan the next one**, and Remove.
+/// With a progression: what it says and where you are in it, **Plan the next one**, and Remove.
+/// Without one, or planning the next (D92, v1.11, §6.65): one screen in the trip's states
+/// (§6.60) — the steps and the mode as pre-marked tiles, the strip small beneath them, one
+/// control in the bottom slot — and the reply reviewed as ladders before **Start step 1**. The
+/// stage, the tiles and every word are `ProgressionScreen`'s; this view draws them.
 struct ProgressionView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     let planId: UUID
 
     @State private var planning = false
-    @State private var weeks = 8
-    /// D53 (v1.5): steps you earn, unless the owner's "legacy" calendar is wanted.
-    @State private var mode: ProgressionMode = .performance
-    @State private var text = ""
-    @State private var issues: [Issue] = []
-    @State private var review: ReviewItem?
-    @State private var copied = false
-    @State private var showEditor = false
+    @State private var screen = ProgressionScreen()
+    /// The last text read — pasted, or saved from the text sheet — which Edit the text opens on.
+    @State private var lastText = ""
+    @State private var editingText = false
+    /// A reply the text sheet read cleanly, applied once the sheet has closed, so the review
+    /// never opens under a sheet that is still going.
+    @State private var pendingRead: ProgressionImport.Result?
     @State private var showDetails = false
     @State private var confirmRemove = false
 
     private var plan: Plan? { model.plans.first { $0.id == planId } }
-    private var errors: [Issue] { issues.filter { $0.severity == .error } }
-    private var hasDraft: Bool { !text.trimmed.isEmpty }
 
     var body: some View {
         NavigationStack {
@@ -32,7 +31,7 @@ struct ProgressionView: View {
                     if let current = plan.progression, !planning {
                         currentSections(plan, current)
                     } else {
-                        planningSections(plan)
+                        planningScreen(plan)
                     }
                 } else {
                     ContentUnavailableView("Plan deleted", systemImage: "trash")
@@ -42,18 +41,8 @@ struct ProgressionView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Done") { dismiss() } }
-                if let plan, plan.progression != nil {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Menu {
-                            if planning {
-                                Button("Keep the current one") { planning = false }
-                            }
-                            Button("Remove progression", role: .destructive) { confirmRemove = true }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                        }
-                        .accessibilityLabel("More")
-                    }
+                if let plan {
+                    ToolbarItem(placement: .topBarTrailing) { moreMenu(plan) }
                 }
             }
             // D56 (v1.6): an alert — from a menu, a dialog's Cancel is not drawn on iOS 26.
@@ -65,20 +54,68 @@ struct ProgressionView: View {
             } message: {
                 Text("The plan goes back to its own targets. Nothing you logged changes.")
             }
-            .sheet(item: $review) { item in
+            .sheet(isPresented: reviewing) {
+                if let plan, let progression = screen.progression {
+                    ProgressionReviewSheet(progression: progression, plan: plan, warnings: screen.issues,
+                                           startTitle: screen.startTitle) { start() }
+                }
+            }
+            .sheet(isPresented: $editingText, onDismiss: {
+                guard let result = pendingRead else { return }
+                pendingRead = nil
+                screen.read(result)
+            }) {
                 if let plan {
-                    ProgressionReviewSheet(progression: item.progression, plan: plan, warnings: item.warnings) {
-                        Task {
-                            await model.setProgression(item.progression, for: planId)
-                            review = nil
-                            planning = false
-                            text = ""
-                            issues = []
-                        }
+                    JSONFragmentSheet(point: ProgressionScreen.textPoint(plan: plan, steps: screen.steps, text: lastText)) { text in
+                        lastText = text
+                        let result = model.runProgressionImport(text, planId: planId, mode: screen.mode)
+                        guard result.errors.isEmpty, result.progression != nil else { return result.errors }
+                        pendingRead = result
+                        return []
                     }
                 }
             }
         }
+    }
+
+    /// The review is up while the screen is on Review; closing it without starting is Cancel.
+    private var reviewing: Binding<Bool> {
+        Binding(get: { screen.stage == .review && !screen.started && !editingText },
+                set: { if !$0 { screen.cancelReview() } })
+    }
+
+    /// The ··· (D95, §6.68): the ways out of a state's one control, and **Edit the text** last.
+    /// It appears with the screen and is never earned (§6.40).
+    private func moreMenu(_ plan: Plan) -> some View {
+        Menu {
+            if planning || plan.progression == nil {
+                if screen.stage == .paste || screen.stage == .refused {
+                    Button("Change the steps", systemImage: "square.grid.2x2") { screen.changeSteps() }
+                }
+                if screen.stage == .paste {
+                    ShareLink(item: model.progressionPrompt(for: planId, weeks: screen.steps, mode: screen.mode) ?? "",
+                              subject: Text("Progression for \(plan.name)")) {
+                        Label("Send the prompt again", systemImage: "square.and.arrow.up")
+                    }
+                }
+                if plan.progression != nil {
+                    Button("Keep the current one", systemImage: "arrow.uturn.backward") {
+                        planning = false
+                        screen = ProgressionScreen()
+                    }
+                }
+            }
+            if plan.progression != nil {
+                Button("Remove progression", systemImage: "trash", role: .destructive) { confirmRemove = true }
+            }
+            if planning || plan.progression == nil {
+                Divider()
+                Button("Edit the text", systemImage: "curlybraces") { editingText = true }
+            }
+        } label: {
+            QuietGlyph(systemName: "ellipsis")
+        }
+        .accessibilityLabel("More")
     }
 
     // MARK: - With one
@@ -149,158 +186,133 @@ struct ProgressionView: View {
 
     // MARK: - Planning one
 
-    private func planningSections(_ plan: Plan) -> some View {
-        List {
-            if !errors.isEmpty { errorSection }
-            Section {
-                Picker("Steps", selection: $weeks) {
-                    ForEach(Progression.periods, id: \.self) { Text("\($0)").tag($0) }
+    private func planningScreen(_ plan: Plan) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                TileRow(label: "Steps", tiles: screen.stepTiles, enabled: screen.editable) { index in
+                    screen.mark(steps: Progression.periods[index])
                 }
-                .pickerStyle(.segmented)
-            } header: {
-                Text("How many steps")
-            } footer: {
-                Text(mode == .performance ? "One step is one workout's targets."
-                                          : "One step is one week; week 1 starts the day you save it.")
+                TileRow(label: "Next step", tiles: screen.modeTiles, enabled: screen.editable) { index in
+                    screen.mark(mode: ProgressionScreen.modes[index])
+                }
             }
-            // D53 (v1.5): steps you earn, or the calendar. The owner's "legacy calendar
-            // increase" is the second choice, not the default.
-            Section {
-                Picker("Advance", selection: $mode) {
-                    Text("When I hit the target").tag(ProgressionMode.performance)
-                    Text("Every week").tag(ProgressionMode.calendar)
-                }
-                .pickerStyle(.segmented)
-            } header: {
-                Text("Advance")
-            } footer: {
-                Text(mode == .performance
-                     ? "An exercise moves to its next step when a workout hits the current one — every set at or above its reps, within a rep. Miss it and the step repeats."
-                     : "The next step every calendar week, whatever happened.")
-            }
-            // D50 (v1.5): the step explains the mechanism, the button is the accent one, and
-            // the footer says the app never talks to the chatbot itself.
-            Section {
-                step(1, PromptText.copyStep) {
-                    Button(copied ? "Copied" : "Copy prompt") {
-                        if let prompt = model.progressionPrompt(for: planId, weeks: weeks, mode: mode) {
-                            Clipboard.write(prompt)
-                        }
-                        copied = true
-                        Task {
-                            try? await Task.sleep(for: .seconds(2))
-                            copied = false
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .buttonBorderShape(.capsule)
-                    .controlSize(.small)
-                }
-                step(2, "Paste it into ChatGPT, Claude or another chatbot.")
-                step(3, "Copy its reply, come back, and tap Paste progression.")
-            } header: {
-                Text("Plan it with a chatbot")
-            } footer: {
-                Text(PromptText.mechanism)
-            }
-            Section {
-                HStack {
-                    Label("Paste progression", systemImage: "doc.on.clipboard")
-                    Spacer()
-                    PasteButton(payloadType: String.self) { strings in
-                        guard let first = strings.first else { return }
-                        text = first
-                        issues = []
-                        runImport()
-                    }
-                    .labelStyle(.titleOnly)
-                    .buttonBorderShape(.capsule)
-                }
-                DisclosureGroup("Show text", isExpanded: $showEditor) {
-                    TextEditor(text: $text)
-                        .font(.system(.footnote, design: .monospaced))
-                        .scrollContentBackground(.hidden)
-                        .frame(minHeight: 160)
-                }
-                .font(.footnote)
-            } footer: {
-                Text(hasDraft ? "Review progression checks it against the plan and shows you every step."
-                              : "The reply goes here.")
-            }
+            .padding(20)
         }
-        .bottomAction(if: hasDraft) {
-            PrimaryButton(title: "Review progression") { runImport() }
-        }
+        .background(Color(.systemGroupedBackground))
+        .bottomAction { bottomSlot(plan) }
     }
 
-    @ViewBuilder private func step(_ number: Int, _ text: String,
-                                   @ViewBuilder trailing: () -> some View = { EmptyView() }) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text("\(number)")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .frame(width: 18, height: 18)
-                .background(Color.secondary.opacity(0.15), in: Circle())
-            Text(text)
-                .font(.footnote)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 8)
-            trailing()
-        }
-        .padding(.vertical, 2)
-    }
-
-    private var errorSection: some View {
-        Section {
-            ForEach(Array(errors.enumerated()), id: \.offset) { _, issue in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(IssueText.friendly(issue))
-                        .font(.subheadline)
-                        .fixedSize(horizontal: false, vertical: true)
+    /// The strip small above the one control, and on Refused the sentence between them.
+    private func bottomSlot(_ plan: Plan) -> some View {
+        VStack(spacing: 14) {
+            TripStripView(strip: screen.strip, side: 30)
+                .frame(maxWidth: 200)
+            if let refusal = screen.refusal {
+                VStack(alignment: .leading, spacing: 6) {
+                    RefusedBand(sentence: refusal)
                     if showDetails {
-                        VStack(alignment: .leading, spacing: 1) {
-                            if !issue.path.isEmpty { Text(issue.path).font(.caption.monospaced()) }
-                            Text("\(issue.code) · \(issue.message)")
-                                .font(.caption2.monospaced())
-                                .fixedSize(horizontal: false, vertical: true)
+                        ForEach(Array(screen.issues.enumerated()), id: \.offset) { _, issue in
+                            VStack(alignment: .leading, spacing: 1) {
+                                if !issue.path.isEmpty { Text(issue.path).font(.caption.monospaced()) }
+                                Text("\(issue.code) · \(issue.message)").font(.caption2.monospaced())
+                            }
+                            .foregroundStyle(.secondary)
                         }
-                        .foregroundStyle(.secondary)
                     }
+                    Button(showDetails ? "Hide details" : "Details") { showDetails.toggle() }
+                        .font(.footnote)
                 }
-                .listRowBackground(Color.red.opacity(0.08))
             }
-            Button(showDetails ? "Hide details" : "Details (\(errors.count))") { showDetails.toggle() }
-                .font(.footnote)
-        } header: {
-            Text(errors.count == 1 ? "This progression can't be saved yet" : "\(errors.count) things to fix")
+            switch screen.stage {
+            case .ask, .refused:
+                PromptButtons(text: model.progressionPrompt(for: planId, weeks: screen.steps, mode: screen.mode) ?? "",
+                              subject: "Progression for \(plan.name)", buttons: screen.buttons) {
+                    showDetails = false
+                    screen.sent()
+                }
+            case .paste, .review:
+                PasteButton(payloadType: String.self) { strings in
+                    guard let first = strings.first else { return }
+                    lastText = first
+                    showDetails = false
+                    screen.read(model.runProgressionImport(first, planId: planId, mode: screen.mode))
+                }
+                .labelStyle(.titleAndIcon)
+                .buttonBorderShape(.capsule)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+            }
         }
     }
 
-    private func runImport() {
-        showDetails = false
-        let result = model.runProgressionImport(text, planId: planId, mode: mode)
-        issues = result.issues
-        if let progression = result.progression {
-            review = ReviewItem(progression: progression, warnings: result.issues.filter { $0.severity == .warning })
+    /// **Start step 1** (D48): the progression is the plan's before the file is written.
+    private func start() {
+        guard let progression = screen.start() else { return }
+        Task {
+            await model.setProgression(progression, for: planId)
+            planning = false
+            screen = ProgressionScreen()
+            lastText = ""
         }
-    }
-
-    private struct ReviewItem: Identifiable {
-        let id = UUID()
-        let progression: Progression
-        let warnings: [Issue]
     }
 }
 
-/// What the chatbot actually planned, week by week, before it is saved — D26's review, for a
-/// progression. Material warnings (an exercise left out, a weight ignored, a short list) are
-/// shown; tidying (a rounded weight, an unknown field) goes behind Details.
+/// D92: a row of joined tiles, one marked. A tap marks; nothing is sent until Send (D85's rule).
+/// The marked tile takes an ink ring and a check, as Change *day*'s does.
+private struct TileRow: View {
+    let label: String
+    let tiles: [ProgressionScreen.Tile]
+    let enabled: Bool
+    let mark: (Int) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 2) {
+                ForEach(tiles.indices, id: \.self) { index in
+                    let tile = tiles[index]
+                    let ends = CycleGlyph.ends(index, count: tiles.count, of: tiles.count)
+                    let shape = UnevenRoundedRectangle(
+                        cornerRadii: .init(topLeading: ends.first ? 12 : 0, bottomLeading: ends.first ? 12 : 0,
+                                           bottomTrailing: ends.last ? 12 : 0, topTrailing: ends.last ? 12 : 0),
+                        style: .continuous)
+                    Button { mark(index) } label: {
+                        HStack(spacing: 4) {
+                            if tile.marked { Image(systemName: "checkmark").font(.caption.weight(.bold)) }
+                            Text(tile.title)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                        }
+                        .font(.body.weight(tile.marked ? .semibold : .regular))
+                        .foregroundStyle(Color.primary)
+                        .frame(maxWidth: .infinity, minHeight: 52)
+                        .background(Color(.secondarySystemFill), in: shape)
+                        .overlay { if tile.marked { shape.strokeBorder(Color.primary, lineWidth: 2.5) } }
+                        .contentShape(shape)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(tile.marked ? .isSelected : [])
+                }
+            }
+            .disabled(!enabled)
+            .opacity(enabled ? 1 : 0.45)
+        }
+    }
+}
+
+/// D92 (v1.11, §6.65): what the chatbot planned, before it starts — D26's review, for a
+/// progression, as ladders. The header says the steps and the mode once; material warnings are
+/// shown above the days; tidying goes behind Details. Each day carries its square (D65), each
+/// exercise its ladder and step 1's numbers, and the one button names its effect.
 struct ProgressionReviewSheet: View {
     @Environment(\.dismiss) private var dismiss
     let progression: Progression
     let plan: Plan
     let warnings: [Issue]
-    let save: () -> Void
+    var startTitle = ProgressionScreen.startTitle(.performance)
+    let start: () -> Void
 
     @State private var showCleanup = false
 
@@ -310,12 +322,10 @@ struct ProgressionReviewSheet: View {
         NavigationStack {
             List {
                 Section {
-                    Text((progression.mode == .performance
-                          ? "\(progression.weeks) step\(progression.weeks == 1 ? "" : "s"), each earned · "
-                          : "\(progression.weeks) week\(progression.weeks == 1 ? "" : "s") from today · ")
-                         + "\(progression.entries.count) exercise\(progression.entries.count == 1 ? "" : "s")")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    Text(ProgressionScreen.header(progression))
+                        .font(.headline)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4))
                 }
                 if !split.material.isEmpty {
                     Section("Worth knowing") {
@@ -330,23 +340,15 @@ struct ProgressionReviewSheet: View {
                         }
                     }
                 }
-                ForEach(plan.days) { day in
-                    let entries = day.exercises.compactMap { exercise -> (Exercise, ProgressionEntry)? in
-                        progression.entry(day: day.name, exercise: exercise.name).map { (exercise, $0) }
-                    }
-                    if !entries.isEmpty {
-                        Section(day.name) {
-                            ForEach(Array(entries.enumerated()), id: \.offset) { _, pair in
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(pair.0.name).font(.footnote)
-                                    Text(progression.mode == .performance
-                                         ? ProgressionText.ladder(pair.1, units: plan.units, bodyweight: pair.0.bodyweight, current: 0)
-                                         : ProgressionText.weeksLine(pair.1, units: plan.units, bodyweight: pair.0.bodyweight))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                            }
+                ForEach(Array(ProgressionLadder.of(progression, plan).enumerated()), id: \.offset) { _, day in
+                    Section {
+                        ForEach(Array(day.exercises.enumerated()), id: \.offset) { _, ladder in
+                            LadderRow(ladder: ladder)
+                        }
+                    } header: {
+                        HStack(spacing: 6) {
+                            DaySquare(colour: day.colour, relativeTo: .footnote)
+                            Text(day.dayName)
                         }
                     }
                 }
@@ -363,8 +365,6 @@ struct ProgressionReviewSheet: View {
                             }
                         }
                         .font(.footnote)
-                    } footer: {
-                        Text("Tidying the app did on its own. None of it changes a target you'll see.")
                     }
                 }
             }
@@ -374,8 +374,41 @@ struct ProgressionReviewSheet: View {
                 ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
             }
             .bottomAction {
-                PrimaryButton(title: "Save progression") { save() }
+                PrimaryButton(title: startTitle, systemImage: "play.fill") { start() }
             }
         }
+    }
+}
+
+/// One exercise of the review: the name and step 1's numbers, and its ladder — a bar a step,
+/// step 1 in the accent and the rest grey, each as tall as the ladder says.
+private struct LadderRow: View {
+    let ladder: ProgressionLadder
+    @ScaledMetric(relativeTo: .body) private var height: CGFloat = 26
+    @ScaledMetric(relativeTo: .body) private var width: CGFloat = 7
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(ladder.exerciseName)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(ladder.first)
+                    .font(.footnote.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            HStack(alignment: .bottom, spacing: 2) {
+                ForEach(Array(ladder.bars.enumerated()), id: \.offset) { index, bar in
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(index == ladder.lit ? Color.accentColor : Color.secondary.opacity(0.35))
+                        .frame(width: width, height: max(3, height * bar))
+                }
+            }
+            .frame(height: height, alignment: .bottom)
+            .accessibilityHidden(true)
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(ladder.exerciseName), step 1 \(ladder.first), \(ladder.bars.count) steps")
     }
 }
