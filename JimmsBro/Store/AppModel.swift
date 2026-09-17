@@ -223,6 +223,17 @@ enum SaveFailure: Equatable {
         return result
     }
 
+    /// D94 (v1.11, §6.67): **Say what should change**'s Apply — the reviewed reply put in the
+    /// plan's place as an edit, not a Replace: the id, the import date, the cycle's place and
+    /// anchor, and the progression stay (`ChangeRequest.applied`). False if the plan has gone.
+    @discardableResult
+    func applyChange(planId: UUID, plan: Plan) async -> Bool {
+        guard let index = library.plans.firstIndex(where: { $0.id == planId }) else { return false }
+        library.plans[index] = ChangeRequest.applied(plan, to: library.plans[index])
+        await persistPlans()
+        return true
+    }
+
     /// Home's "Try the sample plan" (O1): import the bundled plan and make it active.
     @discardableResult
     func importSamplePlan(now: Date = Date()) async -> ImportResult {
