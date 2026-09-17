@@ -48,8 +48,6 @@ final class BuiltInPlanTests: XCTestCase {
             XCTAssertFalse(entry.about.isEmpty)
             XCTAssertFalse(entry.forWhom.isEmpty)
         }
-        XCTAssertTrue(BuiltInPlans.buildYourOwn.contains("Create with a chatbot"),
-                      "the suggestion names the button that does it")
     }
 
     // Y5: the splits are what the catalogue says — days a week from the repeat block, the two

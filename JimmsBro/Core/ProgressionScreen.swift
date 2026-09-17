@@ -6,7 +6,7 @@ import Foundation
 ///
 /// **Ask** marks the steps (4 · 6 · 8 · 12, six marked) and the mode (*When I hit it* marked,
 /// *Every week* beside it); a tap marks and Send confirms (D85's rule). **Paste** dims the tiles
-/// and holds them — the ···'s *Change the steps* returns to Ask. A paste becomes **Review** or
+/// and holds them — the ···'s *Send the prompt again* returns to Ask. A paste becomes **Review** or
 /// **Refused**, and Review's one button, **Start step 1**, hands back the progression to attach.
 struct ProgressionScreen: Equatable {
     /// One tile of a joined row: its words, and whether it is the marked one.
@@ -112,8 +112,11 @@ struct ProgressionScreen: Equatable {
         issues = []
     }
 
-    /// The ···'s **Change the steps**: back to Ask with the tiles as they were marked.
-    mutating func changeSteps() {
+    /// The ···'s **Send the prompt again** (`TripText.sendAgain`): back to Ask with the tiles as
+    /// they were marked, where Send and Copy are one tap — the same item, doing the same thing, as
+    /// Add plan's and Say what should change's (the owner's reading, N6). The tiles being on Ask,
+    /// it is also how the steps are changed.
+    mutating func restart() {
         guard stage == .paste || stage == .refused, !started else { return }
         stage = .ask
         issues = []
@@ -162,11 +165,10 @@ struct ProgressionScreen: Equatable {
 
     /// **Edit the text**'s sheet: named, pre-filled with the last text read or else a reply that
     /// reads as it stands — every exercise of the plan, each step `{}` — and a Save that says its
-    /// effect. `JSONPoint` has no progression kind (the trunk's; a line for N6), so this rides
-    /// `.ownDay`'s reading — one object whose paths start at its root, which is how a
-    /// progression's paths are written, so a refusal still marks its line.
+    /// effect. The kind is `.progression` (N6): one object whose paths start at its root, which
+    /// is how a progression's paths are written, so a refusal marks its line.
     static func textPoint(plan: Plan, steps: Int, text: String) -> JSONPoint {
-        JSONPoint(kind: .ownDay, title: "The progression",
+        JSONPoint(kind: .progression, title: "The progression",
                   place: "Steps for \(plan.name). Nothing changes until you start.",
                   template: text.trimmed.isEmpty ? exampleReply(plan: plan, steps: steps) : text,
                   saveTitle: "Review the steps",

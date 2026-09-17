@@ -1,13 +1,15 @@
 import SwiftUI
 import UIKit
 
-/// Why Add plan is opening: the ordinary sheet, or the sheet with the built-in picker already
-/// on it (D46, v1.4). An item rather than a Bool and a flag, because a sheet's content closure
+/// Why Add plan is opening: the ordinary sheet, or — for the screenshot hook alone — a draft
+/// part-way through. An item rather than a Bool and a flag, because a sheet's content closure
 /// runs with the state it captured before the tap that presented it — a flag set in the same
 /// tap arrived at the sheet as false — while an item is handed to the closure as it is.
+/// (v1.4–v1.10 had a `.builtIns` case for the pushed picker; D90 put the built-in plans on the
+/// Add plan screen itself, so every door opens the same screen and the case went in N6.)
 enum AddPlanRequest: Identifiable, Equatable {
-    case plan, builtIns
-    /// D52 (v1.5): the day-by-day screen, for the screenshot hook.
+    case plan
+    /// D52 (v1.5): a plan being built day by day, for the screenshot hook.
     case draft
     var id: Self { self }
 }
@@ -43,7 +45,7 @@ struct RootView: View {
                          onDismiss: {
             if introChosePlan {
                 introChosePlan = false
-                addPlan = .builtIns
+                addPlan = .plan
             }
         }) {
             IntroductionView(purpose: .firstRun,
@@ -97,10 +99,9 @@ struct RootView: View {
         guard let index = arguments.firstIndex(of: "-uiScreen"),
               let name = arguments[safe: index + 1] else { return }
         if name == "import" {
-            // v1.4: `-uiBuiltIns` opens Add plan on the built-in picker (D46); v1.5:
-            // `-uiDraft` on the day-by-day screen (D52).
-            addPlan = arguments.contains("-uiBuiltIns") ? .builtIns
-                : arguments.contains("-uiDraft") ? .draft : .plan
+            // v1.5: `-uiDraft` opens a draft part-way through (D52). `-uiBuiltIns` (v1.4) is
+            // taken and ignored: since D90 the built-in plans are a row on this same screen.
+            addPlan = arguments.contains("-uiDraft") ? .draft : .plan
         } else if name == "workout" {
             // The screenshot run starts the card's day, optionally logs some sets to reach a
             // later phase, and opens the workout.

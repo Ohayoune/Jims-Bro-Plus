@@ -264,10 +264,12 @@ struct TripStripView: View {
         .accessibilityLabel(strip.spoken)
     }
 
-    /// Done is ink, not a day's colour: on these screens there is no day yet.
+    /// Done is ink, not a day's colour: on these screens there is no day yet. `Color(.label)`
+    /// rather than `.primary`, which is hierarchical and comes out grey over the bottom slot's
+    /// `.bar` material — where the draft's small strip sits (N6).
     static func fill(_ mark: MarkState) -> Color {
         switch mark {
-        case .done: return .primary
+        case .done: return Color(.label)
         case .now: return .accentColor
         case .todo: return Color(.secondarySystemFill)
         }

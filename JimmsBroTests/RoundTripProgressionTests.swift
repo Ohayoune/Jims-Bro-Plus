@@ -77,7 +77,7 @@ final class RoundTripProgressionTests: XCTestCase {
         XCTAssertFalse(eight.contains("as 6 steps"))
         XCTAssertFalse(eight.contains(Prompts.cadence(.performance)))
 
-        // Send: Paste, the tiles dim and hold; Change the steps returns to Ask.
+        // Send: Paste, the tiles dim and hold; Send the prompt again returns to Ask.
         screen.sent()
         XCTAssertEqual(screen.stage, .paste)
         XCTAssertFalse(screen.editable)
@@ -87,7 +87,7 @@ final class RoundTripProgressionTests: XCTestCase {
         screen.mark(mode: .performance)
         XCTAssertEqual(screen.steps, 8, "the tiles hold on Paste")
         XCTAssertEqual(screen.mode, .calendar)
-        screen.changeSteps()
+        screen.restart()
         XCTAssertEqual(screen.stage, .ask)
         screen.mark(steps: 6)
         screen.mark(mode: .performance)
@@ -131,7 +131,7 @@ final class RoundTripProgressionTests: XCTestCase {
         screen.read(read("   ", mode: .performance))
         XCTAssertEqual(screen.stage, .review, "nothing moves a started screen")
         screen.sent()
-        screen.changeSteps()
+        screen.restart()
         XCTAssertEqual(screen.stage, .review)
 
         // The header says the mode once; the button says the mode's word.
@@ -300,7 +300,7 @@ final class RoundTripProgressionTests: XCTestCase {
             XCTAssertFalse(view.contains(gone), "ProgressionView has \(gone) again")
         }
         for kept in ["ProgressionScreen", "TripStripView", "PromptButtons", "PasteButton", "RefusedBand",
-                     "ProgressionLadder.of", "\"Change the steps\"", "\"Edit the text\"", "Plan the next one"] {
+                     "ProgressionLadder.of", "TripText.sendAgain", "TripText.editText", "Plan the next one"] {
             XCTAssertTrue(view.contains(kept), "ProgressionView lost \(kept)")
         }
     }

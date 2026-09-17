@@ -90,13 +90,10 @@ struct ProgressionView: View {
         Menu {
             if planning || plan.progression == nil {
                 if screen.stage == .paste || screen.stage == .refused {
-                    Button("Change the steps", systemImage: "square.grid.2x2") { screen.changeSteps() }
-                }
-                if screen.stage == .paste {
-                    ShareLink(item: model.progressionPrompt(for: planId, weeks: screen.steps, mode: screen.mode) ?? "",
-                              subject: Text("Progression for \(plan.name)")) {
-                        Label("Send the prompt again", systemImage: "square.and.arrow.up")
-                    }
+                    // D88 (§6.61): the way back to Ask, where Send the prompt and Copy the prompt
+                    // are one tap each — never a share sheet opened from inside a menu, which
+                    // would close under the thumb (N6).
+                    Button(TripText.sendAgain, systemImage: "square.and.arrow.up") { screen.restart() }
                 }
                 if plan.progression != nil {
                     Button("Keep the current one", systemImage: "arrow.uturn.backward") {
@@ -110,7 +107,7 @@ struct ProgressionView: View {
             }
             if planning || plan.progression == nil {
                 Divider()
-                Button("Edit the text", systemImage: "curlybraces") { editingText = true }
+                Button(TripText.editText, systemImage: "curlybraces") { editingText = true }
             }
         } label: {
             QuietGlyph(systemName: "ellipsis")

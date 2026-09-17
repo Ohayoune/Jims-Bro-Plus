@@ -63,11 +63,11 @@ struct ImportTrip: Equatable {
 
         var title: String {
             switch self {
-            case .sendAgain: return "Send the prompt again"
+            case .sendAgain: return TripText.sendAgain
             case .openFile: return "Open a file"
             case .keepWithoutUsing: return "Keep without using"
             case .discardDraft: return "Discard the draft"
-            case .editText: return "Edit the text"
+            case .editText: return TripText.editText
             }
         }
     }
@@ -205,8 +205,8 @@ struct ImportTrip: Equatable {
 
     /// Add plan's **Edit the text**: the plan on the review, the paste a refusal refused — unless
     /// what was pasted was the prompt, or nothing — or else the smallest plan the importer takes.
-    /// Its save is an ordinary paste. The kind is `addDays(after: 0)` because a whole plan's
-    /// errors carry the plan's own paths, which that reading marks at their lines.
+    /// Its save is an ordinary paste; the kind is `.plan`, whose marks read a whole plan's own
+    /// paths at their lines (N6 gave `JSONPoint` that kind).
     var textPoint: JSONPoint {
         let template: String
         if let review {
@@ -227,7 +227,7 @@ struct ImportTrip: Equatable {
     }
 
     private static func planPoint(template: String, place: String, saveTitle: String) -> JSONPoint {
-        JSONPoint(kind: .addDays(after: 0), title: "The plan", place: place, template: template,
+        JSONPoint(kind: .plan, title: "The plan", place: place, template: template,
                   saveTitle: saveTitle, footer: "A whole plan, in the fields the prompt asks a chatbot for.")
     }
 

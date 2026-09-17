@@ -73,13 +73,6 @@ enum BuiltInPlans {
             equipment: "a chair and a sturdy table"),
     ]
 
-    /// The one sentence the picker ends on. These are offered next to writing your own, never
-    /// instead of it: the chatbot round-trip is still the app's premise.
-    static let buildYourOwn = "These are starting points, not prescriptions. The best plan is "
-        + "the one written for you: go back to Add plan, tap Copy prompt under Create with a "
-        + "chatbot, describe your goals, your equipment and your week, and paste back what it "
-        + "writes."
-
     /// D57 (v1.6): the one the picker recommends to a stranger with no history yet. Full Body
     /// is where the catalogue itself says lifting starts.
     static let recommendedId = "FullBody"

@@ -129,7 +129,7 @@ struct ChangePlanView: View {
                     Button("Send the prompt again") { self.screen?.restart() }
                 }
                 // D95 (§6.68): the text is the ···'s last item.
-                Button("Edit the text") { editingText = true }
+                Button(TripText.editText) { editingText = true }
             } label: {
                 QuietGlyph(systemName: "ellipsis")
             }

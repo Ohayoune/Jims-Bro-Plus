@@ -131,12 +131,12 @@ struct DraftTrip: Equatable {
         }
         if let assembled {
             return JSONPoint(
-                kind: .addDays(after: 0), title: "The plan", place: "All of \(draft?.outline.name ?? "the plan"), before it is saved.",
+                kind: .plan, title: "The plan", place: "All of \(draft?.outline.name ?? "the plan"), before it is saved.",
                 template: assembled, saveTitle: "Review the plan",
                 footer: "A whole plan, in the fields the prompt asks a chatbot for.")
         }
         return JSONPoint(
-            kind: .addDays(after: 0), title: "The outline", place: "The plan's name and its days, with no exercises yet.",
+            kind: .plan, title: "The outline", place: "The plan's name and its days, with no exercises yet.",
             template: Self.exampleOutline, saveTitle: "Use this outline",
             footer: "The days are pasted one at a time after it.")
     }

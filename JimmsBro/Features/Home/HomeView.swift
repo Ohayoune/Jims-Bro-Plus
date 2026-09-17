@@ -380,8 +380,9 @@ struct HomeView: View {
     }
 
     private func act(_ card: HomeStart) {
-        // D61 (v1.7): the empty card's button opens Add plan on the built-in picker (D46).
-        if card.isEmpty { addPlan = .builtIns; return }
+        // D61 (v1.7): the empty card's button opens Add plan, whose built-in plans are a row on
+        // the screen itself since D90 (v1.11).
+        if card.isEmpty { addPlan = .plan; return }
         if card.isInProgress { showWorkout = true; return }
         if let own = card.ownDay, let planId = card.planId { startOwn(own, on: planId); return }
         guard let planId = card.planId, let dayIndex = card.dayIndex else { return }

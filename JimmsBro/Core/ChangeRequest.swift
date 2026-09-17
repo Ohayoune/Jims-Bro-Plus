@@ -172,10 +172,10 @@ struct ChangeRequest: Equatable {
     /// D95 (§6.68): **Edit the text** opens the sheet on the whole plan — the reply when there is
     /// one, else the plan as it stands — and its Save reviews what changed, as a paste would.
     ///
-    /// For N6: `JSONPoint` has no whole-plan kind, and it is the trunk's; `.addDays(after: 0)` is
-    /// the kind whose marks read a whole plan's paths (`days[1].exercises[0]`) at their own lines.
+    /// The kind is `.plan`, whose marks read a whole plan's paths — `days[1].exercises[0]`, and
+    /// the plan's own fields — at their own lines (N6).
     func textPoint() -> JSONPoint {
-        JSONPoint(kind: .addDays(after: 0),
+        JSONPoint(kind: .plan,
                   title: "The plan",
                   place: "\(plan.name), changed. Nothing is saved until you apply it.",
                   template: reply?.sourceText ?? PlanJSON.render(plan),

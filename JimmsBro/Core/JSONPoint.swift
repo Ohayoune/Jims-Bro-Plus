@@ -23,6 +23,14 @@ struct JSONPoint: Equatable {
         case addDays(after: Int)
         /// D76: a day just for one date, held by its swap; the plan never sees it.
         case ownDay
+        /// D87, D95 (v1.11): a whole plan — Add plan's review, a draft's outline or its assembly,
+        /// Plan detail's own text, a reply to **Say what should change**. Its refusals carry the
+        /// plan's own paths ("days[1].exercises[0].reps", "units"), so each is marked where it is
+        /// written: a day's path through the reader's origins, as `addDays` does, and the plan's
+        /// own fields straight in the text.
+        case plan
+        /// D92, D95 (v1.11): a progression reply, one object whose paths start at its root.
+        case progression
     }
 
     /// A marked line, and the sentences beneath it.
@@ -131,7 +139,9 @@ extension JSONPoint {
         case let .day(day): return .replaceDayJSON(day: day, text: text)
         case let .addExercises(day, _): return .insertExercisesJSON(day: day, at: nil, text: text)
         case .addDays: return .insertDaysJSON(text: text)
-        case .ownDay: return nil
+        // A whole plan is saved as a paste, and a progression read as a reply; neither is an
+        // edit to a plan already on the phone, so neither has an operation.
+        case .ownDay, .plan, .progression: return nil
         }
     }
 
@@ -158,7 +168,7 @@ extension JSONPoint {
     private var reading: PlanEdit.FragmentKind {
         switch kind {
         case .exercise, .addExercises: return .exercises
-        case .day, .addDays, .ownDay: return .days
+        case .day, .addDays, .ownDay, .plan, .progression: return .days
         }
     }
 
@@ -194,6 +204,15 @@ extension JSONPoint {
             // `PlanLibrary.ownDay` already gives the day's own paths: "exercises[0].reps".
             value = 0
             rest = path[...]
+        case .plan:
+            // A day's path lands in the day the reader found; anything else — the plan's name,
+            // its unit, its cycle — is written at that path in the text itself.
+            guard path.count >= 2, path[0] == .key("days"), case let .index(day) = path[1] else { return path }
+            guard let origin = origins[safe: day] ?? nil else { return nil }
+            return origin + path.dropFirst(2)
+        case .progression:
+            // The reply's own paths, from its root: "exercises[0].steps[1]".
+            return path
         }
         guard let origin = origins[safe: value] ?? nil else { return nil }
         return origin + rest

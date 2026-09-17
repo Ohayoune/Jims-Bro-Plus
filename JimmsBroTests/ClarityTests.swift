@@ -8,15 +8,11 @@ import XCTest
 /// and the views pinned to them. (Z2, the rule for Home's quiet link, went with the link in
 /// v1.9: D75 took Plan a progression off Today, and TQ22 holds its absence.)
 final class ClarityTests: XCTestCase {
-    // Z1: the three sentences say what they must — four until v1.9, when the link's name went
-    // with the link (D75).
+    // Z1: the sentence says what it must — three until v1.11, when D87 took the numbered step and
+    // the mechanism off the chatbot screens (the mechanism is the introduction's now, TN5), and
+    // four until v1.9, when the link's name went with the link (D75).
     func testTheSentences() {
-        for text in [PromptText.copyStep, PromptText.mechanism, PromptText.progressionRow] {
-            XCTAssertFalse(text.trimmed.isEmpty)
-        }
-        XCTAssertTrue(PromptText.copyStep.hasPrefix("Copy the prompt."))
-        XCTAssertTrue(PromptText.copyStep.contains("format") && PromptText.copyStep.contains("reply"))
-        XCTAssertTrue(PromptText.mechanism.contains("never talks to the chatbot"))
+        XCTAssertFalse(PromptText.progressionRow.trimmed.isEmpty)
         XCTAssertTrue(PromptText.progressionRow.contains("chatbot") && PromptText.progressionRow.contains("lifted"))
     }
 

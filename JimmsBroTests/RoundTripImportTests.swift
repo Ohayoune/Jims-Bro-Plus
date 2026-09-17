@@ -349,9 +349,6 @@ final class RoundTripImportTests: XCTestCase {
         if let row = FixtureLoader.doc("JimmsBro/Features/Import/BuiltInPlansView.swift") {
             XCTAssertFalse(row.contains("footer:"), "the picker's footer went with the picker")
         }
-        if let stub = FixtureLoader.doc("JimmsBro/Features/Import/DraftPlanView.swift") {
-            XCTAssertFalse(stub.contains("Build it day by day"), "the Day by day screen is emptied")
-        }
     }
 
     // TN14 (ui, with a unit half): the built-ins row is D46's four, in order, each drawn by its

@@ -71,3 +71,12 @@ struct TripButtons: Equatable, Sendable {
     /// **Use for Wednesday**, **Apply 2 changes** — never a bare Save.
     static func effect(_ title: String) -> TripButtons { TripButtons(primary: title, secondary: nil) }
 }
+
+/// SPEC §6.61, §6.68 (D88, D95): the two words every trip screen's ··· shares, written once so
+/// four screens cannot drift apart. **Send the prompt again** always returns the screen to Ask,
+/// where Send and Copy are one tap (the owner's reading, v1.11), rather than opening a share
+/// sheet from inside a menu; **Edit the text** is always the ···'s last item.
+enum TripText {
+    static let sendAgain = "Send the prompt again"
+    static let editText = "Edit the text"
+}

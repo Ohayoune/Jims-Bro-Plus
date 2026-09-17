@@ -201,8 +201,8 @@ enum ChangeDayText {
 
     /// The dashed row at the end of the card, and the title of the sheet it opens.
     static let addExercise = "Add exercise"
-    /// The ···'s last item (D95).
-    static let editText = "Edit the text"
+    /// The ···'s last item (D95) — one word for every ··· since N6.
+    static let editText = TripText.editText
 
     /// The ···'s item that removes the date's own day: "Back to Push as written".
     static func back(dayName: String) -> String { "Back to \(dayName) as written" }

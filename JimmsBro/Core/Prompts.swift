@@ -1,16 +1,12 @@
 import Foundation
 
-/// D50 (v1.5): the two sentences that explain the chatbot round-trip where its buttons are,
-/// and the line under the Progression row. Core strings, so the views that show them are
-/// pinned to them (Z1) and a rewording is one edit. (Until v1.9 the name of Today's Plan a
-/// progression too; D75 took the link off Today, and its name went with it.)
+/// D50 (v1.5): the line under the Progression row. A Core string, so the view that shows it is
+/// pinned to it (Z1) and a rewording is one edit. (Until v1.9 the name of Today's Plan a
+/// progression too; D75 took the link off Today, and its name went with it. Until v1.11 the two
+/// sentences that explained the round trip where its buttons were: D87 takes the numbered step
+/// off every chatbot screen — the trip strip says where you are — and the mechanism sentence is
+/// the introduction's first page, `Introduction.mechanism`, TN5.)
 enum PromptText {
-    /// Step 1 of Add plan and of Progression, beside the accent Copy prompt button.
-    static let copyStep = "Copy the prompt. It tells the chatbot the exact format the app "
-        + "reads, so its reply pastes straight back in."
-    /// The chatbot section's footer, in both places.
-    static let mechanism = "The app never talks to the chatbot itself; you carry the text "
-        + "both ways."
     /// The second line under the Progression row — History's since D67 (v1.7).
     static let progressionRow = "A chatbot plans your next steps from what you have lifted."
 }

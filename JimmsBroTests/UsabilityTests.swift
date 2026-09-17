@@ -295,13 +295,12 @@ final class UsabilityTests: XCTestCase {
         XCTAssertTrue(PlanImport.run("not a plan").unitsStated, "a refusal says nothing about units")
     }
 
-    // U19: the picker recommends Full Body, and its sentence names controls on the screen it sends you to.
+    // U19: the catalogue recommends Full Body to a stranger. (Until v1.11 it also pinned the
+    // picker's closing sentence, which named Copy prompt under Create with a chatbot; D90 made
+    // the built-in plans a row on Add plan, and N6 took the sentence out with the picker.)
     func testThePickerRecommendsAndPointsBack() {
         XCTAssertEqual(BuiltInPlans.entry(BuiltInPlans.recommendedId)?.name, "Full Body")
         XCTAssertTrue(BuiltInPlans.all.contains { $0.id == BuiltInPlans.recommendedId })
-        XCTAssertTrue(BuiltInPlans.buildYourOwn.contains("Add plan"))
-        XCTAssertTrue(BuiltInPlans.buildYourOwn.contains("Copy prompt"))
-        XCTAssertTrue(BuiltInPlans.buildYourOwn.contains("Create with a chatbot"))
     }
 
     // U20: Home led with the workout on a rest day (D57) until v1.8, whose D71 reverses it on

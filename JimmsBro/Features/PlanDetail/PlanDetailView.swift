@@ -222,9 +222,10 @@ struct PlanDetailView: View {
                 renamingDay = index
             }
             Button("Duplicate day") { edit(.duplicateDay(day: index)) }
-            // D43 (v1.3): the day as text, and a new exercise typed in.
+            // D43 (v1.3): the day as text, and a new exercise typed in. The door reads
+            // Edit the text since D95 (v1.11, §6.68), as every other door to the sheet does.
             Button("Add exercise") { fragment = .addExercise(day: index) }
-            Button("Edit day as JSON") { fragment = .day(index) }
+            Button(TripText.editText) { fragment = .day(index) }
         } label: {
             Image(systemName: "ellipsis")
                 .frame(minWidth: 44, minHeight: 44)
@@ -276,7 +277,7 @@ struct PlanDetailView: View {
                 Button(ChangeRequest.menuItem) { changing = true }
                 // D43 (v1.3): the plan's text, editable — Edit the text since D95 (§6.68); and a
                 // day pasted in whole — the way to finish a week the chatbot cut short.
-                Button("Edit the text") { replacing = true }
+                Button(TripText.editText) { replacing = true }
                 Button("Add day from JSON") { fragment = .addDay }
                 Button("Delete", role: .destructive) { confirmDelete = true }
             } label: {

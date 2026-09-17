@@ -164,7 +164,8 @@ final class TripTests: XCTestCase {
         }
         let release = try section(cases, "## TN. ", until: "## ")
         let blocks = release.components(separatedBy: "\n").filter { $0.hasPrefix("### N") }
-        XCTAssertEqual(blocks.map { String($0.prefix(6)) }, ["### N1", "### N2", "### N3", "### N4", "### N5"])
+        XCTAssertEqual(blocks.map { String($0.prefix(6)) },
+                       ["### N1", "### N2", "### N3", "### N4", "### N5", "### N6"])
 
         let core = ["Trip", "ImportTrip", "DraftTrip", "ProgressionScreen", "ProgressionLadder", "DayEdit",
                     "ExerciseNames", "PlanDiff", "ChangeRequest"]
@@ -177,6 +178,45 @@ final class TripTests: XCTestCase {
             XCTAssertTrue(package.contains("\"JimmsBroTests/\(name).swift\""), "swift test does not run \(name)")
         }
         XCTAssertTrue(project.contains("path = Shared;"), "no Features/Shared group")
+    }
+
+    // TN38 (pin): what N6 took out stays out. The merge deleted the day-by-day screen, the two
+    // sentences the numbered steps carried (D87), the picker's closing line and the word JSON
+    // from the doors, so no file under JimmsBro/ names any of them again.
+    func testWhatTheMergeTookOutStaysOut() throws {
+        let sources = try Self.swiftSources()
+        guard !sources.isEmpty else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        // A name that must appear nowhere, and what replaced it.
+        let gone = [("copyStep", "D87: the trip strip says where you are"),
+                    ("PromptText.mechanism", "D87: the sentence is the introduction's first page"),
+                    ("DraftPlanView", "D91: a draft is Add plan's own review"),
+                    ("buildYourOwn", "D90: the built-in plans are a row on Add plan"),
+                    ("AddPlanRequest.builtIns", "D90: every door opens the same screen"),
+                    ("Show text", "D95: the text is the ···'s Edit the text"),
+                    ("Edit day as JSON", "D77, D95: the sheet is named for what the text is")]
+        for (name, why) in gone {
+            let named = sources.filter { $0.text.contains(name) }.map(\.path)
+            XCTAssertTrue(named.isEmpty, "\(named.joined(separator: ", ")) still names \(name) — \(why)")
+        }
+        // And the one word each door uses is Core's, written once (§6.68).
+        let editors = sources.filter { $0.path.hasPrefix("JimmsBro/Features/") && $0.text.contains("\"Edit the text\"") }
+        XCTAssertTrue(editors.isEmpty, "\(editors.map(\.path).joined(separator: ", ")) writes Edit the text out again")
+    }
+
+    /// Every Swift file of the app target, as (path relative to the checkout, contents) — empty
+    /// when the checkout is out of reach, as it is inside the simulator.
+    static func swiftSources() throws -> [(path: String, text: String)] {
+        let root = FixtureLoader.sourceRoot
+        let app = root.appendingPathComponent("JimmsBro")
+        guard let walk = FileManager.default.enumerator(at: app, includingPropertiesForKeys: nil) else { return [] }
+        var out: [(String, String)] = []
+        for case let url as URL in walk where url.pathExtension == "swift" {
+            let path = url.path.replacingOccurrences(of: root.path + "/", with: "")
+            out.append((path, try String(contentsOf: url, encoding: .utf8)))
+        }
+        return out
     }
 
     /// The lines under a heading that starts with `heading`, up to the next heading that starts

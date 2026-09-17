@@ -1,9 +1,58 @@
 # Build status
 
-Updated 2026-09-16. **v1.10 is built and green on branch `v1.10-symbols` (off `v1.9-swaps` at
-3dc52f1): P0–P7.** v1.9 and everything before it are below,
-unchanged except where a later milestone corrected them; the device checklist, the Developer
-Program, a release Xcode and the submission itself are the owner's.
+Updated 2026-09-17. **v1.11 is built and green on branch `v1.11-round-trip` (off `v1.10-symbols`
+at 33e7d50): N0–N6, with N7 — the documents, the checklist, the bundle and version 1.11 — still to
+do.** v1.10 and everything before it are below, unchanged except where a later milestone corrected
+them; the device checklist, the Developer Program, a release Xcode and the submission itself are
+the owner's.
+
+## v1.11 (N0–N6): built and green, N7 open
+
+`docs/ITERATION_12_PLAN.md` is the v1.11 plan, written from the owner's note that the JSON screens
+*"feel like an instruction manual"*. It is the first plan cut for a parallel build: **N0–N1 are the
+trunk**, **N2–N5 four tracks** that share no file, each built in its own git worktree on its own
+branch and its own simulator clone, and **N6 the merge**. Each milestone still ends with the whole
+suite green on the three routes, a Release build and `tools/check_release.py`.
+
+After N6:
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17 n2'` | **438 tests, 32 skipped, 0 failures** |
+| `swift test` | **437 tests, 0 failures** |
+| `python3 tools/check_core.py` | **437 test bodies, 8940 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **118/118 fixtures match** (unchanged: v1.11 touches no fixture and no pipeline rule but the change prompt's marker) |
+| `xcodebuild build -scheme JimmsBro -configuration Release` | **BUILD SUCCEEDED** |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version **1.10 (1)** until N7 bumps it |
+| `python3 tools/check_bundle.py` | **stale until N7**, which regenerates the bundle with the v1.11 documents |
+
+The simulator route hung twice before any test connected — *"The test runner hung before
+establishing connection"*, as it did in P6 — and passed on a simulator erased and booted before
+`xcodebuild`. That is how the merge runs were made: `xcrun simctl erase "iPhone 17 n2" && xcrun
+simctl boot "iPhone 17 n2"` first, then the three routes.
+
+After each merge, in order: **N2** the simulator 419 tests (27 skipped), `swift test` 418,
+`check_core.py` 418; **N3** 425 (29 skipped), 424, 424; **N4** 432 (30 skipped), 431, 431; **N5**
+437 (31 skipped), 436, 436 — with a Release build and `check_release.py` green after each. No
+merge conflicted: the tracks' files were disjoint, N1 had registered every file in
+`project.pbxproj` and `Package.swift`, and `TEST_CASES.md`'s neighbouring blocks merged untouched.
+
+| Milestone | What it did | State |
+|---|---|---|
+| N0 | The plan, cut for a parallel build, and the branch. The requirements were settled first on the "The Round Trip" artifact, whose seven questions (J1–J7) the owner answered 2026-09-16 | Done |
+| N1 | The trunk: SPEC §6.60–§6.68 and D87–D95, `Core/Trip.swift` (`TripStage`, `TripStrip`, `TripButtons`), `TripStripView` and `RefusedBand` in `DaySquare.swift`, `PromptButtons` in `Features/Shared`, `ExerciseEditSheet` extracted with Core's `PlanEdit.ExerciseFields` behind it, the change prompt (PROMPT.md §7, `Prompts.change`, `PlanImport.changePromptMarker`), the mechanism sentence on the introduction's first page, **every file the tracks fill registered while empty**, and TEST_CASES' TN section with a block per track (TN1–TN6) | Done |
+| N2 | Add plan as one screen whose stage is Core's (`ImportTrip`): the strip large and centred, Send the prompt / Copy the prompt, the system's Paste alone, the plan as its page draws it with **Use *name***, a refusal's sentence in a red band (D88). The built-in plans are a row of four tiles drawn by their own cycles and the pushed picker is gone (D90); day by day is offered only on a reply cut short and runs on the review itself (`DraftTrip`, D91). D52's pipeline and `draft.json` untouched. TN7–TN14 | Done |
+| N3 | Progression's planning screen as the trip (D92): the steps and the mode as two rows of pre-marked tiles, the strip small beneath, one control at a time, and a review that shows the result — grouped by day, each exercise a ladder of bars, step 1's numbers beside the name, one button, **Start step 1**. No history switch (J5). The stage, the tiles and the ladders are Core's (`ProgressionScreen`, `ProgressionLadder.of`). TN17–TN21 | Done |
+| N4 | Today's exercises edited in place (D93): the Change *day* card opens the day's editor — rows to swap, drop, add and reorder — every change a `DayEdit` on a `Day` value the screen holds and never stores, **Use for *Wednesday*** reading it back through the same `ownDay` check the sheet's Save ran, and Add exercise searching the names the app already knows (`ExerciseNames`). The result is §6.58's `.own(day)` swap, the plan untouched. TN23–TN29 | Done |
+| N5 | **Say what should change** (D94): Plan detail's ··· sends the plan's canonical JSON and one sentence, reads the reply through the ordinary pipeline, and shows the old name struck above the new, a removed exercise struck, an unchanged day as one grey line, under a button that names its effect. **Apply is an edit, not a Replace** — the plan keeps its id, its import date, its cycle place and anchor, and its progression. `PlanDiff`, `ChangeRequest`, `AppModel.applyChange`. TN32–TN36 | Done |
+| N6 | The merge, and the lines the tracks left. The four branches merged in order with the suite and a Release build after each; the owner's two readings taken (days matched **by name only**, SPEC §6.67 amended; **Send the prompt again** returns every trip screen to Ask, so Progression's `changeSteps()` is `restart()` and §6.65's second item is not built); `JSONPoint` gained `.plan` and `.progression` in place of the tracks' stand-ins; `TripText` gave the four ···s and Plan detail's day row one word each (**Edit day as JSON** is **Edit the text**); the strip's done squares became `Color(.label)`, which does not go grey over `.bar` material; and the dead code went — `DraftPlanView.swift`, `PromptText.copyStep` and `.mechanism`, `BuiltInPlans.buildYourOwn`, `AddPlanRequest.builtIns`. TN38 pins all of it out of the sources | Done |
+| N7 | Docs, checklist, bundle, 1.11 | **Open** |
+| — | The v1.11 device rows (TN15, TN16, TN22, TN31, TN37 and VoiceOver on the strip) | **Written, not run** — need the phone |
+
+### Not run in v1.11
+
+- The device rows above, and every earlier release's; the phone is the owner's.
+- `tools/check_bundle.py`, until N7 regenerates the bundle.
 
 ## v1.10 (P0–P7): built and green
 
