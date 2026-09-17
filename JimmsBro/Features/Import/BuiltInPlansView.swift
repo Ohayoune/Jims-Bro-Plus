@@ -1,50 +1,30 @@
 import SwiftUI
 
-/// D46 (v1.4): the four routines the app ships, offered next to writing your own. One screen:
-/// a row per routine, the sentence about building your own beneath them, and the ordinary
-/// **Review plan** sheet — the same one a pasted plan gets — with the routine's paragraph on top.
+/// SPEC §6.63 (D90, v1.11): **the built-in plans as a row of squares**, under a hairline on Add
+/// plan's Ask and Paste states. Four tiles in D46's order, each drawn by its own cycle as a tiny
+/// joined strip (D86) with its name beneath; a tap hands the plan, read through the ordinary
+/// import pipeline, to Add plan's review. *(v1.4–v1.10: a pushed picker of four rows.)*
 struct BuiltInPlansView: View {
     @Environment(AppModel.self) private var model
-    /// Runs once a plan is saved, so the sheet this was pushed in can close.
-    let saved: () -> Void
+    /// A tile was tapped: the plan as the pipeline read it, and its entry for the paragraph.
+    let open: (BuiltInPlan, Plan) -> Void
 
-    @State private var reviewing: Review?
-    @State private var pending: Plan?
-    @State private var makeActive = true
-    /// D57 (v1.6): the unit the review asks for; a built-in plan never states one.
-    @State private var units: WeightUnit = .kg
-    @State private var minutes: [String: Int] = [:]
+    @State private var cycles: [String: [DayColour?]] = [:]
     @State private var problem: String?
 
-    private struct Review: Identifiable {
-        let entry: BuiltInPlan
-        let plan: Plan
-        var id: String { entry.id }
-    }
-
     var body: some View {
-        List {
-            Section {
+        VStack(spacing: 14) {
+            Divider()
+            HStack(alignment: .top, spacing: 8) {
                 ForEach(BuiltInPlans.all) { entry in
-                    Button { open(entry) } label: { row(entry) }
+                    Button { tapped(entry) } label: { tile(entry) }
                         .buttonStyle(PressableRow())
+                        .accessibilityLabel(entry.name)
+                        .accessibilityHint(entry.tagline)
                 }
-            } header: {
-                Text("Four ways most people train")
-            } footer: {
-                Text(BuiltInPlans.buildYourOwn)
             }
         }
-        .navigationTitle("Built-in plans")
-        .navigationBarTitleDisplayMode(.inline)
-        .task { estimate() }
-        .sheet(item: $reviewing, onDismiss: resolvePending) { review in
-            PlanReviewSheet(plan: review.plan, about: review.entry.about, asksUnits: true, units: $units,
-                            makeActive: $makeActive) {
-                pending = review.plan
-                reviewing = nil
-            }
-        }
+        .task { readCycles() }
         .alert("That plan couldn't be opened", isPresented: Binding(
             get: { problem != nil }, set: { if !$0 { problem = nil } })) {
             Button("OK", role: .cancel) { problem = nil }
@@ -53,65 +33,56 @@ struct BuiltInPlansView: View {
         }
     }
 
-    private func row(_ entry: BuiltInPlan) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 8) {
-                Text(entry.name).foregroundStyle(.primary)
-                // D57 (v1.6): one recommendation, for the stranger who has no history yet.
-                if entry.id == BuiltInPlans.recommendedId, model.sessions.isEmpty {
-                    Text("Start here")
-                        .font(.caption2.weight(.semibold))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(Color.accentColor.opacity(0.15), in: Capsule())
-                        .foregroundStyle(Color.accentColor)
-                }
+    private func tile(_ entry: BuiltInPlan) -> some View {
+        let cycle = cycles[entry.id] ?? []
+        // D57 (v1.6): one recommendation, for the stranger who has no history yet — the tile
+        // ringed in the accent, and the words beneath its name.
+        let recommended = entry.id == BuiltInPlans.recommendedId && model.sessions.isEmpty
+        return VStack(spacing: 8) {
+            CycleStrip(count: cycle.count, side: 9, spacing: 1, lineSpacing: 1) { index in
+                StripSquare(colour: cycle[index], index: index, count: cycle.count)
             }
-            Text(entry.tagline)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            Text(BuiltInPlans.summary(entry, minutes: minutes[entry.id]))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(entry.forWhom)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            .frame(minHeight: 9)
+            Text(entry.name)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+            if recommended {
+                Text("Start here")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
         }
-        .fixedSize(horizontal: false, vertical: true)
-        .padding(.vertical, 3)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
+        .padding(.horizontal, 6)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: 76, alignment: .top)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            if recommended {
+                RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.accentColor, lineWidth: 1.5)
+            }
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    /// The minutes on each row come from the plan itself, with the user's own warm-up and walk.
-    private func estimate() {
-        for entry in BuiltInPlans.all {
+    /// Each tile's cycle, from the plan itself: the bundled text through the ordinary pipeline.
+    private func readCycles() {
+        for entry in BuiltInPlans.all where cycles[entry.id] == nil {
             guard let plan = model.loadBuiltInPlan(entry.id).plan else { continue }
-            minutes[entry.id] = BuiltInPlans.estimatedMinutes(plan, settings: model.settings)
+            cycles[entry.id] = DayColour.cycle(of: plan)
         }
     }
 
-    private func open(_ entry: BuiltInPlan) {
+    private func tapped(_ entry: BuiltInPlan) {
         let result = model.loadBuiltInPlan(entry.id)
         guard let plan = result.plan else {
             problem = result.errors.first.map(IssueText.friendly) ?? "The plan is missing from the app."
             return
         }
-        units = plan.units
-        reviewing = Review(entry: entry, plan: plan)
-    }
-
-    /// Runs once the review sheet is fully dismissed, like Add plan's own resolve.
-    private func resolvePending() {
-        guard var plan = pending else { return }
-        pending = nil
-        // D57 (v1.6): the unit the review asked for, written into the plan and its JSON.
-        plan.units = units
-        plan.sourceText = PlanJSON.render(plan)
-        Task {
-            // A built-in plan saved twice is kept both, suffixed, like any plan (§6.8).
-            await model.save(plan, conflict: .keepBoth, makeActive: makeActive)
-            saved()
-        }
+        open(entry, plan)
     }
 }
