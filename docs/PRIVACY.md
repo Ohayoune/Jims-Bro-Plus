@@ -1,6 +1,6 @@
 # Privacy policy — Jimm's Bro+
 
-Effective 8 September 2026. This is the privacy policy for the Jimm's Bro+ iPhone app.
+Effective 17 September 2026. This is the privacy policy for the Jimm's Bro+ iPhone app.
 
 ## The short version
 
@@ -33,10 +33,13 @@ unless you export it yourself.
 - **Exports.** Settings → Export backup and Export history create a file only when you tap
   them, and hand it to the iPhone share sheet. Where it goes from there — AirDrop, a message,
   a cloud drive — is your choice, and that service's privacy policy applies to it.
-- **The chatbot prompt.** Add plan and Progression copy a prompt to your clipboard for you to
-  paste into a chatbot of your choosing. The prompt contains your plan and, if you keep the
-  option on, a summary of your recent workouts. What you paste into a chatbot is governed by
-  that chatbot's privacy policy, not this one, and the app never talks to a chatbot itself.
+- **The chatbot prompt.** Add plan, Progression and Say what should change build a prompt for
+  you to take to a chatbot of your choosing. **Send the prompt** hands that text to the iPhone
+  share sheet, which gives it to the one app you pick there and to nothing else; **Copy the
+  prompt** puts the same text on your clipboard instead. The prompt contains your plan and, for
+  a progression, a summary of your recent workouts. What you then paste into a chatbot is
+  governed by that chatbot's privacy policy, not this one, and the app never talks to a chatbot
+  itself: it opens no connection, holds no key, and does not read your clipboard on its own.
 - **Device backups.** Because the app's files live in its container, they are included in
   your iPhone's own backups (iCloud Backup, or a backup to a computer) under Apple's terms.
 

@@ -26,7 +26,7 @@ the build that can be checked; the rest is typed into the form from this page.
    same binary reviewers get.
 7. **Fill in the form** from §2–§5, attach the build, and **Submit for Review**. First reviews
    usually take one to two days.
-8. **Updating later**: bump `MARKETING_VERSION` (1.10 → 1.11) and `CURRENT_PROJECT_VERSION`
+8. **Updating later**: bump `MARKETING_VERSION` (1.11 → 1.12) and `CURRENT_PROJECT_VERSION`
    (1 → 2) on all three targets, tests green, Archive, Upload, Submit. Screenshots only need
    redoing when the screens changed. `tools/check_release.py` fails if the three versions
    disagree.
@@ -42,7 +42,7 @@ the build that can be checked; the rest is typed into the form from this page.
 | Price | Free |
 | Availability | All territories |
 | Bundle id | `com.ohayoune.jimmsbro` |
-| Version | **1.10**, build **1** — the same on the app, the `JimmsBroActivity` extension and the tests; the extension's must match the app's or validation fails |
+| Version | **1.11**, build **1** — the same on the app, the `JimmsBroActivity` extension and the tests; the extension's must match the app's or validation fails |
 | Content rights | Contains no third-party content |
 | Age rating | None of the descriptors apply; Unrestricted Web Access: No; Gambling: No → **4+** |
 
@@ -118,7 +118,7 @@ simulator, seeded through the app's own store, so what they show is what the app
 | 1 | Today with a plan: the day, its exercises, **Start** | `SEED=1 DEVICE="iPhone 17 Pro Max" tools/shot.sh build/store-1.png -uiNoAsk` |
 | 2 | The workout mid-set: the card, the inputs, **Log set** | `SKIP_BUILD=1 DEVICE="iPhone 17 Pro Max" tools/shot.sh build/store-2.png -uiScreen workout -uiNoAsk -uiSkipWaits -uiAdvance 1` |
 | 3 | The rest countdown | `SKIP_BUILD=1 DEVICE="iPhone 17 Pro Max" tools/shot.sh build/store-3.png -uiScreen workout -uiNoAsk -uiAdvance 1` |
-| 4 | The built-in picker | `SKIP_BUILD=1 DEVICE="iPhone 17 Pro Max" tools/shot.sh build/store-4.png -uiScreen import -uiBuiltIns -uiNoAsk` |
+| 4 | Add plan: **Send the prompt**, and the built-in plans as squares | `SKIP_BUILD=1 DEVICE="iPhone 17 Pro Max" tools/shot.sh build/store-4.png -uiScreen import -uiNoAsk` |
 | 5 | History: the calendar, then the workouts | `SKIP_BUILD=1 DEVICE="iPhone 17 Pro Max" tools/shot.sh build/store-5.png -uiScreen history -uiNoAsk` |
 | 6 | The introduction's first page | uninstall the app, then `SKIP_BUILD=1 DEVICE="iPhone 17 Pro Max" tools/shot.sh build/store-6.png -uiNoAsk` |
 

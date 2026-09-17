@@ -1,20 +1,19 @@
 # Build status
 
 Updated 2026-09-17. **v1.11 is built and green on branch `v1.11-round-trip` (off `v1.10-symbols`
-at 33e7d50): N0–N6, with N7 — the documents, the checklist, the bundle and version 1.11 — still to
-do.** v1.10 and everything before it are below, unchanged except where a later milestone corrected
+at 33e7d50): N0–N7, the whole release.** v1.10 and everything before it are below, unchanged except where a later milestone corrected
 them; the device checklist, the Developer Program, a release Xcode and the submission itself are
 the owner's.
 
-## v1.11 (N0–N6): built and green, N7 open
+## v1.11 (N0–N7): built and green
 
 `docs/ITERATION_12_PLAN.md` is the v1.11 plan, written from the owner's note that the JSON screens
 *"feel like an instruction manual"*. It is the first plan cut for a parallel build: **N0–N1 are the
 trunk**, **N2–N5 four tracks** that share no file, each built in its own git worktree on its own
-branch and its own simulator clone, and **N6 the merge**. Each milestone still ends with the whole
+branch and its own simulator clone, **N6 the merge** and N7 the documents. Each milestone still ends with the whole
 suite green on the three routes, a Release build and `tools/check_release.py`.
 
-After N6:
+After N7:
 
 | Route | Result |
 |---|---|
@@ -23,8 +22,13 @@ After N6:
 | `python3 tools/check_core.py` | **437 test bodies, 8940 assertions, 0 failures** |
 | `python3 tools/reference_import.py` | **118/118 fixtures match** (unchanged: v1.11 touches no fixture and no pipeline rule but the change prompt's marker) |
 | `xcodebuild build -scheme JimmsBro -configuration Release` | **BUILD SUCCEEDED** |
-| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version **1.10 (1)** until N7 bumps it |
-| `python3 tools/check_bundle.py` | **stale until N7**, which regenerates the bundle with the v1.11 documents |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version **1.11 (1)** |
+| `python3 tools/check_bundle.py` | **current** (regenerated in N7) |
+
+N7 changed nothing that compiles but the version, so its numbers are N6's: the simulator route and
+the Release build ran on the iPhone 17 after the bump, and the two host routes — where the pins that
+read SPEC, TEST_CASES and the project file actually run, the simulator's sandbox skipping them —
+ran again after the last document edit.
 
 The simulator route hung twice before any test connected — *"The test runner hung before
 establishing connection"*, as it did in P6 — and passed on a simulator erased and booted before
@@ -46,13 +50,25 @@ merge conflicted: the tracks' files were disjoint, N1 had registered every file 
 | N4 | Today's exercises edited in place (D93): the Change *day* card opens the day's editor — rows to swap, drop, add and reorder — every change a `DayEdit` on a `Day` value the screen holds and never stores, **Use for *Wednesday*** reading it back through the same `ownDay` check the sheet's Save ran, and Add exercise searching the names the app already knows (`ExerciseNames`). The result is §6.58's `.own(day)` swap, the plan untouched. TN23–TN29 | Done |
 | N5 | **Say what should change** (D94): Plan detail's ··· sends the plan's canonical JSON and one sentence, reads the reply through the ordinary pipeline, and shows the old name struck above the new, a removed exercise struck, an unchanged day as one grey line, under a button that names its effect. **Apply is an edit, not a Replace** — the plan keeps its id, its import date, its cycle place and anchor, and its progression. `PlanDiff`, `ChangeRequest`, `AppModel.applyChange`. TN32–TN36 | Done |
 | N6 | The merge, and the lines the tracks left. The four branches merged in order with the suite and a Release build after each; the owner's two readings taken (days matched **by name only**, SPEC §6.67 amended; **Send the prompt again** returns every trip screen to Ask, so Progression's `changeSteps()` is `restart()` and §6.65's second item is not built); `JSONPoint` gained `.plan` and `.progression` in place of the tracks' stand-ins; `TripText` gave the four ···s and Plan detail's day row one word each (**Edit day as JSON** is **Edit the text**); the strip's done squares became `Color(.label)`, which does not go grey over `.bar` material; and the dead code went — `DraftPlanView.swift`, `PromptText.copyStep` and `.mechanism`, `BuiltInPlans.buildYourOwn`, `AddPlanRequest.builtIns`. TN38 pins all of it out of the sources | Done |
-| N7 | Docs, checklist, bundle, 1.11 | **Open** |
-| — | The v1.11 device rows (TN15, TN16, TN22, TN31, TN37 and VoiceOver on the strip) | **Written, not run** — need the phone |
+| N7 | Docs, checklist, bundle, 1.11. SPEC checked against what shipped — §4.4 read top to bottom as the screen now is, and two rules a line short: §6.63 gains D57's **Start here** on the built-ins row, §6.65 the calendar reply's **Start week 1** / *Week 1 of 6*. `TEST_CASES.md`'s TN header says what the parallel build made true — **no id was renumbered**, TN1–TN38 landing where the plan proposed them — and gains **TN39**, VoiceOver on the strip, in N1's block. `docs/DEVICE_CHECKLIST.md`'s **v1.11 rows** (TN15, TN16, TN22, TN31, TN39) with what to install first and where a `fail` points; six N7 lines in `DECISIONS_LOG.md`; `docs/PRIVACY.md`'s chatbot bullet rewritten for the share sheet and for the history switch D92 removed, effective 17 September 2026; the README's landing section gains `docs/screenshots/add-plan.png` — the Ask state — and its chatbot bullet, status and handoff paragraph say v1.11; `tools/shot.sh` records the screen; the store list's screenshot 4 is Add plan's Ask state; version **1.11** in all six `MARKETING_VERSION` settings and in `docs/APP_STORE.md`; the handoff paragraph in `CLAUDE.md` and `AGENTS.md`; the bundle regenerated | Done |
+| — | The v1.11 device rows (TN15, TN16, TN22, TN31, TN39) | **Written, not run** — need the phone |
+
+### Checked on the simulator (v1.11)
+
+- N7, `docs/screenshots/add-plan.png` for the README, on the iPhone 17 simulator with
+  `SEED=1 SEED_NO_HISTORY=1 SETTLE=6 DEVICE="iPhone 17" tools/shot.sh build/n7-add-plan.png -uiScreen
+  import -uiNoAsk`, downscaled to 720 px high with `sips` like the other five — a seeded plan so the
+  introduction does not cover the sheet, and no history so Full Body still wears **Start here**. It
+  shows Add plan's Ask state as D87 draws it: **Cancel · Add plan · ···**, the strip large and
+  centred with *Prompt* blue and its document glyph, *Chat* and *Paste* grey, the hairline and the
+  four built-in tiles — Full Body bordered in the accent with **Start here**, then Upper Lower, Push
+  Pull Legs, At Home, each its own cycle in squares — and the bottom slot's **Send the prompt** in the
+  accent over the bordered **Copy the prompt**. No footer, no numbered steps, no word JSON.
+  `tools/shot.sh` needed no new argument: `-uiScreen import` has opened this screen since v1.1.
 
 ### Not run in v1.11
 
 - The device rows above, and every earlier release's; the phone is the owner's.
-- `tools/check_bundle.py`, until N7 regenerates the bundle.
 
 ## v1.10 (P0–P7): built and green
 

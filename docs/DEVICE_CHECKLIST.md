@@ -4,9 +4,9 @@ Every `manual` case from `TEST_CASES.md`, to run on the owner's iPhone. The simu
 notifications while locked, real haptics, the silent switch, or the free-account expiry, which is why
 these are here rather than automated.
 
-Everything else — 404 automated tests plus the simulator screen checks — is green; see
+Everything else — 438 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
-**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37, **v1.7** T5, T9, T13, T24 and T29, **v1.8** TS5, TS11, TS12 and TS16, **v1.9** TQ18, TQ19, TQ20, TQ24, TQ29, TQ33, TQ38 and TQ39, and **v1.10** TP7, TP16, TP23, TP29, TP35 and TP42. Y19 needs a TestFlight build, which needs the paid
+**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37, **v1.7** T5, T9, T13, T24 and T29, **v1.8** TS5, TS11, TS12 and TS16, **v1.9** TQ18, TQ19, TQ20, TQ24, TQ29, TQ33, TQ38 and TQ39, **v1.10** TP7, TP16, TP23, TP29, TP35 and TP42, and **v1.11** TN15, TN16, TN22, TN31 and TN39. Y19 needs a TestFlight build, which needs the paid
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
@@ -255,6 +255,32 @@ and `WorkoutBar` (`Core/WorkoutBar.swift`), and the state colours at `MarkState`
 `WorkoutScreen.page` and `jumpTo`; on TP35 at `Pace.weights` (`Core/Pace.swift`), which reads the
 past sessions' `startedAt` and `loggedAt`; on TP42 at `CycleStrip` in `DaySquare.swift`,
 `CycleGlyph.rows` (`Core/DayColour.swift`) and `ChangeDayView`.
+
+## v1.11 rows (new in N1–N5, written with N7)
+
+The round trip needs a chatbot on the phone: the **ChatGPT** app or the **Claude** app installed and
+signed in, or a chatbot in Safari for the Copy half. Use a plan with five or six exercises a day —
+the built-in **Push Pull Legs** — so Progression's review has eighteen ladders to judge. TN15 and
+TN16 are the two halves of one trip: run them in order, on the same reply.
+
+| Case | What to do | Expected | Result | Notes |
+|---|---|---|---|---|
+| **TN15** | Today → ··· → Change plan → **Add plan** (or the empty card's **Choose a plan**) → **Send the prompt**. Look at the sheet, send it to the ChatGPT app; come back. Repeat and send it to the Claude app; repeat once more and **cancel** the sheet. Then try **Copy the prompt** instead | The share sheet opens with the prompt as text and a subject the apps that take one show. ChatGPT and Claude each open with the whole prompt in a new message, not a file or a link. **Copy** is a row of the same sheet. However the sheet closes — shared or cancelled — Add plan is on **Paste** when you come back, with the strip lit at *Paste*, and the ··· offers **Send the prompt again**. Copy the prompt does the same without a sheet |  |  |
+| **TN16** | In the chatbot, let the reply finish, copy it, switch back to the app and tap **Paste**. Then tap **Paste** again with nothing copied (copy a photo first, or clear the clipboard) | The system Paste button pastes with **no permission alert** and the review opens on the plan — the cycle in squares, the days closed, **Use *name*** at the bottom. With no text on the clipboard the button does nothing at all: no alert, no error, no state change |  |  |
+| **TN22** | History → **Progression** on a Push Pull Legs plan with a few workouts logged. Mark **8** and **Every week**, then **When I hit it** again; Send the prompt, come back, paste the reply. Read the ladders at arm's length; then Settings → Accessibility → Larger Text at the largest size, and Display & Brightness → Dark. Tap **Start step 1** | The tiles mark under a thumb with no mis-taps between neighbours, and dim on Paste; **Send the prompt again** brings them back marked as they were. The review's eighteen ladders each read at a glance — a climb, a dip, a level row — in light and dark and at the largest text, the first bar lit and the numbers beside it (*82.5 kg · 6–8*). **Start step 1** closes the review, and History's row reads *Step 1 of 6*. An *Every week* reply says **Start week 1** and *Week 1 of 6* |  |  |
+| **TN31** | Today → ··· → **Change *day*** → the date's exercises card. Drag a row by its handle to a new place; swipe another row left and Delete; tap a row, change its weight, Save; **Add exercise** and type a name the app does not know. Then **Use for Wednesday** | The handle drags and the rows follow the finger with no jump; the swipe shows Delete and the row goes. A row opens the exercise sheet and its Save puts the change back in the row. Add exercise's field reads **Find an exercise**, and a name nothing matches is offered as **Add “…”**. **Use for Wednesday** returns to Today in one step, the day's square outlined in ink |  |  |
+| **TN39** | Settings → Accessibility → VoiceOver on. Open Add plan and swipe through it on Ask, on Paste, and on a refusal (paste the prompt back into itself) | The strip is **one** element, read *"Prompt, done. Chat, now. Paste, not yet."* for the state it is in — not three squares to swipe through, and not announced as a button. The next swipe lands on the bottom slot's button, which reads its own words (**Send the prompt**, **Paste**, **Ask for the whole plan**) |  |  |
+
+For the v1.11 rows: a `fail` on TN15 points at `PromptButtons` (`Features/Shared/PromptButtons.swift`),
+whose `UIActivityViewController` completion calls `sent` — a sheet that leaves the screen on Ask
+means the completion never fired; on TN16 at `PasteButton` in `ImportView` (the system's, which is
+what avoids the alert) and at `ImportTrip.pasted`; on TN22 at `ProgressionScreen`'s tiles and
+`ProgressionLadder.of` (`Core/ProgressionLadder.swift`), and at `ProgressionView`'s layout for the
+large-text half; on TN31 at `DayEditorView`'s `.onMove` / `.onDelete` and at `DayEdit`
+(`Core/DayEdit.swift`); on TN39 at `TripStripView` in `DaySquare.swift` — the strip needs
+`accessibilityElement(children: .ignore)` with `TripStrip.spoken` as its label, and must not be a
+control (§6.62).
+
 
 ## When you are done
 

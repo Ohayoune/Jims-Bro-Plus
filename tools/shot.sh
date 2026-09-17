@@ -42,6 +42,8 @@ if [[ -n "$SEED" ]]; then
   # v1.7: SEED_NO_HISTORY=1 seeds the plan and no workouts, for History's empty state (D63).
   # v1.9: SEED_SWAP=1 finishes an unexpected workout today, so Today shows a swap's marks (D74).
   # v1.9: SEED_PLANS=1 adds two built-in plans, not active, so Plans has circles to mark (D78).
+  # v1.11: the README's add-plan.png is `-uiScreen import` — Add plan's Ask state since D90 —
+  #        with SEED_NO_HISTORY=1, so Full Body still wears D57's "Start here" badge.
   build/seed/seed "$CONTAINER" JimmsBro/Resources/SamplePlan.json ${SEED_PROGRESSION:+--progression} ${SEED_STEPS:+--steps} ${SEED_NO_HISTORY:+--no-history} ${SEED_SWAP:+--swap} ${SEED_PLANS:+--plans} >/dev/null
 fi
 

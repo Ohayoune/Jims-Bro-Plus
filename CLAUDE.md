@@ -249,18 +249,37 @@ only when a reply comes cut short (D91), Progression's choices as pre-marked til
 ladders (D92), today's exercises edited in place — §6.58's parked editor, unparked (D93) — a change
 **said in words** and reviewed as a diff (D94, `PROMPT.md` §7), and the text behind the ··· at every
 point as **Edit the text** with D77 kept (D95). The requirements were settled on the "The Round Trip"
-artifact linked from the plan, J1–J7 chosen 2026-09-16. The plan is cut for a faster build: **N0–N1
-are the trunk** (every SPEC amendment, the shared Core seam, every new file registered in the
-project while empty, one reserved test block per track), **N2–N5 are four independent tracks** with
-a file-ownership table, built in separate worktrees at the same time, and **N6 merges** them in
-order before N7's documents. Nothing in it touches the on-disk contract, the pipeline, the formats,
-the fixtures, the Workout screen or History. N0 is written, and N1 — the trunk — is built and green on
-`v1.11-round-trip`: SPEC §6.60–§6.68 and D87–D95, `Core/Trip.swift` (`TripStage`, `TripStrip`, `TripButtons`),
-`TripStripView` and `RefusedBand` in `DaySquare.swift`, `PromptButtons` in `Features/Shared`, `ExerciseEditSheet`
-in its own file with a value form over Core's `PlanEdit.ExerciseFields`, the change prompt (`PROMPT.md` §7,
-`Prompts.change`), the mechanism sentence on the introduction's first page, every file N2–N5 fill registered
-while empty, and TEST_CASES' TN section with a block per track (TN1–TN6 in `TripTests`). N2–N5 are next, and
-can run at once.
+artifact linked from the plan, J1–J7 chosen 2026-09-16. Nothing in it touches the on-disk contract, the pipeline, the formats,
+the fixtures, the Workout screen or History. The plan was cut for a parallel build and built that way:
+**N0–N1 the trunk**, **N2–N5 four independent tracks** with a file-ownership table, built in separate
+worktrees at the same time, **N6 the merge** and N7 the documents. N0–N7 are built and green on
+`v1.11-round-trip`. N1 laid the seam: SPEC §6.60–§6.68 and D87–D95, `Core/Trip.swift` (`TripStage`,
+`TripStrip`, `TripButtons`), `TripStripView` and `RefusedBand` in `DaySquare.swift`, `PromptButtons` in
+`Features/Shared` (which presents `UIActivityViewController` itself, so *sent* fires when the sheet
+closes — shared or cancelled alike), `ExerciseEditSheet` with a value form over Core's
+`PlanEdit.ExerciseFields`, the change prompt (`PROMPT.md` §7, `Prompts.change`, its marker known to the
+importer), the mechanism sentence on the introduction's first page, every file the tracks fill registered
+while empty, and a reserved TN block per track. The four tracks then landed a screen each: **N2** Add plan
+as the trip (`Core/ImportTrip.swift`, `Core/DraftTrip.swift`) — Ask with Send / Copy and the built-ins as
+four tiles, Paste, the plan's page as the review with **Use *name***, and a Refused that offers **Ask for
+the whole plan** and, on a reply cut short alone, **Get it day by day**; **N3** Progression as two rows of
+pre-marked tiles, no history switch, ladders on the review and **Start step 1** (`Core/ProgressionScreen.swift`,
+`Core/ProgressionLadder.swift`); **N4** today's exercises edited in place (`Core/DayEdit.swift`,
+`Core/ExerciseNames.swift`, `DayEditorView`) — reorder, delete, a row to the exercise sheet, **Add exercise**
+over the names the app knows; and **N5** **Say what should change** (`Core/ChangeRequest.swift`,
+`Core/PlanDiff.swift`, `ChangePlanView`), one sentence out, a whole plan back, a diff reviewed as
+*2 changes* and **Apply** as an edit that keeps the progression. N6 merged them in order and took the
+dead code out (`DraftPlanView`, `PromptText.copyStep` and `.mechanism`, `BuiltInPlans.buildYourOwn`,
+`AddPlanRequest.builtIns`), with the owner's two readings — days matched **by name only**, and **Send the
+prompt again** returning every screen to Ask — and `JSONPoint`'s real `.plan` and `.progression` kinds in
+place of the tracks' stand-ins. N7 made the documents say so: SPEC checked against what shipped (§6.63 gains
+D57's **Start here** on the built-ins row, §6.65 the calendar's **Start week 1**), TN1–TN38 landing where the
+plan proposed them with TN39 added for VoiceOver on the strip, `docs/DEVICE_CHECKLIST.md`'s **v1.11 rows**
+(TN15, TN16, TN22, TN31, TN39), the N7 lines in `docs/DECISIONS_LOG.md`, `docs/PRIVACY.md`'s chatbot bullet
+rewritten for the share sheet, `docs/screenshots/add-plan.png` in the README, version **1.11** on the app, the
+extension and the tests, and the bundle regenerated. What remains is the owner's: the device checklist (the
+v1.7 to v1.11 rows all need the phone), the Developer Program, a release Xcode and the submission
+(`docs/APP_STORE.md` §1 and §6).
 
 Three v1.2 rules are worth knowing before touching anything:
 
