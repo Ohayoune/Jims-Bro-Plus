@@ -367,7 +367,7 @@ An iPhone app that runs your workout for you. Pick a plan and tap Start; it walk
 
 ## Build it
 
-Xcode 16 or later on a Mac, an iPhone on iOS 17 or later.
+Xcode 26 or later on a Mac, an iPhone on iOS 17 or later.
 
 1. Open `JimmsBro.xcodeproj` and pick the shared `JimmsBro` scheme.
 2. Signing & Capabilities → choose your team (a free Apple ID works for seven days at a time).
@@ -9178,6 +9178,7 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.11 N7: **`docs/PRIVACY.md`'s chatbot bullet is rewritten, not appended to.** It said the app *copies a prompt to your clipboard* and that the history rides along *"if you keep the option on"* — a switch D92 removed. It now names all three points, says the share sheet hands the text to the one app you pick and to nothing else, and keeps the two sentences that matter: what you paste is the chatbot's business, and the app opens no connection, holds no key and does not read the clipboard on its own. The effective date moves to 17 September 2026, as the policy's own *Changes* section requires.
 - v1.11 N7: **`add-plan.png` is the README's sixth screenshot, not a replacement.** The release changes the way in rather than a screen the landing section already showed, so Ask joins intro, Today, the workout, progression and history rather than pushing one out; it is shot from `SEED=1 SEED_NO_HISTORY=1 DEVICE="iPhone 17" tools/shot.sh build/n7-add-plan.png -uiScreen import -uiNoAsk` — a seeded plan so the introduction does not cover the screen, and no history so Full Body wears **Start here** — and downscaled to 720 px high like the others. `tools/shot.sh` needed no new argument: `-uiScreen import` has opened this screen since v1.1, and since D90 it is the Ask state with the built-ins row on it. The store list's screenshot 4, *the built-in picker*, is now Add plan's Ask state and drops `-uiBuiltIns`, which N6 left taken and ignored.
 - v1.11 (after N7): **`COPY_PHASE_STRIP = NO` at the project level, Debug and Release.** The project never set it, so Xcode's default — YES — applied, and the app's *Embed Foundation Extensions* phase tried to strip `JimmsBroActivity.appex` as it copied it, found it already signed, and warned *not stripping binary because it is signed* on every build. Stripping on copy would break the extension's signature, so it never did anything; NO is what Xcode's own templates set, and an archive still strips each target's own binary through `STRIP_INSTALLED_PRODUCT`.
+- v1.11 (after N7): **CI's app job selects the newest released Xcode 26 on the runner, and the README asks for Xcode 26.** S1 (v1.8) hid the toolbar's glass with `sharedBackgroundVisibility`, an iOS 26 API; `if #available(iOS 26.0, *)` keeps it off older phones at run time, but the compiler still has to know the name, and the `macos-15` runner's default Xcode (16.4) does not — so `main` had been red on that job since S4 while every local run, on Xcode 27, was green. Choosing the Xcode in CI, rather than wrapping the call in `#if compiler`, keeps CI on the SDK the app is actually built and submitted with; the README's "Xcode 16 or later" had been untrue since the same commit.
 `````
 
 ---

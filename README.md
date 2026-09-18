@@ -28,7 +28,7 @@ An iPhone app that runs your workout for you. Pick a plan and tap Start; it walk
 
 ## Build it
 
-Xcode 16 or later on a Mac, an iPhone on iOS 17 or later.
+Xcode 26 or later on a Mac, an iPhone on iOS 17 or later.
 
 1. Open `JimmsBro.xcodeproj` and pick the shared `JimmsBro` scheme.
 2. Signing & Capabilities → choose your team (a free Apple ID works for seven days at a time).

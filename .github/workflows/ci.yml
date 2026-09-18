@@ -49,8 +49,15 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Xcode
-        run: xcodebuild -version
+      - name: Xcode 26
+        # The app calls iOS 26 APIs behind `if #available`, so it only compiles against the
+        # iOS 26 SDK, and the runner's default Xcode is older. Take the newest released Xcode 26
+        # the image has.
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -viE 'beta|candidate|_rc' | sort -V | tail -n 1)
+          test -n "$XCODE" || { echo "No released Xcode 26 on this runner:"; ls -d /Applications/Xcode*.app; exit 1; }
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
       - name: Pick an iPhone simulator
         id: sim
         run: |
