@@ -64,7 +64,7 @@ enum PlanDrafting {
         }
         tree["days"] = .array([.object(object)])
         tree["cycle"] = nil
-        let trial = PlanImport.run(render(.object(tree)), settings: settings, now: now)
+        let trial = PlanImport.run(RawJSON.object(tree).jsonText, settings: settings, now: now)
         let issues = read.issues + trial.issues.map { issue in
             var moved = issue
             if moved.path.hasPrefix("days[0]") { moved.path = "days[\(index)]" + moved.path.dropFirst("days[0]".count) }
@@ -97,7 +97,7 @@ enum PlanDrafting {
             days.append(.object(object))
         }
         tree["days"] = .array(days)
-        return (render(.object(tree)), issues)
+        return (RawJSON.object(tree).jsonText, issues)
     }
 
     /// Every slot filled, through the ordinary import once. The plan's text is the canonical
@@ -144,14 +144,6 @@ enum PlanDrafting {
         object["name"] = .string(slot.name)
         if let weekday = slot.weekday, object["weekday"] == nil { object["weekday"] = .string(weekday.rawValue) }
         return (object, parsed.issues)
-    }
-
-    /// JSON text for the pipeline: sorted keys, so the same tree is the same bytes.
-    static func render(_ tree: RawJSON) -> String {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys, .prettyPrinted]
-        guard let data = try? encoder.encode(tree) else { return "" }
-        return String(decoding: data, as: UTF8.self)
     }
 
     private static func invalid(_ message: String, path: String) -> Issue {

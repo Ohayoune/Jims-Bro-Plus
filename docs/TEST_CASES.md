@@ -1290,6 +1290,22 @@ The four tracks merged onto the trunk in order — N2, N3, N4, N5, each `--no-ff
 |---|---|---|---|
 | TN38 | unit | (v1.11, pin) What the merge took out stays out | No `.swift` file under `JimmsBro/` names `copyStep`, `PromptText.mechanism`, `DraftPlanView`, `buildYourOwn`, `AddPlanRequest.builtIns`, *Show text* or *Edit day as JSON*; and no file in `Features/` writes *"Edit the text"* out again, every door reading `TripText.editText` (source reads on the host routes, skipped on the simulator) |
 
+## TL. v1.12 — One of each
+
+`docs/ITERATION_13_PLAN.md` is the plan: one owner for each piece of logic (D96), no behaviour change except where two copies disagreed and a side was chosen. TN was v1.11's, so the prefix is **TL**. Every case is in `JimmsBroTests/OneOwnerTests.swift` unless it says otherwise; each one pins the side that won, so a copy that grows back and drifts fails here.
+
+### L1 — One parser per value, one escaper, one formatter (D96)
+
+`TargetGrammar` (`Core/PlanImport.swift`) reads reps, a hold and a weight for the importer, a progression step and the exercise sheet; `PlanJSON.string` is the one JSON escaper; `TargetText.number` the one number; `ExerciseText.bestSet` the one best set; `Issue(code:path:message:)` and `sortedByPath()` the issue helpers; `RawJSON.jsonText` the one encoder setup; `Issue.isPlanInWords` / `.isCutShort` E_NOT_JSON's two readings; `ProgressionScreen.defaultMode` the one default mode.
+
+| ID | Type | Title | Expected |
+|---|---|---|---|
+| TL1 | unit | (D96, v1.12) Reps read the same everywhere | 1 to 1000 in a plan, a progression step and the sheet's reps field: `"0"` is refused by all three (a step accepted `0` before), `1000` accepted by all three; `"8 to 12"`, `"8/12"`, `"8—12"` and `"8-12 reps"` are 8–12 in all three; `"12-8"` is swapped with `W_RANGE_SWAPPED` in a plan and a step and refused by the sheet, which has no warning to give |
+| TL2 | unit | (D96, v1.12) The sheet's range field reads a repRange | `PlanEdit.parseRange` reads as a plan's `repRange` does: `"8"` and `"8-8"` are 8–8, `"8 to 12"` is 8–12, `"12-8"` is refused; an exercise whose repRange is 8–8 opens in the sheet with Save enabled and no change (also pinned in `PlanEditTests` L43, whose `"8"` assertion flipped) |
+| TL3 | unit | (D96, v1.12) A step's weight reads as a plan's | `"60 lb"` in a kg plan is 60 with `W_WEIGHT_UNIT_IGNORED`; `"+10"` is 10; `"same"` is still no weight; 20000 is `E_WEIGHT_INVALID`; 62.55 is snapped once (`W_PROGRESSION_ROUNDED`), not rounded to a tenth first |
+| TL4 | unit | (D96, v1.12) Hand-written JSON quotes its text | `JSONPoint.exampleDay` and `ProgressionScreen.exampleReply` with a day or exercise named `Push "heavy" \ day` parse, and the name comes back unchanged — `exampleDay` wrote it in raw |
+| TL5 | unit | (D55, D96, v1.12) E_NOT_JSON's two readings | A plan in words is `isPlanInWords` and not `isCutShort`, a reply cut short the reverse; the refusal (`ImportTrip.Refusal.of`) and the friendly text (`IssueText.friendly`) read the same two predicates |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

@@ -80,7 +80,7 @@ enum PlanJSON {
 
     private static func set(_ target: SetTarget) -> String {
         var fields = ["              " + work(target.work)]
-        if let weight = target.weight { fields.append("              \"weight\": \(number(weight))") }
+        if let weight = target.weight { fields.append("              \"weight\": \(TargetText.number(weight))") }
         fields.append("              \"restSeconds\": \(target.restSeconds)")
         // D51 (v1.5): the effort target, per set — the importer defaults it from the exercise,
         // but the rendering is the explicit form, so every set says its own.
@@ -95,7 +95,7 @@ enum PlanJSON {
         if !target.drops.isEmpty {
             let drops = target.drops.map { drop -> String in
                 var parts = ["                  " + work(drop.work)]
-                if let weight = drop.weight { parts.append("                  \"weight\": \(number(weight))") }
+                if let weight = drop.weight { parts.append("                  \"weight\": \(TargetText.number(weight))") }
                 return "                {\n" + parts.joined(separator: ",\n") + "\n                }"
             }
             fields.append("              \"drops\": [\n" + drops.joined(separator: ",\n") + "\n              ]")
@@ -119,14 +119,9 @@ enum PlanJSON {
         }
     }
 
-    private static func number(_ value: Double) -> String {
-        value == value.rounded() && abs(value) < 1e15
-            ? String(Int(value))
-            : String(format: "%.1f", locale: Locale(identifier: "en_US_POSIX"), value)
-    }
-
-    /// A JSON string literal. Only the escapes JSON requires; plan text is ordinary prose.
-    private static func string(_ value: String) -> String {
+    /// A JSON string literal. Only the escapes JSON requires; plan text is ordinary prose. The
+    /// one escaper (D96): every piece of JSON the app writes by hand quotes its text here.
+    static func string(_ value: String) -> String {
         var out = "\""
         for character in value.unicodeScalars {
             switch character {
@@ -149,6 +144,10 @@ enum PlanJSON {
 /// pipeline, so an edit is validated and normalized by exactly the code an import is — an edit
 /// can never produce a plan the app would have refused to import.
 enum PlanEdit {
+    /// E_EDIT_INVALID: the operation names a day, exercise or set the plan does not have.
+    static let notApplicable = Issue(severity: .error, code: "E_EDIT_INVALID", path: "",
+                                     message: "That edit doesn't apply to this plan.")
+
     enum Operation: Equatable {
         case renameExercise(day: Int, exercise: Int, name: String)
         case setSetCount(day: Int, exercise: Int, count: Int)
@@ -185,9 +184,7 @@ enum PlanEdit {
             text = spliced
         default:
             guard var edited = mutated(operation, plan) else {
-                return ImportResult(plan: nil, issues: [Issue(
-                    severity: .error, code: "E_EDIT_INVALID", path: "",
-                    message: "That edit doesn't apply to this plan.")])
+                return ImportResult(plan: nil, issues: [notApplicable])
             }
             edited.sourceText = PlanJSON.render(edited)
             text = edited.sourceText
@@ -294,15 +291,9 @@ enum PlanEdit {
     /// errors that stopped it. Works on the tree rather than the text so a fragment lands at a
     /// real path and the pipeline's errors name it — `days[1].exercises[2].sets[0].reps`.
     static func spliced(_ plan: Plan, _ operation: Operation) -> (text: String?, issues: [Issue]) {
+        func invalid() -> (String?, [Issue]) { (nil, [notApplicable]) }
         guard var tree = PlanImport.decode(PlanJSON.render(plan)).value?.object,
-              var days = tree["days"]?.array else {
-            return (nil, [Issue(severity: .error, code: "E_EDIT_INVALID", path: "",
-                                message: "That edit doesn't apply to this plan.")])
-        }
-        func invalid() -> (String?, [Issue]) {
-            (nil, [Issue(severity: .error, code: "E_EDIT_INVALID", path: "",
-                         message: "That edit doesn't apply to this plan.")])
-        }
+              var days = tree["days"]?.array else { return invalid() }
         func cycleNames() -> [RawJSON] { tree["cycle"]?.array ?? [] }
         var issues: [Issue] = []
 
@@ -382,10 +373,8 @@ enum PlanEdit {
             return invalid()
         }
         tree["days"] = .array(days)
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        guard let data = try? encoder.encode(RawJSON.object(tree)),
-              let text = String(data: data, encoding: .utf8) else { return invalid() }
+        let text = RawJSON.object(tree).jsonText
+        guard !text.isEmpty else { return invalid() }
         return (text, issues)
     }
 
@@ -517,25 +506,22 @@ enum PlanEdit {
     static func parseWork(_ text: String) -> WorkTarget? {
         let value = text.trimmed.lowercased()
         guard !value.isEmpty else { return nil }
-        // Open duration, no minimum. "max" is deliberately not here: the plan format lets it
-        // mean either, and in a field you type reps into, reps is the commoner meaning.
-        if ["open", "amsap", "as long as possible"].contains(value) {
+        // Open duration, no minimum. The words that mean either in the plan format ("max",
+        // "to failure") are reps here: in a field you type reps into, reps is the commoner meaning.
+        if TargetGrammar.openHoldWords.subtracting(TargetGrammar.amrapWords).contains(value) {
             return .openDuration(minSeconds: nil)
         }
-        if value == "max" || value == "amrap" || value == "failure" { return .reps(.amrap(min: nil)) }
         // "30s+": an open hold with a minimum.
-        if value.hasSuffix("s+"), let minimum = Int(value.dropLast(2)), (1...86_400).contains(minimum) {
+        if value.hasSuffix("s+"), let minimum = Int(value.dropLast(2)), TargetGrammar.seconds.contains(minimum) {
             return .openDuration(minSeconds: minimum)
         }
-        if value.hasSuffix("s"), let seconds = Int(value.dropLast()), (1...86_400).contains(seconds) {
+        if value.hasSuffix("s"), let seconds = Int(value.dropLast()), TargetGrammar.seconds.contains(seconds) {
             return .duration(seconds: seconds)
         }
-        if let range = parseRange(value) { return .reps(.range(min: range.min, max: range.max)) }
-        if value.hasSuffix("+"), let minimum = Int(value.dropLast()), minimum > 0 {
-            return .reps(.amrap(min: minimum))
-        }
-        if let reps = Int(value), (0...999).contains(reps) { return .reps(.fixed(reps)) }
-        return nil
+        // Reps as the plan format reads them — except a range written high to low, which the
+        // sheet refuses rather than swaps: it has no warning to say so.
+        guard let read = TargetGrammar.reps(value), !read.swapped else { return nil }
+        return .reps(read.target)
     }
 
     /// What the edit sheet shows for a target, in the vocabulary `parseWork` accepts back.
@@ -552,12 +538,11 @@ enum PlanEdit {
         }
     }
 
-    /// "8-12" or "8–12".
+    /// A rep range as a plan's `repRange` is read — "8-12", "8–12", "8 to 12", or one number
+    /// for a range of one — except written high to low, which the sheet refuses.
     static func parseRange(_ text: String) -> RepRange? {
-        let parts = text.trimmed.replacingOccurrences(of: "–", with: "-").split(separator: "-")
-        guard parts.count == 2, let low = Int(String(parts[0]).trimmed), let high = Int(String(parts[1]).trimmed),
-              low > 0, high >= low, high <= 999 else { return nil }
-        return RepRange(min: low, max: high)
+        guard let read = TargetGrammar.reps(text, rangeOnly: true), !read.swapped else { return nil }
+        return TargetGrammar.range(read.target)
     }
 }
 

@@ -57,7 +57,7 @@ final class ProgressionTests: XCTestCase {
         XCTAssertTrue(p.isFinished(on: days(28), calendar: calendar))
         XCTAssertEqual(ProgressionText.status(p, on: days(8), calendar: calendar), "Week 2 of 4")
         XCTAssertEqual(ProgressionText.status(p, on: days(30), calendar: calendar), "Finished")
-        XCTAssertEqual(ProgressionText.reason(week: 2, of: 4), "Week 2 of 4 of your progression")
+        XCTAssertEqual(ProgressionText.reason(week: 2, of: 4, mode: .calendar), "Week 2 of 4 of your progression")
     }
 
     // W32: a week changes only what it says; everything else keeps the plan's own target.
@@ -164,7 +164,7 @@ final class ProgressionTests: XCTestCase {
         ] }
         ```
         """
-        let result = ProgressionImport.run(reply, plan: plan(), settings: settings, now: now, calendar: calendar)
+        let result = ProgressionImport.run(reply, plan: plan(), settings: settings, now: now, calendar: calendar, mode: .calendar)
         let p = try XCTUnwrap(result.progression, "\(result.issues)")
         XCTAssertEqual(p.weeks, 4)
         XCTAssertEqual(p.startDate, calendar.startOfDay(for: now))
@@ -187,10 +187,10 @@ final class ProgressionTests: XCTestCase {
     func testWhatAReplyIsRefusedFor() {
         let plan = plan()
         func run(_ text: String) -> ProgressionImport.Result {
-            ProgressionImport.run(text, plan: plan, settings: settings, now: now, calendar: calendar)
+            ProgressionImport.run(text, plan: plan, settings: settings, now: now, calendar: calendar, mode: .calendar)
         }
         XCTAssertEqual(run("just words").errors.first?.code, "E_NOT_JSON")
-        let prompt = Prompts.progression(plan: plan, history: [], weeks: 8, settings: settings, now: now)
+        let prompt = Prompts.progression(plan: plan, history: [], weeks: 8, settings: settings, now: now, mode: .calendar)
         XCTAssertEqual(run(prompt).errors.first?.code, "E_PROMPT_PASTED")
         XCTAssertEqual(run(#"{ "weeks": 0, "exercises": [] }"#).errors.first?.code, "E_PROGRESSION_WEEKS_INVALID")
         XCTAssertEqual(run(#"{ "weeks": 4, "exercises": [ { "name": "Nothing", "weeks": [ {} ] } ] }"#).errors.first?.code, "E_PROGRESSION_EMPTY")
@@ -217,7 +217,7 @@ final class ProgressionTests: XCTestCase {
         var done = CoreTestSupport.completed([12, 12, 12], weights: [60, 60, 60], plan: earlier, start: days(-3))
         done.exercises[0].advice = .increase(to: 62.5)
 
-        let text = Prompts.progression(plan: plan, history: [done], weeks: 8, settings: settings, now: now)
+        let text = Prompts.progression(plan: plan, history: [done], weeks: 8, settings: settings, now: now, mode: .calendar)
         XCTAssertTrue(text.hasPrefix(Prompts.progressionMarker))
         XCTAssertTrue(text.contains("as 8 steps"))
         XCTAssertTrue(text.contains("\"steps\": 8"))
@@ -235,7 +235,7 @@ final class ProgressionTests: XCTestCase {
         XCTAssertLessThan(text.count, Prompts.progressionBound)
 
         // v1.11 (J5): no switch leaves the history out; a plan with none has no block.
-        let without = Prompts.progression(plan: plan, history: [], weeks: 4, settings: settings, now: now)
+        let without = Prompts.progression(plan: plan, history: [], weeks: 4, settings: settings, now: now, mode: .calendar)
         XCTAssertFalse(without.contains("MY HISTORY"))
         XCTAssertTrue(without.contains("as 4 steps"))
         XCTAssertFalse(without.hasSuffix("\n\n"), "no dangling history block")

@@ -44,6 +44,14 @@ indirect enum RawJSON: Codable, Equatable {
         guard let data = try? JSONEncoder().encode(self), let text = String(data: data, encoding: .utf8) else { return "null" }
         return text
     }
+    /// The tree as JSON text for the pipeline: sorted keys and indented, so the same tree is the
+    /// same bytes. Empty if it cannot be written (a number that is not finite).
+    var jsonText: String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .prettyPrinted]
+        guard let data = try? encoder.encode(self) else { return "" }
+        return String(decoding: data, as: UTF8.self)
+    }
     subscript(_ key: String) -> RawJSON? {
         guard let value = object?[key], value != .null else { return nil }
         return value

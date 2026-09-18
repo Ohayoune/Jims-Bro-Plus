@@ -125,7 +125,7 @@ extension JSONPoint {
     /// A day of that one exercise, named `name` — "" to take the date's — with a weekday when the
     /// plan needs one.
     static func exampleDay(name: String, weekday: Weekday? = nil) -> String {
-        var fields = ["  \"name\": \"\(name)\""]
+        var fields = ["  \"name\": \(PlanJSON.string(name))"]
         if let weekday { fields.append("  \"weekday\": \"\(weekday.rawValue)\"") }
         let exercise = exampleExercise.trimmed.split(separator: "\n").map { "    " + $0 }.joined(separator: "\n")
         fields.append("  \"exercises\": [\n" + exercise + "\n  ]")

@@ -347,7 +347,7 @@ extension PlanLibrary {
         let tree = RawJSON.object(["schemaVersion": .number(1), "name": .string(name),
                                    "units": .string(units.rawValue), "schedule": .string("rotation"),
                                    "days": .array([.object(object)])])
-        let trial = PlanImport.run(PlanDrafting.render(tree), settings: settings, now: now)
+        let trial = PlanImport.run(tree.jsonText, settings: settings, now: now)
         guard var day = trial.plan?.days.first else {
             // The paths are the day's own — "exercises[0].reps" — not the trial plan's.
             let errors = (read.issues + trial.issues).filter { $0.severity == .error }.map { issue -> Issue in

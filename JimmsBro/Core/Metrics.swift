@@ -59,7 +59,7 @@ enum SessionMetrics {
                                   value: HomeActivity.duration(Double(held))))
         }
 
-        if let best = SessionStats.best(logged), let text = bestText(best, units: session.units) {
+        if let best = SessionStats.best(logged), let text = ExerciseText.bestSet(best, units: session.units) {
             metrics.append(Metric(label: "Heaviest set", value: text))
         }
 
@@ -86,13 +86,6 @@ enum SessionMetrics {
         guard whole > 0, part >= 0 else { return nil }
         return "\(Int((Double(part) / Double(whole) * 100).rounded()))%"
     }
-
-    private static func bestText(_ result: SetResult, units: WeightUnit) -> String? {
-        if let seconds = result.seconds { return TargetText.time(seconds) }
-        guard let reps = result.reps else { return nil }
-        guard let weight = result.weight else { return "\(reps) reps" }
-        return "\(TargetText.number(weight)) \(units.rawValue) × \(reps)"
-    }
 }
 
 /// D39 (v1.2): what a run of workouts adds up to. Over a window, so "this is what you have been
@@ -117,7 +110,7 @@ enum TrendMetrics {
         let weeks = max(1.0, Double(days) / 7)
         let perWeek = Double(window.count) / weeks
         metrics.append(Metric(label: "Workouts", value: "\(window.count)",
-                              note: "\(oneDecimal(perWeek)) a week over \(days) days"))
+                              note: "\(TargetText.number(perWeek)) a week over \(days) days"))
 
         let time = window.reduce(0.0) { $0 + SessionStats.duration($1) }
         if time > 0 {
@@ -186,10 +179,5 @@ enum TrendMetrics {
             }
         }
         return counts.values.max { ($0.count, $1.name) < ($1.count, $0.name) }
-    }
-
-    private static func oneDecimal(_ value: Double) -> String {
-        String(format: "%.1f", locale: Locale(identifier: "en_US_POSIX"), value)
-            .replacingOccurrences(of: ".0", with: "")
     }
 }

@@ -249,15 +249,15 @@ final class StepProgressionTests: XCTestCase {
         XCTAssertTrue(alias.issues.contains { $0.code == "W_PROGRESSION_WEEKS_ALIAS" })
         XCTAssertTrue(IssueText.split(alias.issues).material.isEmpty, "the alias is tidying, not news")
         XCTAssertTrue(alias.issues.contains { $0.code == "W_PROGRESSION_ROUNDED" && $0.path == "exercises[0].weeks[1].weight" })
-        let bad = ProgressionImport.run(#"{ "steps": 2, "exercises": [ { "name": "Row", "steps": [ { "reps": "eight" }, {} ] } ] }"#, plan: plan, settings: settings, now: now, calendar: calendar)
+        let bad = ProgressionImport.run(#"{ "steps": 2, "exercises": [ { "name": "Row", "steps": [ { "reps": "eight" }, {} ] } ] }"#, plan: plan, settings: settings, now: now, calendar: calendar, mode: .calendar)
         XCTAssertEqual(bad.errors.first?.path, "exercises[0].steps[0].reps")
         XCTAssertEqual(IssueText.location("exercises[0].steps[0].reps"), "exercise 1, step 1")
-        XCTAssertEqual(ProgressionImport.run(#"{ "steps": 0, "exercises": [] }"#, plan: plan, settings: settings, now: now).errors.first?.code, "E_PROGRESSION_WEEKS_INVALID")
+        XCTAssertEqual(ProgressionImport.run(#"{ "steps": 0, "exercises": [] }"#, plan: plan, settings: settings, now: now, mode: .calendar).errors.first?.code, "E_PROGRESSION_WEEKS_INVALID")
 
         // The words.
         var full = progression()
         XCTAssertEqual(ProgressionText.reason(week: 2, of: 4, mode: .performance), "Step 2 of 4 of your progression")
-        XCTAssertEqual(ProgressionText.reason(week: 2, of: 4), "Week 2 of 4 of your progression")
+        XCTAssertEqual(ProgressionText.reason(week: 2, of: 4, mode: .calendar), "Week 2 of 4 of your progression")
         XCTAssertEqual(ProgressionText.entryStatus(full.entries[0], of: 4), "Step 1 of 4")
         full.entries[0].tries = 2
         XCTAssertEqual(ProgressionText.entryStatus(full.entries[0], of: 4), "Step 1 of 4 · 2 tries")

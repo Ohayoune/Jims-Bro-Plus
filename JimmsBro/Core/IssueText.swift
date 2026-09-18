@@ -49,7 +49,7 @@ enum IssueText {
         case "E_NOT_JSON":
             // D55 (v1.6): a plan pasted in words — the most natural first paste there is — is
             // not a cut-off reply, and was told it was. The importer says which case this is.
-            if issue.message.hasPrefix("No JSON found") {
+            if issue.isPlanInWords {
                 return "This is a plan in words. Send it to a chatbot with the prompt and paste back what it writes."
             }
             return "The plan isn't complete — the chatbot's reply looks cut off. Ask it to send the whole plan again."

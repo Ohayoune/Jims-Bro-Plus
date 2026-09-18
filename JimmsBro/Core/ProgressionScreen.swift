@@ -181,13 +181,9 @@ struct ProgressionScreen: Equatable {
         let empty = Array(repeating: "{}", count: max(1, steps)).joined(separator: ", ")
         let lines = plan.days.flatMap { day in
             day.exercises.map { exercise in
-                "    { \"day\": \(quoted(day.name)), \"name\": \(quoted(exercise.name)), \"steps\": [\(empty)] }"
+                "    { \"day\": \(PlanJSON.string(day.name)), \"name\": \(PlanJSON.string(exercise.name)), \"steps\": [\(empty)] }"
             }
         }
         return "{\n  \"steps\": \(max(1, steps)),\n  \"exercises\": [\n" + lines.joined(separator: ",\n") + "\n  ]\n}\n"
-    }
-
-    private static func quoted(_ text: String) -> String {
-        "\"" + text.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
     }
 }

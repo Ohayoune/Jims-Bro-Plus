@@ -175,7 +175,7 @@ final class StoreMigrationTests: XCTestCase {
 
         // The chatbot is told nothing about goals, and no placeholder is left for them.
         XCTAssertFalse(Prompts.progressionTemplate.contains("{{goals}}"))
-        let prompt = Prompts.progression(plan: plan, history: [session], weeks: 4, settings: Settings())
+        let prompt = Prompts.progression(plan: plan, history: [session], weeks: 4, settings: Settings(), mode: .calendar)
         XCTAssertFalse(prompt.contains("MY GOALS"))
     }
 }

@@ -192,7 +192,7 @@ enum ProgressionText {
     static func word(_ mode: ProgressionMode) -> String { mode == .performance ? "Step" : "Week" }
 
     /// The chip's reason: "Week 3 of 8 of your progression", or "Step 3 of 8 …" (D53).
-    static func reason(week: Int, of weeks: Int?, mode: ProgressionMode = .calendar) -> String {
+    static func reason(week: Int, of weeks: Int?, mode: ProgressionMode) -> String {
         weeks.map { "\(word(mode)) \(week) of \($0) of your progression" } ?? "\(word(mode)) \(week) of your progression"
     }
 
@@ -266,7 +266,7 @@ enum ProgressionImport {
 
     /// `mode` is the user's choice on the planning screen (D53), not the reply's.
     static func run(_ text: String, plan: Plan, settings: Settings, now: Date = Date(),
-                    calendar: Calendar = .current, mode: ProgressionMode = .calendar) -> Result {
+                    calendar: Calendar = .current, mode: ProgressionMode) -> Result {
         func failure(_ code: String, _ path: String, _ message: String) -> Result {
             Result(progression: nil, issues: [Issue(severity: .error, code: code, path: path, message: message)])
         }
@@ -280,7 +280,7 @@ enum ProgressionImport {
         guard let raw = decoded.value else { return Result(progression: nil, issues: extracted.issues + decoded.issues) }
         var issues = extracted.issues + decoded.issues
         func issue(_ code: String, _ path: String, _ message: String) {
-            issues.append(Issue(severity: code.hasPrefix("E_") ? .error : .warning, code: code, path: path, message: message))
+            issues.append(Issue(code: code, path: path, message: message))
         }
 
         // The object, wherever it was put: under "progression", bare, or as a bare list.
@@ -345,7 +345,7 @@ enum ProgressionImport {
             var valid = true
             for (offset, rawWeek) in weeksList.enumerated() {
                 let weekPath = "\(path).\(listKey)[\(offset)]"
-                guard let parsed = week(rawWeek, weekPath, issue: issue) else { valid = false; break }
+                guard let parsed = week(rawWeek, weekPath, units: plan.units, issue: issue) else { valid = false; break }
                 weeks.append(parsed)
             }
             guard valid else { continue }
@@ -391,9 +391,7 @@ enum ProgressionImport {
             }
         }
         if aliasUsed { issue("W_PROGRESSION_WEEKS_ALIAS", "", "\"weeks\" was read as steps.") }
-        issues = issues.enumerated().sorted { a, b in
-            a.element.path == b.element.path ? a.offset < b.offset : a.element.path < b.element.path
-        }.map(\.element)
+        issues = issues.sortedByPath()
         guard issues.allSatisfy({ $0.severity == .warning }) else { return Result(progression: nil, issues: issues) }
         guard !entries.isEmpty else {
             issue("E_PROGRESSION_EMPTY", "exercises", "None of the exercises in the reply match this plan.")
@@ -406,8 +404,8 @@ enum ProgressionImport {
 
     /// One week object: `null` or `{}` is "same as the plan"; otherwise weight and/or reps or
     /// durationSeconds for every set, or `sets` for per-set values.
-    private static func week(_ raw: RawJSON, _ path: String,
-                             issue: (String, String, String) -> Void) -> ProgressionWeek? {
+    private static func week(_ raw: RawJSON, _ path: String, units: WeightUnit,
+                             issue: TargetGrammar.Report) -> ProgressionWeek? {
         if raw == .null { return ProgressionWeek() }
         guard let fields = raw.object else {
             issue("E_PROGRESSION_WEEK_INVALID", path, "Each step must be an object like {\"weight\": 62.5, \"reps\": \"8-12\"}, or {} for no change.")
@@ -417,7 +415,7 @@ enum ProgressionImport {
             issue("W_UNKNOWN_FIELD", "\(path).\(key)", "Unknown field \"\(key)\" was ignored.")
         }
         var result = ProgressionWeek()
-        guard let weekWeight = Self.weight(raw["weight"], "\(path).weight", issue: issue) else { return nil }
+        guard let weekWeight = Self.weight(raw["weight"], "\(path).weight", units: units, issue: issue) else { return nil }
         result.weight = weekWeight
         guard let weekWork = Self.work(raw, path, issue: issue) else { return nil }
         result.work = weekWork
@@ -431,7 +429,7 @@ enum ProgressionImport {
                 guard item.object != nil else {
                     issue("E_SETS_INVALID", setPath, "Each set must be an object."); return nil
                 }
-                guard let setWeight = Self.weight(item["weight"], "\(setPath).weight", issue: issue),
+                guard let setWeight = Self.weight(item["weight"], "\(setPath).weight", units: units, issue: issue),
                       let setWork = Self.work(item, setPath, issue: issue) else { return nil }
                 parsed.append(ProgressionSet(weight: setWeight, work: setWork))
             }
@@ -440,60 +438,30 @@ enum ProgressionImport {
         return result
     }
 
-    /// `.some(nil)` for no weight, `.some(w)` for one, `nil` for an invalid value.
-    private static func weight(_ raw: RawJSON?, _ path: String,
-                               issue: (String, String, String) -> Void) -> Double?? {
-        guard let raw else { return .some(nil) }
-        if let number = raw.number, raw.string == nil {
-            guard number.isFinite, (0...10_000).contains(number) else {
-                issue("E_WEIGHT_INVALID", path, "weight must be between 0 and 10000, got \(raw.display)."); return nil
-            }
-            return .some(number)
-        }
-        guard let text = raw.string?.trimmed.lowercased() else {
-            issue("E_WEIGHT_INVALID", path, "weight must be a number, got \(raw.display)."); return nil
-        }
-        if ["", "bw", "bodyweight", "body weight", "none", "same"].contains(text) { return .some(nil) }
-        let stripped = text.replacing("\\s*(kgs?|kilograms?|lbs?|pounds?)$", with: "").replacingOccurrences(of: ",", with: ".")
-        guard let number = Double(stripped), number.isFinite, (0...10_000).contains(number) else {
-            issue("E_WEIGHT_INVALID", path, "weight must be a number, got \(raw.display)."); return nil
-        }
-        return .some(number)
+    /// `.some(nil)` for no weight — none written, "same", or bodyweight — `.some(w)` for one,
+    /// `nil` for an invalid value. Read as a plan's weight is, but not rounded: `run` snaps it.
+    private static func weight(_ raw: RawJSON?, _ path: String, units: WeightUnit,
+                               issue: TargetGrammar.Report) -> Double?? {
+        guard let raw, raw.string?.trimmed.lowercased() != "same" else { return .some(nil) }
+        guard let read = TargetGrammar.weight(raw, path, units, roundsToTenth: false, issue: issue) else { return nil }
+        return .some(read.weight)
     }
 
-    /// `.some(nil)` for no target, `.some(work)` for one, `nil` for an invalid one.
+    /// `.some(nil)` for no target, `.some(work)` for one, `nil` for an invalid one — read as a
+    /// plan's reps and durationSeconds are.
     private static func work(_ raw: RawJSON, _ path: String,
-                             issue: (String, String, String) -> Void) -> WorkTarget?? {
+                             issue: TargetGrammar.Report) -> WorkTarget?? {
         let reps = raw["reps"], duration = raw["durationSeconds"]
         if reps != nil, duration != nil {
             issue("E_TARGET_CONFLICT", path, "Give reps or durationSeconds, not both."); return nil
         }
         if let reps {
-            let text = reps.string ?? reps.integer.map(String.init) ?? reps.display
-            let word = text.trimmed.lowercased().replacing("\\s*reps?$", with: "")
-            let parsed = ["max", "failure", "to failure", "as many as possible"].contains(word)
-                ? WorkTarget.reps(.amrap(min: nil))
-                : PlanEdit.parseWork(word.replacingOccurrences(of: " to ", with: "-").replacingOccurrences(of: "–", with: "-"))
-            guard let parsed, case .reps = parsed else {
-                issue("E_REPS_INVALID", "\(path).reps", "\(reps.display) is not a valid reps value. Use a whole number, a range like \"8-12\", \"AMRAP\" or \"10+\".")
-                return nil
-            }
-            return .some(parsed)
+            guard let target = TargetGrammar.reps(reps, "\(path).reps", issue: issue) else { return nil }
+            return .some(.reps(target))
         }
         if let duration {
-            if let seconds = duration.integer, duration.string == nil || duration.string?.trimmed.matches("^\\d+$") == true {
-                guard (1...86_400).contains(seconds) else {
-                    issue("E_DURATION_INVALID", "\(path).durationSeconds", "durationSeconds must be 1 to 86400 seconds."); return nil
-                }
-                return .some(.duration(seconds: seconds))
-            }
-            let text = duration.string?.trimmed.lowercased() ?? duration.display
-            if ["max", "open", "amsap", "as long as possible", "to failure"].contains(text) { return .some(.openDuration(minSeconds: nil)) }
-            if text.hasSuffix("+"), let minimum = Int(text.dropLast()), (1...86_400).contains(minimum) {
-                return .some(.openDuration(minSeconds: minimum))
-            }
-            issue("E_DURATION_INVALID", "\(path).durationSeconds", "\(duration.display) is not a valid duration. Use seconds, \"max\", or \"30+\".")
-            return nil
+            guard let work = TargetGrammar.duration(duration, "\(path).durationSeconds", issue: issue) else { return nil }
+            return .some(work)
         }
         return .some(nil)
     }

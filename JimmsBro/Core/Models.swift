@@ -13,6 +13,20 @@ struct Issue: Codable, Equatable {
     var path: String
     var message: String
 }
+extension Issue {
+    /// An issue whose code says its severity: `E_` is an error, anything else a warning.
+    init(code: String, path: String, message: String) {
+        self.init(severity: code.hasPrefix("E_") ? .error : .warning, code: code, path: path, message: message)
+    }
+}
+extension Array where Element == Issue {
+    /// By path, in the order they were found within a path — how every reader lists them.
+    func sortedByPath() -> [Issue] {
+        enumerated().sorted { a, b in
+            a.element.path == b.element.path ? a.offset < b.offset : a.element.path < b.element.path
+        }.map(\.element)
+    }
+}
 struct Plan: Codable, Identifiable, Equatable {
     var id = UUID()
     var name: String

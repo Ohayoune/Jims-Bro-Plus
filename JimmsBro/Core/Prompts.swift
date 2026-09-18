@@ -226,7 +226,7 @@ MY PLAN
     /// there is any — the last sessions of every exercise in it (v1.11, J5: no switch says
     /// otherwise). Kept under the paste bound by shortening the history first, never the plan.
     static func progression(plan: Plan, history: [Session], weeks: Int,
-                            settings: Settings, now: Date = Date(), mode: ProgressionMode = .calendar) -> String {
+                            settings: Settings, now: Date = Date(), mode: ProgressionMode) -> String {
         let increment = TargetText.number(settings.weightIncrement(for: plan.units))
         func render(sessionsPerExercise: Int) -> String {
             let listing = sessionsPerExercise > 0

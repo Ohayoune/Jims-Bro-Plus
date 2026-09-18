@@ -308,7 +308,12 @@ the sanctioned copy (the owner's choice: it is the fixtures' independent oracle)
 disk. L1 one parser per value, L2 one JSON grammar, L3 plans and the schedule, L4 the session and the
 Workout screen, L5 the chatbot screens, L6 the other views, L7 tools and the tests' support, L8 the
 documents. Dead code, misnamed files and long functions the review found are parked at the plan's end,
-with two bugs first in line. L0 is written; nothing else is built.
+with two bugs first in line. L0–L1 are built and green on `v1.12-one-of-each`: L1 made
+`TargetGrammar` (`Core/PlanImport.swift`) the one reader of reps, a hold and a weight — for the
+importer, a progression step and the exercise sheet — with `PlanJSON.string` the one JSON escaper,
+`TargetText.number` the one number, `RawJSON.jsonText` the one encoder, `Issue.isPlanInWords` the one
+reading of a plan in words and `ProgressionScreen.defaultMode` the one default mode (TL1–TL5,
+`JimmsBroTests/OneOwnerTests.swift`). L2–L8 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -2322,8 +2327,8 @@ still a step: the workout has to achieve the plan's own targets to move on.
 
 | Field | Type | Notes |
 |---|---|---|
-| `weight` | number or string | For every set at this step, in the plan's units. `"62.5 kg"` is accepted; `"bw"` / `"bodyweight"` / `"none"` mean no weight. Snapped to the smallest loadable change (D35, `W_PROGRESSION_ROUNDED`). Ignored on a bodyweight exercise (`W_PROGRESSION_WEIGHT_IGNORED`). Over 10000 or negative → `E_WEIGHT_INVALID`. |
-| `reps` | int or string | For every set at this step: `8`, `"8-12"`, `"8 to 12"`, `"AMRAP"`, `"10+"`, `"max"`. A range also becomes the rep range advice judges by. Else `E_REPS_INVALID`. |
+| `weight` | number or string | For every set at this step, in the plan's units, read as a plan's weight is (PLAN_FORMAT §2): `"62.5 kg"` and `"+10"` are accepted, and another unit is ignored with `W_WEIGHT_UNIT_IGNORED`; `"bw"` / `"bodyweight"` / `"none"` / `"same"` mean no weight. Snapped to the smallest loadable change (D35, `W_PROGRESSION_ROUNDED`). Ignored on a bodyweight exercise (`W_PROGRESSION_WEIGHT_IGNORED`). Over 10000 or negative → `E_WEIGHT_INVALID`. |
+| `reps` | int or string | For every set at this step, read as a plan's reps are (1–1000): `8`, `"8-12"`, `"8 to 12"`, `"AMRAP"`, `"10+"`, `"max"`. A range written high to low is swapped (`W_RANGE_SWAPPED`). A range also becomes the rep range advice judges by. Else `E_REPS_INVALID`. |
 | `durationSeconds` | int or string | For timed exercises: seconds, `"max"`, `"30+"`. With `reps` as well → `E_TARGET_CONFLICT`. |
 | `sets` | array of { `weight`, `reps` / `durationSeconds` } | Per-set values instead of `weight`/`reps`; set *n* of the plan's exercise takes entry *n*; extra entries are ignored. 1–50 objects, else `E_SETS_INVALID`. |
 
@@ -2344,7 +2349,7 @@ The reply goes through the same extract and decode stages as a plan (PLAN_FORMAT
 
 Errors: `E_PROMPT_PASTED`, `E_NOT_JSON`, `E_MULTIPLE_OBJECTS`, `E_EMPTY`, `E_TOO_LARGE` (as for a plan); `E_PROGRESSION_INVALID`, `E_PROGRESSION_WEEKS_INVALID` (the steps count or list — the code keeps v1.3's name), `E_PROGRESSION_EXERCISE_INVALID`, `E_PROGRESSION_WEEK_INVALID` (a step that is not an object), `E_PROGRESSION_EMPTY`, `E_REPS_INVALID`, `E_DURATION_INVALID`, `E_TARGET_CONFLICT`, `E_WEIGHT_INVALID`, `E_SETS_INVALID`.
 
-Warnings, **material** (shown on the review): `W_PROGRESSION_UNMATCHED`, `W_PROGRESSION_SHORT`, `W_PROGRESSION_WEIGHT_IGNORED`. **Cleanup** (behind Details): `W_PROGRESSION_ROUNDED`, `W_PROGRESSION_LONG`, `W_PROGRESSION_DAY_ASSUMED`, `W_PROGRESSION_WEEKS_ALIAS`, `W_UNKNOWN_FIELD`, `W_SURROUNDING_TEXT`, `W_CURLY_QUOTES_FIXED`.
+Warnings, **material** (shown on the review): `W_PROGRESSION_UNMATCHED`, `W_PROGRESSION_SHORT`, `W_PROGRESSION_WEIGHT_IGNORED`, `W_WEIGHT_UNIT_IGNORED`, `W_RANGE_SWAPPED` (as for a plan). **Cleanup** (behind Details): `W_PROGRESSION_ROUNDED`, `W_PROGRESSION_LONG`, `W_PROGRESSION_DAY_ASSUMED`, `W_PROGRESSION_WEEKS_ALIAS`, `W_UNKNOWN_FIELD`, `W_SURROUNDING_TEXT`, `W_CURLY_QUOTES_FIXED`.
 `````
 
 ---
@@ -3643,6 +3648,22 @@ The four tracks merged onto the trunk in order — N2, N3, N4, N5, each `--no-ff
 | ID | Type | Title | Expected |
 |---|---|---|---|
 | TN38 | unit | (v1.11, pin) What the merge took out stays out | No `.swift` file under `JimmsBro/` names `copyStep`, `PromptText.mechanism`, `DraftPlanView`, `buildYourOwn`, `AddPlanRequest.builtIns`, *Show text* or *Edit day as JSON*; and no file in `Features/` writes *"Edit the text"* out again, every door reading `TripText.editText` (source reads on the host routes, skipped on the simulator) |
+
+## TL. v1.12 — One of each
+
+`docs/ITERATION_13_PLAN.md` is the plan: one owner for each piece of logic (D96), no behaviour change except where two copies disagreed and a side was chosen. TN was v1.11's, so the prefix is **TL**. Every case is in `JimmsBroTests/OneOwnerTests.swift` unless it says otherwise; each one pins the side that won, so a copy that grows back and drifts fails here.
+
+### L1 — One parser per value, one escaper, one formatter (D96)
+
+`TargetGrammar` (`Core/PlanImport.swift`) reads reps, a hold and a weight for the importer, a progression step and the exercise sheet; `PlanJSON.string` is the one JSON escaper; `TargetText.number` the one number; `ExerciseText.bestSet` the one best set; `Issue(code:path:message:)` and `sortedByPath()` the issue helpers; `RawJSON.jsonText` the one encoder setup; `Issue.isPlanInWords` / `.isCutShort` E_NOT_JSON's two readings; `ProgressionScreen.defaultMode` the one default mode.
+
+| ID | Type | Title | Expected |
+|---|---|---|---|
+| TL1 | unit | (D96, v1.12) Reps read the same everywhere | 1 to 1000 in a plan, a progression step and the sheet's reps field: `"0"` is refused by all three (a step accepted `0` before), `1000` accepted by all three; `"8 to 12"`, `"8/12"`, `"8—12"` and `"8-12 reps"` are 8–12 in all three; `"12-8"` is swapped with `W_RANGE_SWAPPED` in a plan and a step and refused by the sheet, which has no warning to give |
+| TL2 | unit | (D96, v1.12) The sheet's range field reads a repRange | `PlanEdit.parseRange` reads as a plan's `repRange` does: `"8"` and `"8-8"` are 8–8, `"8 to 12"` is 8–12, `"12-8"` is refused; an exercise whose repRange is 8–8 opens in the sheet with Save enabled and no change (also pinned in `PlanEditTests` L43, whose `"8"` assertion flipped) |
+| TL3 | unit | (D96, v1.12) A step's weight reads as a plan's | `"60 lb"` in a kg plan is 60 with `W_WEIGHT_UNIT_IGNORED`; `"+10"` is 10; `"same"` is still no weight; 20000 is `E_WEIGHT_INVALID`; 62.55 is snapped once (`W_PROGRESSION_ROUNDED`), not rounded to a tenth first |
+| TL4 | unit | (D96, v1.12) Hand-written JSON quotes its text | `JSONPoint.exampleDay` and `ProgressionScreen.exampleReply` with a day or exercise named `Push "heavy" \ day` parse, and the name comes back unchanged — `exampleDay` wrote it in raw |
+| TL5 | unit | (D55, D96, v1.12) E_NOT_JSON's two readings | A plan in words is `isPlanInWords` and not `isCutShort`, a reply cut short the reverse; the refusal (`ImportTrip.Refusal.of`) and the friendly text (`IssueText.friendly`) read the same two predicates |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -9491,6 +9512,12 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.11 N7: **`add-plan.png` is the README's sixth screenshot, not a replacement.** The release changes the way in rather than a screen the landing section already showed, so Ask joins intro, Today, the workout, progression and history rather than pushing one out; it is shot from `SEED=1 SEED_NO_HISTORY=1 DEVICE="iPhone 17" tools/shot.sh build/n7-add-plan.png -uiScreen import -uiNoAsk` — a seeded plan so the introduction does not cover the screen, and no history so Full Body wears **Start here** — and downscaled to 720 px high like the others. `tools/shot.sh` needed no new argument: `-uiScreen import` has opened this screen since v1.1, and since D90 it is the Ask state with the built-ins row on it. The store list's screenshot 4, *the built-in picker*, is now Add plan's Ask state and drops `-uiBuiltIns`, which N6 left taken and ignored.
 - v1.11 (after N7): **`COPY_PHASE_STRIP = NO` at the project level, Debug and Release.** The project never set it, so Xcode's default — YES — applied, and the app's *Embed Foundation Extensions* phase tried to strip `JimmsBroActivity.appex` as it copied it, found it already signed, and warned *not stripping binary because it is signed* on every build. Stripping on copy would break the extension's signature, so it never did anything; NO is what Xcode's own templates set, and an archive still strips each target's own binary through `STRIP_INSTALLED_PRODUCT`.
 - v1.11 (after N7): **CI's app job selects the newest released Xcode 26 on the runner, and the README asks for Xcode 26.** S1 (v1.8) hid the toolbar's glass with `sharedBackgroundVisibility`, an iOS 26 API; `if #available(iOS 26.0, *)` keeps it off older phones at run time, but the compiler still has to know the name, and the `macos-15` runner's default Xcode (16.4) does not — so `main` had been red on that job since S4 while every local run, on Xcode 27, was green. Choosing the Xcode in CI, rather than wrapping the call in `#if compiler`, keeps CI on the SDK the app is actually built and submitted with; the README's "Xcode 16 or later" had been untrue since the same commit.
+- v1.12 L0 (D96): **one owner for each piece of logic.** Every rule, parser, formatter, lookup and piece of text lives once, in Core unless it draws; where two copies disagreed SPEC decides, else the stricter rule, one line here. `tools/reference_import.py` stays as the one sanctioned copy — the owner's choice, 2026-09-17: it is the fixtures' independent oracle.
+- v1.12 L1 (D96): **reps are 1–1000 everywhere.** The importer read 1–1000 (PLAN_FORMAT §2) and the edit sheet and a progression step 0–999, so a step could say `0` reps where a plan could not. The importer's rule won; a 0-rep set could never be saved through the sheet anyway, because every edit re-runs the importer.
+- v1.12 L1 (D96): **a progression step's values are read as a plan's are** (`TargetGrammar`): `"8/12"`, `"8—12"` and `"+10"` now read; a range written high to low is swapped with `W_RANGE_SWAPPED` instead of refused; a unit other than the plan's is named with `W_WEIGHT_UNIT_IGNORED` instead of dropped silently; E_REPS_INVALID, E_DURATION_INVALID and E_WEIGHT_INVALID say what a plan's say. The step keeps its own two differences, as arguments: `"same"` is no weight, and a weight is snapped to the equipment (`W_PROGRESSION_ROUNDED`) rather than rounded to a tenth first.
+- v1.12 L1 (D96): **the exercise sheet reads reps and a range as a plan does, and refuses a backwards range.** Its fields accept what the plan format accepts (`"8 to 12"`, `"10 reps"`, `"to failure"`), and its range field reads `"8"` as 8–8 the way a plan's `repRange` does — so an exercise imported with `"repRange": "8"` opens and saves untouched. A range written high to low is refused there rather than swapped, because the sheet has no warning to say it swapped it. A plan edited to `8-8` reps in v1.3–v1.11 now reads back as 8, which is the same set.
+- v1.12 L1 (D96): **E_NOT_JSON's plan-in-words reading is one predicate, and still reads the message.** `Issue.isPlanInWords` compares the message to `PlanImport.noJSONMessage`, the constant `extract` writes; a separate code would have changed `PLAN_FORMAT.md`, the manifest and the Python oracle for no behaviour change.
+- v1.12 L1 (D96): **the progression mode has one default, `ProgressionScreen.defaultMode`.** `ProgressionImport.run`, `Prompts.progression` and `ProgressionText.reason` defaulted to calendar while the screen and the Store defaulted to performance; every app caller passed one, so the Core defaults went and the tests that leaned on them say `.calendar`.
 `````
 
 ---
@@ -12085,7 +12112,12 @@ the sanctioned copy (the owner's choice: it is the fixtures' independent oracle)
 disk. L1 one parser per value, L2 one JSON grammar, L3 plans and the schedule, L4 the session and the
 Workout screen, L5 the chatbot screens, L6 the other views, L7 tools and the tests' support, L8 the
 documents. Dead code, misnamed files and long functions the review found are parked at the plan's end,
-with two bugs first in line. L0 is written; nothing else is built.
+with two bugs first in line. L0–L1 are built and green on `v1.12-one-of-each`: L1 made
+`TargetGrammar` (`Core/PlanImport.swift`) the one reader of reps, a hold and a weight — for the
+importer, a progression step and the exercise sheet — with `PlanJSON.string` the one JSON escaper,
+`TargetText.number` the one number, `RawJSON.jsonText` the one encoder, `Issue.isPlanInWords` the one
+reading of a plan in words and `ProgressionScreen.defaultMode` the one default mode (TL1–TL5,
+`JimmsBroTests/OneOwnerTests.swift`). L2–L8 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

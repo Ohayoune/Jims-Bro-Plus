@@ -40,20 +40,10 @@ struct ImportTrip: Equatable {
             if errors.isEmpty || codes.contains("E_PROMPT_PASTED") || codes.contains("E_EMPTY") {
                 return Refusal(errors: errors, fixAt: 2, sends: .prompt, offersDayByDay: false)
             }
-            if errors.contains(where: isInWords) {
+            if errors.contains(where: \.isPlanInWords) {
                 return Refusal(errors: errors, fixAt: 1, sends: .prompt, offersDayByDay: false)
             }
-            return Refusal(errors: errors, fixAt: 1, sends: .wholePlan, offersDayByDay: errors.contains(where: isCutShort))
-        }
-
-        /// `IssueText.friendly`'s two readings of `E_NOT_JSON` (D55): no JSON at all is a plan in
-        /// words; JSON that will not parse is a reply that looks cut off.
-        static func isInWords(_ issue: Issue) -> Bool {
-            issue.code == "E_NOT_JSON" && issue.message.hasPrefix("No JSON found")
-        }
-
-        static func isCutShort(_ issue: Issue) -> Bool {
-            issue.code == "E_NOT_JSON" && !isInWords(issue)
+            return Refusal(errors: errors, fixAt: 1, sends: .wholePlan, offersDayByDay: errors.contains(where: \.isCutShort))
         }
     }
 

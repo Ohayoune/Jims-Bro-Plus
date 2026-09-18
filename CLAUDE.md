@@ -290,7 +290,12 @@ the sanctioned copy (the owner's choice: it is the fixtures' independent oracle)
 disk. L1 one parser per value, L2 one JSON grammar, L3 plans and the schedule, L4 the session and the
 Workout screen, L5 the chatbot screens, L6 the other views, L7 tools and the tests' support, L8 the
 documents. Dead code, misnamed files and long functions the review found are parked at the plan's end,
-with two bugs first in line. L0 is written; nothing else is built.
+with two bugs first in line. L0–L1 are built and green on `v1.12-one-of-each`: L1 made
+`TargetGrammar` (`Core/PlanImport.swift`) the one reader of reps, a hold and a weight — for the
+importer, a progression step and the exercise sheet — with `PlanJSON.string` the one JSON escaper,
+`TargetText.number` the one number, `RawJSON.jsonText` the one encoder, `Issue.isPlanInWords` the one
+reading of a plan in words and `ProgressionScreen.defaultMode` the one default mode (TL1–TL5,
+`JimmsBroTests/OneOwnerTests.swift`). L2–L8 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

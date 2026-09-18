@@ -40,13 +40,18 @@ enum ExerciseText {
     /// SPEC §6.7: the heaviest logged set, ties broken by reps. Weightless sets fall back to
     /// most reps, and an exercise with only timed sets falls back to its longest hold.
     static func best(steps: [SessionStep], units: WeightUnit) -> String? {
-        if let result = SessionStats.best(steps) {
-            guard let reps = result.reps else { return nil }
-            guard let weight = result.weight else { return "Best: \(reps) reps" }
-            return "Best: \(TargetText.number(weight)) \(units.rawValue) × \(reps)"
-        }
+        if let result = SessionStats.best(steps) { return bestSet(result, units: units).map { "Best: \($0)" } }
         let longest = steps.filter { $0.status == .logged }.compactMap { $0.result?.seconds }.max()
         return longest.map { "Best: \(TargetText.time($0))" }
+    }
+
+    /// A best set: "60 kg × 10", "10 reps" without a weight, or a hold's time. History's line
+    /// and the Summary's metrics both say it this way.
+    static func bestSet(_ result: SetResult, units: WeightUnit) -> String? {
+        if let seconds = result.seconds { return TargetText.time(seconds) }
+        guard let reps = result.reps else { return nil }
+        guard let weight = result.weight else { return "\(reps) reps" }
+        return "\(TargetText.number(weight)) \(units.rawValue) × \(reps)"
     }
 
     /// One logged step as the detail screens show it: "10 × 60 · 0:34". D58 (v1.6): the same

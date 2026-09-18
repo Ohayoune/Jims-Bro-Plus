@@ -100,7 +100,7 @@ struct DraftTrip: Equatable {
                   var tree = PlanDrafting.outlineTree(draft) else { continue }
             tree["days"] = .array([.object(object)])
             tree["cycle"] = nil
-            guard let day = PlanImport.run(PlanDrafting.render(.object(tree)), settings: settings, now: now).plan?.days.first
+            guard let day = PlanImport.run(RawJSON.object(tree).jsonText, settings: settings, now: now).plan?.days.first
             else { continue }
             plan.days[index] = day
         }

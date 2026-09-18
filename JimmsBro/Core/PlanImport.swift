@@ -16,6 +16,8 @@ enum PlanImport {
     /// prompt's.
     static let changePromptMarker = "JIMMSBRO-CHANGE-PROMPT-V1"
     static let maxBytes = 1_048_576
+    /// E_NOT_JSON's message when there was no JSON at all — a plan in words (`Issue.isPlanInWords`).
+    static let noJSONMessage = "No JSON found in the pasted text."
     /// `allowEmptyDays` is D52's outline (v1.5): a plan whose days have names and no exercises
     /// yet. Everything else is refused exactly as for a plan.
     static func run(_ text: String, settings: Settings = Settings(), now: Date = Date(), calendar: Calendar = .current, allowEmptyDays: Bool = false) -> ImportResult {
@@ -27,7 +29,7 @@ enum PlanImport {
         var normalized = normalize(raw, settings: settings, now: now, calendar: calendar, allowEmptyDays: allowEmptyDays)
         var issues = extracted.issues + decoded.issues + normalized.issues
         if let plan = normalized.value { issues += validate(plan, allowEmptyDays: allowEmptyDays) }
-        issues = issues.enumerated().sorted { a, b in a.element.path == b.element.path ? a.offset < b.offset : a.element.path < b.element.path }.map(\.element)
+        issues = issues.sortedByPath()
         if issues.contains(where: { $0.severity == .error }) { normalized.value = nil }
         normalized.value?.sourceText = text
         normalized.value?.warnings = issues.filter { $0.severity == .warning }
@@ -50,7 +52,7 @@ enum PlanImport {
             body = fence
             surrounding = !text.replacing(pattern, with: "").trimmed.isEmpty
         } else {
-            guard let start = text.firstIndex(where: { $0 == "{" || $0 == "[" }) else { return failure("E_NOT_JSON", "No JSON found in the pasted text.") }
+            guard let start = text.firstIndex(where: { $0 == "{" || $0 == "[" }) else { return failure("E_NOT_JSON", noJSONMessage) }
             if let end = valueEnd(text, start: start) {
                 let suffix = String(text[end...]).trimmed
                 if suffix.hasPrefix("{") || suffix.hasPrefix("[") { return failure("E_MULTIPLE_OBJECTS", "Found more than one JSON object. Paste just one plan.") }
@@ -117,6 +119,109 @@ enum PlanImport {
     }
 }
 
+extension Issue {
+    /// D55 (v1.6): E_NOT_JSON with no JSON at all is a plan pasted in words; any other
+    /// E_NOT_JSON is JSON that will not parse — a reply that looks cut off.
+    var isPlanInWords: Bool { code == "E_NOT_JSON" && message == PlanImport.noJSONMessage }
+    var isCutShort: Bool { code == "E_NOT_JSON" && !isPlanInWords }
+}
+
+/// PLAN_FORMAT §2's values inside a set — reps, a hold, a weight — read once (D96, v1.12) for
+/// the importer, a progression step (PROGRESSION_FORMAT §4) and the exercise sheet's fields
+/// (`PlanEdit.parseWork`, `.parseRange`). `issue` takes a code, a path and a message.
+enum TargetGrammar {
+    typealias Report = (_ code: String, _ path: String, _ message: String) -> Void
+    static let repCount = 1...1000
+    static let seconds = 1...86_400
+    static let maxWeight = 10_000.0
+    static let amrapWords: Set<String> = ["amrap", "max", "failure", "to failure", "as many as possible"]
+    static let openHoldWords: Set<String> = ["max", "open", "amsap", "as long as possible", "to failure"]
+    static let bodyweightWords: Set<String> = ["bw", "bodyweight", "body weight"]
+    static let unitWords = ["kg": WeightUnit.kg, "kgs": .kg, "kilogram": .kg, "kilograms": .kg,
+                            "lb": .lb, "lbs": .lb, "pound": .lb, "pounds": .lb]
+
+    /// Reps as text: "10", "8-12" (or –, —, /, "to"), "AMRAP" and its kin, "10+", with "reps"
+    /// after any of them or not. A `rangeOnly` value is a repRange, which has no AMRAP.
+    /// `swapped` says a range was written high to low.
+    static func reps(_ text: String, rangeOnly: Bool = false) -> (target: RepTarget, swapped: Bool)? {
+        let s = bare(text)
+        if !rangeOnly && amrapWords.contains(s) { return (.amrap(min: nil), false) }
+        if !rangeOnly, let m = s.captures(#"^(\d+)\s*\+$"#), let n = Int(m[1]), repCount.contains(n) { return (.amrap(min: n), false) }
+        if let m = s.captures(#"^(\d+)\s*(?:-|–|—|/|to)\s*(\d+)$"#), let a = Int(m[1]), let b = Int(m[2]), repCount.contains(a), repCount.contains(b) {
+            return (a == b ? .fixed(a) : .range(min: min(a, b), max: max(a, b)), a > b)
+        }
+        if s.matches(#"^\d+$"#), let n = Int(s), repCount.contains(n) { return (.fixed(n), false) }
+        return nil
+    }
+
+    /// Reps as JSON has them — a whole number, or text `reps(_:rangeOnly:)` reads. A range
+    /// written high to low is swapped with W_RANGE_SWAPPED; anything else is reported.
+    static func reps(_ raw: RawJSON, _ path: String, rangeOnly: Bool = false, issue: Report) -> RepTarget? {
+        if case .number = raw, let n = raw.integer, repCount.contains(n) { return .fixed(n) }
+        if let text = raw.string, let read = reps(text, rangeOnly: rangeOnly) {
+            if read.swapped, case let .range(low, high) = read.target {
+                issue("W_RANGE_SWAPPED", path, "\"\(bare(text))\" was read as \(low)-\(high).")
+            }
+            return read.target
+        }
+        issue(rangeOnly ? "E_REPRANGE_INVALID" : "E_REPS_INVALID", path,
+              "\(raw.display) is not a valid \(rangeOnly ? "rep range" : "reps value"). Use a whole number, a range like \"8-12\"\(rangeOnly ? "." : ", \"AMRAP\", or \"10+\".")")
+        return nil
+    }
+
+    /// A rep target as a rep range: one number is a range of one; AMRAP is none.
+    static func range(_ target: RepTarget) -> RepRange? {
+        switch target {
+        case let .fixed(n): return RepRange(min: n, max: n)
+        case let .range(low, high): return RepRange(min: low, max: high)
+        case .amrap: return nil
+        }
+    }
+
+    /// A hold: whole seconds (a number or digits), "max" and its kin for an open hold, or "30+".
+    static func duration(_ raw: RawJSON, _ path: String, issue: Report) -> WorkTarget? {
+        if let s = raw.string?.trimmed.lowercased() {
+            if openHoldWords.contains(s) { return .openDuration(minSeconds: nil) }
+            if let m = s.captures(#"^(\d+)\s*\+$"#), let n = Int(m[1]), seconds.contains(n) { return .openDuration(minSeconds: n) }
+        }
+        guard let n = raw.integer, seconds.contains(n) else {
+            issue("E_DURATION_INVALID", path, "Use a whole number between \(seconds.lowerBound) and \(seconds.upperBound), got \(raw.display).")
+            return nil
+        }
+        return .duration(seconds: n)
+    }
+
+    /// A weight: a number, or text like "62.5", "62,5 kg", "+10". "bw" and its kin are
+    /// bodyweight, "none" or "" no weight, and a unit other than `units` is ignored with a
+    /// warning. `roundsToTenth` is a plan's rule (W_WEIGHT_ROUNDED); a progression snaps to the
+    /// equipment instead. nil is an invalid weight, reported.
+    static func weight(_ raw: RawJSON, _ path: String, _ units: WeightUnit, roundsToTenth: Bool = true,
+                       issue: Report) -> (weight: Double?, bodyweight: Bool)? {
+        var n: Double?
+        if let s = raw.string?.trimmed.lowercased() {
+            if bodyweightWords.contains(s) { return (nil, true) }
+            if ["none", ""].contains(s) { return (nil, false) }
+            if let m = s.captures(#"^\+?\s*(\d+(?:[.,]\d+)?)\s*([a-z]*)\.?$"#), m[2].isEmpty || unitWords[m[2]] != nil {
+                n = Double(m[1].replacingOccurrences(of: ",", with: "."))
+                if let unit = unitWords[m[2]], unit != units { issue("W_WEIGHT_UNIT_IGNORED", path, "The unit in \"\(s)\" was ignored; this plan uses \(units.rawValue).") }
+            }
+        } else if case let .number(value) = raw { n = value }
+        guard let n, n.isFinite, (0...maxWeight).contains(n) else {
+            issue("E_WEIGHT_INVALID", path, "\(raw.display) is not a valid weight. Use a number from 0 to \(TargetText.number(maxWeight)) in \(units.rawValue), or omit it.")
+            return nil
+        }
+        guard roundsToTenth else { return (n, false) }
+        let rounded = ((n + 1e-9) * 10).rounded(.toNearestOrAwayFromZero) / 10
+        if abs(rounded - n) > 1e-9 { issue("W_WEIGHT_ROUNDED", path, "\(n) was rounded to \(rounded).") }
+        return (rounded, false)
+    }
+
+    /// Reps text without its case, its spaces, or a trailing "reps".
+    private static func bare(_ text: String) -> String {
+        text.trimmed.lowercased().replacing(#"\s*reps?$"#, with: "")
+    }
+}
+
 private struct PlanNormalizer {
     let settings: Settings
     let now: Date
@@ -124,7 +229,7 @@ private struct PlanNormalizer {
     /// D52 (v1.5): an outline's days have names and no exercises yet.
     var allowEmptyDays = false
     var issues: [Issue] = []
-    mutating func issue(_ code: String, _ path: String, _ message: String) { issues.append(Issue(severity: code.hasPrefix("E_") ? .error : .warning, code: code, path: path, message: message)) }
+    mutating func issue(_ code: String, _ path: String, _ message: String) { issues.append(Issue(code: code, path: path, message: message)) }
     mutating func unknown(_ raw: RawJSON, _ known: Set<String>, _ path: String) {
         for key in (raw.object?.keys.sorted() ?? []) where !known.contains(key) { issue("W_UNKNOWN_FIELD", path.isEmpty ? key : path + "." + key, "Field \"\(key)\" was ignored.") }
     }
@@ -148,46 +253,15 @@ private struct PlanNormalizer {
         return String(text.prefix(100))
     }
     mutating func reps(_ raw: RawJSON, _ path: String, rangeOnly: Bool = false) -> RepTarget? {
-        let code = rangeOnly ? "E_REPRANGE_INVALID" : "E_REPS_INVALID"
-        func badMessage() -> String { "\(raw.display) is not a valid \(rangeOnly ? "rep range" : "reps value"). Use a whole number, a range like \"8-12\"\(rangeOnly ? "." : ", \"AMRAP\", or \"10+\".")" }
-        if case let .number(n) = raw, n.isFinite, n.rounded() == n, (1...1000).contains(n) { return .fixed(Int(n)) }
-        if let string = raw.string {
-            let s = string.trimmed.lowercased().replacing(#"\s*reps?$"#, with: "")
-            if !rangeOnly && ["amrap","max","failure","to failure","as many as possible"].contains(s) { return .amrap(min: nil) }
-            if !rangeOnly, let m = s.captures(#"^(\d+)\s*\+$"#), let n = Int(m[1]), (1...1000).contains(n) { return .amrap(min: n) }
-            if let m = s.captures(#"^(\d+)\s*(?:-|–|—|/|to)\s*(\d+)$"#), let a = Int(m[1]), let b = Int(m[2]), (1...1000).contains(a), (1...1000).contains(b) {
-                if a > b { issue("W_RANGE_SWAPPED", path, "\"\(s)\" was read as \(b)-\(a).") }
-                return a == b ? .fixed(a) : .range(min: min(a,b), max: max(a,b))
-            }
-            if s.matches(#"^\d+$"#), let n = Int(s), (1...1000).contains(n) { return .fixed(n) }
-        }
-        issue(code, path, badMessage()); return nil
+        TargetGrammar.reps(raw, path, rangeOnly: rangeOnly) { issue($0, $1, $2) }
     }
     mutating func duration(_ raw: RawJSON, _ path: String) -> WorkTarget? {
-        if let s = raw.string?.trimmed.lowercased() {
-            if ["max","open","amsap","as long as possible","to failure"].contains(s) { return .openDuration(minSeconds: nil) }
-            if let m = s.captures(#"^(\d+)\s*\+$"#), let n = Int(m[1]), (1...86400).contains(n) { return .openDuration(minSeconds: n) }
-        }
-        guard let n = integer(raw, path, "E_DURATION_INVALID", 1...86400) else { return nil }
-        return .duration(seconds: n)
+        TargetGrammar.duration(raw, path) { issue($0, $1, $2) }
     }
-    static let units = ["kg": WeightUnit.kg, "kgs": .kg, "kilogram": .kg, "kilograms": .kg, "lb": .lb, "lbs": .lb, "pound": .lb, "pounds": .lb]
-    static let bodyweightWords: Set<String> = ["bw", "bodyweight", "body weight"]
+    /// An invalid weight is reported and read as none.
     mutating func weight(_ raw: RawJSON?, _ path: String, _ units: WeightUnit) -> (weight: Double?, bodyweight: Bool) {
         guard let raw else { return (nil, false) }
-        var n: Double?
-        if let s = raw.string?.trimmed.lowercased() {
-            if Self.bodyweightWords.contains(s) { return (nil, true) }
-            if ["none", ""].contains(s) { return (nil, false) }
-            if let m = s.captures(#"^\+?\s*(\d+(?:[.,]\d+)?)\s*([a-z]*)\.?$"#), m[2].isEmpty || Self.units[m[2]] != nil {
-                n = Double(m[1].replacingOccurrences(of: ",", with: "."))
-                if let unit = Self.units[m[2]], unit != units { issue("W_WEIGHT_UNIT_IGNORED", path, "The unit in \"\(s)\" was ignored; this plan uses \(units.rawValue).") }
-            }
-        } else if case let .number(value) = raw { n = value }
-        guard let n, n.isFinite, (0...10000).contains(n) else { issue("E_WEIGHT_INVALID", path, "\(raw.display) is not a valid weight. Use a number from 0 to 10000 in \(units.rawValue), or omit it."); return (nil, false) }
-        let rounded = ((n + 1e-9) * 10).rounded(.toNearestOrAwayFromZero) / 10
-        if abs(rounded - n) > 1e-9 { issue("W_WEIGHT_ROUNDED", path, "\(n) was rounded to \(rounded).") }
-        return (rounded, false)
+        return TargetGrammar.weight(raw, path, units) { issue($0, $1, $2) } ?? (nil, false)
     }
     enum WarningSpec { case off, percent, seconds(Int) }
     mutating func warning(_ raw: RawJSON?, _ path: String) -> WarningSpec? {
@@ -242,11 +316,7 @@ private struct PlanNormalizer {
         if let rr = raw["repRange"] {
             if hasDuration && !hasReps { issue("W_REPRANGE_IGNORED", path + ".repRange", "repRange is ignored on a timed exercise.") }
             else if let parsed = reps(rr, path + ".repRange", rangeOnly: true) {
-                switch parsed {
-                case let .fixed(n): repRange = RepRange(min: n, max: n)
-                case let .range(a,b): repRange = RepRange(min: a, max: b)
-                case .amrap: break
-                }
+                repRange = TargetGrammar.range(parsed)
                 if let rr = repRange, case let .fixed(n)? = exReps, !(rr.min...rr.max).contains(n) { issue("W_REPRANGE_OUTSIDE", path + ".repRange", "The reps target \(n) is outside repRange \(rr.min)-\(rr.max).") }
             }
         } else if case let .range(a,b)? = exReps { repRange = RepRange(min: a, max: b) }
@@ -330,7 +400,7 @@ private struct PlanNormalizer {
         let pname = name(raw["name"], "name", "Imported plan \(today)")
         var units = settings.units
         if let u = raw["units"] {
-            if let s = u.string, let parsed = Self.units[s.trimmed.lowercased()] { units = parsed }
+            if let s = u.string, let parsed = TargetGrammar.unitWords[s.trimmed.lowercased()] { units = parsed }
             else { issue("E_UNITS_INVALID", "units", "units must be \"kg\" or \"lb\", got \(u.display).") }
         }
         let planRest = integer(raw["defaultRestSeconds"], "defaultRestSeconds", "E_REST_INVALID", 0...3600)

@@ -160,7 +160,8 @@ final class PlanEditTests: XCTestCase {
         XCTAssertNil(PlanEdit.parseWork("0s"))
         XCTAssertEqual(PlanEdit.parseRange("8-12"), RepRange(min: 8, max: 12))
         XCTAssertNil(PlanEdit.parseRange("12-8"), "a backwards range is not a range")
-        XCTAssertNil(PlanEdit.parseRange("8"))
+        // TL2 (D96): the field reads a range as a plan's repRange is read — one number is 8–8.
+        XCTAssertEqual(PlanEdit.parseRange("8"), RepRange(min: 8, max: 8))
     }
 
     // L45: `text(for:)` and `parseWork` are inverses. Without this, opening the edit sheet on a
@@ -168,8 +169,8 @@ final class PlanEditTests: XCTestCase {
     // an AMRAP rep target while `.openDuration(30)` is a hold.
     func testWorkTextRoundTripsThroughTheParser() throws {
         let every: [WorkTarget] = [
-            .reps(.fixed(0)), .reps(.fixed(1)), .reps(.fixed(12)), .reps(.fixed(999)),
-            .reps(.range(min: 8, max: 12)), .reps(.range(min: 1, max: 999)),
+            .reps(.fixed(1)), .reps(.fixed(12)), .reps(.fixed(1000)),
+            .reps(.range(min: 8, max: 12)), .reps(.range(min: 1, max: 1000)),
             .reps(.amrap(min: nil)), .reps(.amrap(min: 5)),
             .duration(seconds: 1), .duration(seconds: 45), .duration(seconds: 86_400),
             .openDuration(minSeconds: nil), .openDuration(minSeconds: 30),
