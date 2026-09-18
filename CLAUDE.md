@@ -281,6 +281,17 @@ extension and the tests, and the bundle regenerated. What remains is the owner's
 v1.7 to v1.11 rows all need the phone), the Developer Program, a release Xcode and the submission
 (`docs/APP_STORE.md` §1 and §6).
 
+`docs/ITERATION_13_PLAN.md` is the v1.12 plan (milestones **L0–L8**), written 2026-09-17 from the
+owner's note after a review of the whole codebase — *"I want logic to be reused wherever possible, I
+don't want logic duplicates anywhere"*. The rule is **one owner for each piece of logic** (D96): every
+rule, parser, formatter, lookup and piece of text lives once, Core owns it unless it draws, and where
+two copies disagreed SPEC decides, else the stricter rule, logged. `tools/reference_import.py` stays as
+the sanctioned copy (the owner's choice: it is the fixtures' independent oracle). Nothing changes on
+disk. L1 one parser per value, L2 one JSON grammar, L3 plans and the schedule, L4 the session and the
+Workout screen, L5 the chatbot screens, L6 the other views, L7 tools and the tests' support, L8 the
+documents. Dead code, misnamed files and long functions the review found are parked at the plan's end,
+with two bugs first in line. L0 is written; nothing else is built.
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
