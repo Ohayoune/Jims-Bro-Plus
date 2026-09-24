@@ -266,7 +266,11 @@ final class ProgressionTests: XCTestCase {
 
         var library = PlanLibrary()
         library.save(plan, makeActive: true)
+        // F1 (2026-09-24): Edit the text is an edit, so it keeps the progression as Apply does;
+        // only a name-conflict Replace on import starts a new plan without one (§6.21).
         library.replace(plan.id, with: self.plan())
+        XCTAssertEqual(library.plans[0].progression, plan.progression)
+        library.save(self.plan(), conflict: .replace)
         XCTAssertNil(library.plans[0].progression)
     }
 

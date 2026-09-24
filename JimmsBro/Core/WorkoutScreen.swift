@@ -311,6 +311,8 @@ enum WorkoutText {
     /// D83 (v1.10): zone 5 on a page behind, and on a page ahead.
     static func back(to name: String) -> String { "Back to \(name)" }
     static let doNow = "Do this now"
+    /// F2 (2026-09-24): Skip exercise's alert — it skips every set left in the block at once.
+    static func skipExercise(_ name: String) -> String { "Skip the rest of \(name)?" }
 }
 
 /// The whole workout screen as data. Views render it; they compute nothing.

@@ -34,7 +34,7 @@ final class MetricsTests: XCTestCase {
         XCTAssertEqual(value(metrics, "Sets"), "3 of 3")
         XCTAssertEqual(value(metrics, "Volume"), "1,800 kg")
         XCTAssertEqual(value(metrics, "Reps"), "30")
-        XCTAssertEqual(value(metrics, "Heaviest set"), "60 kg × 10")
+        XCTAssertEqual(value(metrics, "Heaviest set"), "10 × 60 kg")
         XCTAssertEqual(value(metrics, "Average set"), "0:34")
         XCTAssertEqual(note(metrics, "Working"), "6% of the session")
     }

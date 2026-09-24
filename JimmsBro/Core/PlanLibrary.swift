@@ -37,19 +37,17 @@ struct PlanLibrary {
         if activePlanId == nil || makeActive { activePlanId = incoming.id }
         return incoming.id
     }
-    /// Plan detail's explicit **Replace** (D25/v1.1, SPEC §4.3): replaces `id` outright, keeping
-    /// its id and cycle position mapping, regardless of what the incoming plan's name matches.
-    /// Unlike `save`'s name-based conflict handling, the intent here is already explicit.
+    /// Plan detail's **Edit the text** (D25/v1.1, SPEC §4.3; named so since D95): the whole plan's
+    /// text saved in `id`'s place, regardless of what the incoming plan's name matches — unlike
+    /// `save`'s name-based conflict handling, the intent here is already explicit. It is an edit, as
+    /// **Apply** is (D94), so it has Apply's one owner, `ChangeRequest.applied`: the id, the import
+    /// date, the cycle's place and anchor (D37 — new text is not a reason for the calendar to move)
+    /// and, since the 2026-09-24 screen audit (F1, §6.21), the progression stay.
     @discardableResult mutating func replace(_ id: UUID, with imported: Plan) -> UUID? {
         guard let index = plans.firstIndex(where: { $0.id == id }) else { return nil }
         var incoming = imported
         incoming.name = incoming.name.trimmed
-        incoming.id = id
-        incoming.cyclePosition = PlanSchedule.positionAfterReplacement(old: plans[index], new: incoming)
-        // v1.3: the anchor (D37) belongs to the position, so it stays with it — replacing the
-        // plan's text is not a reason for the calendar to move.
-        incoming.cycleAnchor = incoming.cyclePosition == nil ? nil : plans[index].cycleAnchor
-        plans[index] = incoming
+        plans[index] = ChangeRequest.applied(incoming, to: plans[index])
         return id
     }
     mutating func deletePlan(_ id: UUID) {

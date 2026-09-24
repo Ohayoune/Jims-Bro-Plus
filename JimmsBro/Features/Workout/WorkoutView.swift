@@ -19,6 +19,8 @@ struct WorkoutView: View {
     @State private var showing: Int?
     /// D42 (v1.3): the exercise Change exercise was opened for.
     @State private var changing: ChangeTarget?
+    /// F2 (2026-09-24): the exercise Skip exercise is asking about.
+    @State private var skipping: ChangeTarget?
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -85,6 +87,16 @@ struct WorkoutView: View {
             Button("Discard", role: .destructive) { Task { await model.discardSession(); dismiss() } }
             Button("Keep going", role: .cancel) {}
         }
+        // F2 (2026-09-24): Skip exercise asks first, as Finish does beside it — it skips every
+        // set left in the block at once, and only each set's own dot brings one back.
+        .alert(WorkoutText.skipExercise(skipping?.name ?? ""), isPresented: Binding(
+            get: { skipping != nil }, set: { if !$0 { skipping = nil } })) {
+            Button("Skip exercise") {
+                guard let target = skipping else { return }
+                Task { await model.apply(.skipExercise(exerciseIndex: target.exerciseIndex)) }
+            }
+            Button("Keep going", role: .cancel) {}
+        }
         // D24: this cover is presented over RootView, so its copy of the alert cannot be seen
         // from here. A set logged into a store that refuses writes must still say so.
         .saveFailureAlert(model: model, enabled: true)
@@ -105,7 +117,8 @@ struct WorkoutView: View {
                               now: now, showOverview: $showOverview,
                               editing: $editing, showing: $showing,
                               minimize: { dismiss() }, finish: requestFinish,
-                              changeExercise: { changing = ChangeTarget(exerciseIndex: $0, name: $1) })
+                              changeExercise: { changing = ChangeTarget(exerciseIndex: $0, name: $1) },
+                              skipExercise: { skipping = ChangeTarget(exerciseIndex: $0, name: $1) })
                 .toolbar(.hidden, for: .navigationBar)
         } else if let session = model.session, model.phase == .completed {
             SummaryView(session: session) { dismiss() }
@@ -127,8 +140,8 @@ struct WorkoutView: View {
     }
 }
 
-/// D42: which exercise the Change exercise sheet is about, captured when the menu is tapped
-/// so the sheet is not chasing a step that moved while it was open.
+/// D42: which exercise the Change exercise sheet — and, since F2, Skip exercise's alert — is
+/// about, captured when the menu is tapped so neither chases a step that moved while it was open.
 private struct ChangeTarget: Identifiable {
     var exerciseIndex: Int
     var name: String
@@ -150,6 +163,8 @@ private struct WorkoutScreenView: View {
     let finish: () -> Void
     /// D42 (v1.3): opens Change exercise for (exercise index, its current name).
     let changeExercise: (Int, String) -> Void
+    /// F2 (2026-09-24): asks before Skip exercise, for (exercise index, its current name).
+    let skipExercise: (Int, String) -> Void
 
     @State private var repsText = ""
     @State private var weightText = ""
@@ -240,9 +255,7 @@ private struct WorkoutScreenView: View {
             .accessibilityLabel("Minimize")
             Menu {
                 Button("Skip set") { Task { await model.apply(.skipSet(step: screen.step)) } }
-                Button("Skip exercise") {
-                    Task { await model.apply(.skipExercise(exerciseIndex: screen.exerciseIndex)) }
-                }
+                Button("Skip exercise") { skipExercise(screen.exerciseIndex, screen.currentName) }
                 // D28 (v1.1): the machine is taken. Not the same as giving up on it.
                 if model.canDefer(exerciseIndex: screen.exerciseIndex) {
                     Button("Do later") {

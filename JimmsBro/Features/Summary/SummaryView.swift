@@ -106,17 +106,15 @@ struct SummaryView: View {
         return parts.joined(separator: " · ")
     }
 
-    /// "PR 85 kg × 5" for the best record this exercise set today, or nil when it set none.
+    /// "PR 5 × 85 kg" for the best record this exercise set today, or nil when it set none.
     private func recordText(index: Int) -> String? {
         let mine = records.filter { session.steps[$0].exerciseIndex == index }
         guard !mine.isEmpty else { return nil }
         let results = mine.compactMap { session.steps[$0].result }
         guard let best = SessionStats.best(mine.map { session.steps[$0] }) ?? results.last
         else { return nil }
-        if let seconds = best.seconds { return "PR \(TargetText.time(seconds))" }
-        guard let reps = best.reps else { return "PR" }
-        guard let weight = best.weight else { return "PR \(reps) reps" }
-        return "PR \(TargetText.number(weight)) \(session.units.rawValue) × \(reps)"
+        // F4 (2026-09-24): the record in the words every best set uses.
+        return ExerciseText.bestSet(best, units: session.units).map { "PR \($0)" } ?? "PR"
     }
 
     private func adviceLine(index: Int, exercise: SessionExercise) -> String? {

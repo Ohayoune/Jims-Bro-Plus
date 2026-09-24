@@ -256,6 +256,16 @@ enum StepCard {
         return text
     }
 
+    /// F4 (2026-09-24): a set standing alone — "10 × 60 kg", reps first as every row writes it,
+    /// with the unit a row leaves to its list. Last time, Best, Heaviest set, Find an exercise's
+    /// top set and the Summary's record all say it this way; until F4 the last four put the
+    /// weight first ("60 kg × 10"). Compact keeps v1.5's "10 @ 60", which names no unit.
+    static func setText(_ result: SetResult, units: WeightUnit, wording: Wording = .plain) -> String {
+        let text = resultText(result, wording: wording)
+        guard wording == .plain, result.weight != nil else { return text }
+        return text + " " + units.rawValue
+    }
+
     /// The current exercise's set rows: every set of a straight exercise, or just the current
     /// round's members for a superset. Written and tested in v1.1's R1 milestone; zone 2 drew it
     /// until v1.10, when the rows became dots and a card (D81), and its tests still pin the
@@ -293,10 +303,8 @@ enum StepCard {
             // written here rather than in the view, so a test can pin it (Y13's rule).
             let lastTime = Prefill.historicalResult(session: session, step: i, history: history)
                 .map { result -> String in
-                    let text = resultText(result, wording: wording)
-                    guard wording == .plain else { return "last " + text }
-                    let unit = result.weight == nil ? "" : " \(session.units.rawValue)"
-                    return "Last time " + text + unit
+                    wording == .plain ? "Last time " + setText(result, units: session.units)
+                                      : "last " + resultText(result, wording: wording)
                 }
             return SetRow(stepIndex: i, status: s.status, isCurrent: i == index,
                          label: rowLabel(session: session, step: i, naming: naming,

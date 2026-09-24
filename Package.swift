@@ -32,6 +32,7 @@ let package = Package(
                       "JimmsBroTests/DeferExerciseTests.swift",
                       "JimmsBroTests/PlanEditTests.swift",
                       "JimmsBroTests/OneOwnerTests.swift",
+                      "JimmsBroTests/ScreenAuditTests.swift",
                       "JimmsBroTests/RecordsAndChartTests.swift",
                       "JimmsBroTests/RestoreTests.swift",
                       "JimmsBroTests/DefectFixesTests.swift",

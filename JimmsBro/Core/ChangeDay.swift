@@ -79,6 +79,10 @@ struct DayChoices: Equatable {
     struct Back: Equatable {
         /// "Back to Push as written", after the pattern's day for the date.
         var title: String
+        /// F2 (2026-09-24): Back discards what was written for the date, so it asks first —
+        /// "Discard Wednesday's exercises?" — and says what the date becomes.
+        var question: String
+        var message: String
         var slot: DaySwap.Slot
     }
 
@@ -206,6 +210,12 @@ enum ChangeDayText {
 
     /// The ···'s item that removes the date's own day: "Back to Push as written".
     static func back(dayName: String) -> String { "Back to \(dayName) as written" }
+    /// F2 (2026-09-24): Back's alert — it discards what was written for the date — and the
+    /// line beneath, which says what the date becomes.
+    static func discardOwn(weekday: String) -> String { "Discard \(weekday)'s exercises?" }
+    static func backResult(weekday: String, dayName: String) -> String {
+        "\(weekday) goes back to \(dayName) as written."
+    }
 
     /// Edit the text's Save: the text's day goes back into the editor, and nothing is written.
     static func replace(dayName: String) -> String { "Replace \(dayName)" }
@@ -272,7 +282,10 @@ extension PlanLibrary {
         let back = own.map { _ -> DayChoices.Back in
             let base = PlanSchedule.base(plan, on: day, today: now, calendar: calendar)
             let name = base.name(in: plan)
-            return DayChoices.Back(title: ChangeDayText.back(dayName: name ?? HomeStart.restTitle),
+            let dayName = name ?? HomeStart.restTitle
+            return DayChoices.Back(title: ChangeDayText.back(dayName: dayName),
+                                   question: ChangeDayText.discardOwn(weekday: weekdayName),
+                                   message: ChangeDayText.backResult(weekday: weekdayName, dayName: dayName),
                                    slot: name.map { .day(name: $0) } ?? .rest)
         }
         let exercises = current.map { shown in

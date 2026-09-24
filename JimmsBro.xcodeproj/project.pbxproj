@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		F7F8BA0794884451B694F465 /* OneOwnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD9507C75914D11933AAA27 /* OneOwnerTests.swift */; };
+		3BFBFF2D69A98B1D09E45D15 /* ScreenAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E44A79B882A72AF184D6D1 /* ScreenAuditTests.swift */; };
 		E16F441EDAB243F9BCC66CA8 /* Trip.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5119285A20A4585838ABDB6 /* Trip.swift */; };
 		3EC58CC2C20144CC95029349 /* PlanDiffTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 462A36633BAA4B6AA4F25957 /* PlanDiffTests.swift */; };
 		40253CAA47094B5FB9DA3E6B /* DayEditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46802729DBEF4909B87775E9 /* DayEditTests.swift */; };
@@ -200,6 +201,7 @@
 
 /* Begin PBXFileReference section */
 		FBD9507C75914D11933AAA27 /* OneOwnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneOwnerTests.swift; sourceTree = "<group>"; };
+		50E44A79B882A72AF184D6D1 /* ScreenAuditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenAuditTests.swift; sourceTree = "<group>"; };
 		462A36633BAA4B6AA4F25957 /* PlanDiffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanDiffTests.swift; sourceTree = "<group>"; };
 		46802729DBEF4909B87775E9 /* DayEditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayEditTests.swift; sourceTree = "<group>"; };
 		5826B19BE4BD4291B107BA79 /* RoundTripProgressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundTripProgressionTests.swift; sourceTree = "<group>"; };
@@ -507,6 +509,7 @@
 			isa = PBXGroup;
 			children = (
 				FBD9507C75914D11933AAA27 /* OneOwnerTests.swift */,
+				50E44A79B882A72AF184D6D1 /* ScreenAuditTests.swift */,
 				462A36633BAA4B6AA4F25957 /* PlanDiffTests.swift */,
 				46802729DBEF4909B87775E9 /* DayEditTests.swift */,
 				5826B19BE4BD4291B107BA79 /* RoundTripProgressionTests.swift */,
@@ -937,6 +940,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F7F8BA0794884451B694F465 /* OneOwnerTests.swift in Sources */,
+				3BFBFF2D69A98B1D09E45D15 /* ScreenAuditTests.swift in Sources */,
 				3EC58CC2C20144CC95029349 /* PlanDiffTests.swift in Sources */,
 				40253CAA47094B5FB9DA3E6B /* DayEditTests.swift in Sources */,
 				0A962ADD41184E81A51923F9 /* RoundTripProgressionTests.swift in Sources */,

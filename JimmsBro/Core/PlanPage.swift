@@ -29,6 +29,13 @@ enum PlanText {
 
     /// The button's words, which say what it does: "Use Upper Lower".
     static func useTitle(_ plan: Plan) -> String { "Use \(plan.name)" }
+
+    /// F2 (2026-09-24): a swipe's question before an exercise leaves the plan — "Delete Bench
+    /// Press from Push?" — nil when the address has gone since.
+    static func deleteExercise(_ plan: Plan, day: Int, exercise: Int) -> String? {
+        guard let named = plan.days[safe: day], let gone = named.exercises[safe: exercise] else { return nil }
+        return "Delete \(gone.name) from \(named.name)?"
+    }
 }
 
 extension RepeatBlock {

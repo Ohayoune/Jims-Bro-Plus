@@ -21,6 +21,8 @@ struct JSONFragmentSheet: View {
     @State private var showDetails = false
     @State private var saving = false
     @State private var loaded = false
+    /// F3 (2026-09-24): Cancel with the text changed, asking before the change goes.
+    @State private var discarding = false
     @ScaledMetric(relativeTo: .footnote) private var editorHeight: CGFloat = 300
 
     var body: some View {
@@ -60,8 +62,9 @@ struct JSONFragmentSheet: View {
             .navigationTitle(point.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { if dirty { discarding = true } else { dismiss() } } }
             }
+            .discardGuard(dirty, asking: $discarding) { dismiss() }
             .bottomAction {
                 PrimaryButton(title: point.saveTitle, enabled: !text.trimmed.isEmpty && !saving) { save() }
             }
@@ -72,6 +75,9 @@ struct JSONFragmentSheet: View {
             }
         }
     }
+
+    /// F3 (2026-09-24): the text changed from the one the sheet opened with.
+    private var dirty: Bool { loaded && text != point.template }
 
     /// D26's rule for errors: the sentence first, the path and the code behind Details. A
     /// sentence whose line is marked sits beneath that line instead (D77).

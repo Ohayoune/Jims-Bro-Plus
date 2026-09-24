@@ -90,11 +90,10 @@ struct ExerciseHistoryView: View {
     }
 
     private func sets(_ point: ExercisePoint) -> String {
-        point.sets.map { result in
-            let value = result.reps.map(String.init) ?? result.seconds.map(TargetText.time) ?? "–"
-            return value + (result.weight.map { "@\(TargetText.number($0))" } ?? "")
-        }
-        .joined(separator: ", ")
+        // F4 (2026-09-24): the rows' own words, in the notation the setting chose — "10@100"
+        // whatever the setting said until then.
+        point.sets.map { StepCard.resultText($0, wording: model.settings.wording) }
+            .joined(separator: ", ")
     }
 
     /// Only the parts that have content, per SPEC §4.0.
@@ -102,7 +101,7 @@ struct ExerciseHistoryView: View {
         var parts: [String] = []
         if point.volume > 0 { parts.append("\(TargetText.grouped(point.volume)) \(units.rawValue)") }
         if let weight = point.topWeight, let reps = point.topSetReps {
-            parts.append("top \(TargetText.number(weight)) \(units.rawValue) × \(reps)")
+            parts.append("top " + StepCard.setText(.reps(count: reps, weight: weight), units: units))
         } else if let seconds = point.topSeconds {
             parts.append("longest \(TargetText.time(seconds))")
         }

@@ -212,7 +212,7 @@ struct ImportTrip: Equatable {
 
     /// Plan detail's **Edit the text** (D95): the plan's own text, saved in place.
     static func replacing(_ name: String, text: String) -> JSONPoint {
-        planPoint(template: text, place: "All of \(name). Its history and its place in the cycle stay.",
+        planPoint(template: text, place: "All of \(name). Its history, its place in the cycle and its progression stay.",
                   saveTitle: "Replace \(name)")
     }
 

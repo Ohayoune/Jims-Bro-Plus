@@ -28,6 +28,8 @@ struct ExerciseEditSheet: View {
     @State private var fields: PlanEdit.ExerciseFields
     /// The value form's refusal, until the next Save.
     @State private var refusal: String?
+    /// F3 (2026-09-24): Cancel with a field changed, asking before the change goes.
+    @State private var discarding = false
 
     /// The operation form (D29).
     init(exercise: Exercise, units: WeightUnit, editAsJSON: (() -> Void)? = nil,
@@ -115,13 +117,17 @@ struct ExerciseEditSheet: View {
             .navigationTitle("Edit exercise")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { if dirty { discarding = true } else { dismiss() } } }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") { save() }.disabled(!fields.canSave)
                 }
             }
+            .discardGuard(dirty, asking: $discarding) { dismiss() }
         }
     }
+
+    /// F3 (2026-09-24): a field changed from the exercise as it opened.
+    private var dirty: Bool { fields != PlanEdit.ExerciseFields(exercise) }
 
     /// Only the fields that actually changed are sent, so an untouched exercise is untouched.
     private func save() {

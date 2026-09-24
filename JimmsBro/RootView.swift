@@ -167,6 +167,18 @@ struct RootView: View {
 }
 
 extension View {
+    /// F3 (2026-09-24): a screen holding edits keeps them until you say otherwise. While `dirty`
+    /// the swipe that closes its sheet does nothing, and its way out — Cancel, or a pushed
+    /// screen's back — asks first, in an alert with two named buttons (§4.0, D56). Until F3 every
+    /// sheet but Add plan's draft dropped its edits without a word.
+    func discardGuard(_ dirty: Bool, asking: Binding<Bool>, discard: @escaping () -> Void) -> some View {
+        interactiveDismissDisabled(dirty)
+            .alert("Discard changes?", isPresented: asking) {
+                Button("Discard", role: .destructive, action: discard)
+                Button("Keep editing", role: .cancel) {}
+            }
+    }
+
     /// D24 (v1.1): the save-failure alert, attached wherever the user can actually see it.
     /// Saves fail most often mid-workout, which is exactly when the workout cover is over
     /// `RootView`, so the alert has to be presented from whichever view is on top.

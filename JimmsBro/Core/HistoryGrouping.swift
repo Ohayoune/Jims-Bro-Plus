@@ -45,13 +45,13 @@ enum ExerciseText {
         return longest.map { "Best: \(TargetText.time($0))" }
     }
 
-    /// A best set: "60 kg × 10", "10 reps" without a weight, or a hold's time. History's line
-    /// and the Summary's metrics both say it this way.
+    /// A best set: "10 × 60 kg" (`StepCard.setText` — "60 kg × 10" until F4), "10 reps" without a
+    /// weight, or a hold's time. History's line, the Summary's metrics and its record say it this way.
     static func bestSet(_ result: SetResult, units: WeightUnit) -> String? {
         if let seconds = result.seconds { return TargetText.time(seconds) }
         guard let reps = result.reps else { return nil }
-        guard let weight = result.weight else { return "\(reps) reps" }
-        return "\(TargetText.number(weight)) \(units.rawValue) × \(reps)"
+        guard result.weight != nil else { return "\(reps) reps" }
+        return StepCard.setText(result, units: units)
     }
 
     /// One logged step as the detail screens show it: "10 × 60 · 0:34". D58 (v1.6): the same

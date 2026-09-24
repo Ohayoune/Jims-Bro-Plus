@@ -1,5 +1,35 @@
 # Build status
 
+Updated 2026-09-24. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
+2026-09-24), and the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
+against each other) is built on branch `fix-first` off it; L2–L8 are not built.
+
+## v1.12 F (F1–F4): built and green on `fix-first`
+
+Edit the text keeps the progression (F1); Skip exercise, a swipe-delete on Plan detail and the
+day editor's Back ask first (F2); screens holding edits ask before discarding them (F3); a set
+reads reps first everywhere (F4). `docs/DECISIONS_LOG.md` has the why, `docs/TEST_CASES.md` TF1–TF5
+the cases; W38, TN35 and J5 were amended, SPEC §6.7, §6.21 and §6.67 say the same.
+
+### Run for F
+
+On `fix-first`, 2026-09-24: `xcodebuild test` on the iPhone 17 simulator, 447 tests, 0 failures;
+`swift test`, 446 tests, 0 failures; `python3 tools/check_core.py`, 446 test bodies, 9,010
+assertions, 0 failures; the Release build succeeded and `python3 tools/check_release.py` is ready
+(still version 1.11 (1) — v1.12's number is L8's); `python3 tools/check_bundle.py` current after
+`python3 tools/build_bundle.py`.
+
+Before, on `main` at a5d7d28 (L1): `swift test` 443 tests, 0 failures; `python3 tools/check_core.py`
+443 test bodies, 0 failures (after deleting `build/core-checks/module-cache`, compiled when the
+project lived under `~/Desktop/SummerProjects`); `python3 tools/check_bundle.py` current.
+
+### Not run for F
+
+TF3 and TF4, the manual cases, were not yet walked through on the simulator: the alerts and the
+guard are built and compiled, not seen. No device row is new.
+
+## Earlier (v1.11 and before)
+
 Updated 2026-09-17. **v1.11 is built and green on branch `v1.11-round-trip` (off `v1.10-symbols`
 at 33e7d50): N0–N7, the whole release.** v1.10 and everything before it are below, unchanged except where a later milestone corrected
 them; the device checklist, the Developer Program, a release Xcode and the submission itself are

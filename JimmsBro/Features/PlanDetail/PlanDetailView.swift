@@ -23,6 +23,8 @@ struct PlanDetailView: View {
     @State private var confirmDelete = false
     /// D29 (v1.1): basic plan editing, so a one-word change doesn't mean a round trip to a chatbot.
     @State private var editing: ExerciseAddress?
+    /// F2 (2026-09-24): the exercise a swipe asked to delete, until the alert answers.
+    @State private var deletingExercise: ExerciseAddress?
     @State private var renamingDay: Int?
     @State private var draftDayName = ""
     @State private var editError: String?
@@ -122,6 +124,17 @@ struct PlanDetailView: View {
                 // popover on iOS 26 and drops its Cancel.
                 .alert("Delete \(plan.name)?", isPresented: $confirmDelete) {
                     Button("Delete", role: .destructive) { Task { await model.deletePlan(planId); dismiss() } }
+                    Button("Cancel", role: .cancel) {}
+                }
+                // F2 (2026-09-24): a swipe asks before an exercise leaves the plan, as a plan's and
+                // a workout's do — the edit is written at once, and nothing brings it back.
+                .alert(deletingExercise.flatMap { PlanText.deleteExercise(plan, day: $0.day, exercise: $0.exercise) } ?? "",
+                       isPresented: Binding(get: { deletingExercise != nil },
+                                            set: { if !$0 { deletingExercise = nil } })) {
+                    Button("Delete", role: .destructive) {
+                        guard let address = deletingExercise else { return }
+                        edit(.deleteExercise(day: address.day, exercise: address.exercise))
+                    }
                     Button("Cancel", role: .cancel) {}
                 }
                 .sheet(isPresented: $replacing) {
@@ -254,7 +267,8 @@ struct PlanDetailView: View {
         }
         .onDelete { offsets in
             guard let position = offsets.first else { return }
-            edit(.deleteExercise(day: index, exercise: position))
+            // F2 (2026-09-24): asked first, as a plan's and a workout's swipe are.
+            deletingExercise = ExerciseAddress(day: index, exercise: position)
         }
         // D59 (v1.6): Add exercise as a row, not only behind the day's ···;
         // Start as a button, not a text link at the end of a list.

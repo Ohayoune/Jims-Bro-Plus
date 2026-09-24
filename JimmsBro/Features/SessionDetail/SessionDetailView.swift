@@ -178,6 +178,8 @@ struct EditResultSheet: View {
     @State private var valueText = ""
     @State private var weightText = ""
     @State private var loaded = false
+    /// F3 (2026-09-24): Cancel with a field changed, asking before the change goes.
+    @State private var discarding = false
 
     var body: some View {
         NavigationStack {
@@ -203,7 +205,7 @@ struct EditResultSheet: View {
             .navigationTitle("Edit set")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { if dirty { discarding = true } else { dismiss() } } }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") { commit() }.disabled(!canSave)
                 }
@@ -211,12 +213,20 @@ struct EditResultSheet: View {
             .task {
                 guard !loaded else { return }
                 loaded = true
-                let result = target.result
-                valueText = result?.reps.map(String.init) ?? result?.seconds.map(String.init) ?? ""
-                weightText = InputRules.weightText(result?.weight)
+                valueText = originalValue
+                weightText = originalWeight
             }
+            .discardGuard(dirty, asking: $discarding) { dismiss() }
         }
     }
+
+    /// The set as it was logged, as the fields first show it.
+    private var originalValue: String {
+        target.result?.reps.map(String.init) ?? target.result?.seconds.map(String.init) ?? ""
+    }
+    private var originalWeight: String { InputRules.weightText(target.result?.weight) }
+    /// F3 (2026-09-24): a field changed from the set as it was logged.
+    private var dirty: Bool { loaded && (valueText != originalValue || weightText != originalWeight) }
 
     private var canSave: Bool {
         target.isTimed ? InputRules.secondsValue(valueText) != nil

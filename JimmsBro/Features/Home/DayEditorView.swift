@@ -26,6 +26,11 @@ struct DayEditorView: View {
     @State private var refusal: String?
     /// Add exercise's search as it opens: empty but for a debug run's `-uiEditor add <query>`.
     @State private var debugQuery = ""
+    /// F2 (2026-09-24): Back to the day as written, asked before it discards the date's own day.
+    @State private var confirmBack = false
+    /// F3 (2026-09-24): Back with the card changed, asking before the change goes.
+    @State private var discarding = false
+    @Environment(\.dismiss) private var dismiss
 
     init(date: Date, exercises: DayChoices.Exercises, finished: @escaping () -> Void) {
         self.date = date
@@ -78,7 +83,16 @@ struct DayEditorView: View {
         }
         .navigationTitle(exercises.title)
         .navigationBarTitleDisplayMode(.inline)
+        // F3 (2026-09-24): with the card changed, the way back asks before it drops the change —
+        // the system's button is hidden, which stops the edge swipe too, and this one stands in.
+        .navigationBarBackButtonHidden(dirty)
         .toolbar {
+            if dirty {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { discarding = true } label: { Image(systemName: "chevron.backward") }
+                        .accessibilityLabel("Back")
+                }
+            }
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 8) {
                     DaySquare(colour: exercises.face.colour, size: 12, outlined: exercises.face.outlined)
@@ -89,11 +103,7 @@ struct DayEditorView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     if let back = exercises.back {
-                        Button(back.title) {
-                            // D48: back to Today at once; the write follows.
-                            Task { await model.chooseDay(back.slot, for: date) }
-                            finished()
-                        }
+                        Button(back.title) { confirmBack = true }
                     }
                     // D95: the text is the ···'s last item.
                     Button(ChangeDayText.editText) { text = exercises.textPoint(day) }
@@ -132,6 +142,20 @@ struct DayEditorView: View {
             }
         }
         #endif
+        // F2 (2026-09-24): Back discards what was written for the date, so it asks first — an
+        // alert with two named buttons, as every confirmation from a ··· is (§4.0, D56).
+        .alert(exercises.back?.question ?? "", isPresented: $confirmBack) {
+            Button("Discard", role: .destructive) {
+                guard let back = exercises.back else { return }
+                // D48: back to Today at once; the write follows.
+                Task { await model.chooseDay(back.slot, for: date) }
+                finished()
+            }
+            Button("Keep them", role: .cancel) {}
+        } message: {
+            Text(exercises.back?.message ?? "")
+        }
+        .discardGuard(dirty, asking: $discarding) { dismiss() }
         .sheet(item: $editing) { exercise in
             ExerciseEditSheet(exercise: exercise, units: exercises.units) { edited in
                 replace(exercise, with: edited)
@@ -193,6 +217,9 @@ struct DayEditorView: View {
         refusal = nil
         return []
     }
+
+    /// F3 (2026-09-24): the card changed from the day it opened on.
+    private var dirty: Bool { day != exercises.day }
 
     /// Use for Wednesday: checked first, so a refusal stays on the screen; then, as D48 has it,
     /// back to Today at once and the write behind it.

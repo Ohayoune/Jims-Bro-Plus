@@ -313,7 +313,14 @@ with two bugs first in line. L0–L1 are built and green on `v1.12-one-of-each`:
 importer, a progression step and the exercise sheet — with `PlanJSON.string` the one JSON escaper,
 `TargetText.number` the one number, `RawJSON.jsonText` the one encoder, `Issue.isPlanInWords` the one
 reading of a plan in words and `ProgressionScreen.defaultMode` the one default mode (TL1–TL5,
-`JimmsBroTests/OneOwnerTests.swift`). L2–L8 are not built.
+`JimmsBroTests/OneOwnerTests.swift`). L2–L8 are not built. Before L2 came **F**, fix-first, from a
+2026-09-24 audit of the screens against each other (F1–F4 in `docs/DECISIONS_LOG.md`, TF1–TF5,
+`JimmsBroTests/ScreenAuditTests.swift`), built and green on `fix-first`: **Edit the text** keeps the
+progression, as Apply does (F1 — `PlanLibrary.replace` goes through `ChangeRequest.applied`); Skip
+exercise, a swipe-delete on Plan detail and the day editor's Back ask first (F2); a sheet or the day
+editor holding edits ignores the swipe and asks before discarding them (F3, `View.discardGuard` in
+`RootView.swift`); and a set standing alone reads reps first — *"10 × 60 kg"* — everywhere (F4,
+`StepCard.setText`).
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -977,7 +984,7 @@ A v1.2 defect fixed here, because the splice goes through the same `apply`: a pl
 - **The reply** (`ProgressionImport`, PROGRESSION_FORMAT.md): a small JSON — `weeks` and one entry per exercise with an array of week objects. Read with the plan importer's leniency, matched to the plan by day and exercise name (§6.9), every weight snapped to the loadable increment, weights on bodyweight exercises dropped, and everything dropped or short **said**: material warnings on the review, tidying behind Details. Nothing about the plan's structure changes.
 - **The week** is calendar weeks from `startDate`, which is the day the progression is saved. `Session.start` applies the current week to the day's snapshot (D7 holds: the session records what it was asked to do) and stamps the week on the exercises it touched. An exercise, week or set the progression says nothing about keeps the plan's own target; a range of reps also becomes the rep range advice judges by. The day after the last week, the plan's own targets and advice are back — nothing lingers.
 - **On the workout**, prefill shows the week's weight and reps (§6.5, rule 0) and the chip says which week (§6.11). The Summary's line and Session detail's first line carry "week 3 of 8". Home's subtitle carries it too, and when it has run out Home offers **Plan the next one**.
-- **Edits keep it, Replace drops it.** A structured or JSON edit (D29, D43) carries the progression through — entries match by name, so a renamed exercise simply stops matching. Edit JSON / Replace of the whole plan, or a name-conflict Replace on import, starts a new plan without one. **v1.11 (D94, §6.67)**: a change applied from **Say what should change** is an edit, not a Replace — **Apply** keeps the progression, entries matching by name as every edit's do — while the whole-plan replace of **Edit the text** still drops it.
+- **Edits keep it, a new plan starts without one** (*"Edits keep it, Replace drops it"* until v1.12). A structured or JSON edit (D29, D43) carries the progression through — entries match by name, so a renamed exercise simply stops matching. Edit JSON / Replace of the whole plan, or a name-conflict Replace on import, starts a new plan without one. **v1.11 (D94, §6.67)**: a change applied from **Say what should change** is an edit, not a Replace — **Apply** keeps the progression, entries matching by name as every edit's do — while the whole-plan replace of **Edit the text** still drops it. **v1.12 (F1, the 2026-09-24 screen audit)**: **Edit the text** keeps it too. Its sheet said the plan's history and its place in the cycle stay and said nothing of the progression it dropped, one screen from an Apply that kept it; the text is the same plan, edited, so it is saved through Apply's `ChangeRequest.applied` and the sheet names the progression among what stays. Only a name-conflict Replace on import — a new plan — starts without one.
 
 ### 6.22 A tap's result before its side effects (D48, v1.4)
 "Sometimes when a button is pressed it takes a second for the app to load." The second was the workout cover waiting for `startDay` to finish, and `startDay` finished only when everything it causes had landed: the rest notification through `UNUserNotificationCenter` (one round-trip per request), `plans.json` through the store actor, and the Live Activity through ActivityKit, which is the slow one and the newest. The engine itself was ready in the first line; everything after it was the system being told, and Home and Plan detail both waited for the telling before setting `showWorkout`.
@@ -1183,7 +1190,7 @@ Today's card and the grid in History's calendar (Home's until v1.7, D63) read th
 - `ExerciseHistory.series(name, units) -> [ExercisePoint]`: one point per completed session containing the exercise, oldest first: `date`, `sets: [SetResult]`, `setSeconds: [Int?]`, `topWeight`, `topSetReps` (reps at topWeight), `topSeconds` (longest duration set), `volume`, `units`. This is the data source for the time-vs-weight-and-reps chart, which v1.1's R5 built on top of it with no schema change (D13, D30); it must run under 50 ms for 1000 sessions.
 - Sets logged/total counts steps; skipped steps count in total only.
 - Volume = Σ (reps × weight) over logged rep-based steps (drops included) that have a weight. Timed steps and weightless steps contribute 0. Displayed in the session's units. Never summed across sessions with different units (History list shows per-session volume only).
-- Exercise best = the logged set with the highest weight; tie → more reps. Rep-based sets only. Shown as "Best: 100 kg × 5". If no weighted sets: most reps.
+- Exercise best = the logged set with the highest weight; tie → more reps. Rep-based sets only. Shown as "Best: 5 × 100 kg" — reps first, as §4.0's *"Last time 10 × 100 kg"* and every row say a set (v1.12's F4; *"Best: 100 kg × 5"* until then, the one place a set put its weight first). If no weighted sets: most reps.
 - "This time vs last time" on Summary compares per exercise to the most recent earlier completed session containing that exercise.
 
 ### 6.8 Plans, active plan, cycle, weekday (D16)
@@ -1648,7 +1655,7 @@ The *chatbot prompt per fragment* v1.9 parked, built the other way round: not a 
 - **The door.** Plan detail's ··· gains **Say what should change**, before **Edit the text**, for the plan on the page. It pushes a screen with one field — *What should change?* — the strip small beneath it, and **Send the prompt** with Copy beneath, disabled until something is typed. The prompt is PROMPT.md §7 (`Prompts.change(plan:request:settings:)`, marker `JIMMSBRO-CHANGE-PROMPT-V1`): the request verbatim under **WHAT TO CHANGE**, and the plan's canonical JSON — not the listing, which loses rest, notes and in reserve — under **MY PLAN**. No history. The prompt pasted back is `E_PROMPT_PASTED`, as for the plan prompt (TN4).
 - **The paste** runs the pipeline as any plan (`PlanImport.run`), then compares (`PlanDiff.between(old:new:)`): days matched **by name only** — a day paired by position and renamed would have no line at all, and the review would read *Nothing changed* over a changed plan, so a renamed day is a day removed and a day added (the owner's reading, N6; the plan proposed "by name, then by position"); within a day, exercises matched by name in order — the longest shared run — then by position between those matches. The plan's own fields are lines too, `.plan(.name / .units / .schedule / .walk)`, so a reply that only renamed the plan or moved the rest day is not *Nothing changed*; the cycle's line is left out when a day came or went, whose own line says it. The lines are an exercise **replaced** (a different name at a matched position), **changed** (the same name, different targets — `TargetText.summary` both sides), **removed**, **added**, a day added, a day removed, and a day unchanged. The count is every line but an unchanged day. An exercise moved within a day is two lines, not none — the plan's choice; a *moved* line is parked.
 - **The review** is titled **2 changes** (*1 change*, *Nothing changed*), grouped by day with the day's square: a replaced exercise as the old name struck above the new in ink with the new targets, a removed one struck with *removed*, an added one with *added*, a changed one with its targets from and to, and an unchanged day as one grey line. *Worth knowing* stays. The button reads **Apply 2 changes**. *Nothing changed* has no button: the strip is lit at *Chat* with the sentence *"The reply is the plan as it was. Say it differently, or ask the chatbot again."*
-- **Apply is an edit, not a Replace** (`AppModel.applyChange(planId:plan:)`): the plan keeps its id, its import date, its cycle position and anchor, **and its progression**, whose entries match by name as every edit's do (§6.21) — a renamed exercise simply stops matching — and the new text becomes the canonical rendering. D43's *"Replace drops it"* stays true of **Edit the text**'s whole-plan replace.
+- **Apply is an edit, not a Replace** (`AppModel.applyChange(planId:plan:)`): the plan keeps its id, its import date, its cycle position and anchor, **and its progression**, whose entries match by name as every edit's do (§6.21) — a renamed exercise simply stops matching — and the new text becomes the canonical rendering. D43's *"Replace drops it"* stayed true of **Edit the text**'s whole-plan replace until v1.12's F1 made it an edit too (§6.21).
 - **A reply that is not a plan, or is cut short**, is Refused with the sentence and **Ask for the whole plan**, as on Add plan.
 - **Core decides it**: `ChangeRequest` (`Core/ChangeRequest.swift`) — the request, the stage, the strip and buttons, the diff and the refusal — and `PlanDiff` (`Core/PlanDiff.swift`).
 - **Not here**: history in the prompt (the request is about the plan), a change said from Today's ··· (Plan detail's is the one door), and a diff of sets within an exercise beyond `TargetText.summary`'s sentence.
@@ -2782,7 +2789,7 @@ Fixtures referenced as `valid/x.json` / `invalid/x.txt` live in `examples/`; `ex
 | J2 | unit | Sets without weight | contribute 0 |
 | J3 | unit | Timed sets with weight | contribute 0 |
 | J4 | unit | Skipped sets | excluded from volume and logged count; included in total |
-| J5 | unit | Best set among 100×5, 100×3, 95×8 | 100 × 5 |
+| J5 | unit | Best set among 5 × 100, 3 × 100, 8 × 95 (reps × kg) | 5 × 100 |
 | J6 | unit | Best set with no weights | most reps |
 | J7 | unit | Best set with only timed sets | none (nil) |
 | J8 | unit | Duration | endedAt − startedAt; a session crossing midnight still grouped under start date |
@@ -3069,7 +3076,7 @@ is testable without a phone; Q71–Q73 need the device and live in `DEVICE_CHECK
 | W35 | unit | (D44, v1.3) A fenced reply with prose, a name the plan does not have, a lower-cased match, a weight on a bodyweight exercise, an unloadable 52 kg, a short list, `null`, an unknown field and per-set values | Three entries under the plan's own names; 52 → 52.5; the material warnings are exactly unmatched, weight-ignored and short; rounding, surrounding text and the unknown field are cleanup |
 | W36 | unit | (D44, v1.3) Words; the prompt itself; `weeks: 0`; nothing matching; an entry with no name; `"reps": "eight"`; reps and a duration; a bare list of numbers; a number where a week goes | `E_NOT_JSON`, `E_PROMPT_PASTED`, `E_PROGRESSION_WEEKS_INVALID`, `E_PROGRESSION_EMPTY`, `E_PROGRESSION_EXERCISE_INVALID`, `E_REPS_INVALID` at `exercises[0].weeks[0].reps` ("exercise 1, week 1"), `E_TARGET_CONFLICT`, `E_PROGRESSION_EXERCISE_INVALID`, `E_PROGRESSION_WEEK_INVALID`; and the wrapper key, an inferred period, "55 kg" and "bw" are all read |
 | W37 | unit | (D44, v1.3) The prompt for a plan with one session of history, with and without history | The marker, the period three ways, the increment, every exercise of every day as one line, the history block with the sets and the advice; no fence anywhere; under the bound; no history block when off; pinned to PROMPT.md §3 |
-| W38 | unit | (D44, v1.3) A plan with a progression through the store's coder; the frozen v1.2 plans file; a session with a week; a structured edit; a JSON edit; Replace | Round-trips; the old file has none; the week survives; both edits keep it; Replace drops it |
+| W38 | unit | (D44, v1.3) A plan with a progression through the store's coder; the frozen v1.2 plans file; a session with a week; a structured edit; a JSON edit; Edit the text's replace; a name-conflict Replace | Round-trips; the old file has none; the week survives; both edits keep it; Edit the text's replace keeps it (F1, v1.12); a name-conflict Replace drops it |
 | W39 | unit | (D44, v1.3) Home in week 2, after the last week, and with no progression | "· week 2 of 4" in the subtitle — the ···'s line "Week 2 of 4" in v1.8 (D69), and since v1.9 (D75) History's Progression row's (`ProgressionText.status`), "Finished" after the last week; `progressionFinished` afterwards; neither without one |
 | W40 | manual | (D44, v1.3) Plans → a plan → **Progression**, pick 4 weeks, Copy prompt, paste it into a chatbot, paste its reply, Save; then start today's workout | The review shows every exercise's four weeks; Plan detail reads "Week 1 of 4"; Home's subtitle ends "week 1 of 4"; the first set's card shows the week's weight with the chip's reason naming the week |
 
@@ -3637,7 +3644,7 @@ Carried into N6, since a track edits no other document, and all nine landed ther
 | TN32 | unit | (D94, v1.11) What a change did to a plan | `PlanDiff.between` on the example: `.replaced` Barbell Bench Press → Dumbbell Bench Press in Push, `.removed` Hammer Curl in Pull, `.dayUnchanged` Legs, `count` 2, groups Push, Pull, Legs at day indices 0–2, the replaced row struck *Barbell Bench Press* above *Dumbbell Bench Press* with *4 sets of 6–8 reps · 32 kg*; the same plan imported twice is every day unchanged, count 0; Legs renamed Lower is `.dayRemoved` then `.dayAdded` with no cycle line, count 2; an exercise moved within Push is two lines, a removed and an added, not none; Pull reversed has no `.replaced` line; Overhead Press 40 → 42.5 kg is `.changed` with both summaries, and a rest-only change says *rest 1:30* and *rest 2:00*; a superset whose partner Hammer Curl is removed is the one removed line, not a second change to Face Pull, while Lat Pulldown joined to the superset is changed *… · on its own* → *… · paired with Face Pull and Hammer Curl*; Chin-Up inserted is `.added` with *added · 3 sets of 6–10 reps*; the rest day moved is one `.plan(.schedule)` line, and the plan renamed one `.plan(.name)` line, each count 1 |
 | TN33 | unit | (D94, v1.11) The screen's trip | `ChangeRequest` opens on Ask with Send disabled (`canSend` false, blank counts as nothing); typed → Ask, the change prompt, subject *Change Push Pull Legs*; sent → Paste; the reply pasted → Review with the diff, count 2, heading *2 changes*, the replaced row spoken "Barbell Bench Press, replaced by Dumbbell Bench Press, 4 sets of 6–8 reps · 32 kg", Edit the text on the reply; `restart()` → Ask with the request kept; a new request → Ask, the diff gone, Edit the text on `PlanJSON.render(plan)`; the same plan → *Nothing changed*, no button, `fixAt` 1, the strip lit at Chat, the sentence; words that are not a plan → Refused at Chat, **Ask for the whole plan** / *Copy the prompt*, the friendly sentence, `Prompts.render(errors:)`; a reply cut in half → Refused the same way; the prompt pasted back → `E_PROMPT_PASTED`, Refused at Paste, *Send the prompt*, the change prompt again; sent → Paste; an lb plan's reply with no `units` stays lb and is *Nothing changed*; the text point is *The plan* / *See what changed* with no "JSON", and marks a whole plan's error at its line; `menuItem` *Say what should change*, `placeholder` *What should change?* |
 | TN34 | unit | (D94, v1.11) The review's title and button by count | `title(count:)` 0, 1, 2 is *Nothing changed*, *1 change*, *2 changes*; `apply(count:)` 1, 2 is *Apply 1 change*, *Apply 2 changes*; a reply dropping Hammer Curl is *1 change* / `.effect("Apply 1 change")`, the example's reply *2 changes* / *Apply 2 changes* with no secondary |
-| TN35 | unit | (D94, v1.11) Apply is an edit, not a Replace | On a saved, active example plan with a performance progression for Push's Barbell Bench Press and Overhead Press, at cycle position 3 with an anchor: `AppModel.applyChange` with the reviewed reply returns true and keeps the id, the active plan, the import date, position 3, the anchor and the progression unchanged, the text the canonical rendering, Dumbbell Bench Press first in Push and no Hammer Curl; the progression still touches Overhead Press (index 1) and not the renamed bench press, whose entry stays but matches nothing; a fresh model from the same folder reads the same plan; `PlanLibrary.replace` with the same reply still drops the progression (D43); an unknown id returns false; a reply whose cycle moved Push to index 1 takes position 1 and keeps the anchor (extends W38's edit-keeps-progression case) |
+| TN35 | unit | (D94, v1.11) Apply is an edit, not a Replace | On a saved, active example plan with a performance progression for Push's Barbell Bench Press and Overhead Press, at cycle position 3 with an anchor: `AppModel.applyChange` with the reviewed reply returns true and keeps the id, the active plan, the import date, position 3, the anchor and the progression unchanged, the text the canonical rendering, Dumbbell Bench Press first in Push and no Hammer Curl; the progression still touches Overhead Press (index 1) and not the renamed bench press, whose entry stays but matches nothing; a fresh model from the same folder reads the same plan; `PlanLibrary.replace` with the same reply keeps the progression too (F1, v1.12; D43's drop until then); an unknown id returns false; a reply whose cycle moved Push to index 1 takes position 1 and keeps the anchor (extends W38's edit-keeps-progression case) |
 | TN36 | unit | (D94, v1.11, pin) The change prompt opens as published | PROMPT.md §7's block begins `JIMMSBRO-CHANGE-PROMPT-V1` (`PlanImport.changePromptMarker`) and *Change the plan below as I ask…*, and the screen's prompt begins with exactly those two lines and carries the request under WHAT TO CHANGE (extends TN4 and the M section; source read on the host routes) |
 | TN37 | ui | (D94, v1.11) The door, the field and the review | Plan detail's ··· reads Rename, Copy JSON, **Say what should change**, **Edit the text**, Add day from JSON, Delete; Say what should change pushes a screen with the field *What should change?*, the strip small beneath it lit at Prompt, and Send / Copy the prompt disabled until something is typed; after a paste of the example's reply the title is *2 changes*, Push's square heads *Barbell Bench Press* struck above *Dumbbell Bench Press* with its targets, Pull's *Hammer Curl* struck with *removed*, Legs one grey line, and **Apply 2 changes** returns to the plan with Dumbbell Bench Press in Push; the ··· holds Send the prompt again (after Ask) and Edit the text last |
 
@@ -3664,6 +3671,18 @@ The four tracks merged onto the trunk in order — N2, N3, N4, N5, each `--no-ff
 | TL3 | unit | (D96, v1.12) A step's weight reads as a plan's | `"60 lb"` in a kg plan is 60 with `W_WEIGHT_UNIT_IGNORED`; `"+10"` is 10; `"same"` is still no weight; 20000 is `E_WEIGHT_INVALID`; 62.55 is snapped once (`W_PROGRESSION_ROUNDED`), not rounded to a tenth first |
 | TL4 | unit | (D96, v1.12) Hand-written JSON quotes its text | `JSONPoint.exampleDay` and `ProgressionScreen.exampleReply` with a day or exercise named `Push "heavy" \ day` parse, and the name comes back unchanged — `exampleDay` wrote it in raw |
 | TL5 | unit | (D55, D96, v1.12) E_NOT_JSON's two readings | A plan in words is `isPlanInWords` and not `isCutShort`, a reply cut short the reverse; the refusal (`ImportTrip.Refusal.of`) and the friendly text (`IssueText.friendly`) read the same two predicates |
+
+### F — Fix first: the 2026-09-24 screen audit
+
+The audit read the screens against each other; F took the four findings that could lose work or mislead (F1–F4, `docs/DECISIONS_LOG.md`), before L2. Its ids are **TF**, so L2's can go on from TL6. `JimmsBroTests/ScreenAuditTests.swift`.
+
+| ID | Type | Title | Expected |
+|---|---|---|---|
+| TF1 | unit | (F1, v1.12) Edit the text keeps the progression | `PlanLibrary.replace` on a plan with a progression keeps it, the id, the import date and the active plan, and the text's own days land; the sheet's line names the progression among what stays; a name-conflict Replace on import starts without one. W38 and TN35 say the same since F1 |
+| TF2 | unit | (F2, v1.12) The new confirmations name what they act on | `WorkoutText.skipExercise("Bench Press")` is "Skip the rest of Bench Press?"; `PlanText.deleteExercise` is "Delete Row from Push?", nil once the address has gone; the day editor's Back on Wednesday's own day asks "Discard Wednesday's exercises?" and says "Wednesday goes back to Push as written." (DayEditTests) |
+| TF3 | manual | (F2, v1.12) Each asks before it acts | In the simulator: Skip exercise from the Workout ···, a swipe-delete of an exercise on Plan detail and Back to Push as written from the day editor's ··· each show an alert with two named buttons; the cancel changes nothing, and the confirm does what the item did before F2 |
+| TF4 | manual | (F3, v1.12) Edits are kept until you say otherwise | With a field changed, the exercise sheet, the text sheet (Plan detail's Edit the text and every other point) and Edit set ignore a swipe down, and Cancel asks "Discard changes?": Discard closes without saving, Keep editing keeps the change; the day editor's back asks the same and its edge swipe does nothing; with nothing changed each closes at once, as before |
+| TF5 | unit | (F4, v1.12) A set reads reps first, everywhere | `StepCard.setText` is "10 × 60 kg" ("10 × 60 lb", compact "10 @ 60", "10" without a weight) and a row's `resultText` "10 × 60"; `ExerciseText.bestSet` is "10 × 60 kg", "12 reps" without a weight and a hold's time for a hold, so Best, Heaviest set and the Summary's record agree (HistoryTests, MetricsTests) |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -8086,6 +8105,36 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 `````markdown
 # Build status
 
+Updated 2026-09-24. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
+2026-09-24), and the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
+against each other) is built on branch `fix-first` off it; L2–L8 are not built.
+
+## v1.12 F (F1–F4): built and green on `fix-first`
+
+Edit the text keeps the progression (F1); Skip exercise, a swipe-delete on Plan detail and the
+day editor's Back ask first (F2); screens holding edits ask before discarding them (F3); a set
+reads reps first everywhere (F4). `docs/DECISIONS_LOG.md` has the why, `docs/TEST_CASES.md` TF1–TF5
+the cases; W38, TN35 and J5 were amended, SPEC §6.7, §6.21 and §6.67 say the same.
+
+### Run for F
+
+On `fix-first`, 2026-09-24: `xcodebuild test` on the iPhone 17 simulator, 447 tests, 0 failures;
+`swift test`, 446 tests, 0 failures; `python3 tools/check_core.py`, 446 test bodies, 9,010
+assertions, 0 failures; the Release build succeeded and `python3 tools/check_release.py` is ready
+(still version 1.11 (1) — v1.12's number is L8's); `python3 tools/check_bundle.py` current after
+`python3 tools/build_bundle.py`.
+
+Before, on `main` at a5d7d28 (L1): `swift test` 443 tests, 0 failures; `python3 tools/check_core.py`
+443 test bodies, 0 failures (after deleting `build/core-checks/module-cache`, compiled when the
+project lived under `~/Desktop/SummerProjects`); `python3 tools/check_bundle.py` current.
+
+### Not run for F
+
+TF3 and TF4, the manual cases, were not yet walked through on the simulator: the alerts and the
+guard are built and compiled, not seen. No device row is new.
+
+## Earlier (v1.11 and before)
+
 Updated 2026-09-17. **v1.11 is built and green on branch `v1.11-round-trip` (off `v1.10-symbols`
 at 33e7d50): N0–N7, the whole release.** v1.10 and everything before it are below, unchanged except where a later milestone corrected
 them; the device checklist, the Developer Program, a release Xcode and the submission itself are
@@ -9518,6 +9567,10 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.12 L1 (D96): **the exercise sheet reads reps and a range as a plan does, and refuses a backwards range.** Its fields accept what the plan format accepts (`"8 to 12"`, `"10 reps"`, `"to failure"`), and its range field reads `"8"` as 8–8 the way a plan's `repRange` does — so an exercise imported with `"repRange": "8"` opens and saves untouched. A range written high to low is refused there rather than swapped, because the sheet has no warning to say it swapped it. A plan edited to `8-8` reps in v1.3–v1.11 now reads back as 8, which is the same set.
 - v1.12 L1 (D96): **E_NOT_JSON's plan-in-words reading is one predicate, and still reads the message.** `Issue.isPlanInWords` compares the message to `PlanImport.noJSONMessage`, the constant `extract` writes; a separate code would have changed `PLAN_FORMAT.md`, the manifest and the Python oracle for no behaviour change.
 - v1.12 L1 (D96): **the progression mode has one default, `ProgressionScreen.defaultMode`.** `ProgressionImport.run`, `Prompts.progression` and `ProgressionText.reason` defaulted to calendar while the screen and the Store defaulted to performance; every app caller passed one, so the Core defaults went and the tests that leaned on them say `.calendar`.
+- v1.12 F1 (the 2026-09-24 screen audit): **Edit the text keeps the progression.** Plan detail's Edit the text saved as a replace that dropped the progression (v1.3's X5, restated with D94) while its sheet said only that the plan's history and place in the cycle stay — one screen from an Apply that kept it. The owner's "fix" on the audit's recommendation, 2026-09-24, chose the edit reading: the text is the same plan, edited, so `PlanLibrary.replace` goes through Apply's `ChangeRequest.applied` (one owner, D96) and keeps the import date too, and the sheet names the progression among what stays. A name-conflict Replace on import is a new plan and still starts without one.
+- v1.12 F2: **three one-tap actions ask first.** Skip exercise (every set left in the block at once, beside a Finish that asked), a swipe-delete of an exercise on Plan detail (where a plan's and a workout's swipe asked) and the day editor's Back to *day* as written (which discards what was written for the date) each show an alert with two named buttons (§4.0, D56): *Skip exercise* / *Keep going*, *Delete* / *Cancel*, *Discard* / *Keep them*. An alert rather than an Undo: the simplest, and what Finish already does beside Skip. The swap question's Slide stays as D74 has it — the audit counted it final, but a changed answer puts the anchor back (`AppModel.chooseDay`), so whether it should mark and confirm is the owner's reading of D74, not a defect.
+- v1.12 F3: **a screen holding edits keeps them until you say otherwise.** The exercise sheet, the text sheet at every point, Edit set and the day editor dropped their edits on a swipe or on Back; only Add plan's draft asked. Now, while anything differs from what the screen opened with, a sheet's swipe does nothing (`interactiveDismissDisabled`) and Cancel asks *"Discard changes?"* — *Discard* / *Keep editing* (`View.discardGuard`, `RootView.swift`); the day editor hides the system back button, which stops the edge swipe too, behind one that asks the same. With nothing changed each closes as before. The swipe itself does not ask: SwiftUI has no hook for it short of UIKit's presentation delegate, and doing nothing loses nothing.
+- v1.12 F4: **a set reads reps first, everywhere.** Best (History, Find an exercise), Metrics' Heaviest set, Find an exercise's top set and the Summary's record said *"60 kg × 10"* — SPEC §6.7 said *"Best: 100 kg × 5"* — while every row and Last time said *"10 × 60"* (§4.0, D58). §4.0 won: `StepCard.setText` is *"10 × 60 kg"*, built on the rows' `resultText`, and all five go through it; a row in a list of sets still leaves the unit to its list, and the compact notation names none. Find an exercise's list of sets takes the rows' words too — it wrote *"10@60"* whatever the notation setting said, the item L6 had parked.
 `````
 
 ---
@@ -12117,7 +12170,14 @@ with two bugs first in line. L0–L1 are built and green on `v1.12-one-of-each`:
 importer, a progression step and the exercise sheet — with `PlanJSON.string` the one JSON escaper,
 `TargetText.number` the one number, `RawJSON.jsonText` the one encoder, `Issue.isPlanInWords` the one
 reading of a plan in words and `ProgressionScreen.defaultMode` the one default mode (TL1–TL5,
-`JimmsBroTests/OneOwnerTests.swift`). L2–L8 are not built.
+`JimmsBroTests/OneOwnerTests.swift`). L2–L8 are not built. Before L2 came **F**, fix-first, from a
+2026-09-24 audit of the screens against each other (F1–F4 in `docs/DECISIONS_LOG.md`, TF1–TF5,
+`JimmsBroTests/ScreenAuditTests.swift`), built and green on `fix-first`: **Edit the text** keeps the
+progression, as Apply does (F1 — `PlanLibrary.replace` goes through `ChangeRequest.applied`); Skip
+exercise, a swipe-delete on Plan detail and the day editor's Back ask first (F2); a sheet or the day
+editor holding edits ignores the swipe and asks before discarding them (F3, `View.discardGuard` in
+`RootView.swift`); and a set standing alone reads reps first — *"10 × 60 kg"* — everywhere (F4,
+`StepCard.setText`).
 
 Three v1.2 rules are worth knowing before touching anything:
 

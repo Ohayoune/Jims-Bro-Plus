@@ -385,10 +385,10 @@ final class PlanDiffTests: XCTestCase {
         await reloaded.load()
         XCTAssertEqual(reloaded.plans.first { $0.id == id }, after)
 
-        // Whereas the whole-plan replace of Edit the text still drops it (D43).
+        // And the whole-plan replace of Edit the text keeps it too — an edit, not a new plan (F1).
         var library = model.library
         library.replace(id, with: replied)
-        XCTAssertNil(library.plans[0].progression)
+        XCTAssertEqual(library.plans.first { $0.id == id }?.progression, after.progression)
 
         // A plan that has gone is not applied to.
         let missing = await model.applyChange(planId: UUID(), plan: replied)

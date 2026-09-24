@@ -225,6 +225,9 @@ final class DayEditTests: XCTestCase {
 
         let back = try XCTUnwrap(try wednesday(library).back)
         XCTAssertEqual(back.title, "Back to Push as written")
+        // TF2 (F2): it asks first, since it discards what was written for the date.
+        XCTAssertEqual(back.question, "Discard Wednesday's exercises?")
+        XCTAssertEqual(back.message, "Wednesday goes back to Push as written.")
         XCTAssertEqual(back.slot, .day(name: "Push"))
         library.choose(back.slot, for: day(16), now: day(16))
         XCTAssertTrue(library.swaps.isEmpty, "the own day is gone")
