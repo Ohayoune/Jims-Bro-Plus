@@ -1318,6 +1318,16 @@ The audit read the screens against each other; F took the four findings that cou
 | TF4 | manual | (F3, v1.12) Edits are kept until you say otherwise | With a field changed, the exercise sheet, the text sheet (Plan detail's Edit the text and every other point) and Edit set ignore a swipe down, and Cancel asks "Discard changes?": Discard closes without saving, Keep editing keeps the change; the day editor's back asks the same and its edge swipe does nothing; with nothing changed each closes at once, as before |
 | TF5 | unit | (F4, v1.12) A set reads reps first, everywhere | `StepCard.setText` is "10 × 60 kg" ("10 × 60 lb", compact "10 @ 60", "10" without a weight) and a row's `resultText` "10 × 60"; `ExerciseText.bestSet` is "10 × 60 kg", "12 reps" without a weight and a hold's time for a hold, so Best, Heaviest set and the Summary's record agree (HistoryTests, MetricsTests) |
 
+### L2 — One JSON grammar (D96)
+
+`JSONGrammar` (`Core/JSONGrammar.swift`) is the one JSON parser: `parse(_:)` keeps where each value and each member's key begins, and throws a `JSONGrammar.Failure` with its offset, line and column; `JSONLocator` walks that tree to a line; `valueEnd(in:from:)` is the extraction's cut. `StrictJSON`, `LocatorParser` and `PlanImport.valueEnd` are gone. The import cases, the manifest and the JSON sheet's (TQ30–TQ32) run through it unchanged.
+
+| ID | Type | Title | Expected |
+|---|---|---|---|
+| TL6 | unit | (D96, v1.12) The importer and the sheet read one grammar | Strict text — a signed number with a fraction and an exponent, escapes, CRLF and tabs between tokens — parses, decodes and has a line for `a`; a trailing comma in an object or an array, a leading zero, `.5`, `NaN`, single quotes, a bare key, a comment, `\x`, a short `\u`, a raw tab in a string and `tru` are refused by the grammar, are E_NOT_JSON to the importer and have no line to mark |
+| TL7 | unit | (D96, v1.12) A refusal says where the grammar broke | A trailing comma before `}` on line 3 is `Failure("Expected a double-quoted string", offset 12, line 3, column 1)`, and E_NOT_JSON quotes it as it always has (*"… at line 3, column 1."*); a reply cut short is *"Unexpected end of file at line 1, column 10."*; the column counts bytes, so `é` is two |
+| TL8 | unit | (D96, v1.12) The cut reads code points, as the oracle does | `extract` on *Here it is: {"a": 1}* with a combining acute after the brace and prose after that cuts `{"a": 1}` with W_SURROUNDING_TEXT, as `tools/reference_import.py` does; the cut read grapheme clusters, saw no brace and ran on to the end of the paste |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

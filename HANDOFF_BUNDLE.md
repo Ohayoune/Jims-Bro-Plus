@@ -313,14 +313,19 @@ with two bugs first in line. L0–L1 are built and green on `v1.12-one-of-each`:
 importer, a progression step and the exercise sheet — with `PlanJSON.string` the one JSON escaper,
 `TargetText.number` the one number, `RawJSON.jsonText` the one encoder, `Issue.isPlanInWords` the one
 reading of a plan in words and `ProgressionScreen.defaultMode` the one default mode (TL1–TL5,
-`JimmsBroTests/OneOwnerTests.swift`). L2–L8 are not built. Before L2 came **F**, fix-first, from a
+`JimmsBroTests/OneOwnerTests.swift`). Before L2 came **F**, fix-first, from a
 2026-09-24 audit of the screens against each other (F1–F4 in `docs/DECISIONS_LOG.md`, TF1–TF5,
 `JimmsBroTests/ScreenAuditTests.swift`), built and green on `fix-first`: **Edit the text** keeps the
 progression, as Apply does (F1 — `PlanLibrary.replace` goes through `ChangeRequest.applied`); Skip
 exercise, a swipe-delete on Plan detail and the day editor's Back ask first (F2); a sheet or the day
 editor holding edits ignores the swipe and asks before discarding them (F3, `View.discardGuard` in
 `RootView.swift`); and a set standing alone reads reps first — *"10 × 60 kg"* — everywhere (F4,
-`StepCard.setText`).
+`StepCard.setText`). L2 is built and green on `v1.12-one-of-each`, fast-forwarded to F first:
+`JSONGrammar` (`Core/JSONGrammar.swift`) is the one JSON parser — the importer's check before
+Foundation decodes a paste, the offsets `JSONLocator` walks to mark a line, and the extraction's cut
+(`JSONGrammar.valueEnd`) — in place of `StrictJSON`, `LocatorParser` and `PlanImport.valueEnd`; a
+refusal carries its place (`JSONGrammar.Failure`), and the cut reads code points, as the grammar and
+the oracle do (TL6–TL8). L3–L8 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -955,7 +960,7 @@ UI: "···" → **Change exercise**, offered whenever the exercise still has a 
 
 - **Named.** The title says what the JSON is, and the line beneath it where the text lands and for how long. The hint about what to write stays under the box while there is nothing to fix.
 - **Pre-filled.** An edit opens on the part's own text. An addition opens on the smallest example the importer takes as it stands — a Push-up, 3 sets of 8-12 with 90 s rest — or a day of it, named *Day 4* and, on a weekday plan, given the first free weekday; so a change is one number, and the Paste button replaces the box. *(v1.3–v1.8: a template whose blank name Save refused.)*
-- **The error at the line.** The pipeline's path is the plan's (`days[1].exercises[2].sets[0].reps`); the point makes it the text's through the fragment reader's own record of where it read each value (`PlanEdit.located`), and `JSONLocator` (`Core/JSONLocator.swift`) walks the text as strict JSON to the line where that member's key, or that element, begins. The line is tinted, with a bar at its edge, and the sentence sits beneath it in a gap the text flows around — without its place, because the line is the place (*"The reps need to be a number, a range like 8-12, or AMRAP."*). **It never marks the wrong line**: text that is not exactly one JSON value (prose around it, a fence, a trailing comma, curly quotes), a key written twice, a path into a key or an index that is not there, the whole text, an error about the paste as a whole (two exercises where one goes), a day the reader gathered from loose exercises, and another part of the plan all mark nothing, and the sentence shows under the box with its place (*"Day 2, exercise 3, set 1: …"*). An edit to the text unmarks every line until the next Save, because a line that moved would be the wrong one; meanwhile the sentences are under the box.
+- **The error at the line.** The pipeline's path is the plan's (`days[1].exercises[2].sets[0].reps`); the point makes it the text's through the fragment reader's own record of where it read each value (`PlanEdit.located`), and `JSONLocator` (`Core/JSONLocator.swift`) walks the text as strict JSON — the importer's own grammar, `JSONGrammar` — to the line where that member's key, or that element, begins. The line is tinted, with a bar at its edge, and the sentence sits beneath it in a gap the text flows around — without its place, because the line is the place (*"The reps need to be a number, a range like 8-12, or AMRAP."*). **It never marks the wrong line**: text that is not exactly one JSON value (prose around it, a fence, a trailing comma, curly quotes), a key written twice, a path into a key or an index that is not there, the whole text, an error about the paste as a whole (two exercises where one goes), a day the reader gathered from loose exercises, and another part of the plan all mark nothing, and the sentence shows under the box with its place (*"Day 2, exercise 3, set 1: …"*). An edit to the text unmarks every line until the next Save, because a line that moved would be the wrong one; meanwhile the sentences are under the box.
 - **Save says its effect** — never a bare Save.
 
 The whole plan keeps the Add plan screen (Edit JSON), and a progression its own; a chatbot prompt per fragment is parked (ITERATION_10_PLAN).
@@ -3683,6 +3688,16 @@ The audit read the screens against each other; F took the four findings that cou
 | TF3 | manual | (F2, v1.12) Each asks before it acts | In the simulator: Skip exercise from the Workout ···, a swipe-delete of an exercise on Plan detail and Back to Push as written from the day editor's ··· each show an alert with two named buttons; the cancel changes nothing, and the confirm does what the item did before F2 |
 | TF4 | manual | (F3, v1.12) Edits are kept until you say otherwise | With a field changed, the exercise sheet, the text sheet (Plan detail's Edit the text and every other point) and Edit set ignore a swipe down, and Cancel asks "Discard changes?": Discard closes without saving, Keep editing keeps the change; the day editor's back asks the same and its edge swipe does nothing; with nothing changed each closes at once, as before |
 | TF5 | unit | (F4, v1.12) A set reads reps first, everywhere | `StepCard.setText` is "10 × 60 kg" ("10 × 60 lb", compact "10 @ 60", "10" without a weight) and a row's `resultText` "10 × 60"; `ExerciseText.bestSet` is "10 × 60 kg", "12 reps" without a weight and a hold's time for a hold, so Best, Heaviest set and the Summary's record agree (HistoryTests, MetricsTests) |
+
+### L2 — One JSON grammar (D96)
+
+`JSONGrammar` (`Core/JSONGrammar.swift`) is the one JSON parser: `parse(_:)` keeps where each value and each member's key begins, and throws a `JSONGrammar.Failure` with its offset, line and column; `JSONLocator` walks that tree to a line; `valueEnd(in:from:)` is the extraction's cut. `StrictJSON`, `LocatorParser` and `PlanImport.valueEnd` are gone. The import cases, the manifest and the JSON sheet's (TQ30–TQ32) run through it unchanged.
+
+| ID | Type | Title | Expected |
+|---|---|---|---|
+| TL6 | unit | (D96, v1.12) The importer and the sheet read one grammar | Strict text — a signed number with a fraction and an exponent, escapes, CRLF and tabs between tokens — parses, decodes and has a line for `a`; a trailing comma in an object or an array, a leading zero, `.5`, `NaN`, single quotes, a bare key, a comment, `\x`, a short `\u`, a raw tab in a string and `tru` are refused by the grammar, are E_NOT_JSON to the importer and have no line to mark |
+| TL7 | unit | (D96, v1.12) A refusal says where the grammar broke | A trailing comma before `}` on line 3 is `Failure("Expected a double-quoted string", offset 12, line 3, column 1)`, and E_NOT_JSON quotes it as it always has (*"… at line 3, column 1."*); a reply cut short is *"Unexpected end of file at line 1, column 10."*; the column counts bytes, so `é` is two |
+| TL8 | unit | (D96, v1.12) The cut reads code points, as the oracle does | `extract` on *Here it is: {"a": 1}* with a combining acute after the brace and prose after that cuts `{"a": 1}` with W_SURROUNDING_TEXT, as `tools/reference_import.py` does; the cut read grapheme clusters, saw no brace and ran on to the end of the paste |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -8106,8 +8121,35 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 # Build status
 
 Updated 2026-09-24. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
-2026-09-24), and the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
-against each other) is built on branch `fix-first` off it; L2–L8 are not built.
+2026-09-24); the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
+against each other) was built on branch `fix-first` off it, and **L2** on `v1.12-one-of-each`,
+fast-forwarded to `fix-first` first. L3–L8 are not built.
+
+## v1.12 L2: built and green on `v1.12-one-of-each`
+
+One JSON grammar: `JSONGrammar` (`Core/JSONGrammar.swift`) is the importer's check, the JSON sheet's
+walk to a line and the extraction's cut, in place of `StrictJSON`, the locator's `LocatorParser` and
+`PlanImport.valueEnd`. `docs/DECISIONS_LOG.md` has the why, `docs/TEST_CASES.md` TL6–TL8 the cases;
+SPEC §6.19 names the grammar.
+
+### Run for L2
+
+On `v1.12-one-of-each`, 2026-09-24: `xcodebuild test` on the iPhone 17 simulator, 450 tests, 0
+failures; `swift test`, 449 tests, 0 failures; `python3 tools/check_core.py`, 449 test bodies, 9,064
+assertions, 0 failures; `python3 tools/reference_import.py`, 118/118 fixtures match; the Release build
+succeeded and `python3 tools/check_release.py` is ready (still version 1.11 (1)); `python3
+tools/check_bundle.py` current after `python3 tools/build_bundle.py`.
+
+A scratch harness, not committed, ran the old `StrictJSON`, `LocatorParser` and `valueEnd` beside
+`JSONGrammar` over 327,783 texts — every file in `examples/`, each cut short at every byte and missing
+each byte (sampled past 6 KB), random edits with the bytes JSON turns on, curly quotes, and hand-written
+edges (nesting 256–258, a BOM, CRLF, a lone `-`, short escapes). Every text got the same verdict,
+message, tree and lines, and 778,753 of 778,758 cuts the same end; the other 5 are TL8's case, a
+delimiter with a combining mark after it, and each now gives the oracle's answer.
+
+### Not run for L2
+
+No manual case is new, and nothing on screen changed.
 
 ## v1.12 F (F1–F4): built and green on `fix-first`
 
@@ -9571,6 +9613,8 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.12 F2: **three one-tap actions ask first.** Skip exercise (every set left in the block at once, beside a Finish that asked), a swipe-delete of an exercise on Plan detail (where a plan's and a workout's swipe asked) and the day editor's Back to *day* as written (which discards what was written for the date) each show an alert with two named buttons (§4.0, D56): *Skip exercise* / *Keep going*, *Delete* / *Cancel*, *Discard* / *Keep them*. An alert rather than an Undo: the simplest, and what Finish already does beside Skip. The swap question's Slide stays as D74 has it — the audit counted it final, but a changed answer puts the anchor back (`AppModel.chooseDay`), so whether it should mark and confirm is the owner's reading of D74, not a defect.
 - v1.12 F3: **a screen holding edits keeps them until you say otherwise.** The exercise sheet, the text sheet at every point, Edit set and the day editor dropped their edits on a swipe or on Back; only Add plan's draft asked. Now, while anything differs from what the screen opened with, a sheet's swipe does nothing (`interactiveDismissDisabled`) and Cancel asks *"Discard changes?"* — *Discard* / *Keep editing* (`View.discardGuard`, `RootView.swift`); the day editor hides the system back button, which stops the edge swipe too, behind one that asks the same. With nothing changed each closes as before. The swipe itself does not ask: SwiftUI has no hook for it short of UIKit's presentation delegate, and doing nothing loses nothing.
 - v1.12 F4: **a set reads reps first, everywhere.** Best (History, Find an exercise), Metrics' Heaviest set, Find an exercise's top set and the Summary's record said *"60 kg × 10"* — SPEC §6.7 said *"Best: 100 kg × 5"* — while every row and Last time said *"10 × 60"* (§4.0, D58). §4.0 won: `StepCard.setText` is *"10 × 60 kg"*, built on the rows' `resultText`, and all five go through it; a row in a list of sets still leaves the unit to its list, and the compact notation names none. Find an exercise's list of sets takes the rows' words too — it wrote *"10@60"* whatever the notation setting said, the item L6 had parked.
+- v1.12 L2 (D96): **one JSON grammar.** `JSONGrammar` (`Core/JSONGrammar.swift`) is the one JSON parser: the importer checks a paste with it before Foundation decodes one, the JSON sheet's `JSONLocator` walks the offsets its parse keeps, and the extraction's cut (`JSONGrammar.valueEnd`) reads its strings loosely — `StrictJSON`, the locator's `LocatorParser` and `PlanImport.valueEnd` are gone. A refusal is a `JSONGrammar.Failure` with its offset, line and column, and E_NOT_JSON's sentence is the one it always was, its column still counting bytes. No rule changed: the manifest, the oracle and every `examples/invalid/` code and path are as they were, and over 327,783 texts — every fixture, each cut short at every byte and missing each byte, and random edits — the old parsers and the new one gave the same verdict, message, tree and lines.
+- v1.12 L2 (D96): **the cut reads code points, as the grammar and the oracle do.** `valueEnd` walked grapheme clusters while the grammar walks bytes and `tools/reference_import.py` code points, so a brace, a bracket or a quote with a combining mark after it was no delimiter to the cut — `{"a": 1}` followed by U+0301 and prose ran on to the end of the paste. The cut moved into the grammar and reads what it reads; of 778,758 cuts compared, the 5 that moved were each such a delimiter, and all 5 now agree with the oracle (TL8).
 `````
 
 ---
@@ -12170,14 +12214,19 @@ with two bugs first in line. L0–L1 are built and green on `v1.12-one-of-each`:
 importer, a progression step and the exercise sheet — with `PlanJSON.string` the one JSON escaper,
 `TargetText.number` the one number, `RawJSON.jsonText` the one encoder, `Issue.isPlanInWords` the one
 reading of a plan in words and `ProgressionScreen.defaultMode` the one default mode (TL1–TL5,
-`JimmsBroTests/OneOwnerTests.swift`). L2–L8 are not built. Before L2 came **F**, fix-first, from a
+`JimmsBroTests/OneOwnerTests.swift`). Before L2 came **F**, fix-first, from a
 2026-09-24 audit of the screens against each other (F1–F4 in `docs/DECISIONS_LOG.md`, TF1–TF5,
 `JimmsBroTests/ScreenAuditTests.swift`), built and green on `fix-first`: **Edit the text** keeps the
 progression, as Apply does (F1 — `PlanLibrary.replace` goes through `ChangeRequest.applied`); Skip
 exercise, a swipe-delete on Plan detail and the day editor's Back ask first (F2); a sheet or the day
 editor holding edits ignores the swipe and asks before discarding them (F3, `View.discardGuard` in
 `RootView.swift`); and a set standing alone reads reps first — *"10 × 60 kg"* — everywhere (F4,
-`StepCard.setText`).
+`StepCard.setText`). L2 is built and green on `v1.12-one-of-each`, fast-forwarded to F first:
+`JSONGrammar` (`Core/JSONGrammar.swift`) is the one JSON parser — the importer's check before
+Foundation decodes a paste, the offsets `JSONLocator` walks to mark a line, and the extraction's cut
+(`JSONGrammar.valueEnd`) — in place of `StrictJSON`, `LocatorParser` and `PlanImport.valueEnd`; a
+refusal carries its place (`JSONGrammar.Failure`), and the cut reads code points, as the grammar and
+the oracle do (TL6–TL8). L3–L8 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

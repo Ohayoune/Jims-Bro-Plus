@@ -1,8 +1,35 @@
 # Build status
 
 Updated 2026-09-24. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
-2026-09-24), and the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
-against each other) is built on branch `fix-first` off it; L2–L8 are not built.
+2026-09-24); the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
+against each other) was built on branch `fix-first` off it, and **L2** on `v1.12-one-of-each`,
+fast-forwarded to `fix-first` first. L3–L8 are not built.
+
+## v1.12 L2: built and green on `v1.12-one-of-each`
+
+One JSON grammar: `JSONGrammar` (`Core/JSONGrammar.swift`) is the importer's check, the JSON sheet's
+walk to a line and the extraction's cut, in place of `StrictJSON`, the locator's `LocatorParser` and
+`PlanImport.valueEnd`. `docs/DECISIONS_LOG.md` has the why, `docs/TEST_CASES.md` TL6–TL8 the cases;
+SPEC §6.19 names the grammar.
+
+### Run for L2
+
+On `v1.12-one-of-each`, 2026-09-24: `xcodebuild test` on the iPhone 17 simulator, 450 tests, 0
+failures; `swift test`, 449 tests, 0 failures; `python3 tools/check_core.py`, 449 test bodies, 9,064
+assertions, 0 failures; `python3 tools/reference_import.py`, 118/118 fixtures match; the Release build
+succeeded and `python3 tools/check_release.py` is ready (still version 1.11 (1)); `python3
+tools/check_bundle.py` current after `python3 tools/build_bundle.py`.
+
+A scratch harness, not committed, ran the old `StrictJSON`, `LocatorParser` and `valueEnd` beside
+`JSONGrammar` over 327,783 texts — every file in `examples/`, each cut short at every byte and missing
+each byte (sampled past 6 KB), random edits with the bytes JSON turns on, curly quotes, and hand-written
+edges (nesting 256–258, a BOM, CRLF, a lone `-`, short escapes). Every text got the same verdict,
+message, tree and lines, and 778,753 of 778,758 cuts the same end; the other 5 are TL8's case, a
+delimiter with a combining mark after it, and each now gives the oracle's answer.
+
+### Not run for L2
+
+No manual case is new, and nothing on screen changed.
 
 ## v1.12 F (F1–F4): built and green on `fix-first`
 

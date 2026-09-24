@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		34644F2F3E0747A2A89AC448 /* JSONGrammar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C85973815D642D197C6A014 /* JSONGrammar.swift */; };
 		F7F8BA0794884451B694F465 /* OneOwnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD9507C75914D11933AAA27 /* OneOwnerTests.swift */; };
 		3BFBFF2D69A98B1D09E45D15 /* ScreenAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E44A79B882A72AF184D6D1 /* ScreenAuditTests.swift */; };
 		E16F441EDAB243F9BCC66CA8 /* Trip.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5119285A20A4585838ABDB6 /* Trip.swift */; };
@@ -200,6 +201,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		6C85973815D642D197C6A014 /* JSONGrammar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONGrammar.swift; sourceTree = "<group>"; };
 		FBD9507C75914D11933AAA27 /* OneOwnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneOwnerTests.swift; sourceTree = "<group>"; };
 		50E44A79B882A72AF184D6D1 /* ScreenAuditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenAuditTests.swift; sourceTree = "<group>"; };
 		462A36633BAA4B6AA4F25957 /* PlanDiffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanDiffTests.swift; sourceTree = "<group>"; };
@@ -589,6 +591,7 @@
 		94A0426E8D3203DA5468CCF0 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				6C85973815D642D197C6A014 /* JSONGrammar.swift */,
 				31FDCA675B824705B92E379E /* ChangeRequest.swift */,
 				DF8F27959AF0431088F22004 /* PlanDiff.swift */,
 				3C2D1030A73748AD8435B1DD /* ExerciseNames.swift */,
@@ -844,6 +847,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				34644F2F3E0747A2A89AC448 /* JSONGrammar.swift in Sources */,
 				4804A52836724DA8AD3E3DD4 /* ExerciseEditSheet.swift in Sources */,
 				DE066E8142954A9C96E2C6F2 /* ChangePlanView.swift in Sources */,
 				64B06166D42144DBBC54C69E /* DayEditorView.swift in Sources */,

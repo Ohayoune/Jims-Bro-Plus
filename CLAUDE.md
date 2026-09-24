@@ -295,14 +295,19 @@ with two bugs first in line. L0–L1 are built and green on `v1.12-one-of-each`:
 importer, a progression step and the exercise sheet — with `PlanJSON.string` the one JSON escaper,
 `TargetText.number` the one number, `RawJSON.jsonText` the one encoder, `Issue.isPlanInWords` the one
 reading of a plan in words and `ProgressionScreen.defaultMode` the one default mode (TL1–TL5,
-`JimmsBroTests/OneOwnerTests.swift`). L2–L8 are not built. Before L2 came **F**, fix-first, from a
+`JimmsBroTests/OneOwnerTests.swift`). Before L2 came **F**, fix-first, from a
 2026-09-24 audit of the screens against each other (F1–F4 in `docs/DECISIONS_LOG.md`, TF1–TF5,
 `JimmsBroTests/ScreenAuditTests.swift`), built and green on `fix-first`: **Edit the text** keeps the
 progression, as Apply does (F1 — `PlanLibrary.replace` goes through `ChangeRequest.applied`); Skip
 exercise, a swipe-delete on Plan detail and the day editor's Back ask first (F2); a sheet or the day
 editor holding edits ignores the swipe and asks before discarding them (F3, `View.discardGuard` in
 `RootView.swift`); and a set standing alone reads reps first — *"10 × 60 kg"* — everywhere (F4,
-`StepCard.setText`).
+`StepCard.setText`). L2 is built and green on `v1.12-one-of-each`, fast-forwarded to F first:
+`JSONGrammar` (`Core/JSONGrammar.swift`) is the one JSON parser — the importer's check before
+Foundation decodes a paste, the offsets `JSONLocator` walks to mark a line, and the extraction's cut
+(`JSONGrammar.valueEnd`) — in place of `StrictJSON`, `LocatorParser` and `PlanImport.valueEnd`; a
+refusal carries its place (`JSONGrammar.Failure`), and the cut reads code points, as the grammar and
+the oracle do (TL6–TL8). L3–L8 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

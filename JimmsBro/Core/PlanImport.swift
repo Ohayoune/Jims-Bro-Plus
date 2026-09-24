@@ -53,36 +53,23 @@ enum PlanImport {
             surrounding = !text.replacing(pattern, with: "").trimmed.isEmpty
         } else {
             guard let start = text.firstIndex(where: { $0 == "{" || $0 == "[" }) else { return failure("E_NOT_JSON", noJSONMessage) }
-            if let end = valueEnd(text, start: start) {
+            if let end = JSONGrammar.valueEnd(in: text, from: start) {
                 let suffix = String(text[end...]).trimmed
                 if suffix.hasPrefix("{") || suffix.hasPrefix("[") { return failure("E_MULTIPLE_OBJECTS", "Found more than one JSON object. Paste just one plan.") }
                 body = String(text[start..<end]); surrounding = !text[..<start].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !suffix.isEmpty
             } else { body = String(text[start...]) }
         }
         // A single fence can still contain two top-level JSON values.
-        if let start = body.firstIndex(where: { $0 == "{" || $0 == "[" }), let end = valueEnd(body, start: start) {
+        if let start = body.firstIndex(where: { $0 == "{" || $0 == "[" }), let end = JSONGrammar.valueEnd(in: body, from: start) {
             let suffix = body[end...].trimmingCharacters(in: .whitespacesAndNewlines)
             if suffix.hasPrefix("{") || suffix.hasPrefix("[") { return failure("E_MULTIPLE_OBJECTS", "Found more than one JSON object. Paste just one plan.") }
         }
         return ImportStage(value: body, issues: surrounding ? [Issue(severity: .warning, code: "W_SURROUNDING_TEXT", path: "", message: "Text around the JSON was ignored.")] : [])
     }
-    static func valueEnd(_ text: String, start: String.Index) -> String.Index? {
-        var depth = 0, quoted = false, escaped = false
-        for index in text.indices where index >= start {
-            let c = text[index]
-            if quoted {
-                if escaped { escaped = false }
-                else if c == "\\" { escaped = true }
-                else if c == "\"" { quoted = false }
-            } else if c == "\"" { quoted = true }
-            else if c == "{" || c == "[" { depth += 1 }
-            else if c == "}" || c == "]" { depth -= 1; if depth == 0 { return text.index(after: index) } }
-        }
-        return nil
-    }
     static func decode(_ body: String) -> ImportStage<RawPlan> {
         func strict(_ text: String) throws -> RawJSON {
-            var grammar = StrictJSON(text); try grammar.validate()
+            // The grammar first: Foundation alone lets a trailing comma through.
+            _ = try JSONGrammar.parse(text)
             return try JSONDecoder().decode(RawJSON.self, from: Data(text.utf8))
         }
         do { return ImportStage(value: try strict(body)) }

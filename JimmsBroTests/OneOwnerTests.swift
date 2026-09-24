@@ -103,4 +103,51 @@ final class OneOwnerTests: XCTestCase {
         XCTAssertTrue(IssueText.friendly(words).contains("plan in words"))
         XCTAssertTrue(IssueText.friendly(cut).contains("cut off"))
     }
+
+    // TL6: the importer and the JSON sheet read JSON with one grammar, so a text the importer
+    // refuses has no line to mark and a text it reads has. They were two parsers.
+    func testTheImporterAndTheSheetReadOneGrammar() {
+        let strict = [#"{ "a": 1 }"#, #"{ "a": [-0.5e+3, true, null, "é\n"] }"#, "{\r\n\t\"a\": {}\r\n}"]
+        let loose = [#"{ "a": 1, }"#, #"{ "a": [1, 2,] }"#, #"{ "a": 01 }"#, #"{ "a": .5 }"#, #"{ "a": NaN }"#,
+                     #"{ 'a': 1 }"#, #"{ a: 1 }"#, #"{ "a": 1 } // why"#, #"{ "a": "\x" }"#, #"{ "a": "\u12" }"#,
+                     "{ \"a\": \"tab\there\" }", #"{ "a": tru }"#]
+        for text in strict {
+            XCTAssertNotNil(try? JSONGrammar.parse(text), text)
+            XCTAssertNotNil(PlanImport.decode(text).value, text)
+            XCTAssertNotNil(JSONLocator.line(of: "a", in: text), text)
+        }
+        for text in loose {
+            XCTAssertNil(try? JSONGrammar.parse(text), text)
+            XCTAssertEqual(PlanImport.decode(text).issues.map(\.code), ["E_NOT_JSON"], text)
+            XCTAssertNil(JSONLocator.line(of: "a", in: text), text)
+        }
+    }
+
+    // TL7: a refusal says where the grammar broke, and E_NOT_JSON quotes it as it always has —
+    // its column counting bytes.
+    func testARefusalSaysWhereTheGrammarBroke() {
+        let comma = "{\n  \"a\": 1,\n}"
+        XCTAssertThrowsError(try JSONGrammar.parse(comma)) { error in
+            XCTAssertEqual(error as? JSONGrammar.Failure,
+                           JSONGrammar.Failure(message: "Expected a double-quoted string", offset: 12, line: 3, column: 1))
+        }
+        XCTAssertEqual(PlanImport.decode(comma).issues.first?.message,
+                       "This isn't valid JSON: Expected a double-quoted string at line 3, column 1. "
+                       + "Ask the chatbot for strict JSON, or use Copy fix-it prompt.")
+        XCTAssertThrowsError(try JSONGrammar.parse(#"{"days":["#)) { error in
+            XCTAssertEqual((error as? JSONGrammar.Failure)?.localizedDescription, "Unexpected end of file at line 1, column 10.")
+        }
+        XCTAssertThrowsError(try JSONGrammar.parse(#"{"é": 1,}"#)) { error in
+            XCTAssertEqual((error as? JSONGrammar.Failure)?.column, 10, "é is two bytes")
+        }
+    }
+
+    // TL8: the cut out of a reply reads code points, as the grammar and the oracle do. It read
+    // grapheme clusters, so a brace with a combining mark after it was no brace, and the JSON
+    // before it ran on to the end of the paste.
+    func testTheCutReadsCodePointsAsTheOracleDoes() {
+        let cut = PlanImport.extract("Here it is: {\"a\": 1}\u{301} and that's all")
+        XCTAssertEqual(cut.value, "{\"a\": 1}")
+        XCTAssertEqual(cut.issues.map(\.code), ["W_SURROUNDING_TEXT"])
+    }
 }
