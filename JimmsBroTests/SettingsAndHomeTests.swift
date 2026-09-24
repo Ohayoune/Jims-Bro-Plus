@@ -189,19 +189,19 @@ final class SettingsAndHomeTests: XCTestCase {
     // O35 / O38: the repeat block chips, caption, and highlighted position.
     func testRepeatBlockChips() throws {
         let plan = try XCTUnwrap(PlanImport.run(try sample()).plan)
-        let chips = RepeatBlock.chips(plan)
+        let chips = CycleSquare.of(plan).map(\.name)
         XCTAssertEqual(chips, ["Push", "Pull", "Legs", "Push", "Pull", "Legs", "Rest"])
         XCTAssertEqual(RepeatBlock.caption(plan), "repeats every 7 days")
-        XCTAssertEqual(RepeatBlock.highlighted(plan), 0, "with no position yet, Next up is the first day")
+        XCTAssertEqual(RepeatBlock.highlighted(plan, today: Date()), 0, "with no position yet, Next up is the first day")
 
         var advanced = plan
         PlanSchedule.advance(&advanced, completedDayName: "Push")
-        XCTAssertEqual(RepeatBlock.highlighted(advanced), 1, "after Push, Pull is next")
+        XCTAssertEqual(RepeatBlock.highlighted(advanced, today: Date()), 1, "after Push, Pull is next")
 
         var weekly = plan
         weekly.schedule = .weekday
         XCTAssertEqual(RepeatBlock.caption(weekly), "Every week")
-        XCTAssertNil(RepeatBlock.highlighted(weekly))
+        XCTAssertNil(RepeatBlock.highlighted(weekly, today: Date()))
     }
 
     // O4: every error row carries a path, a message and a code, and drives the fix-it prompt.

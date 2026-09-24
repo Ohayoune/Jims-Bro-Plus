@@ -88,18 +88,18 @@ final class RecordsAndChartTests: XCTestCase {
         let sessions = [named(["Barbell Bench Press", "Incline Bench Press"], daysAgo: 5),
                         named(["Barbell Row", "Barbell Bench Press"], daysAgo: 1)]
 
-        XCTAssertEqual(ExerciseText.search("bench", sessions: sessions),
+        XCTAssertEqual(ExerciseNames.known(plans: [], history: sessions, query: "bench").map(\.name),
                        ["Barbell Bench Press", "Incline Bench Press"])
-        XCTAssertEqual(ExerciseText.search("BARBELL", sessions: sessions),
+        XCTAssertEqual(ExerciseNames.known(plans: [], history: sessions, query: "BARBELL").map(\.name),
                        ["Barbell Row", "Barbell Bench Press", "Incline Bench Press"].filter {
                            $0.lowercased().contains("barbell")
                        },
                        "case-insensitive, most recently trained first")
-        XCTAssertEqual(ExerciseText.search("row", sessions: sessions), ["Barbell Row"])
-        XCTAssertTrue(ExerciseText.search("deadlift", sessions: sessions).isEmpty)
+        XCTAssertEqual(ExerciseNames.known(plans: [], history: sessions, query: "row").map(\.name), ["Barbell Row"])
+        XCTAssertTrue(ExerciseNames.known(plans: [], history: sessions, query: "deadlift").map(\.name).isEmpty)
         // An empty query lists everything, de-duplicated by normalized name.
-        XCTAssertEqual(ExerciseText.search("", sessions: sessions).count, 3)
-        XCTAssertEqual(ExerciseText.search("  ", sessions: sessions).count, 3)
+        XCTAssertEqual(ExerciseNames.known(plans: [], history: sessions, query: "").map(\.name).count, 3)
+        XCTAssertEqual(ExerciseNames.known(plans: [], history: sessions, query: "  ").map(\.name).count, 3)
     }
 
     // J28: the chart's data source only plots what it has a weight for.

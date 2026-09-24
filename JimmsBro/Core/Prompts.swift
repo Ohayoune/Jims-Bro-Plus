@@ -178,7 +178,7 @@ RULES
         let days = plan.days.map { day in day.weekday.map { "\(day.name) (\($0.rawValue))" } ?? day.name }
         lines.append("Days: " + days.joined(separator: ", "))
         if plan.schedule == .rotation {
-            lines.append("Repeat block: " + RepeatBlock.chips(plan).map { $0 == "Rest" ? "rest" : $0 }.joined(separator: ", "))
+            lines.append("Repeat block: " + plan.cycleNames.map { $0 ?? "rest" }.joined(separator: ", "))
         }
         return lines.joined(separator: "\n")
     }

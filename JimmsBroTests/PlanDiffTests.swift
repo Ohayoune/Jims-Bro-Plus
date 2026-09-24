@@ -396,7 +396,7 @@ final class PlanDiffTests: XCTestCase {
 
         // Where the cycle moved under the place, the place follows its day by name.
         var shifted = try imported(text(cycle: ["Legs", "Push", "Pull", "rest"], days: [("Push", push), ("Pull", pull), ("Legs", legs)]))
-        shifted = ChangeRequest.applied(shifted, to: before)
+        shifted = before.carried(into: shifted, as: .edit)
         XCTAssertEqual(shifted.cyclePosition, 1, "Push, wherever it now stands")
         XCTAssertEqual(shifted.cycleAnchor, anchor)
     }

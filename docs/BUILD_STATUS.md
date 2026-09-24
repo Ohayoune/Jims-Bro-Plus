@@ -3,7 +3,39 @@
 Updated 2026-09-24. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
 2026-09-24); the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
 against each other) was built on branch `fix-first` off it, and **L2** on `v1.12-one-of-each`,
-fast-forwarded to `fix-first` first. L3–L8 are not built.
+fast-forwarded to `fix-first` first, then **L3** on the same branch. L4–L8 are not built.
+
+## v1.12 L3: built and green on `v1.12-one-of-each`
+
+Plans and the schedule, one owner each: `Plan.carried(into:as:)` for what a plan hands the plan saved
+in its place (a name-conflict Replace, every edit, Apply and Edit the text), `Plan.dayIndex(named:)`,
+`Weekday(_:calendar:)` with `WeekdayText` and a new `MonthText`, `finished(on:plan:day:except:calendar:)`
+over sessions, one horizon search (`PlanSchedule.firstDay`), `week(containing:)` as `next(days: 7, …)`,
+`CycleSquare.of` with `Plan.cycleDays` and `cycleNames` for the cycle as squares and as words, and
+`ExerciseNames.known` as the one exercise search. Gone: `ChangeRequest.applied`,
+`PlanSchedule.positionAfterReplacement`, `firstDate`, the date-less `nextInPattern`,
+`ExerciseText.search`, `RepeatBlock.chips`, `DayChoices.months`, `ImportTrip.Square`,
+`RepeatBlock.Square`, `PlanPage.Row` and `CycleStrip.hollow`. Five sides picked, each in
+`docs/DECISIONS_LOG.md` and pinned by TL9–TL13 (`docs/TEST_CASES.md`): a Replace keeps the anchor with
+its place and a repeated day's own place; dates in English whatever the phone's language; the swap
+search's horizon is the calendar's; one exercise search blind to case, accents and runs of spaces; a
+dead cycle entry reads *rest* in the diff. SPEC §4.6, §6.12, §6.21, §6.42 and §6.51 name the owners.
+
+### Run for L3
+
+On `v1.12-one-of-each`, 2026-09-24: `xcodebuild test` on the iPhone 17 simulator, 455 tests, 0
+failures; `swift test`, 454 tests, 0 failures; `python3 tools/check_core.py`, 454 test bodies, 9,120
+assertions, 0 failures; `python3 tools/reference_import.py`, 118/118 fixtures match; the Release build
+succeeded and `python3 tools/check_release.py` is ready (still version 1.11 (1)); `python3
+tools/check_bundle.py` current after `python3 tools/build_bundle.py`.
+
+### Not run for L3
+
+Nothing was looked at on the simulator. What a person could see change — the missed line and the
+Summary's "Next:" line in English on a non-English phone, Change exercise's suggestions and Find an
+exercise finding a name typed without its accents — is L8's device row. Found in passing and left for
+its own change: Duplicate day on a rotation shifts the days under the cycle, which keeps their old
+indices, so on Push Pull Legs the copy of Push takes Pull's place and Legs leaves the repeat block.
 
 ## v1.12 L2: built and green on `v1.12-one-of-each`
 

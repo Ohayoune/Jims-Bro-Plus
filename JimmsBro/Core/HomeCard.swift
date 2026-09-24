@@ -33,7 +33,7 @@ enum StartCard: Equatable {
         // day you had to count to.
         let daysAway = calendar.dateComponents([.day], from: calendar.startOfDay(for: now),
                                                to: next.date).day ?? 0
-        let weekday = Weekday.allCases.first { $0.calendarValue == calendar.component(.weekday, from: next.date) }
+        let weekday = Weekday(next.date, calendar: calendar)
         // D76 (v1.9, §6.50): a borrowed day is its own plan's day, started as that plan's; a
         // day written just for the date is in no plan, and has a case of its own.
         let target: (planId: UUID, dayIndex: Int, day: Day)
@@ -116,21 +116,29 @@ enum WeekdayText {
     static func full(_ weekday: Weekday) -> String { weekday.rawValue.capitalized }
 }
 
-/// The chips under Plan detail's repeat block (SPEC §4.3).
-enum RepeatBlock {
-    static func chips(_ plan: Plan) -> [String] {
-        plan.cycle.map { entry in
-            guard case let .day(index) = entry, let day = plan.days[safe: index] else { return "Rest" }
-            return day.name
-        }
+/// D96 (v1.12 L3): a month's name. The app speaks English whatever the phone's language (§2,
+/// "English only"), so the names are a fixed list, as `WeekdayText`'s are — where a formatter in
+/// the phone's language put "17. Sept." or "Freitag" beside English words.
+enum MonthText {
+    private static let names = ["January", "February", "March", "April", "May", "June", "July",
+                                "August", "September", "October", "November", "December"]
+    /// "September": the month `date` falls in, in `calendar`'s zone.
+    static func full(_ date: Date, calendar: Calendar) -> String {
+        names[safe: calendar.component(.month, from: date) - 1] ?? ""
     }
+    /// "Sep".
+    static func short(_ date: Date, calendar: Calendar) -> String { String(full(date, calendar: calendar).prefix(3)) }
+}
+
+/// Plan detail's repeat block (SPEC §4.3): its caption, and its squares (`RepeatBlock.squares`).
+enum RepeatBlock {
     static func caption(_ plan: Plan) -> String? {
         guard !plan.cycle.isEmpty else { return nil }
         return plan.schedule == .weekday ? "Every week" : "repeats every \(plan.cycle.count) days"
     }
     /// The highlighted chip: the entry Next up would start, not the last completed one.
-    static func highlighted(_ plan: Plan) -> Int? {
-        plan.schedule == .weekday ? nil : PlanSchedule.nextInPattern(plan)?.cycleIndex
+    static func highlighted(_ plan: Plan, today: Date, calendar: Calendar = .current) -> Int? {
+        plan.schedule == .weekday ? nil : PlanSchedule.nextInPattern(plan, today: today, calendar: calendar)?.cycleIndex
     }
 }
 
@@ -389,8 +397,7 @@ struct HomeStart: Equatable {
         if let plan = library.activePlan, plan.schedule == .rotation, library.engine == nil,
            let missed = PlanSchedule.missed(plan, sessions: library.sessions, swaps: library.swaps,
                                             today: now, calendar: calendar) {
-            let weekday = calendar.component(.weekday, from: missed.date)
-            let name = calendar.weekdaySymbols[safe: weekday - 1] ?? "then"
+            let name = WeekdayText.full(Weekday(missed.date, calendar: calendar))
             var workout = MissedWorkout(dayIndex: missed.dayIndex, dayName: missed.name,
                                         date: missed.date, text: "\(missed.name) was due \(name)")
             // D76 (v1.9, §6.50): Do it now starts a borrowed day as its own plan's, and a day
@@ -491,7 +498,7 @@ struct HomeStart: Equatable {
                 // D71 (v1.8, the owner's reading): once a workout was finished today, today says
                 // so on every plan — a weekday plan's own day keeps its day after the workout,
                 // and would otherwise offer the same workout again.
-                if trainedToday(library.sessions, now: now, calendar: calendar) {
+                if library.sessions.finished(on: now, calendar: calendar) {
                     return rest(start, doneToday: true, library: library, now: now, calendar: calendar,
                                 notificationsOff: notificationsOff, missedDismissed: missedDismissed)
                 }
@@ -504,7 +511,7 @@ struct HomeStart: Equatable {
             case let .own(planId, day, daysAway, _):
                 // D76 (v1.9, §6.50): today's own day is today's card, as a plan's day is; one
                 // on a later date leaves today a rest day (D71), one tap away on the strip.
-                let done = trainedToday(library.sessions, now: now, calendar: calendar)
+                let done = library.sessions.finished(on: now, calendar: calendar)
                 if daysAway > 0 || done {
                     return rest(start, doneToday: done, library: library, now: now, calendar: calendar,
                                 notificationsOff: notificationsOff, missedDismissed: missedDismissed)
@@ -524,7 +531,7 @@ struct HomeStart: Equatable {
                 // the card just no longer starts it. A rotation re-anchors on the day its
                 // workout is done, so the rest of that day lands here too — and then the button
                 // says **Done Today** under a check, which is true (the owner's reading).
-                return rest(start, doneToday: trainedToday(library.sessions, now: now, calendar: calendar),
+                return rest(start, doneToday: library.sessions.finished(on: now, calendar: calendar),
                             library: library, now: now, calendar: calendar,
                             notificationsOff: notificationsOff, missedDismissed: missedDismissed)
             }
@@ -600,12 +607,6 @@ struct HomeStart: Equatable {
         start.message = message(for: start, notificationsOff: notificationsOff,
                                 missedDismissed: missedDismissed)
         return start
-    }
-
-    /// A workout was finished today — the calendar's own test for a done day, so "Done Today"
-    /// is said exactly when today's square carries a workout (§6.44).
-    private static func trainedToday(_ sessions: [Session], now: Date, calendar: Calendar) -> Bool {
-        sessions.contains { $0.endedAt != nil && calendar.isDate($0.startedAt, inSameDayAs: now) }
     }
 
     /// The first five rows, the count of the rest, and what VoiceOver reads for the block — the
@@ -697,22 +698,11 @@ enum SummaryText {
         let when: String
         switch days {
         case 1: when = "tomorrow"
-        case 2...6: when = formatted(found.date, template: "EEEE", calendar: calendar)
-        default: when = "on " + formatted(found.date, template: "d MMM", calendar: calendar)
+        // In English, in the calendar's own zone (D96, v1.12 L3): "Friday", "on 17 Sep".
+        case 2...6: when = WeekdayText.full(Weekday(found.date, calendar: calendar))
+        default:
+            when = "on \(calendar.component(.day, from: found.date)) \(MonthText.short(found.date, calendar: calendar))"
         }
         return "Next: \(found.name), \(when)"
-    }
-
-    /// "Friday" or "17 Sep", in the calendar's own zone and locale — `weekdaySymbols` on a
-    /// calendar without a locale is not reliably the full name.
-    private static func formatted(_ date: Date, template: String, calendar: Calendar) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        // A calendar built from an identifier carries a nameless "fixed" locale that formats
-        // "EEEE" as "Fri"; the device's current locale is the one that says "Friday".
-        formatter.locale = calendar.locale.flatMap { $0.identifier.isEmpty ? nil : $0 } ?? .current
-        formatter.setLocalizedDateFormatFromTemplate(template)
-        return formatter.string(from: date)
     }
 }

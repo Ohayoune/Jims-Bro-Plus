@@ -28,7 +28,7 @@ extension DayColour {
     /// the plan is gone or no longer has the day: nothing is stored, so nothing else says.
     static func of(session: Session, plans: [Plan]) -> DayColour? {
         guard let plan = plans.first(where: { $0.id == session.planId }),
-              let index = plan.days.firstIndex(where: { normalized($0.name) == normalized(session.dayName) })
+              let index = plan.dayIndex(named: session.dayName)
         else { return nil }
         return of(dayIndex: index)
     }
@@ -39,20 +39,8 @@ extension DayColour {
     /// is its repeat block as written, from its first entry rather than from today: the plan's
     /// shape, where the strip is this week. A weekday plan's is Monday to Sunday, as Plan detail
     /// lays it out, a weekday with no day nil. An entry pointing at a day the plan no longer
-    /// has is nil, as the projection draws it (§6.12).
-    static func cycle(of plan: Plan) -> [DayColour?] {
-        switch plan.schedule {
-        case .rotation:
-            return plan.cycle.map { entry in
-                guard case let .day(index) = entry, plan.days.indices.contains(index) else { return nil }
-                return of(dayIndex: index)
-            }
-        case .weekday:
-            return Weekday.allCases.map { weekday in
-                plan.days.firstIndex { $0.weekday == weekday }.map { of(dayIndex: $0) }
-            }
-        }
-    }
+    /// has is nil, as the projection draws it (§6.12). The colours of `CycleSquare.of` (D96).
+    static func cycle(of plan: Plan) -> [DayColour?] { CycleSquare.of(plan).map(\.colour) }
 }
 
 /// SPEC §4.1 (D38, v1.2): what a calendar cell says. v1.1 drew every day as a dot of the same
@@ -199,7 +187,7 @@ enum CalendarProjection {
             // day's place in it — named and coloured by it, as its own plan would draw it.
             case let .borrowed(planId, name):
                 if let other = plans.first(where: { $0.id == planId }),
-                   let index = other.days.firstIndex(where: { normalized($0.name) == normalized(name) }) {
+                   let index = other.dayIndex(named: name) {
                     entry = .projected(planId: planId, dayIndex: index)
                 } else {
                     entry = .none
@@ -234,22 +222,11 @@ enum CalendarProjection {
 
     /// SPEC §4.10 (D18, v1.1): the seven days of the calendar week containing `date`, so the
     /// strip and the week's line under it describe the same days — Home's until v1.7, History's
-    /// since (D63). Same entries as `entries(month:)`.
+    /// since (D63). The run of seven from the week's first day (D96, v1.12 L3).
     static func week(containing date: Date, activePlan: Plan?, plans: [Plan] = [], sessions: [Session],
                      swaps: [DaySwap], today: Date, calendar: Calendar = .current) -> [CalendarDay] {
         guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else { return [] }
-        let month = entries(month: interval.start, activePlan: activePlan, plans: plans, sessions: sessions,
-                            swaps: swaps, today: today, calendar: calendar)
-        // A week straddling a month boundary needs both months' entries.
-        let next = calendar.date(byAdding: .day, value: 7, to: interval.start).map {
-            entries(month: $0, activePlan: activePlan, plans: plans, sessions: sessions, swaps: swaps,
-                    today: today, calendar: calendar)
-        } ?? []
-        let all = month + next
-        return (0..<7).compactMap { offset in
-            guard let day = calendar.date(byAdding: .day, value: offset, to: interval.start) else { return nil }
-            return all.first { calendar.isDate($0.date, inSameDayAs: day) }
-                ?? CalendarDay(date: day, entry: .none)
-        }
+        return next(days: 7, from: interval.start, activePlan: activePlan, plans: plans, sessions: sessions,
+                    swaps: swaps, today: today, calendar: calendar)
     }
 }

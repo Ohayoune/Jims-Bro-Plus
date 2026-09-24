@@ -59,22 +59,22 @@ final class LibraryCalendarPromptTests: XCTestCase {
     }
     func testCycleNextAdvancementAndReplacement() {
         var p = rotation()
-        XCTAssertEqual(PlanSchedule.nextInPattern(p)?.dayIndex,0)
+        XCTAssertEqual(PlanSchedule.nextInPattern(p,today:Date())?.dayIndex,0)
         for (position,next) in [(2,3),(5,0),(6,0)] {
-            p.cyclePosition=position; XCTAssertEqual(PlanSchedule.nextInPattern(p)?.cycleIndex,next)
+            p.cyclePosition=position; XCTAssertEqual(PlanSchedule.nextInPattern(p,today:Date())?.cycleIndex,next)
         }
         for (position,name,expected) in [(nil,"Pull",1),(0,"Pull",1),(3,"Pull",4),(5,"Legs",2)] as [(Int?,String,Int)] {
             p.cyclePosition=position; PlanSchedule.advance(&p,completedDayName:name); XCTAssertEqual(p.cyclePosition,expected)
         }
         p.cyclePosition=1; PlanSchedule.advance(&p,completedDayName:"Unknown"); XCTAssertEqual(p.cyclePosition,1)
         var new = p; new.cycle=[.day(0),.day(2),.rest,.day(0),.day(1)]
-        XCTAssertEqual(PlanSchedule.positionAfterReplacement(old:p,new:new),4)
+        XCTAssertEqual(p.carried(into:new,as:.newPlan).cyclePosition,4)
         new.days.remove(at:1); new.cycle=[.day(0),.day(1)]
-        XCTAssertNil(PlanSchedule.positionAfterReplacement(old:p,new:new))
+        XCTAssertNil(p.carried(into:new,as:.newPlan).cyclePosition)
         var simple = p; simple.cycle=[.day(0),.day(1),.day(2)]; simple.cyclePosition=2
-        XCTAssertEqual(PlanSchedule.nextInPattern(simple)?.dayIndex,0)
+        XCTAssertEqual(PlanSchedule.nextInPattern(simple,today:Date())?.dayIndex,0)
         simple.cyclePosition=nil; PlanSchedule.advance(&simple,completedDayName:"legs"); XCTAssertEqual(simple.cyclePosition,2)
-        simple.cyclePosition=Int.max; XCTAssertEqual(PlanSchedule.nextInPattern(simple)?.dayIndex,0)
+        simple.cyclePosition=Int.max; XCTAssertEqual(PlanSchedule.nextInPattern(simple,today:Date())?.dayIndex,0)
     }
     func testStartSwitchCompletionDiscardAndHistoryEdits() throws {
         // v1.1's flow: no warm-up, so a started day is on its first step. The warm-up has its

@@ -178,7 +178,7 @@ struct PlanDetailView: View {
                 let square = squares[index]
                 VStack(spacing: 4) {
                     if let weekday = square.weekday {
-                        Text(weekday)
+                        Text(WeekdayText.short(weekday))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -200,7 +200,7 @@ struct PlanDetailView: View {
     /// A row of the cycle: the day's square and name, a weekday plan's weekday beside it, and on
     /// a day a chevron that turns down while it is open. A day opens in place rather than onto a
     /// screen, so its chevron is grey, not the accent of a row that opens one.
-    private func rowLabel(_ row: PlanPage.Row, isOpen: Bool?) -> some View {
+    private func rowLabel(_ row: CycleSquare, isOpen: Bool?) -> some View {
         HStack(spacing: 12) {
             DaySquare(colour: row.colour, size: 14)
             Text(row.name)
@@ -208,7 +208,7 @@ struct PlanDetailView: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
             if let weekday = row.weekday {
-                Text(weekday).foregroundStyle(.secondary)
+                Text(WeekdayText.full(weekday)).foregroundStyle(.secondary)
             }
             if let isOpen {
                 Image(systemName: "chevron.right")

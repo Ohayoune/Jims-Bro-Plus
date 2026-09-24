@@ -87,7 +87,7 @@ final class PlansTests: XCTestCase {
                        "on Thursday's rest, the entry Next up would start: Friday's Push")
 
         let week = RepeatBlock.squares(upperLower(), today: CoreTestSupport.date(14), calendar: calendar)
-        XCTAssertEqual(week.map(\.weekday), ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+        XCTAssertEqual(week.map { $0.weekday.map(WeekdayText.short) }, ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
         XCTAssertEqual(week.map(\.name), ["Upper A", "Lower A", "Rest", "Upper B", "Lower B", "Rest", "Rest"])
         XCTAssertEqual(week.map(\.colour), [.green, .orange, nil, .purple, .pink, nil, nil])
         XCTAssertFalse(week.contains { $0.isNow }, "a weekday plan marks none, as since v1.1")
@@ -108,7 +108,7 @@ final class PlansTests: XCTestCase {
         XCTAssertNil(rows[3].dayIndex, "a rest has nothing to open")
 
         let week = PlanPage.rows(upperLower())
-        XCTAssertEqual(week.map(\.weekday), ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
+        XCTAssertEqual(week.map { $0.weekday.map(WeekdayText.full) }, ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
         XCTAssertEqual(week.map(\.name), ["Upper A", "Lower A", "Rest", "Upper B", "Lower B", "Rest", "Rest"])
         XCTAssertEqual(week.map(\.dayIndex), [0, 1, nil, 2, 3, nil, nil])
 

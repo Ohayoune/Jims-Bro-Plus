@@ -184,7 +184,7 @@ struct ExercisesListView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        List(ExerciseText.search("", sessions: model.sessions), id: \.self) { name in
+        List(ExerciseNames.known(plans: [], history: model.sessions, query: "").map(\.name), id: \.self) { name in
             NavigationLink(value: HistoryRoute.exercise(name: name, units: model.displayUnits)) {
                 Text(name)
             }

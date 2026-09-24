@@ -80,23 +80,6 @@ enum ExerciseText {
         return parts.joined(separator: " · ")
     }
 
-    /// D30 (v1.1): every exercise in history, de-duplicated by normalized name and ordered by
-    /// how recently it was done, filtered by a search query. History's search box uses it, so
-    /// finding one exercise no longer means remembering which day you did it on.
-    static func search(_ query: String, sessions: [Session]) -> [String] {
-        let needle = normalized(query)
-        var seen = Set<String>()
-        var found: [String] = []
-        for session in sessions.sorted(by: { $0.startedAt > $1.startedAt }) {
-            for name in session.exercises.map(\.name) {
-                let key = normalized(name)
-                guard needle.isEmpty || key.contains(needle), seen.insert(key).inserted else { continue }
-                found.append(name)
-            }
-        }
-        return found
-    }
-
     /// The names an exercise-history screen can be opened for, in session order, de-duplicated.
     static func exerciseNames(_ session: Session) -> [String] {
         var seen = Set<String>()

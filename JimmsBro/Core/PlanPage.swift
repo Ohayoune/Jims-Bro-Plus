@@ -38,42 +38,69 @@ enum PlanText {
     }
 }
 
-extension RepeatBlock {
-    /// D78 (v1.9, §4.3): a square of the repeat block, where D59's chips were — the day's colour,
-    /// its name beneath, and the entry Next up would start named in ink.
-    struct Square: Equatable {
-        /// The day's colour; nil (grey) for rest.
-        var colour: DayColour?
-        /// The day's name, or "Rest".
-        var name: String
-        /// A weekday plan's weekday above its square, "Mon"; nil on a rotation.
-        var weekday: String?
-        var isNow: Bool
-        /// D86 (v1.10, §6.59): the entry today falls on, outlined in ink as the calendar outlines
-        /// today — a rotation's by its anchor, a weekday plan's by the weekday.
-        var isToday = false
-    }
+/// D96 (v1.12 L3): one place of a plan's cycle as a screen draws it — a square of the plan's
+/// page (§4.3, D78, D86) or of Add plan's review (§6.63, D91), and a row of either page. The one
+/// projection behind all three, which each had a struct of its own.
+struct CycleSquare: Equatable, Identifiable {
+    /// Its place: in the cycle, then — on a page's rows — after it. The view keeps which rows are
+    /// open by it, never stored.
+    var id: Int
+    /// The day's colour; nil (grey) for rest.
+    var colour: DayColour?
+    /// The day's name, or "Rest".
+    var name: String
+    /// A weekday plan's weekday — "Mon" above a square, "Monday" beside a row (`WeekdayText`);
+    /// nil on a rotation.
+    var weekday: Weekday?
+    /// The day the place opens; nil for a rest.
+    var dayIndex: Int?
+    /// D91 (v1.11): a day a plan built day by day has not filled yet, on Add plan's review.
+    var hollow = false
+    /// The entry Next up would start, named in ink on the plan's page (as the chip was
+    /// highlighted); a rotation's only.
+    var isNow = false
+    /// D86 (v1.10, §6.59): the entry today falls on, outlined in ink on the plan's page as the
+    /// calendar outlines today — a rotation's by its anchor, a weekday plan's by the weekday.
+    var isToday = false
 
-    /// A rotation's repeat block as written, with the entry Next up would start marked (as the
-    /// chip was highlighted); a weekday plan's Monday to Sunday, none marked, as since v1.1. The
-    /// colours are `DayColour.cycle(of:)`'s, the squares the Plans list's symbol draws.
-    static func squares(_ plan: Plan, today: Date = Date(), calendar: Calendar = .current) -> [Square] {
-        let colours = DayColour.cycle(of: plan)
+    /// A rotation's cycle as written, an entry naming no day a rest as the projection draws it
+    /// (§6.12); a weekday plan's Monday to Sunday, each weekday's day. `DayColour.cycle(of:)` is
+    /// its colours, the squares the Plans list's symbol draws.
+    static func of(_ plan: Plan) -> [CycleSquare] {
+        let places: [(dayIndex: Int?, weekday: Weekday?)]
+        switch plan.schedule {
+        case .rotation:
+            places = plan.cycleDays.map { ($0, nil) }
+        case .weekday:
+            places = Weekday.allCases.map { weekday in (plan.days.firstIndex { $0.weekday == weekday }, weekday) }
+        }
+        return places.enumerated().map { offset, place in
+            CycleSquare(id: offset, colour: place.dayIndex.map { DayColour.of(dayIndex: $0) },
+                        name: place.dayIndex.map { plan.days[$0].name } ?? "Rest",
+                        weekday: place.weekday, dayIndex: place.dayIndex)
+        }
+    }
+}
+
+extension RepeatBlock {
+    /// D78 (v1.9, §4.3): the repeat block as squares, where D59's chips were — the day's colour,
+    /// its name beneath — a rotation's with the entry Next up would start marked, a weekday
+    /// plan's Monday to Sunday with none, as since v1.1; and today's entry outlined (D86).
+    static func squares(_ plan: Plan, today: Date = Date(), calendar: Calendar = .current) -> [CycleSquare] {
+        var squares = CycleSquare.of(plan)
         switch plan.schedule {
         case .rotation:
             let now = PlanSchedule.nextInPattern(plan, today: today, calendar: calendar)?.cycleIndex
             let todays = PlanSchedule.entry(plan, on: today, today: today, calendar: calendar)?.cycleIndex
-            return chips(plan).enumerated().map { offset, name in
-                Square(colour: colours[offset], name: name, weekday: nil, isNow: offset == now,
-                       isToday: offset == todays)
+            for index in squares.indices {
+                squares[index].isNow = index == now
+                squares[index].isToday = index == todays
             }
         case .weekday:
-            let todays = calendar.component(.weekday, from: today)
-            return Weekday.allCases.enumerated().map { offset, weekday in
-                Square(colour: colours[offset], name: plan.days.first { $0.weekday == weekday }?.name ?? "Rest",
-                       weekday: WeekdayText.short(weekday), isNow: false, isToday: weekday.calendarValue == todays)
-            }
+            let todays = Weekday(today, calendar: calendar)
+            for index in squares.indices { squares[index].isToday = squares[index].weekday == todays }
         }
+        return squares
     }
 }
 
@@ -81,40 +108,15 @@ extension RepeatBlock {
 /// owner's 16) — a day, closed until tapped, or a rest with nothing to open — so the view opens
 /// what it is handed. The same day twice is two rows opening the same exercises.
 enum PlanPage {
-    struct Row: Equatable, Identifiable {
-        /// Its place on the page: the view keeps which rows are open by it, never stored.
-        var id: Int
-        var colour: DayColour?
-        /// The day's name, or "Rest".
-        var name: String
-        /// A weekday plan's weekday, "Monday"; nil on a rotation.
-        var weekday: String?
-        /// The day the row opens; nil for a rest.
-        var dayIndex: Int?
-    }
-
-    /// A rotation's cycle as written, an entry naming no day a rest as the projection draws it
-    /// (§6.12); a weekday plan's Monday to Sunday. Then every day the cycle never reaches, in
+    /// The cycle's squares as rows (`CycleSquare.of`), then every day the cycle never reaches, in
     /// the plan's order, so nothing the page could do before is out of reach (the owner's 30).
-    static func rows(_ plan: Plan) -> [Row] {
-        var rows: [Row] = []
-        func append(_ dayIndex: Int?, weekday: Weekday? = nil) {
-            rows.append(Row(id: rows.count, colour: dayIndex.map { DayColour.of(dayIndex: $0) },
-                            name: dayIndex.map { plan.days[$0].name } ?? "Rest",
-                            weekday: weekday.map(WeekdayText.full), dayIndex: dayIndex))
-        }
-        switch plan.schedule {
-        case .rotation:
-            for entry in plan.cycle {
-                if case let .day(index) = entry, plan.days.indices.contains(index) { append(index) } else { append(nil) }
-            }
-        case .weekday:
-            for weekday in Weekday.allCases {
-                append(plan.days.firstIndex { $0.weekday == weekday }, weekday: weekday)
-            }
-        }
+    static func rows(_ plan: Plan) -> [CycleSquare] {
+        var rows = CycleSquare.of(plan)
         let reached = Set(rows.compactMap(\.dayIndex))
-        for index in plan.days.indices where !reached.contains(index) { append(index) }
+        for index in plan.days.indices where !reached.contains(index) {
+            rows.append(CycleSquare(id: rows.count, colour: DayColour.of(dayIndex: index),
+                                    name: plan.days[index].name, dayIndex: index))
+        }
         return rows
     }
 }

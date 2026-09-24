@@ -415,12 +415,11 @@ struct ImportView: View {
             Text([units.rawValue, PlanText.howOften(plan)].compactMap { $0 }.joined(separator: " · "))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            CycleStrip(count: squares.count, side: 40, spacing: 2, lineSpacing: 10,
-                       hollow: Set(squares.indices.filter { squares[$0].hollow })) { index in
+            CycleStrip(count: squares.count, side: 40, spacing: 2, lineSpacing: 10) { index in
                 let square = squares[index]
                 VStack(spacing: 4) {
                     if let weekday = square.weekday {
-                        Text(weekday).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                        Text(WeekdayText.short(weekday)).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     }
                     StripSquare(colour: square.colour, outlined: square.hollow, index: index, count: squares.count)
                     Text(square.name)
@@ -437,7 +436,7 @@ struct ImportView: View {
     }
 
     @ViewBuilder
-    private func dayRow(_ row: PlanPage.Row, in plan: Plan, units: WeightUnit, hollow: Bool, isNext: Bool) -> some View {
+    private func dayRow(_ row: CycleSquare, in plan: Plan, units: WeightUnit, hollow: Bool, isNext: Bool) -> some View {
         if let index = row.dayIndex, !hollow, let day = plan.days[safe: index] {
             DisclosureGroup(isExpanded: Binding(
                 get: { expanded.contains(row.id) },
@@ -459,13 +458,13 @@ struct ImportView: View {
         }
     }
 
-    private func rowLabel(_ row: PlanPage.Row, hollow: Bool, isNext: Bool, trailing: String?) -> some View {
+    private func rowLabel(_ row: CycleSquare, hollow: Bool, isNext: Bool, trailing: String?) -> some View {
         HStack(spacing: 12) {
             DaySquare(colour: row.colour, size: 14, outlined: hollow)
             Text(row.name)
                 .foregroundStyle(hollow || row.dayIndex == nil ? Color.secondary : Color.primary)
             if let weekday = row.weekday {
-                Text(weekday).font(.footnote).foregroundStyle(.secondary)
+                Text(WeekdayText.full(weekday)).font(.footnote).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
             if isNext {

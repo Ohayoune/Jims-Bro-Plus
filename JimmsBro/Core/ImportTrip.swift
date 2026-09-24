@@ -230,36 +230,14 @@ struct ImportTrip: Equatable {
 
     // MARK: - The review's squares
 
-    /// A square of the review's cycle: the day's colour, grey for rest, the name beneath, a
-    /// weekday plan's weekday above — and hollow for a day a draft has not filled (D91).
-    struct Square: Equatable {
-        var colour: DayColour?
-        var name: String
-        var weekday: String?
-        var dayIndex: Int?
-        var hollow: Bool
-    }
-
-    /// The cycle as the plan's page draws it (§6.51, D86), without Next up or today — a plan on
-    /// review has no place in time yet — and with a draft's unfilled days hollow.
-    static func squares(_ plan: Plan, hollow: Set<Int> = []) -> [Square] {
-        let colours = DayColour.cycle(of: plan)
-        func square(_ offset: Int, _ index: Int?, weekday: String?) -> Square {
-            Square(colour: colours[safe: offset] ?? nil, name: index.map { plan.days[$0].name } ?? "Rest",
-                   weekday: weekday, dayIndex: index, hollow: index.map(hollow.contains) ?? false)
-        }
-        switch plan.schedule {
-        case .rotation:
-            return plan.cycle.enumerated().map { offset, entry in
-                guard case let .day(day) = entry, plan.days.indices.contains(day) else {
-                    return square(offset, nil, weekday: nil)
-                }
-                return square(offset, day, weekday: nil)
-            }
-        case .weekday:
-            return Weekday.allCases.enumerated().map { offset, weekday in
-                square(offset, plan.days.firstIndex { $0.weekday == weekday }, weekday: WeekdayText.short(weekday))
-            }
+    /// The cycle as the plan's page draws it (§6.51, D86, `CycleSquare.of`), without Next up or
+    /// today — a plan on review has no place in time yet — and with a draft's unfilled days
+    /// hollow (D91).
+    static func squares(_ plan: Plan, hollow: Set<Int> = []) -> [CycleSquare] {
+        CycleSquare.of(plan).map { square in
+            var square = square
+            square.hollow = square.dayIndex.map(hollow.contains) ?? false
+            return square
         }
     }
 }

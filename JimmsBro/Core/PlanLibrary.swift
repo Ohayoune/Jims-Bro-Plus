@@ -24,8 +24,7 @@ struct PlanLibrary {
             switch choice {
             case .cancel: return nil
             case .replace:
-                incoming.id = existing.id
-                incoming.cyclePosition = PlanSchedule.positionAfterReplacement(old: existing, new: incoming)
+                incoming = existing.carried(into: incoming, as: .newPlan)
                 plans[index] = incoming
             case .keepBoth:
                 let base = incoming.name; var n = 2
@@ -40,14 +39,14 @@ struct PlanLibrary {
     /// Plan detail's **Edit the text** (D25/v1.1, SPEC §4.3; named so since D95): the whole plan's
     /// text saved in `id`'s place, regardless of what the incoming plan's name matches — unlike
     /// `save`'s name-based conflict handling, the intent here is already explicit. It is an edit, as
-    /// **Apply** is (D94), so it has Apply's one owner, `ChangeRequest.applied`: the id, the import
-    /// date, the cycle's place and anchor (D37 — new text is not a reason for the calendar to move)
-    /// and, since the 2026-09-24 screen audit (F1, §6.21), the progression stay.
+    /// **Apply** is (D94), so it is carried as an edit (`Plan.carried(into:as:)`): the id, the
+    /// import date, the cycle's place and anchor (D37 — new text is not a reason for the calendar
+    /// to move) and, since the 2026-09-24 screen audit (F1, §6.21), the progression stay.
     @discardableResult mutating func replace(_ id: UUID, with imported: Plan) -> UUID? {
         guard let index = plans.firstIndex(where: { $0.id == id }) else { return nil }
         var incoming = imported
         incoming.name = incoming.name.trimmed
-        plans[index] = ChangeRequest.applied(incoming, to: plans[index])
+        plans[index] = plans[index].carried(into: incoming, as: .edit)
         return id
     }
     mutating func deletePlan(_ id: UUID) {
@@ -145,6 +144,50 @@ struct PlanLibrary {
     }
     mutating func deleteSession(_ id: UUID) { sessions.removeAll { $0.id == id } }
 }
+extension Plan {
+    /// What the plan saved in another's place is to it (D96, v1.12 L3).
+    enum Replacement {
+        /// The same plan, edited: a structured or JSON edit (D29, D43), **Apply** (D94) and
+        /// **Edit the text** (D95, F1).
+        case edit
+        /// A new plan under the old one's name: Replace on a name conflict at import (§6.8).
+        case newPlan
+    }
+
+    /// D96 (v1.12 L3): what this plan hands to the plan saved in its place — the one owner,
+    /// where a name-conflict Replace, the edits and Apply each had a rule of their own.
+    ///
+    /// Always the id, so its workouts stay its own; its place in the cycle, which follows its day
+    /// by name — kept where the new cycle has that day at the same place, else that day's first
+    /// place, else none (§6.12); and the date the place is anchored to, which belongs to the place
+    /// and goes with it (D37). An **edit** also keeps the import date and the progression, whose
+    /// entries match by name as every edit's do (§6.21), and its text becomes the canonical
+    /// rendering (D43). A **new plan** keeps its own import date and text, and starts without a
+    /// progression (§6.21).
+    func carried(into replacement: Plan, as kind: Replacement) -> Plan {
+        var plan = replacement
+        plan.id = id
+        plan.cyclePosition = place(in: replacement)
+        plan.cycleAnchor = plan.cyclePosition == nil ? nil : cycleAnchor
+        if kind == .edit {
+            plan.importedAt = importedAt
+            plan.progression = progression
+            plan.sourceText = PlanJSON.render(plan)
+        }
+        return plan
+    }
+
+    /// This plan's place in the cycle, found in `new`'s by its day's name.
+    private func place(in new: Plan) -> Int? {
+        guard let position = cyclePosition, let day = cycleDays[safe: position] ?? nil else { return nil }
+        let name = days[day].name
+        func names(_ place: Int) -> Bool {
+            (new.cycleDays[safe: place] ?? nil).map { normalized(new.days[$0].name) == normalized(name) } ?? false
+        }
+        return names(position) ? position : new.cycle.indices.first(where: names)
+    }
+}
+
 /// SPEC §6.12 (D37, v1.2): a rotation is projected from an **anchor date**, not from "today
 /// plus an offset".
 ///
@@ -210,12 +253,6 @@ enum PlanSchedule {
         return nil
     }
 
-    /// The v1.1 signature, kept for the callers that only want "which day is next" and have no
-    /// date to hand. It answers for today.
-    static func nextInPattern(_ plan: Plan) -> (cycleIndex: Int, dayIndex: Int)? {
-        nextInPattern(plan, today: Date()).map { ($0.cycleIndex, $0.dayIndex) }
-    }
-
     /// A training day the projection put **before** today that has no completed session on it —
     /// the workout that was missed. Only the most recent one, and only within a week: a plan you
     /// came back to after a fortnight is not a missed Tuesday, it is a fresh start.
@@ -263,7 +300,7 @@ enum PlanSchedule {
     static func advance(_ plan: inout Plan, completedDayName: String, on date: Date = Date(),
                         calendar: Calendar = .current) {
         guard plan.schedule == .rotation, !plan.cycle.isEmpty,
-              let day = plan.days.firstIndex(where: { normalized($0.name) == normalized(completedDayName) })
+              let day = plan.dayIndex(named: completedDayName)
         else { return }
         let start = plan.cyclePosition.map { ($0 >= 0 && $0 < plan.cycle.count) ? ($0 + 1) % plan.cycle.count : 0 } ?? 0
         for offset in 0..<plan.cycle.count {
@@ -291,18 +328,11 @@ enum PlanSchedule {
         plan.cycleAnchor = calendar.startOfDay(for: lastCompleted ?? today)
         return true
     }
-    static func positionAfterReplacement(old: Plan, new: Plan) -> Int? {
-        guard let oldPosition = old.cyclePosition, case let .day(d)? = old.cycle[safe:oldPosition], let oldDay = old.days[safe:d] else { return nil }
-        return new.cycle.firstIndex { entry in
-            guard case let .day(index) = entry, let newDay = new.days[safe:index] else { return false }
-            return normalized(newDay.name) == normalized(oldDay.name)
-        }
-    }
     static func weekday(_ plan: Plan, today: Date, calendar: Calendar = .current) -> (dayIndex: Int, daysAway: Int)? {
-        let current = calendar.component(.weekday,from:today)
         for offset in 0..<7 {
-            let weekday = (current - 1 + offset) % 7 + 1
-            if let index = plan.days.firstIndex(where: { $0.weekday?.calendarValue == weekday }) { return (index, offset) }
+            guard let date = calendar.date(byAdding: .day, value: offset, to: today) else { continue }
+            let weekday = Weekday(date, calendar: calendar)
+            if let index = plan.days.firstIndex(where: { $0.weekday == weekday }) { return (index, offset) }
         }
         return nil
     }

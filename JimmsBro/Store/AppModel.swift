@@ -225,11 +225,11 @@ enum SaveFailure: Equatable {
 
     /// D94 (v1.11, §6.67): **Say what should change**'s Apply — the reviewed reply put in the
     /// plan's place as an edit, not a Replace: the id, the import date, the cycle's place and
-    /// anchor, and the progression stay (`ChangeRequest.applied`). False if the plan has gone.
+    /// anchor, and the progression stay (`Plan.carried(into:as:)`). False if the plan has gone.
     @discardableResult
     func applyChange(planId: UUID, plan: Plan) async -> Bool {
         guard let index = library.plans.firstIndex(where: { $0.id == planId }) else { return false }
-        library.plans[index] = ChangeRequest.applied(plan, to: library.plans[index])
+        library.plans[index] = library.plans[index].carried(into: plan, as: .edit)
         await persistPlans()
         return true
     }

@@ -307,7 +307,13 @@ editor holding edits ignores the swipe and asks before discarding them (F3, `Vie
 Foundation decodes a paste, the offsets `JSONLocator` walks to mark a line, and the extraction's cut
 (`JSONGrammar.valueEnd`) — in place of `StrictJSON`, `LocatorParser` and `PlanImport.valueEnd`; a
 refusal carries its place (`JSONGrammar.Failure`), and the cut reads code points, as the grammar and
-the oracle do (TL6–TL8). L3–L8 are not built.
+the oracle do (TL6–TL8). L3 is built and green on the same branch: a plan hands on its identity one way,
+`Plan.carried(into:as:)` — `.edit` for every edit, Apply and Edit the text, `.newPlan` for a name-conflict
+Replace, the anchor always going with its place — and one of each for the schedule: `Plan.dayIndex(named:)`,
+`Weekday(_:calendar:)` with `WeekdayText` and `MonthText` (English whatever the phone's language),
+`finished(on:…)` over sessions, `PlanSchedule.firstDay` through today and 62 days, `CycleSquare.of` with
+`Plan.cycleDays` and `cycleNames` for a cycle as squares and words, and `ExerciseNames.known` as the one
+exercise search (TL9–TL13). L4–L8 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

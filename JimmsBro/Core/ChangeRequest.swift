@@ -140,33 +140,6 @@ struct ChangeRequest: Equatable {
         refusal = []
     }
 
-    // MARK: - Apply
-
-    /// §6.67: **Apply is an edit, not a Replace.** The reply keeps the plan's id, its import date,
-    /// its place in the cycle with the date that place is anchored to (D37), and its progression,
-    /// whose entries match by name as every edit's do (§6.21) — a renamed exercise simply stops
-    /// matching. Its text becomes the canonical rendering, as after any edit (D43).
-    ///
-    /// The place is kept where the reply's cycle still has the same day there; where it does not —
-    /// the cycle changed under it — it follows the day by name, as a replace's does.
-    static func applied(_ reply: Plan, to current: Plan) -> Plan {
-        var plan = reply
-        plan.id = current.id
-        plan.importedAt = current.importedAt
-        if let position = current.cyclePosition,
-           case let .day(old)? = current.cycle[safe: position], case let .day(new)? = plan.cycle[safe: position],
-           let oldDay = current.days[safe: old], let newDay = plan.days[safe: new],
-           normalized(oldDay.name) == normalized(newDay.name) {
-            plan.cyclePosition = position
-        } else {
-            plan.cyclePosition = PlanSchedule.positionAfterReplacement(old: current, new: plan)
-        }
-        plan.cycleAnchor = plan.cyclePosition == nil ? nil : current.cycleAnchor
-        plan.progression = current.progression
-        plan.sourceText = PlanJSON.render(plan)
-        return plan
-    }
-
     // MARK: - The text behind the ···
 
     /// D95 (§6.68): **Edit the text** opens the sheet on the whole plan — the reply when there is

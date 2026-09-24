@@ -16,11 +16,7 @@ enum PlanJSON {
         if let walk = plan.restBetweenExercises { out += "  \"restBetweenExercises\": \(walk),\n" }
         out += "  \"schedule\": \"\(plan.schedule.rawValue)\",\n"
         if !plan.cycle.isEmpty {
-            let names = plan.cycle.map { entry -> String in
-                guard case let .day(index) = entry, let day = plan.days[safe: index] else { return "rest" }
-                return day.name
-            }
-            out += "  \"cycle\": [\(names.map(string).joined(separator: ", "))],\n"
+            out += "  \"cycle\": [\(plan.cycleNames.map { string($0 ?? "rest") }.joined(separator: ", "))],\n"
         }
         out += "  \"days\": [\n"
         out += plan.days.map(day).joined(separator: ",\n")
@@ -177,33 +173,32 @@ enum PlanEdit {
     static func apply(_ operation: Operation, to plan: Plan, settings: Settings,
                       now: Date = Date()) -> ImportResult {
         let text: String
+        // The plan as the edit left it, before the importer reads it back: its day names are the
+        // re-import's, so the cycle's place, which follows its day by name, follows a rename.
+        var edited = plan
         switch operation {
         case .replaceExerciseJSON, .replaceDayJSON, .insertExercisesJSON, .insertDaysJSON:
             let splice = spliced(plan, operation)
             guard let spliced = splice.text else { return ImportResult(plan: nil, issues: splice.issues) }
             text = spliced
         default:
-            guard var edited = mutated(operation, plan) else {
+            guard let changed = mutated(operation, plan) else {
                 return ImportResult(plan: nil, issues: [notApplicable])
             }
-            edited.sourceText = PlanJSON.render(edited)
-            text = edited.sourceText
+            edited = changed
+            text = PlanJSON.render(edited)
         }
         var result = PlanImport.run(text, settings: settings, now: now)
-        guard var reimported = result.plan else { return result }
-        reimported.id = plan.id
-        reimported.importedAt = plan.importedAt
-        reimported.cyclePosition = plan.cyclePosition
-        // v1.3: an edit used to drop the anchor, so the next launch re-anchored the rotation
-        // to that day and the calendar moved — the compounding D37 had just fixed.
-        reimported.cycleAnchor = plan.cycleAnchor
-        // D44: an edit to the plan is not a reason to lose the progression attached to it;
-        // entries match by name, so a renamed exercise simply stops matching.
-        reimported.progression = plan.progression
-        // A spliced tree is JSON in the encoder's key order; what the plan keeps as its text
-        // is the canonical rendering, the same as after any other edit.
-        reimported.sourceText = PlanJSON.render(reimported)
-        result.plan = reimported
+        guard let reimported = result.plan else { return result }
+        // A day pasted in its own place keeps it, and a renamed one took its old name's place in
+        // the repeat block (`spliced`).
+        if case let .replaceDayJSON(day, _) = operation, let renamed = reimported.days[safe: day] {
+            edited.days[day].name = renamed.name
+        }
+        // D96 (v1.12 L3): an edit, as Apply is — the id, the import date, the cycle's place and its
+        // anchor (v1.3: an edit used to drop the anchor, and the calendar moved), the progression
+        // (D44), and the canonical text: a spliced tree is JSON in the encoder's key order.
+        result.plan = edited.carried(into: reimported, as: .edit)
         return result
     }
 

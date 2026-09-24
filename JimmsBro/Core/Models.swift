@@ -6,6 +6,12 @@ enum Severity: String, Codable { case error, warning }
 enum Weekday: String, Codable, CaseIterable {
     case monday, tuesday, wednesday, thursday, friday, saturday, sunday
     var calendarValue: Int { (Self.allCases.firstIndex(of: self).map { ($0 + 1) % 7 + 1 }) ?? 2 }
+    /// D96 (v1.12 L3): the weekday `date` falls on in `calendar`'s zone — the one reading of a
+    /// date's weekday. `.weekday` is 1…7, Sunday first, so the fallback is never taken.
+    init(_ date: Date, calendar: Calendar) {
+        let value = calendar.component(.weekday, from: date)
+        self = Self.allCases.first { $0.calendarValue == value } ?? .monday
+    }
 }
 struct Issue: Codable, Equatable {
     var severity: Severity
@@ -54,6 +60,27 @@ struct Plan: Codable, Identifiable, Equatable {
         case id, name, units, schedule, days, importedAt, sourceText, warnings, cycle,
              cyclePosition, cycleAnchor, progression, restBetweenExercises
     }
+}
+extension Plan {
+    /// D96 (v1.12 L3): the day named `name`, compared as the app compares names everywhere
+    /// (`normalized`), or nil when the plan has no such day — the one lookup of a day by name.
+    func dayIndex(named name: String) -> Int? {
+        days.firstIndex { normalized($0.name) == normalized(name) }
+    }
+    /// D96 (v1.12 L3): the day each entry of the cycle names, in order — nil for a rest, and for
+    /// an entry naming a day the plan no longer has, which the projection draws as a rest
+    /// (§6.12). The one reading of the cycle as days: `cycleNames` is it in words, and
+    /// `CycleSquare.of` in squares.
+    var cycleDays: [Int?] {
+        cycle.map { entry in
+            guard case let .day(index) = entry, days.indices.contains(index) else { return nil }
+            return index
+        }
+    }
+    /// The cycle's day names in order, nil for a rest: each caller spells a rest its own way —
+    /// "rest" in the plan's JSON and the prompt, "Rest" under a square — so a day named Rest
+    /// stays a day.
+    var cycleNames: [String?] { cycleDays.map { $0.map { days[$0].name } } }
 }
 
 /// D44 (v1.3): a progression — what the chatbot planned for the next N weeks, per exercise.
@@ -168,6 +195,21 @@ struct Session: Codable, Identifiable, Equatable {
     enum CodingKeys: String, CodingKey {
         case id, planId, planName, dayName, units, startedAt, endedAt, exercises, steps,
              progressionWeek, progressionWeeks, progressionMode
+    }
+}
+extension Sequence where Element == Session {
+    /// D96 (v1.12 L3): whether a workout was finished on `date` — the calendar's own test for a
+    /// done day (§6.44) — narrowed, when they are given, to `planId`'s workouts of the day named
+    /// `dayName`, and leaving out `except`. The one test, where Today's card, the swap's question
+    /// and its settling each wrote their own.
+    func finished(on date: Date, plan planId: UUID? = nil, day dayName: String? = nil,
+                  except: UUID? = nil, calendar: Calendar) -> Bool {
+        contains { session in
+            session.endedAt != nil && session.id != except
+                && calendar.isDate(session.startedAt, inSameDayAs: date)
+                && (planId.map { session.planId == $0 } ?? true)
+                && (dayName.map { normalized(session.dayName) == normalized($0) } ?? true)
+        }
     }
 }
 struct SessionExercise: Codable, Identifiable, Equatable {

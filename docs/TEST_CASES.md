@@ -1328,6 +1328,18 @@ The audit read the screens against each other; F took the four findings that cou
 | TL7 | unit | (D96, v1.12) A refusal says where the grammar broke | A trailing comma before `}` on line 3 is `Failure("Expected a double-quoted string", offset 12, line 3, column 1)`, and E_NOT_JSON quotes it as it always has (*"… at line 3, column 1."*); a reply cut short is *"Unexpected end of file at line 1, column 10."*; the column counts bytes, so `é` is two |
 | TL8 | unit | (D96, v1.12) The cut reads code points, as the oracle does | `extract` on *Here it is: {"a": 1}* with a combining acute after the brace and prose after that cuts `{"a": 1}` with W_SURROUNDING_TEXT, as `tools/reference_import.py` does; the cut read grapheme clusters, saw no brace and ran on to the end of the paste |
 
+### L3 — Plans and the schedule (D96)
+
+One owner each: `Plan.carried(into:as:)` for what a plan hands the plan saved in its place, `Plan.dayIndex(named:)`, `Weekday(_:calendar:)`, `WeekdayText` and `MonthText`, `finished(on:plan:day:except:calendar:)`, `PlanSchedule.firstDay`, `CycleSquare.of` with `Plan.cycleDays` and `cycleNames`, and `ExerciseNames.known`. The cases that exercised the copies — O35, J28, TQ35, TQ36, TN35 and the library's cycle case — are re-pointed at the owners, and what they expect is unchanged. Tests in `JimmsBroTests/OneOwnerTests.swift`.
+
+| ID | Type | Title | Expected |
+|---|---|---|---|
+| TL9 | unit | (D96, v1.12) A replacement is carried one way | Push · Pull · Push · Legs on its second Push, anchored, with a progression: a name-conflict Replace keeps the id, place 2 (not the first Push's 0) and the anchor, with its own import date and text and no progression; Rename day, a day pasted as JSON under a new name and an edit carried as Apply all keep the id, place 2, the anchor, the import date and the progression, with the canonical text; a replacement without the day has no place and no anchor |
+| TL10 | unit | (D96, v1.12) Dates speak English whatever the phone's language | Under a calendar whose locale is German: *"Pull was due Tuesday"*, *"Next: Pull, Friday"*, *"Next: Push, on 17 Sep"*, the picker's *"For Wednesday 16 September only. …"*, and `WeekdayText.full(Weekday(date, calendar:))` is *Sunday* for 13 September 2026 |
+| TL11 | unit | (D96, v1.12) The swap search's horizon is the calendar's | `PlanSchedule.firstDay` reads 63 dates from today and 62 from tomorrow, the same last day — today and 62 days (§6.12); with no test given it finds the first day to train |
+| TL12 | unit | (D96, v1.12) One exercise search | `ExerciseNames.known` finds *Développé couché* for *"developpe"* and *Bench  Press* for *" BENCH PRESS "*, with or without plans (a plan's *Bench Press* first when there is one); with no plans and no query it is History's names alone; `HistoryView` and `ChangeExerciseSheet` search through it (source reads on the host routes) |
+| TL13 | unit | (D96, v1.12) A cycle is read one way | Push · rest · Pull · a dead entry: `cycleDays` [0, nil, 1, nil], `cycleNames` [Push, nil, Pull, nil]; the plan's JSON and the prompt write *rest* for both nils and so does the diff's schedule line, which wrote *"?"*; `CycleSquare.of`, `ImportTrip.squares`, `RepeatBlock.squares` and `PlanPage.rows` agree on the days and `DayColour.cycle(of:)` on the colours |
+
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
 |---|---|---|---|

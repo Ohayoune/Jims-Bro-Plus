@@ -150,4 +150,167 @@ final class OneOwnerTests: XCTestCase {
         XCTAssertEqual(cut.value, "{\"a\": 1}")
         XCTAssertEqual(cut.issues.map(\.code), ["W_SURROUNDING_TEXT"])
     }
+
+    // MARK: - L3: plans and the schedule
+
+    private func date(_ day: Int) -> Date { CoreTestSupport.date(day) }
+
+    /// Push · Pull · Push · Legs, on its second Push since the 10th, with a progression attached.
+    private func pushTwice() -> Plan {
+        let exercises = CoreTestSupport.plan().days[0].exercises
+        var plan = Plan(name: "PPL", units: .kg, schedule: .rotation,
+                        days: ["Push", "Pull", "Legs"].map { Day(name: $0, exercises: exercises) },
+                        importedAt: date(1), sourceText: "", cycle: [.day(0), .day(1), .day(0), .day(2)])
+        plan.cyclePosition = 2
+        plan.cycleAnchor = CoreTestSupport.utc().startOfDay(for: date(10))
+        plan.progression = Progression(startDate: date(10), weeks: 4)
+        return plan
+    }
+
+    // TL9: a plan hands on its identity one way. A name-conflict Replace kept the place by the
+    // day's first occurrence and dropped its anchor, where an edit and Apply kept both; an edit
+    // kept the place by index, where Apply followed the day's name.
+    func testAReplacementIsCarriedOneWay() throws {
+        let plan = pushTwice()
+        var library = PlanLibrary()
+        library.save(plan, makeActive: true)
+        var fresh = plan
+        fresh.id = UUID(); fresh.importedAt = date(12); fresh.sourceText = "as pasted"
+        fresh.cyclePosition = nil; fresh.cycleAnchor = nil; fresh.progression = nil
+        library.save(fresh, conflict: .replace)
+        let replaced = library.plans[0]
+        XCTAssertEqual(replaced.id, plan.id)
+        XCTAssertEqual(replaced.cyclePosition, 2, "the second Push keeps its own place; its first moved the calendar")
+        XCTAssertEqual(replaced.cycleAnchor, plan.cycleAnchor, "the anchor goes with its place")
+        XCTAssertEqual(replaced.importedAt, date(12), "a new plan has its own import date")
+        XCTAssertEqual(replaced.sourceText, "as pasted")
+        XCTAssertNil(replaced.progression, "a new plan starts without one (§6.21)")
+
+        // An edit, a JSON edit and Apply keep all of it, and the place follows a renamed day.
+        var chest = plan.days[0]
+        chest.name = "Chest"
+        let edits = [PlanEdit.apply(.renameDay(day: 0, name: "Chest"), to: plan, settings: settings, now: CoreTestSupport.now).plan,
+                     PlanEdit.apply(.replaceDayJSON(day: 0, text: PlanJSON.render(day: chest)), to: plan,
+                                    settings: settings, now: CoreTestSupport.now).plan,
+                     plan.carried(into: fresh, as: .edit)]
+        for edited in edits {
+            let edited = try XCTUnwrap(edited)
+            XCTAssertEqual(edited.id, plan.id)
+            XCTAssertEqual(edited.cyclePosition, 2)
+            XCTAssertEqual(edited.cycleAnchor, plan.cycleAnchor)
+            XCTAssertEqual(edited.importedAt, plan.importedAt)
+            XCTAssertEqual(edited.progression, plan.progression)
+            XCTAssertEqual(edited.sourceText, PlanJSON.render(edited), "an edit's text is the canonical rendering")
+        }
+        // Where the day has gone, so has the place, and its anchor with it.
+        var noPush = fresh
+        noPush.cycle = [.day(1), .day(2)]
+        let gone = plan.carried(into: noPush, as: .edit)
+        XCTAssertNil(gone.cyclePosition)
+        XCTAssertNil(gone.cycleAnchor)
+    }
+
+    // TL10: the app speaks English whatever the phone's language. The missed line read the
+    // calendar's weekday symbols and the Summary a formatter in the phone's locale, so a German
+    // phone said "Pull was due Dienstag" and "Next: Pull, Freitag".
+    func testDatesSpeakEnglishWhateverThePhonesLanguage() throws {
+        var calendar = CoreTestSupport.utc()
+        calendar.locale = Locale(identifier: "de_DE")
+        func day(_ name: String) -> Day { Day(name: name, exercises: []) }
+
+        // Anchored to Monday the 7th with Push done; Tuesday's Pull was not.
+        var missing = Plan(name: "PPL", units: .kg, schedule: .rotation, days: [day("Push"), day("Pull"), day("Legs")],
+                           importedAt: date(1), sourceText: "", cycle: [.day(0), .day(1), .day(2), .rest])
+        missing.cyclePosition = 0
+        missing.cycleAnchor = calendar.startOfDay(for: date(7))
+        var library = PlanLibrary()
+        library.calendar = calendar
+        library.save(missing, makeActive: true)
+        XCTAssertEqual(HomeStart.current(library: library, now: date(9), calendar: calendar).missed?.text,
+                       "Pull was due Tuesday")
+
+        // Push done on Wednesday the 9th: Pull on Friday, then Push again on the 17th.
+        var summary = PlanLibrary()
+        summary.calendar = calendar
+        summary.save(Plan(name: "PL", units: .kg, schedule: .rotation, days: [day("Push"), day("Pull")],
+                          importedAt: date(1), sourceText: "", cycle: [.day(0), .rest, .day(1), .rest]), makeActive: true)
+        PlanSchedule.advance(&summary.plans[0], completedDayName: "Push", on: date(9), calendar: calendar)
+        let push = try XCTUnwrap(Session.start(plan: summary.plans[0], dayIndex: 0, now: date(9)))
+        XCTAssertEqual(SummaryText.next(after: push, library: summary, now: date(9), calendar: calendar), "Next: Pull, Friday")
+        summary.plans[0].cycle = [.day(0)] + Array(repeating: .rest, count: 7)
+        summary.plans[0].cyclePosition = 0
+        XCTAssertEqual(SummaryText.next(after: push, library: summary, now: date(9), calendar: calendar), "Next: Push, on 17 Sep")
+
+        // The picker's date line, as it always was.
+        XCTAssertEqual(summary.dayChoices(for: date(16), now: date(9))?.line,
+                       "For Wednesday 16 September only. The plan does not change.")
+        XCTAssertEqual(WeekdayText.full(Weekday(date(13), calendar: calendar)), "Sunday")
+    }
+
+    // TL11: the swap search's horizon is the calendar's — today and 62 days (§6.12). One search
+    // counted 0...62 days from where it started and the other 0..<62, so from tomorrow the card's
+    // could look a day past the last one the calendar paints.
+    func testTheHorizonIsTheCalendars() {
+        let calendar = CoreTestSupport.utc()
+        let plan = Plan(name: "A", units: .kg, schedule: .rotation, days: [Day(name: "A", exercises: [])],
+                        importedAt: date(1), sourceText: "", cycle: [.day(0)])
+        func looked(from start: Date) -> Int {
+            var count = 0
+            _ = PlanSchedule.firstDay(plan, from: start, swaps: [], today: date(1), calendar: calendar,
+                                      where: { _ in count += 1; return false })
+            return count
+        }
+        XCTAssertEqual(looked(from: date(1)), PlanSchedule.horizonDays + 1, "today and 62 days")
+        XCTAssertEqual(looked(from: date(2)), PlanSchedule.horizonDays, "from tomorrow, to the same last day")
+        XCTAssertEqual(PlanSchedule.firstDay(plan, from: date(2), swaps: [], today: date(1), calendar: calendar)?.date,
+                       calendar.startOfDay(for: date(2)), "a day to train, by default")
+    }
+
+    // TL12: one exercise search, blind to case, accents and runs of spaces. History's Find an
+    // exercise and Change exercise matched "developpe" to nothing; Add exercise matched "bench
+    // press" to nothing written "Bench  Press".
+    func testOneExerciseSearch() throws {
+        var session = CoreTestSupport.session()
+        session.endedAt = CoreTestSupport.now
+        session.exercises = ["Développé couché", "Bench  Press"].map { SessionExercise(name: $0, targets: []) }
+        let plan = CoreTestSupport.plan()
+        for plans in [[], [plan]] {
+            XCTAssertEqual(ExerciseNames.known(plans: plans, history: [session], query: "developpe").map(\.name),
+                           ["Développé couché"])
+            XCTAssertEqual(ExerciseNames.known(plans: plans, history: [session], query: " BENCH PRESS ").map(\.name),
+                           plans.isEmpty ? ["Bench  Press"] : ["Bench Press"], "a plan's own name is found first")
+        }
+        XCTAssertEqual(ExerciseNames.known(plans: [], history: [session], query: "").count, 2, "History's alone")
+
+        guard let history = FixtureLoader.doc("JimmsBro/Features/History/HistoryView.swift"),
+              let change = FixtureLoader.doc("JimmsBro/Features/Workout/ChangeExerciseSheet.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        for source in [history, change] {
+            XCTAssertTrue(source.contains("ExerciseNames.known(plans: [], history: model.sessions"))
+        }
+    }
+
+    // TL13: a cycle is read one way — as days (`Plan.cycleDays`), in words (`cycleNames`) and as
+    // squares (`CycleSquare.of`) — for the plan's JSON, the prompt, the diff, the review's squares,
+    // the page's squares and rows, and the symbol. The diff wrote "?" for an entry naming a day the
+    // plan no longer has, where everything else draws a rest (§6.12).
+    func testACycleIsReadOneWay() {
+        let plan = Plan(name: "R", units: .kg, schedule: .rotation,
+                        days: [Day(name: "Push", exercises: []), Day(name: "Pull", exercises: [])],
+                        importedAt: date(1), sourceText: "", cycle: [.day(0), .rest, .day(1), .day(7)])
+        XCTAssertEqual(plan.cycleDays, [0, nil, 1, nil])
+        XCTAssertEqual(plan.cycleNames, ["Push", nil, "Pull", nil])
+        XCTAssertTrue(PlanJSON.render(plan).contains(#""cycle": ["Push", "rest", "Pull", "rest"]"#))
+        XCTAssertTrue(Prompts.outlineListing(plan).contains("Repeat block: Push, rest, Pull, rest"))
+        XCTAssertEqual(PlanDiff.scheduleText(plan), "Push · rest · Pull · rest")
+
+        let squares = CycleSquare.of(plan)
+        XCTAssertEqual(squares.map(\.name), ["Push", "Rest", "Pull", "Rest"])
+        XCTAssertEqual(squares.map(\.dayIndex), plan.cycleDays)
+        XCTAssertEqual(squares.map(\.colour), DayColour.cycle(of: plan))
+        XCTAssertEqual(ImportTrip.squares(plan).map(\.dayIndex), plan.cycleDays)
+        XCTAssertEqual(RepeatBlock.squares(plan, today: date(14), calendar: CoreTestSupport.utc()).map(\.dayIndex), plan.cycleDays)
+        XCTAssertEqual(PlanPage.rows(plan).map(\.dayIndex), plan.cycleDays)
+    }
 }
