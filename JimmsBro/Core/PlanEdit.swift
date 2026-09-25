@@ -165,6 +165,10 @@ enum PlanEdit {
         case insertExercisesJSON(day: Int, at: Int?, text: String)
         /// Appended after the last day, and added to a rotation's repeat block.
         case insertDaysJSON(text: String)
+        /// D95, F1 (v1.12): the whole plan's text — Plan detail's **Edit the text** — read as a
+        /// paste and carried as an edit. A text that names no unit keeps the plan's (D57 asks only
+        /// on a new plan's review).
+        case replacePlanJSON(text: String)
     }
 
     /// The edited plan, or the errors that stopped it. The plan keeps its id, its position in
@@ -181,6 +185,8 @@ enum PlanEdit {
             let splice = spliced(plan, operation)
             guard let spliced = splice.text else { return ImportResult(plan: nil, issues: splice.issues) }
             text = spliced
+        case let .replacePlanJSON(whole):
+            text = whole
         default:
             guard let changed = mutated(operation, plan) else {
                 return ImportResult(plan: nil, issues: [notApplicable])
@@ -189,7 +195,7 @@ enum PlanEdit {
             text = PlanJSON.render(edited)
         }
         var result = PlanImport.run(text, settings: settings, now: now)
-        guard let reimported = result.plan else { return result }
+        guard let reimported = result.planKeepingUnits(of: plan) else { return result }
         // A day pasted in its own place keeps it, and a renamed one took its old name's place in
         // the repeat block (`spliced`).
         if case let .replaceDayJSON(day, _) = operation, let renamed = reimported.days[safe: day] {
@@ -465,8 +471,8 @@ enum PlanEdit {
             // `PlanJSON.render` writes the day's current name into it on the way out.
             plan.days[day].name = name
 
-        case .replaceExerciseJSON, .replaceDayJSON, .insertExercisesJSON, .insertDaysJSON:
-            // Text edits are spliced (`spliced`), never mutated here.
+        case .replaceExerciseJSON, .replaceDayJSON, .insertExercisesJSON, .insertDaysJSON, .replacePlanJSON:
+            // Text edits are spliced (`spliced`) or read whole, never mutated here.
             return nil
         }
         return plan

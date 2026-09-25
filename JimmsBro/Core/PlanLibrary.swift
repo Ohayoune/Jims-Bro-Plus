@@ -36,12 +36,13 @@ struct PlanLibrary {
         if activePlanId == nil || makeActive { activePlanId = incoming.id }
         return incoming.id
     }
-    /// Plan detail's **Edit the text** (D25/v1.1, SPEC §4.3; named so since D95): the whole plan's
-    /// text saved in `id`'s place, regardless of what the incoming plan's name matches — unlike
-    /// `save`'s name-based conflict handling, the intent here is already explicit. It is an edit, as
-    /// **Apply** is (D94), so it is carried as an edit (`Plan.carried(into:as:)`): the id, the
-    /// import date, the cycle's place and anchor (D37 — new text is not a reason for the calendar
-    /// to move) and, since the 2026-09-24 screen audit (F1, §6.21), the progression stay.
+    /// A whole plan saved in `id`'s place — **Say what should change**'s Apply (D94) — regardless of
+    /// what the incoming plan's name matches: unlike `save`'s name-based conflict handling, the
+    /// intent here is already explicit. It is an edit, as Plan detail's **Edit the text** is (D25,
+    /// D95, `PlanEdit.Operation.replacePlanJSON`), so it is carried as one (`Plan.carried(into:as:)`):
+    /// the id, the import date, the cycle's place and anchor (D37 — new text is not a reason for
+    /// the calendar to move) and, since the 2026-09-24 screen audit (F1, §6.21), the progression
+    /// stay.
     @discardableResult mutating func replace(_ id: UUID, with imported: Plan) -> UUID? {
         guard let index = plans.firstIndex(where: { $0.id == id }) else { return nil }
         var incoming = imported

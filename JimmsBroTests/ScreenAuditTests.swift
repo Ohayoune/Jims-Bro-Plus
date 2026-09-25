@@ -29,7 +29,13 @@ final class ScreenAuditTests: XCTestCase {
         XCTAssertEqual(library.plans[0].importedAt, plan.importedAt, "an edit keeps the import date, as Apply does")
         XCTAssertEqual(library.plans[0].days[0].exercises[0].sets.count, 4, "the text's own days land")
         XCTAssertEqual(library.activePlanId, plan.id)
-        XCTAssertTrue(ImportTrip.replacing("Training", text: "").place.contains("its progression stay"))
+        XCTAssertTrue(JSONPoint.replacing("Training", text: "").place.contains("its progression stay"))
+        // Plan detail's Edit the text is that edit from text, through the one JSON sheet (L5).
+        let edited = PlanEdit.apply(.replacePlanJSON(text: PlanJSON.render(CoreTestSupport.plan(sets: 5))),
+                                    to: library.plans[0], settings: Settings(), now: now)
+        XCTAssertEqual(edited.plan?.progression, plan.progression)
+        XCTAssertEqual(edited.plan?.id, plan.id)
+        XCTAssertEqual(edited.plan?.days[0].exercises[0].sets.count, 5)
 
         library.save(CoreTestSupport.plan(), conflict: .replace)
         XCTAssertNil(library.plans[0].progression, "a name-conflict Replace on import is a new plan")

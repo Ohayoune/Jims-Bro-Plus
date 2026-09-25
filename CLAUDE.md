@@ -322,7 +322,18 @@ of its two stages; Skip exercise starts the walk through `advance`, as a skipped
 are `SessionBlocks.place` and `SessionStats`; last time is `Prefill.lastResult` over one scan; the limits
 are `TargetGrammar.isWeight` and `.cleanName`; a step is a `SessionStep` and its target a `StepTarget`;
 `ActiveSession` and `RestState` decode in Persistence.swift; and the Overview and Session detail draw
-`SessionBlocks.blocks` (TL14–TL21). L5–L8 are not built.
+`SessionBlocks.blocks` (TL14–TL21). L5 is built and green on the same branch: the chatbot screens say
+each thing once — a refused reply is one `TripRefusal` (`Core/TripRefusal.swift`, beside `Trip.swift`
+because the extension compiles that one) with the fix a `TripFix`, `.chat` or `.paste`, and each screen's
+way back its one argument, and a refusal that names no error is fixed at Chat (SPEC §6.60); the ··· is
+`TripMenuItem`, drawn by one `TripMenu`; each screen type chooses its prompt and subject, so
+`AppModel.progressionPrompt`, `outlinePrompt` and `dayPrompt` are gone; every text sheet is built in
+`JSONPoint`, and Plan detail's Edit the text is a `.plan` fragment target saved as
+`PlanEdit.Operation.replacePlanJSON`, the unit kept by `ImportResult.planKeepingUnits(of:)` (so
+`ImportView(replacingPlanId:)` and `AppModel.replacePlan` are gone); a draft's day is tried once
+(`PlanDrafting.preview`, held by `DraftTrip` from `pasted(_:settings:)`); and the refusal with its Details,
+Worth knowing, the tidying and Paste are drawn once in `Features/Shared/TripParts.swift` (TL22–TL27).
+L6–L8 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

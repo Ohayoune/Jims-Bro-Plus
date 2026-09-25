@@ -90,15 +90,7 @@ struct JSONFragmentSheet: View {
                     .listRowBackground(Color.red.opacity(0.08))
             }
             if showDetails {
-                ForEach(Array(errors.enumerated()), id: \.offset) { _, issue in
-                    VStack(alignment: .leading, spacing: 1) {
-                        if !issue.path.isEmpty { Text(issue.path).font(.caption.monospaced()) }
-                        Text("\(issue.code) · \(issue.message)")
-                            .font(.caption2.monospaced())
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .foregroundStyle(.secondary)
-                }
+                ForEach(Array(errors.enumerated()), id: \.offset) { _, issue in IssueDetail(issue: issue) }
             }
             Button(showDetails ? "Hide details" : "Details (\(errors.count))") { showDetails.toggle() }
                 .font(.footnote)
@@ -124,13 +116,14 @@ struct JSONFragmentSheet: View {
     }
 }
 
-/// D43: which part of the plan a fragment sheet is for, or which kind of new part — a thin map
-/// to the `JSONPoint` that says the rest (D77).
+/// D43: which part of the plan a fragment sheet is for, or which kind of new part — or, since
+/// D95, the whole plan — a thin map to the `JSONPoint` that says the rest (D77).
 enum FragmentTarget: Identifiable, Equatable {
     case exercise(day: Int, exercise: Int)
     case addExercise(day: Int)
     case day(Int)
     case addDay
+    case plan
 
     var id: String {
         switch self {
@@ -138,6 +131,7 @@ enum FragmentTarget: Identifiable, Equatable {
         case let .addExercise(day): return "addExercise.\(day)"
         case let .day(day): return "day.\(day)"
         case .addDay: return "addDay"
+        case .plan: return "plan"
         }
     }
 
@@ -147,6 +141,7 @@ enum FragmentTarget: Identifiable, Equatable {
         case let .addExercise(day): return JSONPoint.addExercises(plan, day: day)
         case let .day(day): return JSONPoint.day(plan, day: day)
         case .addDay: return JSONPoint.addDays(plan)
+        case .plan: return JSONPoint.replacing(plan.name, text: plan.sourceText)
         }
     }
 }

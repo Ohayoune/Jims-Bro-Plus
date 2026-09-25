@@ -98,15 +98,17 @@ final class RoundTripProgressionTests: XCTestCase {
         let prompt = screen.prompt(plan: plan(), history: [], settings: settings, now: now)
         screen.read(read(prompt, mode: screen.mode))
         XCTAssertEqual(screen.stage, .refused)
-        XCTAssertEqual(screen.fixAt, 2)
+        XCTAssertEqual(screen.refusal?.fix, .paste)
         XCTAssertEqual(screen.strip.marks, [.done, .done, .now])
         XCTAssertNotNil(screen.refusal)
         XCTAssertEqual(screen.buttons, TripButtons.ask(), "the trouble goes back as the prompt")
         screen.read(read("   ", mode: screen.mode))
-        XCTAssertEqual(screen.fixAt, 2, "nothing was pasted")
+        XCTAssertEqual(screen.refusal?.fix, .paste, "nothing was pasted")
         screen.read(read("```json\n[1, 2]\n```", mode: screen.mode))
         XCTAssertEqual(screen.stage, .refused)
-        XCTAssertEqual(screen.fixAt, 1)
+        XCTAssertEqual(screen.refusal?.fix, .chat)
+        XCTAssertEqual(screen.refusal?.sends, .prompt, "a progression has no fix-it prompt of its own")
+        XCTAssertEqual(screen.buttons, TripButtons.ask())
         XCTAssertEqual(screen.strip.marks, [.done, .now, .todo])
         XCTAssertFalse(screen.editable, "a refusal does not reopen the tiles")
         screen.sent()
@@ -118,7 +120,7 @@ final class RoundTripProgressionTests: XCTestCase {
         XCTAssertEqual(screen.stage, .review)
         XCTAssertEqual(screen.strip, TripStrip.of(.review))
         XCTAssertEqual(screen.buttons, TripButtons.effect("Start step 1"))
-        XCTAssertTrue(screen.issues.allSatisfy { $0.severity == .warning })
+        XCTAssertTrue(screen.warnings.allSatisfy { $0.severity == .warning })
         screen.cancelReview()
         XCTAssertEqual(screen.stage, .paste)
         XCTAssertNil(screen.progression)
@@ -148,7 +150,7 @@ final class RoundTripProgressionTests: XCTestCase {
     // last text read — named without "JSON", and a refusal in it marks its line.
     func testTheTextBehindTheMore() throws {
         let plan = plan()
-        let point = ProgressionScreen.textPoint(plan: plan, steps: 6, text: " ")
+        let point = JSONPoint.progression(plan, steps: 6, text: " ")
         XCTAssertEqual(point.title, "The progression")
         XCTAssertEqual(point.saveTitle, "Review the steps")
         XCTAssertFalse((point.title + point.place + point.footer).contains("JSON"))
@@ -156,7 +158,7 @@ final class RoundTripProgressionTests: XCTestCase {
         XCTAssertEqual(example.errors, [])
         XCTAssertEqual(example.progression?.weeks, 6)
         XCTAssertEqual(example.progression?.entries.count, 5, "every exercise of the plan")
-        XCTAssertEqual(ProgressionScreen.textPoint(plan: plan, steps: 6, text: reply).template, reply)
+        XCTAssertEqual(JSONPoint.progression(plan, steps: 6, text: reply).template, reply)
 
         let broken = point.template.replacingOccurrences(of: "\"Barbell Bench Press\", \"steps\": [{}, {}, {}, {}, {}, {}]",
                                                          with: "\"Barbell Bench Press\", \"steps\": \"lots\"")
@@ -187,13 +189,15 @@ final class RoundTripProgressionTests: XCTestCase {
         await empty.load()
         _ = await empty.save(plan, makeActive: true)
         let id = try XCTUnwrap(empty.plans.first?.id)
-        XCTAssertFalse(try XCTUnwrap(empty.progressionPrompt(for: id, weeks: 6, now: now)).contains("MY HISTORY"))
+        let saved = try XCTUnwrap(empty.plans.first { $0.id == id })
+        XCTAssertFalse(ProgressionScreen().prompt(plan: saved, history: empty.sessions, settings: empty.settings, now: now)
+            .contains("MY HISTORY"))
 
         try await Store(root: root).save(session: session)
         let model = AppModel(store: Store(root: root))
         await model.load()
-        XCTAssertTrue(try XCTUnwrap(model.progressionPrompt(for: id, weeks: 6, now: now)).contains("MY HISTORY"))
-        XCTAssertNil(model.progressionPrompt(for: UUID(), weeks: 6, now: now))
+        XCTAssertTrue(ProgressionScreen().prompt(plan: saved, history: model.sessions, settings: model.settings, now: now)
+            .contains("MY HISTORY"))
 
         guard let prompts = FixtureLoader.doc("JimmsBro/Core/Prompts.swift"),
               let app = FixtureLoader.doc("JimmsBro/Store/ProgressionModel.swift"),
@@ -299,8 +303,8 @@ final class RoundTripProgressionTests: XCTestCase {
                      "Paste progression", "Show text", "Use my history", "Save progression"] {
             XCTAssertFalse(view.contains(gone), "ProgressionView has \(gone) again")
         }
-        for kept in ["ProgressionScreen", "TripStripView", "PromptButtons", "PasteButton", "RefusedBand",
-                     "ProgressionLadder.of", "TripText.sendAgain", "TripText.editText", "Plan the next one"] {
+        for kept in ["ProgressionScreen", "TripStripView", "PromptButtons", "TripPasteButton", "RefusalDetails",
+                     "ProgressionLadder.of", "TripMenu(", "screen.menu(", "Plan the next one"] {
             XCTAssertTrue(view.contains(kept), "ProgressionView lost \(kept)")
         }
     }

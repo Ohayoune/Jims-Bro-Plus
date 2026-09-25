@@ -86,7 +86,7 @@ final class OneOwnerTests: XCTestCase {
         var plan = CoreTestSupport.plan()
         plan.days[0].name = name
         plan.days[0].exercises[0].name = #"Bench "flat""#
-        let reply = PlanImport.decode(ProgressionScreen.exampleReply(plan: plan, steps: 2)).value
+        let reply = PlanImport.decode(JSONPoint.exampleProgression(plan, steps: 2)).value
         XCTAssertEqual(reply?["exercises"]?.array?.first?["day"]?.string, name)
         XCTAssertEqual(reply?["exercises"]?.array?.first?["name"]?.string, #"Bench "flat""#)
     }
@@ -98,8 +98,8 @@ final class OneOwnerTests: XCTestCase {
         let cut = try XCTUnwrap(PlanImport.run(#"{ "name": "Push", "days": ["#).errors.first)
         XCTAssertTrue(words.isPlanInWords); XCTAssertFalse(words.isCutShort)
         XCTAssertTrue(cut.isCutShort); XCTAssertFalse(cut.isPlanInWords)
-        XCTAssertEqual(ImportTrip.Refusal.of([words]).sends, .prompt)
-        XCTAssertTrue(ImportTrip.Refusal.of([cut]).offersDayByDay)
+        XCTAssertEqual(TripRefusal.of([words], way: .wholePlanOrDayByDay).sends, .prompt)
+        XCTAssertTrue(TripRefusal.of([cut], way: .wholePlanOrDayByDay).offersDayByDay)
         XCTAssertTrue(IssueText.friendly(words).contains("plan in words"))
         XCTAssertTrue(IssueText.friendly(cut).contains("cut off"))
     }
@@ -526,6 +526,246 @@ final class OneOwnerTests: XCTestCase {
         for source in [overview, detail] {
             XCTAssertTrue(source.contains("SessionBlocks.blocks(session)"))
             XCTAssertFalse(source.contains("SessionBlocks.indices"))
+        }
+    }
+
+    // MARK: - L5: the chatbot screens
+
+    private func imported(_ fixture: String) throws -> ImportResult {
+        PlanImport.run(try FixtureLoader.text(fixture), settings: settings, now: now)
+    }
+
+    // TL22: one refusal for every trip screen (`TripRefusal`), which differ only in their way back.
+    // The prompt pasted, or nothing, is fixed at Paste everywhere by the screen's own prompt; the
+    // rest at Chat — asked for whole on Add plan and Say what should change, with day by day
+    // beside it on Add plan alone for a reply cut short, and a plan in words sent Add plan's prompt,
+    // which it has not met. A refusal that names no error is fixed at Chat, since SPEC §6.60 names
+    // Paste only for the prompt or nothing; Add plan had it at Paste, the other screens at Chat.
+    func testOneRefusalForEveryTripScreen() throws {
+        let ways: [TripRefusal.WayBack] = [.prompt, .wholePlan, .wholePlanOrDayByDay]
+        for fixture in ["invalid/prompt-pasted.txt", "invalid/empty.txt"] {
+            let issues = try imported(fixture).issues
+            for way in ways {
+                let refusal = TripRefusal.of(issues, way: way)
+                XCTAssertEqual(refusal.fix, .paste, "\(fixture), \(way)")
+                XCTAssertEqual(refusal.sends, .prompt, "\(fixture), \(way)")
+                XCTAssertEqual(refusal.buttons(prompt: "the outline prompt"), .ask("the outline prompt"))
+            }
+        }
+        let cut = try imported("invalid/truncated.txt").issues
+        let words = try imported("invalid/not-json-at-all.txt").issues
+        XCTAssertEqual(ways.map { TripRefusal.of(cut, way: $0).sends }, [.prompt, .wholePlan, .wholePlan])
+        XCTAssertEqual(ways.map { TripRefusal.of(cut, way: $0).offersDayByDay }, [false, false, true])
+        XCTAssertEqual(ways.map { TripRefusal.of(words, way: $0).sends }, [.prompt, .wholePlan, .prompt])
+        for issues in [cut, words] {
+            XCTAssertEqual(ways.map { TripRefusal.of(issues, way: $0).fix }, [.chat, .chat, .chat])
+        }
+        let whole = TripRefusal.of(cut, way: .wholePlan)
+        XCTAssertEqual(whole.buttons(), TripButtons(primary: "Ask for the whole plan", secondary: "Copy the prompt"))
+        XCTAssertEqual(whole.prompt(or: "own"), Prompts.render(errors: cut))
+        XCTAssertEqual(TripRefusal.of(cut, way: .prompt).prompt(or: "own"), "own")
+        XCTAssertEqual(whole.sentence, IssueText.friendly(try XCTUnwrap(cut.first)))
+
+        // The disagreement: nothing names what refused it.
+        let unnamed = TripRefusal.of([Issue(severity: .warning, code: "W_UNKNOWN_FIELD", path: "x", message: "Ignored.")],
+                                     way: .wholePlanOrDayByDay)
+        XCTAssertEqual(unnamed.fix, .chat)
+        XCTAssertEqual(unnamed.sends, .prompt, "a fix-it prompt would name nothing")
+        XCTAssertEqual(unnamed.errors, [], "a warning is not what refused it")
+        XCTAssertNil(unnamed.sentence)
+
+        // Each screen's refusal is that one, with its own way back.
+        let truncated = try FixtureLoader.text("invalid/truncated.txt")
+        var add = ImportTrip()
+        add.pasted(result: PlanImport.run(truncated, settings: settings, now: now))
+        XCTAssertEqual(add.refusal, TripRefusal.of(cut, way: .wholePlanOrDayByDay))
+        var change = ChangeRequest(plan: CoreTestSupport.plan())
+        change.say("Fewer sets")
+        change.sent()
+        change.pasted(result: PlanImport.run(truncated, settings: settings, now: now))
+        XCTAssertEqual(change.refusal, TripRefusal.of(cut, way: .wholePlan))
+        let reply = ProgressionImport.run("```json\n[1, 2]\n```", plan: CoreTestSupport.plan(), settings: settings,
+                                          now: now, mode: .performance)
+        var progression = ProgressionScreen()
+        progression.sent()
+        progression.read(reply)
+        XCTAssertEqual(progression.refusal, TripRefusal.of(reply.issues, way: .prompt))
+        let outline = PlanDrafting.outline(truncated, settings: settings, now: now)
+        var draft = DraftTrip(draft: nil, settings: settings)
+        draft.sent()
+        draft.pasted(outline, settings: settings, now: now)
+        XCTAssertEqual(draft.refusal, TripRefusal.of(outline.issues, way: .prompt))
+        XCTAssertEqual(draft.buttons, .ask("the outline prompt"), "a draft asks with its own prompt, again")
+    }
+
+    // TL23: one ··· on every trip screen, drawn by one view from Core's items (§6.68): Send the
+    // prompt again once the prompt has gone, Edit the text last wherever it is.
+    func testOneMenuForEveryTripScreen() throws {
+        var change = ChangeRequest(plan: CoreTestSupport.plan())
+        XCTAssertEqual(change.menu, [.editText])
+        change.say("Fewer sets")
+        change.sent()
+        XCTAssertEqual(change.menu, [.sendAgain, .editText])
+        var screen = ProgressionScreen()
+        XCTAssertEqual(screen.menu(hasProgression: false, planning: false), [.editText])
+        screen.sent()
+        XCTAssertEqual(screen.menu(hasProgression: false, planning: false), [.sendAgain, .editText])
+        XCTAssertEqual(screen.menu(hasProgression: true, planning: true), [.sendAgain, .keepCurrent, .removeProgression, .editText])
+        XCTAssertEqual(screen.menu(hasProgression: true, planning: false), [.removeProgression],
+                       "the running progression's screen has no text behind it")
+        XCTAssertEqual(ImportTrip().menu.last, .editText)
+        XCTAssertEqual(DraftTrip(draft: nil, settings: settings).menu.last, .editText)
+        XCTAssertEqual(TripMenuItem.sendAgain.title, TripText.sendAgain)
+        XCTAssertEqual(TripMenuItem.editText.title, TripText.editText)
+        XCTAssertEqual([TripMenuItem.sendAgain, .openFile, .keepWithoutUsing, .discardDraft, .keepCurrent,
+                        .removeProgression, .editText].filter(\.isDestructive), [.discardDraft, .removeProgression])
+
+        guard let add = FixtureLoader.doc("JimmsBro/Features/Import/ImportView.swift"),
+              let changing = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ChangePlanView.swift"),
+              let planning = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ProgressionView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        for (name, source) in [("ImportView", add), ("ChangePlanView", changing), ("ProgressionView", planning)] {
+            XCTAssertTrue(source.contains("TripMenu(items: "), "\(name) builds its own ···")
+            XCTAssertFalse(source.contains("Menu {"), "\(name) builds its own ···")
+            XCTAssertFalse(source.contains("TripText."), "\(name) writes a menu item's words itself")
+            XCTAssertFalse(source.contains("\"Send the prompt again\""), name)
+        }
+    }
+
+    // TL24: Core chooses the prompt on every screen — the plan prompt or a refusal's fix-it prompt,
+    // the outline's or a day's, the progression's with the plan's history — and the subject beside
+    // it. The views and the model have no route of their own.
+    func testCoreChoosesThePrompt() throws {
+        var add = ImportTrip()
+        XCTAssertEqual(add.prompt(settings: settings), Prompts.render(settings: settings))
+        add.pasted(result: try imported("invalid/no-days.json"))
+        XCTAssertEqual(add.prompt(settings: settings), Prompts.render(errors: try imported("invalid/no-days.json").errors))
+        add.pasted(result: try imported("invalid/not-json-at-all.txt"))
+        XCTAssertEqual(add.prompt(settings: settings), Prompts.render(settings: settings), "a plan in words meets the prompt")
+
+        let plan = CoreTestSupport.plan()
+        let session = CoreTestSupport.completed(plan: plan)
+        var screen = ProgressionScreen()
+        screen.mark(steps: 8)
+        XCTAssertEqual(screen.prompt(plan: plan, history: [session], settings: settings, now: now),
+                       Prompts.progression(plan: plan, history: [session], weeks: 8, settings: settings, now: now,
+                                           mode: ProgressionScreen.defaultMode))
+        XCTAssertEqual(ProgressionScreen.subject(plan), "Progression for \(plan.name)")
+
+        guard let add = FixtureLoader.doc("JimmsBro/Features/Import/ImportView.swift"),
+              let changing = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ChangePlanView.swift"),
+              let planning = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ProgressionView.swift"),
+              let drafts = FixtureLoader.doc("JimmsBro/Store/DraftModel.swift"),
+              let progressions = FixtureLoader.doc("JimmsBro/Store/ProgressionModel.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        for (name, source) in [("ImportView", add), ("ChangePlanView", changing), ("ProgressionView", planning)] {
+            XCTAssertFalse(source.contains("Prompts."), "\(name) chooses a prompt itself")
+            XCTAssertFalse(source.contains("subject: \""), "\(name) writes the share sheet's subject itself")
+        }
+        XCTAssertFalse(drafts.contains("func outlinePrompt") || drafts.contains("func dayPrompt"), "a second route to a draft's prompts")
+        XCTAssertFalse(progressions.contains("func progressionPrompt"), "a second route to the progression prompt")
+    }
+
+    // TL25: every text sheet is a `JSONPoint`, built there and nowhere else — and a whole plan's
+    // has one sheet: Plan detail's Edit the text is a fragment target whose Save is an edit, which
+    // keeps the plan's id, its progression and, when the text names no unit, its unit, as a reply
+    // to Say what should change does (one rule, `ImportResult.planKeepingUnits(of:)`).
+    func testEveryTextSheetIsAJSONPoint() throws {
+        var plan = CoreTestSupport.plan()
+        let wholes = [JSONPoint.newPlan(template: "{}"), .replacing(plan.name, text: "{}"), .assembled(plan.name, text: "{}"),
+                      .outline, .changing(plan.name, text: "{}")]
+        XCTAssertEqual(wholes.map(\.kind), Array(repeating: JSONPoint.Kind.plan, count: 5))
+        XCTAssertEqual(Set(wholes.prefix(3).map(\.footer)).count, 1, "one footer for a whole plan")
+        XCTAssertEqual(JSONPoint.progression(plan, steps: 2, text: "").kind, .progression)
+        XCTAssertEqual(JSONPoint.draftDay(plan, index: 0)?.kind, .day(0))
+        XCTAssertNil(JSONPoint.draftDay(plan, index: 9))
+        XCTAssertEqual(ImportTrip().textPoint, .newPlan(template: JSONPoint.examplePlan))
+        XCTAssertEqual(DraftTrip(draft: nil, settings: settings).textPoint(assembled: nil), .outline)
+        XCTAssertEqual(ChangeRequest(plan: plan).textPoint(), .changing(plan.name, text: PlanJSON.render(plan)))
+
+        plan.units = .lb
+        plan.progression = Progression(startDate: now, weeks: 1, entries: [
+            ProgressionEntry(dayName: plan.days[0].name, exerciseName: plan.days[0].exercises[0].name,
+                             weeks: [ProgressionWeek(weight: 62.5)]),
+        ])
+        var tree = try XCTUnwrap(PlanImport.decode(PlanJSON.render(plan)).value?.object)
+        tree["units"] = nil
+        tree["name"] = .string("Renamed")
+        let silent = RawJSON.object(tree).jsonText
+        let point = JSONPoint.replacing(plan.name, text: plan.sourceText)
+        XCTAssertEqual(point.operation(silent), .replacePlanJSON(text: silent))
+        let saved = try XCTUnwrap(PlanEdit.apply(.replacePlanJSON(text: silent), to: plan, settings: Settings(), now: now).plan)
+        XCTAssertEqual(saved.name, "Renamed")
+        XCTAssertEqual(saved.units, .lb, "the text named no unit; the setting's kg is not a change anyone asked for")
+        XCTAssertEqual(saved.id, plan.id)
+        XCTAssertEqual(saved.progression, plan.progression)
+        XCTAssertEqual(PlanImport.run(silent, settings: Settings(), now: now).planKeepingUnits(of: plan)?.units, .lb)
+
+        guard let add = FixtureLoader.doc("JimmsBro/Features/Import/ImportView.swift"),
+              let detail = FixtureLoader.doc("JimmsBro/Features/PlanDetail/PlanDetailView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        for file in ["ImportTrip", "DraftTrip", "ChangeRequest", "ProgressionScreen"] {
+            let source = try XCTUnwrap(FixtureLoader.doc("JimmsBro/Core/\(file).swift"))
+            XCTAssertFalse(source.contains("JSONPoint("), "\(file) builds a sheet itself")
+        }
+        XCTAssertFalse(add.contains("replacingPlanId"), "Add plan is a second sheet for a whole plan again")
+        XCTAssertFalse(add.contains("PlanJSON.render"))
+        XCTAssertFalse(detail.contains("ImportView("), "Plan detail opens Add plan to edit its text again")
+        XCTAssertTrue(detail.contains("fragment = .plan"))
+    }
+
+    // TL26: a draft's day is tried one way (§6.64): the review draws a slot exactly when the day's
+    // paste would take it, and the screen reads it when the draft changes, not each time it draws.
+    func testADraftsDayIsTriedOnce() throws {
+        let text = #"{ "name": "Two", "units": "kg", "days": [ { "name": "A" }, { "name": "B" } ] }"#
+        let outline = try XCTUnwrap(PlanDrafting.outline(text, settings: settings, now: now).draft)
+        let a = #"{ "name": "A", "exercises": [ { "name": "Squat", "sets": 3, "reps": 5 } ] }"#
+        let taken = try XCTUnwrap(PlanDrafting.day(a, into: outline, index: 0, settings: settings, now: now).draft)
+        XCTAssertEqual(PlanDrafting.preview(taken, settings: settings, now: now).days.map { $0.exercises.map(\.name) },
+                       [["Squat"], []])
+        let refused = #"{ "name": "B", "exercises": [ { "name": "Row", "sets": 3, "reps": "lots" } ] }"#
+        XCTAssertNil(PlanDrafting.day(refused, into: taken, index: 1, settings: settings, now: now).draft)
+        var forced = taken
+        forced.dayTexts[1] = refused
+        XCTAssertEqual(PlanDrafting.preview(forced, settings: settings, now: now).days[1].exercises.count, 0,
+                       "a text the day's check refuses is not drawn either")
+
+        var trip = DraftTrip(draft: outline, settings: settings, now: now)
+        XCTAssertEqual(trip.preview?.days.map(\.exercises.count), [0, 0])
+        trip.pasted((taken, []), settings: settings, now: now)
+        XCTAssertEqual(trip.preview?.days.map { $0.exercises.map(\.name) }, [["Squat"], []])
+
+        guard let add = FixtureLoader.doc("JimmsBro/Features/Import/ImportView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        XCTAssertFalse(add.contains("preview(settings"), "Add plan reads the draft again each time it draws")
+    }
+
+    // TL27: the chatbot screens' shared parts are drawn once, in Features/Shared — the refusal and
+    // its Details, Worth knowing, the tidying, the Paste button.
+    func testTheChatbotScreensShareTheirParts() throws {
+        guard let parts = FixtureLoader.doc("JimmsBro/Features/Shared/TripParts.swift"),
+              let add = FixtureLoader.doc("JimmsBro/Features/Import/ImportView.swift"),
+              let changing = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ChangePlanView.swift"),
+              let planning = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ProgressionView.swift"),
+              let sheet = FixtureLoader.doc("JimmsBro/Features/PlanDetail/JSONFragmentSheet.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        for literal in ["issue.code) · ", "Section(\"Worth knowing\")", "DisclosureGroup(\"Details", "PasteButton(payloadType"] {
+            XCTAssertTrue(parts.contains(literal), "the shared parts lost \(literal)")
+        }
+        let screens = [("ImportView", add), ("ChangePlanView", changing), ("ProgressionView", planning)]
+        for (name, source) in screens + [("JSONFragmentSheet", sheet)] {
+            XCTAssertFalse(source.contains("issue.code) · "), "\(name) writes Details itself")
+            XCTAssertFalse(source.contains("Section(\"Worth knowing\")"), "\(name) writes Worth knowing itself")
+            XCTAssertFalse(source.contains("DisclosureGroup(\"Details"), "\(name) writes the tidying itself")
+        }
+        for (name, source) in screens {
+            XCTAssertFalse(source.contains("PasteButton(payloadType"), "\(name) styles Paste itself")
+            XCTAssertTrue(source.contains("RefusalDetails(refusal: "), "\(name) draws a refusal itself")
         }
     }
 }

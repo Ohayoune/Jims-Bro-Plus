@@ -20,6 +20,14 @@ enum TripStage: Equatable, Sendable {
     case refused
 }
 
+/// SPEC §6.60: where a refused reply's fix is on the strip — at **Chat** when the reply must be
+/// asked for again, at **Paste** when what was pasted was the prompt itself, or nothing. The raw
+/// value is the square's place.
+enum TripFix: Int, CaseIterable, Equatable, Sendable {
+    case chat = 1
+    case paste = 2
+}
+
 /// SPEC §6.62 (D89): the trip strip — Prompt, Chat, Paste — as three marks in the Workout
 /// screen's states (D79): the squares behind are done, the one you are at is now, the ones
 /// ahead are not yet. On these screens *done* is ink, since there is no day to colour it.
@@ -29,16 +37,14 @@ struct TripStrip: Equatable, Sendable {
     var marks: [MarkState]
 
     /// Ask lights Prompt; Paste lights Paste with the two behind it done; Review has all three
-    /// done; Refused lights where the fix is — `fixAt` 1, Chat, when the reply must be asked for
-    /// again, 2, Paste, when what was pasted was the prompt itself or nothing.
-    static func of(_ stage: TripStage, fixAt: Int = 1) -> TripStrip {
+    /// done; Refused lights where the fix is.
+    static func of(_ stage: TripStage, fix: TripFix = .chat) -> TripStrip {
         switch stage {
         case .ask: return TripStrip(marks: [.now, .todo, .todo])
         case .paste: return TripStrip(marks: [.done, .done, .now])
         case .review: return TripStrip(marks: [.done, .done, .done])
         case .refused:
-            let at = min(max(fixAt, 0), names.count - 1)
-            return TripStrip(marks: names.indices.map { $0 < at ? .done : $0 == at ? .now : .todo })
+            return TripStrip(marks: names.indices.map { $0 < fix.rawValue ? .done : $0 == fix.rawValue ? .now : .todo })
         }
     }
 
@@ -79,4 +85,26 @@ struct TripButtons: Equatable, Sendable {
 enum TripText {
     static let sendAgain = "Send the prompt again"
     static let editText = "Edit the text"
+}
+
+/// SPEC §6.68 (D95): an item of a trip screen's ···. Each screen type says which items it has
+/// and in what order (`ImportTrip.menu`, `DraftTrip.menu`, `ProgressionScreen.menu`,
+/// `ChangeRequest.menu`); one view draws them all (`TripMenu`).
+enum TripMenuItem: Equatable, Sendable {
+    case sendAgain, openFile, keepWithoutUsing, discardDraft, keepCurrent, removeProgression, editText
+
+    var title: String {
+        switch self {
+        case .sendAgain: return TripText.sendAgain
+        case .openFile: return "Open a file"
+        case .keepWithoutUsing: return "Keep without using"
+        case .discardDraft: return "Discard the draft"
+        case .keepCurrent: return "Keep the current one"
+        case .removeProgression: return "Remove progression"
+        case .editText: return TripText.editText
+        }
+    }
+
+    /// The two that take something away, each behind its alert (D56).
+    var isDestructive: Bool { self == .discardDraft || self == .removeProgression }
 }

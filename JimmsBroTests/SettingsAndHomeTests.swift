@@ -343,7 +343,8 @@ final class SettingsAndHomeTests: XCTestCase {
         XCTAssertEqual(reloaded.activePlanId, thirdId)
     }
 
-    /// L37 (D25, v1.1): Plan detail's Replace keeps the plan's id and active status, unlike the
+    /// L37 (D25, v1.1): a whole plan put in a plan's place — Plan detail's Replace then, Say what
+    /// should change's Apply since v1.12's L5 — keeps the plan's id and active status, unlike the
     /// name-based conflict flow, and persists.
     @MainActor func testReplacePlanKeepsIdAndActiveStatus() async throws {
         let root = makeRoot()
@@ -357,8 +358,8 @@ final class SettingsAndHomeTests: XCTestCase {
 
         var revised = try XCTUnwrap(model.runImport(text).plan)
         revised.name = "A Completely Different Name"
-        let result = await model.replacePlan(id, with: revised)
-        XCTAssertEqual(result, id)
+        let result = await model.applyChange(planId: id, plan: revised)
+        XCTAssertTrue(result)
         XCTAssertEqual(model.plans.count, 1, "replace does not add a second plan")
         XCTAssertEqual(model.plans.first?.id, id)
         XCTAssertEqual(model.plans.first?.name, "A Completely Different Name")
@@ -369,8 +370,8 @@ final class SettingsAndHomeTests: XCTestCase {
         XCTAssertEqual(reloaded.plans.first?.name, "A Completely Different Name")
         XCTAssertEqual(reloaded.activePlanId, id)
 
-        let missingResult = await model.replacePlan(UUID(), with: revised)
-        XCTAssertNil(missingResult, "a missing id is a no-op")
+        let missingResult = await model.applyChange(planId: UUID(), plan: revised)
+        XCTAssertFalse(missingResult, "a missing id is a no-op")
     }
 
     // SPEC §8.3: a corrupt file surfaces as one alert and the app carries on.

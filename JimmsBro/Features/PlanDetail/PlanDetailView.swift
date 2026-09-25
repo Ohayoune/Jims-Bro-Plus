@@ -15,8 +15,6 @@ struct PlanDetailView: View {
     @State private var switching: Int?
     /// D78 (v1.9): the rows open, by their place on the page — the screen's, never stored.
     @State private var open: Set<Int> = []
-    /// D25/D26 (v1.1): Replace opens Import pre-filled with this plan's JSON, targeting its id.
-    @State private var replacing = false
     /// D94 (v1.11): Say what should change pushes its screen.
     @State private var changing = false
     /// D25 (v1.1): Delete now confirms here too, matching every other delete path.
@@ -84,6 +82,7 @@ struct PlanDetailView: View {
                 // D43 (v1.3): one sheet for every JSON edit; Save is a `PlanEdit.Operation`
                 // through the import pipeline, and a refusal stays in the sheet with the text.
                 // D77 (v1.9): the point says what the JSON is, where it lands and what Save does.
+                // D95 (v1.12, L5): the whole plan's Edit the text is one of them.
                 .sheet(item: $fragment) { target in
                     if let point = target.point(plan) {
                         JSONFragmentSheet(point: point) { text in
@@ -136,9 +135,6 @@ struct PlanDetailView: View {
                         edit(.deleteExercise(day: address.day, exercise: address.exercise))
                     }
                     Button("Cancel", role: .cancel) {}
-                }
-                .sheet(isPresented: $replacing) {
-                    ImportView(replacingPlanId: planId, prefillText: plan.sourceText).environment(model)
                 }
                 .navigationDestination(isPresented: $changing) { ChangePlanView(planId: planId) }
             } else {
@@ -291,7 +287,7 @@ struct PlanDetailView: View {
                 Button(ChangeRequest.menuItem) { changing = true }
                 // D43 (v1.3): the plan's text, editable — Edit the text since D95 (§6.68); and a
                 // day pasted in whole — the way to finish a week the chatbot cut short.
-                Button(TripText.editText) { replacing = true }
+                Button(TripText.editText) { fragment = .plan }
                 Button("Add day from JSON") { fragment = .addDay }
                 Button("Delete", role: .destructive) { confirmDelete = true }
             } label: {

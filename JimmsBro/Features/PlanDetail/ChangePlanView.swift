@@ -12,7 +12,6 @@ struct ChangePlanView: View {
     /// Nil until the plan is read, on appear.
     @State private var screen: ChangeRequest?
     @State private var editingText = false
-    @State private var showDetails = false
     @FocusState private var fieldFocused: Bool
 
     private var plan: Plan? { model.plans.first { $0.id == planId } }
@@ -49,12 +48,11 @@ struct ChangePlanView: View {
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
-                if screen.stage == .refused, let sentence = screen.sentence {
-                    RefusedBand(sentence: sentence)
+                if let refusal = screen.refusal {
+                    RefusalDetails(refusal: refusal)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets())
                         .listRowSeparator(.hidden)
-                    details(screen.refusal)
                 } else if let sentence = screen.sentence {
                     Text(sentence)
                         .font(.subheadline)
@@ -67,7 +65,7 @@ struct ChangePlanView: View {
             }
             if let diff = screen.diff, diff.count > 0 {
                 review(diff)
-                if let reply = screen.reply { worthKnowing(reply) }
+                if let reply = screen.reply { WorthKnowing(warnings: reply.warnings) }
             }
         }
         .listSectionSpacing(.compact)
@@ -98,14 +96,7 @@ struct ChangePlanView: View {
                 .disabled(!screen.canSend)
             }
         case .paste:
-            PasteButton(payloadType: String.self) { strings in
-                guard let text = strings.first else { return }
-                self.screen?.pasted(result: model.runImport(text))
-            }
-            .labelStyle(.titleAndIcon)
-            .buttonBorderShape(.capsule)
-            .controlSize(.large)
-            .frame(maxWidth: .infinity)
+            TripPasteButton { text in self.screen?.pasted(result: model.runImport(text)) }
         case .review:
             if let buttons = screen.buttons {
                 PrimaryButton(title: buttons.primary) { apply(screen) }
@@ -124,16 +115,13 @@ struct ChangePlanView: View {
 
     @ToolbarContentBuilder private func menu(_ screen: ChangeRequest) -> some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Menu {
-                if screen.stage != .ask {
-                    Button("Send the prompt again") { self.screen?.restart() }
+            TripMenu(items: screen.menu) { item in
+                switch item {
+                case .sendAgain: self.screen?.restart()
+                case .editText: editingText = true
+                default: break
                 }
-                // D95 (§6.68): the text is the ···'s last item.
-                Button(TripText.editText) { editingText = true }
-            } label: {
-                QuietGlyph(systemName: "ellipsis")
             }
-            .accessibilityLabel("More")
         }
         .quietBackground()
     }
@@ -212,43 +200,5 @@ struct ChangePlanView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(row.spoken)
-    }
-
-    @ViewBuilder private func worthKnowing(_ reply: Plan) -> some View {
-        let material = IssueText.split(reply.warnings).material
-        if !material.isEmpty {
-            Section("Worth knowing") {
-                ForEach(Array(material.enumerated()), id: \.offset) { _, warning in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(warning.message)
-                            .font(.footnote)
-                            .fixedSize(horizontal: false, vertical: true)
-                        if let place = IssueText.location(warning.path) {
-                            Text(place).font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    .listRowBackground(Color.yellow.opacity(0.15))
-                }
-            }
-        }
-    }
-
-    /// D26: the path and the code behind Details.
-    @ViewBuilder private func details(_ issues: [Issue]) -> some View {
-        if showDetails {
-            ForEach(Array(issues.enumerated()), id: \.offset) { _, issue in
-                VStack(alignment: .leading, spacing: 1) {
-                    if !issue.path.isEmpty { Text(issue.path).font(.caption.monospaced()) }
-                    Text("\(issue.code) · \(issue.message)")
-                        .font(.caption2.monospaced())
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .foregroundStyle(.secondary)
-            }
-        }
-        Button(showDetails ? "Hide details" : "Details (\(issues.count))") { showDetails.toggle() }
-            .font(.footnote)
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
     }
 }

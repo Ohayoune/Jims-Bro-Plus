@@ -59,15 +59,4 @@ extension AppModel {
             saveFailure = .draft
         }
     }
-
-    // MARK: - The prompts
-
-    /// The outline prompt, for the settings' units and rest.
-    func outlinePrompt() -> String { Prompts.outline(settings: settings) }
-
-    /// The prompt for one day of the draft's outline, or nil without a draft or a day.
-    func dayPrompt(_ index: Int) -> String? {
-        guard let draft, draft.outline.days.indices.contains(index) else { return nil }
-        return Prompts.day(outline: draft.outline, dayIndex: index, settings: settings)
-    }
 }

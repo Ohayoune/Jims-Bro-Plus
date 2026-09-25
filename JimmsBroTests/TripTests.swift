@@ -15,18 +15,18 @@ final class TripTests: XCTestCase {
         XCTAssertEqual(TripStrip.of(.paste).marks, [.done, .done, .now])
         XCTAssertEqual(TripStrip.of(.review).marks, [.done, .done, .done])
         XCTAssertEqual(TripStrip.of(.refused).marks, [.done, .now, .todo], "the fix is at Chat by default")
-        XCTAssertEqual(TripStrip.of(.refused, fixAt: 1).marks, [.done, .now, .todo], "ask the chatbot again")
-        XCTAssertEqual(TripStrip.of(.refused, fixAt: 2).marks, [.done, .done, .now], "the prompt itself, or nothing, was pasted")
-        // The fix-at is only read on a refusal, and never makes a fourth mark.
-        XCTAssertEqual(TripStrip.of(.ask, fixAt: 2), TripStrip.of(.ask))
+        XCTAssertEqual(TripStrip.of(.refused, fix: .chat).marks, [.done, .now, .todo], "ask the chatbot again")
+        XCTAssertEqual(TripStrip.of(.refused, fix: .paste).marks, [.done, .done, .now], "the prompt itself, or nothing, was pasted")
+        // The fix is only read on a refusal, and never makes a fourth mark.
+        XCTAssertEqual(TripStrip.of(.ask, fix: .paste), TripStrip.of(.ask))
         for stage in [TripStage.ask, .paste, .review, .refused] {
-            for fixAt in [0, 1, 2, 3] {
-                let strip = TripStrip.of(stage, fixAt: fixAt)
-                XCTAssertEqual(strip.marks.count, 3, "\(stage) at \(fixAt)")
-                XCTAssertLessThanOrEqual(strip.marks.filter { $0 == .now }.count, 1, "\(stage) at \(fixAt)")
+            for fix in TripFix.allCases {
+                let strip = TripStrip.of(stage, fix: fix)
+                XCTAssertEqual(strip.marks.count, 3, "\(stage) at \(fix)")
+                XCTAssertLessThanOrEqual(strip.marks.filter { $0 == .now }.count, 1, "\(stage) at \(fix)")
             }
         }
-        XCTAssertEqual(TripStrip.of(.refused, fixAt: 1).spoken, "Prompt, done. Chat, now. Paste, not yet.")
+        XCTAssertEqual(TripStrip.of(.refused, fix: .chat).spoken, "Prompt, done. Chat, now. Paste, not yet.")
     }
 
     // TN2: the bottom slot's words.

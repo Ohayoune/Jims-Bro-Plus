@@ -49,16 +49,42 @@ enum PlanDrafting {
 
     /// A day pasted into slot `index`, read as generously as any fragment (D43) — a day, a plan
     /// holding it, a list of exercises — named by the slot, and checked as that day alone under
-    /// the outline's header. Errors carry the slot's real path, so the sentence says "Day 3".
+    /// the outline's header (`tried`). Errors carry the slot's real path, so the sentence says
+    /// "Day 3".
     static func day(_ text: String, into draft: PlanDraft, index: Int, settings: Settings,
                     now: Date = Date()) -> (draft: PlanDraft?, issues: [Issue]) {
+        let trial = tried(text, in: draft, index: index, settings: settings, now: now)
+        let errors = trial.issues.filter { $0.severity == .error }
+        let warnings = trial.issues.filter { $0.severity == .warning }
+        guard trial.day != nil else { return (nil, errors + warnings) }
+        var updated = draft
+        updated.dayTexts[index] = text
+        return (updated, warnings)
+    }
+
+    /// The plan the review draws while a draft is being filled (D91): the outline, with every
+    /// pasted day in its slot so its exercises show, read as `day` read it; a slot that no longer
+    /// reads, and a slot not pasted yet, stays empty.
+    static func preview(_ draft: PlanDraft, settings: Settings, now: Date = Date()) -> Plan {
+        var plan = draft.outline
+        for (index, text) in draft.dayTexts.enumerated() {
+            guard let text, let day = tried(text, in: draft, index: index, settings: settings, now: now).day else { continue }
+            plan.days[index] = day
+        }
+        return plan
+    }
+
+    /// Slot `index`'s text as that day alone under the outline's header — the check a day's paste
+    /// runs before it is taken, and the day the review draws once it has been. Checked alone: this
+    /// one day and no repeat block, since the block names days that are not here yet, and this is
+    /// not the moment to say so. Paths are the slot's.
+    private static func tried(_ text: String, in draft: PlanDraft, index: Int, settings: Settings,
+                              now: Date) -> (day: Day?, issues: [Issue]) {
         guard draft.dayTexts.indices.contains(index), let slot = draft.outline.days[safe: index] else {
             return (nil, [invalid("That day isn't in the outline.", path: "days[\(index)]")])
         }
         let read = dayObject(text, for: slot, index: index)
         guard let object = read.object else { return (nil, read.issues) }
-        // Checked alone: the outline's header, this one day, and no repeat block — the block
-        // names days that are not here yet, and this is not the moment to say so.
         guard var tree = outlineTree(draft) else {
             return (nil, [invalid("The outline can't be read any more. Discard the draft and paste it again.", path: "")])
         }
@@ -70,10 +96,7 @@ enum PlanDrafting {
             if moved.path.hasPrefix("days[0]") { moved.path = "days[\(index)]" + moved.path.dropFirst("days[0]".count) }
             return moved
         }
-        guard trial.plan != nil else { return (nil, issues.filter { $0.severity == .error } + issues.filter { $0.severity == .warning }) }
-        var updated = draft
-        updated.dayTexts[index] = text
-        return (updated, issues.filter { $0.severity == .warning })
+        return (trial.plan?.days.first, issues)
     }
 
     /// The whole plan's JSON: the outline's tree with every slot's day in place of its empty

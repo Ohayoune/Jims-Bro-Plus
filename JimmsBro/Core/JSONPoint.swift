@@ -1,8 +1,9 @@
 import Foundation
 
 /// SPEC §6.19 (D77, v1.9): a point where part of a plan is written as JSON — one exercise, one
-/// day, exercises to add, a day to add, and a day just for a date (§6.50). One sheet serves them
-/// all (D43); what differs between them is here, built from the plan and the target, and the
+/// day, exercises to add, a day to add, and a day just for a date (§6.50); since v1.11 (D95) a
+/// whole plan and a progression too, every one of them built here (v1.12, L5). One sheet serves
+/// them all (D43); what differs between them is here, built from the plan and the target, and the
 /// sheet only draws it:
 ///
 /// 1. **Named** — `title` says what the JSON is, and `place` where it lands and for how long.
@@ -111,6 +112,92 @@ extension JSONPoint {
             footer: "One day, in the same fields as a pasted plan's day. Left without a name, it is called \(name).")
     }
 
+    // MARK: - A whole plan, and a progression (D87, D95)
+
+    private static let wholePlanFooter = "A whole plan, in the fields the prompt asks a chatbot for."
+
+    /// Add plan's **Edit the text**: a new plan, whose Save is a paste.
+    static func newPlan(template: String) -> JSONPoint {
+        JSONPoint(kind: .plan, title: "The plan", place: "A new plan. You see it before anything is saved.",
+                  template: template, saveTitle: "Review the plan", footer: wholePlanFooter)
+    }
+
+    /// Plan detail's **Edit the text**: the plan's own text, saved in its place as an edit.
+    static func replacing(_ name: String, text: String) -> JSONPoint {
+        JSONPoint(kind: .plan, title: "The plan",
+                  place: "All of \(name). Its history, its place in the cycle and its progression stay.",
+                  template: text, saveTitle: "Replace \(name)", footer: wholePlanFooter)
+    }
+
+    /// A draft with every day in (D91): the whole plan as it would be saved.
+    static func assembled(_ name: String, text: String) -> JSONPoint {
+        JSONPoint(kind: .plan, title: "The plan", place: "All of \(name), before it is saved.",
+                  template: text, saveTitle: "Review the plan", footer: wholePlanFooter)
+    }
+
+    /// A draft before its outline (D91): the outline's example.
+    static let outline = JSONPoint(
+        kind: .plan, title: "The outline", place: "The plan's name and its days, with no exercises yet.",
+        template: exampleOutline, saveTitle: "Use this outline", footer: "The days are pasted one at a time after it.")
+
+    /// A draft's day `index`, on D77's example day named for its slot.
+    static func draftDay(_ outline: Plan, index: Int) -> JSONPoint? {
+        guard let slot = outline.days[safe: index] else { return nil }
+        return JSONPoint(
+            kind: .day(index), title: "One day",
+            place: "\(slot.name), day \(index + 1) of \(outline.days.count) in \(outline.name)",
+            template: exampleDay(name: slot.name, weekday: slot.weekday),
+            saveTitle: "Add \(slot.name)", footer: "One day, in the same fields as a pasted plan's day.")
+    }
+
+    /// **Say what should change**'s **Edit the text** (D94): the whole plan, whose Save reviews what
+    /// changed, as a paste would.
+    static func changing(_ name: String, text: String) -> JSONPoint {
+        JSONPoint(kind: .plan, title: "The plan", place: "\(name), changed. Nothing is saved until you apply it.",
+                  template: text, saveTitle: "See what changed", footer: "The whole plan, as the chatbot writes it back.")
+    }
+
+    /// Progression's **Edit the text** (D92): the last text read, or else a reply that reads as it
+    /// stands — every exercise of the plan, each step `{}` — so a change is one number.
+    static func progression(_ plan: Plan, steps: Int, text: String) -> JSONPoint {
+        JSONPoint(kind: .progression, title: "The progression",
+                  place: "Steps for \(plan.name). Nothing changes until you start.",
+                  template: text.trimmed.isEmpty ? exampleProgression(plan, steps: steps) : text,
+                  saveTitle: "Review the steps",
+                  footer: "Each step gives a weight, reps or both; {} keeps the plan's own.")
+    }
+
+    /// The smallest plan the importer takes as it stands: one day of the example exercise, and no
+    /// unit, so its review asks.
+    static var examplePlan: String {
+        let day = exampleDay(name: "Day 1").trimmed.split(separator: "\n").map { "    " + $0 }.joined(separator: "\n")
+        return "{\n  \"name\": \"My plan\",\n  \"days\": [\n" + day + "\n  ]\n}\n"
+    }
+
+    /// The smallest outline the drafting reader takes: a name and three empty days.
+    static let exampleOutline = """
+    {
+      "name": "My plan",
+      "days": [
+        { "name": "Day 1" },
+        { "name": "Day 2" },
+        { "name": "Day 3" }
+      ]
+    }
+
+    """
+
+    /// A progression reply for `plan` that holds every exercise where it is for `steps` steps.
+    static func exampleProgression(_ plan: Plan, steps: Int) -> String {
+        let empty = Array(repeating: "{}", count: max(1, steps)).joined(separator: ", ")
+        let lines = plan.days.flatMap { day in
+            day.exercises.map { exercise in
+                "    { \"day\": \(PlanJSON.string(day.name)), \"name\": \(PlanJSON.string(exercise.name)), \"steps\": [\(empty)] }"
+            }
+        }
+        return "{\n  \"steps\": \(max(1, steps)),\n  \"exercises\": [\n" + lines.joined(separator: ",\n") + "\n  ]\n}\n"
+    }
+
     /// The smallest exercise the importer takes as it stands (TQ30), so a change is one number.
     static let exampleExercise = """
     {
@@ -132,16 +219,18 @@ extension JSONPoint {
         return "{\n" + fields.joined(separator: ",\n") + "\n}\n"
     }
 
-    /// What Save does to the plan; nil for a day just for a date, which is not the plan's.
+    /// What Save does to the plan the sheet was opened on, in Plan detail; nil for a day just for a
+    /// date, which is not the plan's, and a progression, which is read as a reply. A whole plan is
+    /// Plan detail's **Edit the text** (`replacing`); the other whole-plan sheets — Add plan's, a
+    /// draft's, Say what should change's — read their text as a paste and never ask.
     func operation(_ text: String) -> PlanEdit.Operation? {
         switch kind {
         case let .exercise(day, exercise): return .replaceExerciseJSON(day: day, exercise: exercise, text: text)
         case let .day(day): return .replaceDayJSON(day: day, text: text)
         case let .addExercises(day, _): return .insertExercisesJSON(day: day, at: nil, text: text)
         case .addDays: return .insertDaysJSON(text: text)
-        // A whole plan is saved as a paste, and a progression read as a reply; neither is an
-        // edit to a plan already on the phone, so neither has an operation.
-        case .ownDay, .plan, .progression: return nil
+        case .plan: return .replacePlanJSON(text: text)
+        case .ownDay, .progression: return nil
         }
     }
 

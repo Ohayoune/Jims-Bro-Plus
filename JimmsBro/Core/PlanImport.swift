@@ -8,6 +8,14 @@ struct ImportResult {
     /// silently; the review now asks instead (§4.4).
     var unitsStated = true
     var errors: [Issue] { issues.filter { $0.severity == .error } }
+
+    /// The plan, read in `old`'s place — a reply to Say what should change, Plan detail's Edit the
+    /// text: a text that names no unit keeps `old`'s, rather than a change of unit nobody asked for.
+    func planKeepingUnits(of old: Plan) -> Plan? {
+        guard var plan else { return nil }
+        if !unitsStated { plan.units = old.units }
+        return plan
+    }
 }
 enum PlanImport {
     static let promptMarker = "JIMMSBRO-PLAN-PROMPT-V1"

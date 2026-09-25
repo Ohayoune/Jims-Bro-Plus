@@ -1,9 +1,47 @@
 # Build status
 
-Updated 2026-09-24. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
+Updated 2026-09-25. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
 2026-09-24); the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
 against each other) was built on branch `fix-first` off it, and **L2** on `v1.12-one-of-each`,
-fast-forwarded to `fix-first` first, then **L3** and **L4** on the same branch. L5–L8 are not built.
+fast-forwarded to `fix-first` first, then **L3**, **L4** and **L5** on the same branch. L6–L8 are not
+built.
+
+## v1.12 L5: built and green on `v1.12-one-of-each`
+
+The chatbot screens, one owner each: `TripRefusal` (`Core/TripRefusal.swift`) for a refused reply on
+Add plan, a draft, Progression and Say what should change — the errors, `TripFix` (`.chat`, `.paste`) for
+where the fix is, what the buttons send, day by day, the sentence — with each screen's way back its one
+argument; `TripMenuItem` and one `TripMenu` for the ···; each screen type's `prompt(…)` and `subject` for
+what Send and Copy send; `JSONPoint` for every text sheet (`newPlan`, `replacing`, `assembled`, `outline`,
+`draftDay`, `changing`, `progression`, and the examples); `PlanDrafting.preview` over one trial import
+(`tried`), held by `DraftTrip` and read when the draft changes; `ImportResult.planKeepingUnits(of:)` for a
+whole plan read in a plan's place; Plan detail's Edit the text as a `.plan` fragment target saved through
+`PlanEdit.Operation.replacePlanJSON`; and `Features/Shared/TripParts.swift` for `RefusalDetails`,
+`IssueDetail`, `WorthKnowing`, `Tidying` and `TripPasteButton`. Gone: `ImportTrip.Refusal`, `.Outgoing`,
+`.MenuItem`, `.sendButtons`, `.outgoing`, `.fix()`, `.replacing`, `.examplePlan`; `ChangeRequest.askAgain`,
+`.pasteCodes`, `.fixAt`; `ProgressionScreen.fixAt`, `.issues`, `.textPoint`, `.exampleReply`;
+`DraftTrip.pastedOutline`, `pasted(index:read:)`, `preview(settings:now:)`; `AppModel.progressionPrompt`,
+`outlinePrompt`, `dayPrompt` and `replacePlan`; `ImportView(replacingPlanId:prefillText:)`. The side
+picked, in `docs/DECISIONS_LOG.md` and pinned by TL22: a refusal that names no error is fixed at Chat and
+sends the screen's own prompt (Add plan had it at Paste). What a person sees move: Add plan's ··· is the
+quiet glyph; Say what should change's and Progression's Details show every error's sentence, and a draft's
+refusal has Details; Progression's review has the tidying's caption; Progression's ··· lost its divider.
+SPEC §6.60, §6.62, §6.64, §6.65 and §4.3's whole-plan line name the owners. TL22–TL27.
+
+### Run for L5
+
+On `v1.12-one-of-each`, 2026-09-25: `xcodebuild test` on the iPhone 17 simulator, 469 tests, 0
+failures; `swift test`, 468 tests, 0 failures; `python3 tools/check_core.py`, 468 test bodies, 9,351
+assertions, 0 failures; `python3 tools/reference_import.py`, 118/118 fixtures match; the Release build
+succeeded and `python3 tools/check_release.py` is ready (still version 1.11 (1)); `python3
+tools/check_bundle.py` current after `python3 tools/build_bundle.py`. On the simulator, Add plan's refusal
+for a reply cut short (`tools/shot.sh` with `-uiImportText`): the band, *Details (1)*, **Ask for the whole
+plan**, *Copy the prompt*, *Get it day by day*, and the ··· as the quiet glyph.
+
+### Not run for L5
+
+Say what should change, Progression and a draft were not looked at on the simulator, nor anything on the
+phone; Plan detail's Edit the text as the fragment sheet is for L8's device rows.
 
 ## v1.12 L4: built and green on `v1.12-one-of-each`
 
