@@ -19,7 +19,7 @@ enum StartCard: Equatable {
 
     static func current(library: PlanLibrary, now: Date = Date(), calendar: Calendar = .current) -> StartCard {
         if let engine = library.engine, engine.phase != .completed {
-            return .inProgress(dayName: engine.session.dayName, elapsed: engine.elapsed(now: now))
+            return .inProgress(dayName: engine.session.dayName, elapsed: SessionStats.duration(engine.session, now: now))
         }
         guard let plan = library.activePlan else { return .noPlan }
         // D37 (v1.2): the same anchored projection the calendar draws, so "Next up" and the

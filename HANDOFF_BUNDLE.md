@@ -331,7 +331,16 @@ Replace, the anchor always going with its place — and one of each for the sche
 `Weekday(_:calendar:)` with `WeekdayText` and `MonthText` (English whatever the phone's language),
 `finished(on:…)` over sessions, `PlanSchedule.firstDay` through today and 62 days, `CycleSquare.of` with
 `Plan.cycleDays` and `cycleNames` for a cycle as squares and words, and `ExerciseNames.known` as the one
-exercise search (TL9–TL13). L4–L8 are not built.
+exercise search (TL9–TL13). L4 is built and green on the same branch: the session and the Workout
+screen say each thing once — the rest after a set is `RestResolution.betweenSets`, which the idle line
+and a built-in day's estimate now ask; a step said away from its card is `StepCard.stepLine`, for the
+strip's "Next: …", the rest's notification (which now carries the target and weight) and the Lock
+Screen; the step that is on is `ActiveSession.currentStep` and the walk `ActiveSession.walk`, one reading
+of its two stages; Skip exercise starts the walk through `advance`, as a skipped last set does; the counts
+are `SessionBlocks.place` and `SessionStats`; last time is `Prefill.lastResult` over one scan; the limits
+are `TargetGrammar.isWeight` and `.cleanName`; a step is a `SessionStep` and its target a `StepTarget`;
+`ActiveSession` and `RestState` decode in Persistence.swift; and the Overview and Session detail draw
+`SessionBlocks.blocks` (TL14–TL21). L5–L8 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -768,7 +777,7 @@ At execution, after logging step i, with n = nextStep(after: i):
 - n == nil → the session completes.
 - `steps[i].isLastInBlock` and n is in a different block → **between exercises** (D14, timed in v1.2's D33): a rest of the **walk**, with the block's line in the strip (spoken since v1.10, the strip drawing the ring — §4.7). **v1.10 (D82)**: the walk is `plan.restBetweenExercises → Settings.transitionRestSeconds` (`RestResolution.walk`) — the plan's as it is when the block ends, read from the plan the session belongs to (`PlanLibrary.refreshWalk`), not copied into the session. The Set Target's own `restSeconds` is not used here — the gap between two exercises is about the room, not about the set. A walk of 0 means no rest, which is v1.1's behavior. *(v1.2–v1.9: `Settings.transitionRestSeconds` alone.)*
 - `!steps[i].isLastInRound` (the next step is a drop of this set, or the next superset member) → 0: the next step card appears immediately.
-- otherwise → countdown of `restSeconds` of step i's Set Target, except for grouped exercises where the rest after a round is the first explicit `restSeconds` found among the group's members in listed order, else the fallback chain. A value of 0 means no timer.
+- otherwise → countdown of `restSeconds` of step i's Set Target, except for grouped exercises where the rest after a round is the first explicit `restSeconds` found among the group's members in listed order, else the fallback chain. A value of 0 means no timer. **v1.12 (L4)**: `RestResolution.betweenSets` is this rule's one owner — the engine starts it, the idle line promises it (§4.6) and a built-in day's estimate counts it — so an exercise on its own rests its own `restSeconds` even if it still carries a round's `groupRestSeconds`.
 
 If n is in the same block but earlier (the user jumped ahead and comes back), the rule for "otherwise" applies. If n is in an earlier block, between exercises.
 
@@ -777,7 +786,7 @@ If n is in the same block but earlier (the user jumped ahead and comes back), th
 ### 6.4 Rest timer
 - State is `RestState(endsAt: Date, nextStep: Int, startedAt: Date)`. Remaining = `endsAt − now`, recomputed on every tick (TimelineView, 1 s) and on every foreground event. Never store a countdown integer.
 - **A count-up is a Date too (v1.10, D82).** The walk between exercises keeps `startedAt` and `endsAt = startedAt + minimum`; the strip shows `now − startedAt` (the block's `BlockDone.startedAt`, the same moment) and the ring `(now − startedAt) / minimum`, capped at 1. At `endsAt` the phase becomes working(nextStep) as any rest's does, and the count-up goes on from `BlockDone.startedAt` until the next log or timer start. `StatusStrip.direction` says which way the figure runs.
-- On rest start: schedule one local notification, identifier `"rest-timer"`, fire date `endsAt`, title "Rest over", body "Next: <exercise> · set k of n · <target>". Always `removePendingNotificationRequests(withIdentifiers: ["rest-timer"])` before scheduling and on skip/jump/finish/discard/app-quit-of-session.
+- On rest start: schedule one local notification, identifier `"rest-timer"`, fire date `endsAt`, title "Rest over", body "Next: <exercise> · set k of n · <target>" — **v1.12 (L4)**: the step as `StepCard.stepLine` says it, *"Bench Press · set 2 of 3 · Aim 8–12 reps · 60 kg"*, the line the strip's "Next: …" and the Lock Screen also read, a drop's without the set's range *(v1.2–v1.11: the work alone, "… · 10 reps")*. Always `removePendingNotificationRequests(withIdentifiers: ["rest-timer"])` before scheduling and on skip/jump/finish/discard/app-quit-of-session.
 - +30 s / −30 s: `endsAt += 30` (or −30); if `endsAt <= now` the rest ends immediately. Reschedule the notification after each adjustment.
 - At `endsAt` while foregrounded: haptic (`.success`) and the sound (if enabled), overlay dismisses, phase → working(nextStep). Overrun label shows `now − endsAt` until the next log — **v1.10 (D82)**: not on the walk, whose count-up runs on from its start past `endsAt`.
 - If the app is foregrounded after `endsAt` already passed: no sound (the notification did that), phase → working(nextStep), overrun label shown.
@@ -851,7 +860,7 @@ Rules:
 - `nextStep(after i)`: first pending step with index > i; else first pending step with any index; else nil.
 - `logSet(i)`: set result, status = logged, `loggedAt = now`. Let n = nextStep(after: i). If n == nil → completed. Else per §6.3: a block ended → `blockDone` is recorded for the strip and, when the walk (§6.3) is greater than 0, phase → `resting(kind: .betweenExercises)`; rest 0 → working(n); else `resting(kind: .betweenSets, endsAt: now + rest, nextStep: n)` + scheduleNotification.
 - `skipSet(i)`: status = skipped, `loggedAt = now`, then the same advance logic but **never starts a between-sets countdown** — you skipped the set, you do not need the rest after it. A skipped set that ends a block still gets the between-exercises rest (v1.2): the walk to the next machine happens either way.
-- `skipExercise`: mark that exercise's pending steps skipped (loggedAt = now), then the block-done strip if a block ended and another remains, else working(nextStep(after: current)) or completed.
+- `skipExercise`: mark that exercise's pending steps skipped (loggedAt = now). If that ended its block, advance from the block's last step as `skipSet` does — **v1.12 (L4)**: the walk and its rest (§6.3, §6.55), since the next machine is no closer; else from the current step: working(nextStep(after: current)) or completed. *(v1.1–v1.11: the block-done strip with no rest under it, so the ring filled with no alert.)*
 - `dismissBlockDone`: clears the strip's block-done line; it does not end a between-exercises rest. **v1.10 (D82)**: `adjustRest` and `skipRest` are refused on a `.betweenExercises` rest — the walk has no −30 / +30 / Skip (§4.7) — and `startTimer` clears `blockDone` when the timer starts, as a log does. *(v1.2–v1.9: the walk had its own Skip.)*
 - `substituteExercise(e, name, weight)` (v1.3, D42, §6.18): the exercise's **pending** steps become steps of `name`; logged and skipped ones keep their exercise. No phase change, no reorder, no change to `blockIndex` — a running rest keeps running. Refused when the session is completed, the name is blank, the exercise has nothing pending, or the name is unchanged and no weight was given.
 - A session starts in `resting(kind: .warmUp, nextStep: firstStep)` when `Settings.warmUpSeconds > 0` (D32, §6.14), and on the first step otherwise.
@@ -1511,7 +1520,7 @@ The owner: *"the timer should move up, but next to it there should be a circle t
 
 **The minimum** is the plan's, then the setting's (§6.3): `Plan.restBetweenExercises`, whole seconds 0–3600, optional in the format (PLAN_FORMAT §2, §3.6, validated as a rest, `E_REST_INVALID` at `restBetweenExercises`) and on disk (`Core/Persistence.swift` decodes it with `container.optional`, so every `plans.json` written before v1.10 and the frozen `examples/store/v1/plans.json` read nil), rendered by `PlanJSON.render` so an edit keeps it, and asked for by the plan and outline prompts (PROMPT §1, §4) — *"restBetweenExercises: whole seconds to walk between exercises; if unspecified, 120"* — and not by the day prompt, since a day cannot carry a plan's field. The session does not copy it: the engine's `restBetweenExercises` is set from the session's plan by `PlanLibrary.refreshWalk()` when a session begins, before every event and when one is restored, and nil hands the walk to `Settings.transitionRestSeconds`. A day's estimate on the built-in picker walks the same minimum.
 
-**The strip** (§4.7) while the walk lasts — its rest running, or after it with the block's line still up — is `StatusStrip.kind == .blockDone`, `restKind == .betweenExercises`, `direction == .up`, the count-up in `countdown`, the next exercise's name in `next`, the finished block's line in `title`, what VoiceOver hears in `spoken`, no rest controls, and `ring: WalkRing { fraction, minimum, fromPlan, full, explanation, colour }`. While the rest runs the minimum is the rest's own span; after it, the engine's `walk`. `WalkRing.colour(fraction:)` runs `#FF3B30` → `#FF9F0A` over the first half and `#FF9F0A` → `#34C759` over the second, and is `#34C759` from full. The ring's traffic light is not a state (§6.52): it says *how long*, not *which set*, and it appears nowhere but the walk.
+**The strip** (§4.7) while the walk lasts — its rest running, or after it with the block's line still up; `ActiveSession.walk` reads both forms, for the strip, the stage and the Lock Screen (v1.12, L4) — is `StatusStrip.kind == .blockDone`, `restKind == .betweenExercises`, `direction == .up`, the count-up in `countdown`, the next exercise's name in `next`, the finished block's line in `title`, what VoiceOver hears in `spoken`, no rest controls, and `ring: WalkRing { fraction, minimum, fromPlan, full, explanation, colour }`. While the rest runs the minimum is the rest's own span; after it, the engine's `walk`. `WalkRing.colour(fraction:)` runs `#FF3B30` → `#FF9F0A` over the first half and `#FF9F0A` → `#34C759` over the second, and is `#34C759` from full. The ring's traffic light is not a state (§6.52): it says *how long*, not *which set*, and it appears nowhere but the walk.
 
 **The view** draws the ring 58 pt with a 5.5 pt track in the system's tertiary fill, the arc from twelve o'clock with round caps, and full, a filled disc with a white check; the figure 36 pt heavy rounded while filling and 28 pt secondary when full; a walking figure, a 10 pt blue dot (`MarkState.now`) and the next name in caption semibold beneath it. Tapping the ring opens a popover with `ring.explanation`. When the ring fills VoiceOver hears *"Ready for the next exercise"*.
 
@@ -3716,6 +3725,21 @@ One owner each: `Plan.carried(into:as:)` for what a plan hands the plan saved in
 | TL11 | unit | (D96, v1.12) The swap search's horizon is the calendar's | `PlanSchedule.firstDay` reads 63 dates from today and 62 from tomorrow, the same last day — today and 62 days (§6.12); with no test given it finds the first day to train |
 | TL12 | unit | (D96, v1.12) One exercise search | `ExerciseNames.known` finds *Développé couché* for *"developpe"* and *Bench  Press* for *" BENCH PRESS "*, with or without plans (a plan's *Bench Press* first when there is one); with no plans and no query it is History's names alone; `HistoryView` and `ChangeExerciseSheet` search through it (source reads on the host routes) |
 | TL13 | unit | (D96, v1.12) A cycle is read one way | Push · rest · Pull · a dead entry: `cycleDays` [0, nil, 1, nil], `cycleNames` [Push, nil, Pull, nil]; the plan's JSON and the prompt write *rest* for both nils and so does the diff's schedule line, which wrote *"?"*; `CycleSquare.of`, `ImportTrip.squares`, `RepeatBlock.squares` and `PlanPage.rows` agree on the days and `DayColour.cycle(of:)` on the colours |
+
+### L4 — The session and the Workout screen (D96)
+
+One owner each: `RestResolution.betweenSets` for the rest after a set, `StepCard.stepLine` for a step said away from its card, `ActiveSession.currentStep` for the step that is on, `ActiveSession.walk` for the walk between exercises, `SessionBlocks.place` and `SessionStats.finishedCount` for the counts, `Prefill.lastResult` over one scan of history, `TargetGrammar.isWeight`, `.maxWeight`, `.cleanName` and `.nameLength` for the limits, `SessionStep` and `StepTarget` for a step and its target, Persistence.swift for `ActiveSession`'s and `RestState`'s decoders, and `SessionBlocks.blocks` for the list the Overview and Session detail draw. The cases that read the copies — the engine's `loggedCount` and `elapsed(now:)` (Q15, Q23, the engine's own cases and the v1 active session's migration), U34's grammar with a `SetTarget` standing in for a step's target, and Q20's `SessionBlocks.title` — are re-pointed at the owners, and what they expect is unchanged. Tests in `JimmsBroTests/OneOwnerTests.swift`.
+
+| ID | Type | Title | Expected |
+|---|---|---|---|
+| TL14 | unit | (D96, v1.12) The rest after a set is the engine's | An exercise on its own with `restSeconds` 90 and a leftover `groupRestSeconds` 30: the idle line says *"Rest 1:30 starts when you log"* (it said 0:30) and the engine starts 90 s; in a superset with a round rest of 30 the idle line, `RestResolution.after` and `betweenSets` all say 30, and nothing inside a round |
+| TL15 | unit | (D96, v1.12) The next step is said one way | After a set and its drop: the rest's notification is *"Next: Bench Press · set 2 of 2 · Aim 8–12 reps · 60 kg"* (it said *"… · 10 reps"*), the strip's `next` is the same and the Lock Screen's detail the same without "Next: "; the drop's line is *"Aim 10 reps · 50 kg"*, not the set's 8–12; a hold's end is *"Time! Bench Press · set 1 of 1 · For 30 seconds"* |
+| TL16 | unit | (D96, v1.12) Skipping an exercise starts the walk | With a walk of 120: Skip exercise on Bench Press is a `.betweenExercises` rest to Row's first set ending at +120 with Bench Press's block line and the rest's notification, the phase and line a skipped last set leaves; with a walk of 0 it is `working` on Row with the line, as before |
+| TL17 | unit | (D96, v1.12) The walk is read one way | `ActiveSession.walk` while the walk's rest runs, after `restElapsed`, and after `dismissBlockDone` during the rest: the same start and next step, the stage *Between exercises*, the strip a count-up from the walk's start with a ring of 60, the Lock Screen counting up from the same start; Log set ends it |
+| TL18 | unit | (D96, v1.12) Last time is one lookup | Last time 10 × 70, 8 with no weight, 6 × 72.5: for set 2 the result is 8 with no weight and the weight 72.5, one lookup with one argument apart; `Prefill.values` reads the same |
+| TL19 | unit | (D96, v1.12) The limits are said once | A 150-character exercise name, padded, is kept as its first 100, the same as `TargetGrammar.cleanName`; a blank one is refused; a work weight of 10,000 is kept and 10,001 refused; NaN and −1 are refused by Log set and Change exercise; the field refuses *"10001"* and a plan's 10001 is `E_WEIGHT_INVALID` |
+| TL20 | unit | (D96, v1.12) A step is the session's step | `Session.start`'s steps are `flatten(day:)`'s as they are; `target(at:)` is a `StepTarget` — 8–12 at 60 with 2 in reserve for the set, 8 at 40 with none for its drop, no weight on a bodyweight exercise; an active session encodes `session`, `phase`, `timerRunning` and `deliveredBeeps` and nothing it doesn't hold, and decodes to itself |
+| TL21 | unit | (D96, v1.12) Counts and blocks, once | After a skipped set and Do later, the stage and the progress line both say *"Exercise 1 of 2 · Set 1 of 2"*, the Lock Screen's `done` is `finishedCount` and the bar's fill 0.25; `OverviewView` and `SessionDetailView` draw `SessionBlocks.blocks(session)` (source reads on the host routes) |
 
 ## K. Persistence and recovery (SPEC §8)
 | ID | Type | Case | Expected |
@@ -8141,7 +8165,42 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 Updated 2026-09-24. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
 2026-09-24); the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
 against each other) was built on branch `fix-first` off it, and **L2** on `v1.12-one-of-each`,
-fast-forwarded to `fix-first` first, then **L3** on the same branch. L4–L8 are not built.
+fast-forwarded to `fix-first` first, then **L3** and **L4** on the same branch. L5–L8 are not built.
+
+## v1.12 L4: built and green on `v1.12-one-of-each`
+
+The session and the Workout screen, one owner each: `RestResolution.betweenSets` for the rest after a
+set (the engine, the idle line, a built-in day's estimate), `StepCard.stepLine` for a step said away from
+its card (the strip's "Next: …", the rest's and a hold's notification, the Lock Screen),
+`ActiveSession.currentStep` for the step that is on, `ActiveSession.walk` for the walk between exercises
+(the strip, the stage, the Lock Screen), `SessionBlocks.place` and `SessionStats.finishedCount` with
+`loggedCount` and `duration` for the counts, `Prefill.lastResult` over one scan of history,
+`TargetGrammar.isWeight`, `.maxWeight`, `.cleanName` and `.nameLength` for the limits, `SessionStep` and
+`StepTarget` for a step and its target, Persistence.swift for `ActiveSession`'s and `RestState`'s
+decoders with one reading of the v1 `.transition`, and `SessionBlocks.blocks` for the list the Overview
+and Session detail draw. Gone: `Step`, `StepBuilder`, `SessionEngine.loggedCount` and `elapsed(now:)`,
+`Prefill.historicalWeight`, `StepCard.blockNamesRows`, `SessionBlocks.title`, `InputRules.maxWeight`,
+`ActiveSession`'s hand-written memberwise init and encoder, and `RestState`'s init. Sides picked, each in
+`docs/DECISIONS_LOG.md` and pinned by TL14–TL21 (`docs/TEST_CASES.md`): the rest after a set is the
+engine's; the notification says the step as the strip does, target and weight, and a drop has no range;
+skipping an exercise starts the walk (SPEC §6.55); last time's lookups take the first logged set. The
+review's "one form" for the walk was narrowed to one reading: SPEC §6.3, §6.4 and §6.6 make the rest and
+the block's line two stages of one walk, so nothing on disk changed. SPEC §6.3, §6.4, §6.6 and §6.55
+name the owners.
+
+### Run for L4
+
+On `v1.12-one-of-each`, 2026-09-24: `xcodebuild test` on the iPhone 17 simulator, 463 tests, 0
+failures; `swift test`, 462 tests, 0 failures; `python3 tools/check_core.py`, 462 test bodies, 9,222
+assertions, 0 failures; `python3 tools/reference_import.py`, 118/118 fixtures match; the Release build
+succeeded and `python3 tools/check_release.py` is ready (still version 1.11 (1)); `python3
+tools/check_bundle.py` current after `python3 tools/build_bundle.py`.
+
+### Not run for L4
+
+Nothing was looked at on the simulator or the phone. What a person could see change — the rest's
+notification saying the target and weight, the ring after Skip exercise ending in the alert, the idle
+line's rest for an exercise taken out of a superset — is for L8's device rows.
 
 ## v1.12 L3: built and green on `v1.12-one-of-each`
 
@@ -9670,6 +9729,13 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.12 L3 (D96): **the swap search's horizon is the calendar's.** `PlanSchedule.firstDay` looked 0…62 days from where it started and `firstDate` 0..<62, so the card's search from tomorrow could reach a day past the last one the calendar paints. One search now, through today and 62 days (§6.12), from wherever it starts; a day to train by default, the day whose workout was taken for a completion.
 - v1.12 L3 (D96): **one exercise search, blind to case, accents and runs of spaces.** `ExerciseText.search` (History's Find an exercise, the Workout's Change exercise) compared lower-cased names, so *"developpe"* found nothing; `ExerciseNames.known` (Add exercise) was case- and accent-blind but not space-blind, so *"bench press"* missed *"Bench  Press"*. `ExerciseNames.known` is the one, comparing `normalized` names accent-blind; History and Change exercise pass no plans.
 - v1.12 L3 (D96): **a cycle is read one way.** `Plan.cycleDays` (nil for a rest and for an entry naming a day the plan no longer has), `Plan.cycleNames` for the words and `CycleSquare.of` for the squares — in place of `ImportTrip.Square`, `RepeatBlock.Square`, `PlanPage.Row`, `RepeatBlock.chips` and four cycle-to-names loops. The diff's schedule line wrote *"?"* for a dead entry where the plan's JSON, the prompt and the page write a rest; it writes *rest*. `CycleStrip.hollow`, which the strip never read, is gone. Also one day by name (`Plan.dayIndex(named:)`), one test for a workout finished on a date (`finished(on:plan:day:except:calendar:)`), `week(containing:)` as `next(days: 7, …)`, and `nextInPattern` with no date gone — its callers pass one. Found in passing and not fixed here: Duplicate day shifts the days under a rotation's cycle, which keeps their old indices (flagged as its own task).
+- v1.12 L4 (D96): **the rest after a set is the engine's.** The idle line promised `groupRestSeconds ?? restSeconds` either way and a built-in day's estimate counted the same, while the engine starts `restSeconds` for an exercise with no group (§6.3). `RestResolution.betweenSets` is the one rule; the engine's side wins, since it is the rest that runs. Only an exercise taken out of a superset with its round rest left behind could tell the difference.
+- v1.12 L4 (D96): **the next step is said one way, the strip's.** The rest's notification said the work alone (*"Next: Bench Press · set 2 of 3 · 10 reps"*) while the strip and the Lock Screen said the target with its weight; §6.4 asks for *"<target>"*, so all three read `StepCard.stepLine` — *"… · Aim 8–12 reps · 60 kg"* — and add their own lead ("Next: ", "Time!", none) instead of stripping one off. The strip and the Lock Screen gave a drop the set's rep range; `StepCard.targetLine`'s rule, the stricter, wins: a drop's reps are its own.
+- v1.12 L4 (D96): **skipping an exercise starts the walk.** `advance` gave a block ended by a skipped set the walk's rest ("the walk happens either way", §6.6) while `.skipExercise` put the next card up under the block's line with no rest, so the ring filled with no alert at its end (§6.55: "the alert fires when the ring fills"). SPEC §6.55 decides: Skip exercise advances from the block's last step through `advance`, and §6.6 says so.
+- v1.12 L4 (D96): **the walk is read one way, and stored as SPEC has it.** The review read the walk's two forms — the `.betweenExercises` rest, and `.working` under `blockDone` — as one thing stored twice; SPEC §6.3, §6.4 and §6.6 make them two stages of one walk (the rest runs the minimum, the walk outlives it, a walk of 0 has no rest, and `dismissBlockDone` leaves the rest running). So storage and the on-disk contract are unchanged, and `ActiveSession.walk` is the one reading the strip, the stage and the Lock Screen ask. The strip no longer falls back to the idle line for a block with no exercise to name; it says *Between exercises*.
+- v1.12 L4 (D96): **last time's result and weight are one lookup.** `Prefill.lastResult(for:in:keep:)`; the weight's is the same lookup keeping only a set with a weight. Where the two differed — the result took the first set with this set's number whatever its status, the weight the first logged one — the logged one wins, which matters only when one day holds the same exercise twice.
+- v1.12 L4 (D96): **the limits live in `TargetGrammar`.** A weight is `isWeight` (0 to `maxWeight`, finite) for the importer, the fields, Log set, the work weight, Change exercise and Plan detail's weight; a name is `cleanName` (trimmed, cut to `nameLength`, nil when blank) for a rename and a substitute mid-workout and for Plan detail's renames and Duplicate day. `InputRules.maxWeight` is gone.
+- v1.12 L4 (D96): **a step is a `SessionStep` and its target a `StepTarget`.** `Step` repeated six fields and was copied field by field twice; `target(at:)`'s four-field tuple was rebuilt into a `SetTarget` with a pretend `restSeconds: 0` to be said. `ActiveSession` and `RestState` decode in Persistence.swift as its rule asks, so their memberwise inits and `ActiveSession`'s encoder are synthesized — the same keys on disk (TL20); the v1 `.transition` payload is read by one function.
 `````
 
 ---
@@ -12287,7 +12353,16 @@ Replace, the anchor always going with its place — and one of each for the sche
 `Weekday(_:calendar:)` with `WeekdayText` and `MonthText` (English whatever the phone's language),
 `finished(on:…)` over sessions, `PlanSchedule.firstDay` through today and 62 days, `CycleSquare.of` with
 `Plan.cycleDays` and `cycleNames` for a cycle as squares and words, and `ExerciseNames.known` as the one
-exercise search (TL9–TL13). L4–L8 are not built.
+exercise search (TL9–TL13). L4 is built and green on the same branch: the session and the Workout
+screen say each thing once — the rest after a set is `RestResolution.betweenSets`, which the idle line
+and a built-in day's estimate now ask; a step said away from its card is `StepCard.stepLine`, for the
+strip's "Next: …", the rest's notification (which now carries the target and weight) and the Lock
+Screen; the step that is on is `ActiveSession.currentStep` and the walk `ActiveSession.walk`, one reading
+of its two stages; Skip exercise starts the walk through `advance`, as a skipped last set does; the counts
+are `SessionBlocks.place` and `SessionStats`; last time is `Prefill.lastResult` over one scan; the limits
+are `TargetGrammar.isWeight` and `.cleanName`; a step is a `SessionStep` and its target a `StepTarget`;
+`ActiveSession` and `RestState` decode in Persistence.swift; and the Overview and Session detail draw
+`SessionBlocks.blocks` (TL14–TL21). L5–L8 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

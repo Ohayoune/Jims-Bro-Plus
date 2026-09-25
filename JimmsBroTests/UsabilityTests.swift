@@ -423,33 +423,33 @@ final class UsabilityTests: XCTestCase {
     // U34: the grammar itself. Every form the audit named as unreadable, said in words — and
     // the numbers a coach acts on still on the same line, in the same order.
     func testThePlainGrammar() throws {
-        let range = SetTarget(work: .reps(.range(min: 4, max: 6)), weight: 100, restSeconds: 90)
+        let range = StepTarget(work: .reps(.range(min: 4, max: 6)), weight: 100)
         XCTAssertEqual(TargetText.target(range, range: nil, units: .kg), "Aim 4–6 reps · 100 kg")
 
         // A fixed count inside a range says the range: it is what is being asked of you, and
         // the prefill puts the exact number in the field.
-        let fixed = SetTarget(work: .reps(.fixed(5)), weight: 100, restSeconds: 90)
+        let fixed = StepTarget(work: .reps(.fixed(5)), weight: 100)
         XCTAssertEqual(TargetText.target(fixed, range: RepRange(min: 4, max: 6), units: .kg),
                        "Aim 4–6 reps · 100 kg")
         XCTAssertEqual(TargetText.target(fixed, range: nil, units: .kg), "Aim 5 reps · 100 kg")
 
         // "AMRAP" is the audit's own example of a word nobody outside a gym knows.
-        let amrap = SetTarget(work: .reps(.amrap(min: nil)), weight: 20, restSeconds: 60)
+        let amrap = StepTarget(work: .reps(.amrap(min: nil)), weight: 20)
         XCTAssertEqual(TargetText.target(amrap, range: nil, units: .kg),
                        "As many reps as you can · 20 kg")
-        let atLeast = SetTarget(work: .reps(.amrap(min: 10)), weight: 20, restSeconds: 60)
+        let atLeast = StepTarget(work: .reps(.amrap(min: 10)), weight: 20)
         XCTAssertEqual(TargetText.target(atLeast, range: nil, units: .kg),
                        "Aim at least 10 reps · 20 kg")
 
         // Timed work is a duration, not "45 s".
-        let held = SetTarget(work: .duration(seconds: 45), weight: nil, restSeconds: 60)
+        let held = StepTarget(work: .duration(seconds: 45), weight: nil)
         XCTAssertEqual(TargetText.target(held, range: nil, units: .kg), "For 45 seconds")
-        let open = SetTarget(work: .openDuration(minSeconds: 30), weight: nil, restSeconds: 60)
+        let open = StepTarget(work: .openDuration(minSeconds: 30), weight: nil)
         XCTAssertEqual(TargetText.target(open, range: nil, units: .kg), "For at least 30 seconds")
 
         // The effort target says what being "in reserve" means.
         var reserved = range
-        reserved.inReserve = 2
+        reserved.reserve = 2
         XCTAssertEqual(TargetText.target(reserved, range: nil, units: .kg),
                        "Aim 4–6 reps · 100 kg · stop 2 short of failure")
 

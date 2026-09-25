@@ -121,6 +121,16 @@ enum TargetGrammar {
     static let repCount = 1...1000
     static let seconds = 1...86_400
     static let maxWeight = 10_000.0
+    static let nameLength = 100
+    /// Whether `value` is a weight the app keeps: a number from 0 to `maxWeight` — pasted, typed,
+    /// logged or offered by Change exercise.
+    static func isWeight(_ value: Double) -> Bool { value.isFinite && (0...maxWeight).contains(value) }
+    /// A name as the app keeps one — a plan's, a day's or an exercise's, pasted, renamed or
+    /// changed mid-workout: trimmed and cut to `nameLength`. Nil when nothing is left.
+    static func cleanName(_ text: String) -> String? {
+        let trimmed = text.trimmed
+        return trimmed.isEmpty ? nil : String(trimmed.prefix(nameLength))
+    }
     static let amrapWords: Set<String> = ["amrap", "max", "failure", "to failure", "as many as possible"]
     static let openHoldWords: Set<String> = ["max", "open", "amsap", "as long as possible", "to failure"]
     static let bodyweightWords: Set<String> = ["bw", "bodyweight", "body weight"]
@@ -193,7 +203,7 @@ enum TargetGrammar {
                 if let unit = unitWords[m[2]], unit != units { issue("W_WEIGHT_UNIT_IGNORED", path, "The unit in \"\(s)\" was ignored; this plan uses \(units.rawValue).") }
             }
         } else if case let .number(value) = raw { n = value }
-        guard let n, n.isFinite, (0...maxWeight).contains(n) else {
+        guard let n, Self.isWeight(n) else {
             issue("E_WEIGHT_INVALID", path, "\(raw.display) is not a valid weight. Use a number from 0 to \(TargetText.number(maxWeight)) in \(units.rawValue), or omit it.")
             return nil
         }
@@ -236,8 +246,8 @@ private struct PlanNormalizer {
     }
     mutating func name(_ raw: RawJSON?, _ path: String, _ fallback: String, warnDefault: Bool = true) -> String {
         guard let text = raw?.string?.trimmed, !text.isEmpty else { if warnDefault { issue("W_DEFAULT_NAME", path, "No name given; using \"\(fallback)\".") }; return fallback }
-        if text.count > 100 { issue("W_NAME_TRUNCATED", path, "Name was cut to 100 characters.") }
-        return String(text.prefix(100))
+        if text.count > TargetGrammar.nameLength { issue("W_NAME_TRUNCATED", path, "Name was cut to \(TargetGrammar.nameLength) characters.") }
+        return String(text.prefix(TargetGrammar.nameLength))
     }
     mutating func reps(_ raw: RawJSON, _ path: String, rangeOnly: Bool = false) -> RepTarget? {
         TargetGrammar.reps(raw, path, rangeOnly: rangeOnly) { issue($0, $1, $2) }

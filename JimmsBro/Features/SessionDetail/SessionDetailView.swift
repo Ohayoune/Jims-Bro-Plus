@@ -35,18 +35,18 @@ struct SessionDetailView: View {
                             MetricRow(metric: metric)
                         }
                     }
-                    ForEach(Array(SessionBlocks.indices(session).enumerated()), id: \.offset) { _, indices in
+                    ForEach(Array(SessionBlocks.blocks(session).enumerated()), id: \.offset) { _, block in
                         Section {
-                            ForEach(indices, id: \.self) { index in
+                            ForEach(block.steps, id: \.self) { index in
                                 Button {
                                     editing = EditTarget(session: session, step: index)
                                 } label: {
-                                    row(session: session, index: index, named: SessionBlocks.namesRows(session, indices))
+                                    row(session: session, index: index, named: block.namesRows)
                                 }
                                 .buttonStyle(.plain)
                             }
                         } header: {
-                            header(session: session, indices: indices)
+                            header(session: session, block: block)
                         }
                     }
                 }
@@ -114,17 +114,11 @@ struct SessionDetailView: View {
 
 
     /// The block header names its exercises, and each name opens that exercise's history.
-    /// The names and the duration come from Core, so this header and the Overview's — which is
-    /// plain text — always say the same thing.
-    private func header(session: Session, indices: [Int]) -> some View {
-        let unique = SessionBlocks.names(session, indices)
-        var duration = ""
-        if let block = indices.first.map({ session.steps[$0].blockIndex }),
-           let seconds = SessionStats.blockDuration(block, session: session) {
-            duration = " · \(TargetText.time(seconds))"
-        }
-        return HStack(spacing: 4) {
-            ForEach(Array(unique.enumerated()), id: \.offset) { offset, name in
+    /// The names and the duration are Core's `SessionBlocks.Block`, so this header and the
+    /// Overview's — which is plain text — always say the same thing.
+    private func header(session: Session, block: SessionBlocks.Block) -> some View {
+        HStack(spacing: 4) {
+            ForEach(Array(block.names.enumerated()), id: \.offset) { offset, name in
                 if offset > 0 { Text("+") }
                 NavigationLink(value: HistoryRoute.exercise(name: name, units: session.units)) {
                     Text(name)
@@ -132,7 +126,7 @@ struct SessionDetailView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.accentColor)
             }
-            Text(duration)
+            Text(block.duration.map { " · " + $0 } ?? "")
         }
     }
 

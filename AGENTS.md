@@ -313,7 +313,16 @@ Replace, the anchor always going with its place — and one of each for the sche
 `Weekday(_:calendar:)` with `WeekdayText` and `MonthText` (English whatever the phone's language),
 `finished(on:…)` over sessions, `PlanSchedule.firstDay` through today and 62 days, `CycleSquare.of` with
 `Plan.cycleDays` and `cycleNames` for a cycle as squares and words, and `ExerciseNames.known` as the one
-exercise search (TL9–TL13). L4–L8 are not built.
+exercise search (TL9–TL13). L4 is built and green on the same branch: the session and the Workout
+screen say each thing once — the rest after a set is `RestResolution.betweenSets`, which the idle line
+and a built-in day's estimate now ask; a step said away from its card is `StepCard.stepLine`, for the
+strip's "Next: …", the rest's notification (which now carries the target and weight) and the Lock
+Screen; the step that is on is `ActiveSession.currentStep` and the walk `ActiveSession.walk`, one reading
+of its two stages; Skip exercise starts the walk through `advance`, as a skipped last set does; the counts
+are `SessionBlocks.place` and `SessionStats`; last time is `Prefill.lastResult` over one scan; the limits
+are `TargetGrammar.isWeight` and `.cleanName`; a step is a `SessionStep` and its target a `StepTarget`;
+`ActiveSession` and `RestState` decode in Persistence.swift; and the Overview and Session detail draw
+`SessionBlocks.blocks` (TL14–TL21). L5–L8 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

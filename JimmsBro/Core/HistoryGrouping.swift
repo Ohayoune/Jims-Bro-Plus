@@ -123,6 +123,38 @@ enum SessionBlocks {
             .filter { seen.insert($0).inserted }
     }
 
+    /// "Exercise 2 of 5": where an exercise stands in the day as it now runs — the one count the
+    /// stage (D34) and the progress line read, so "Do later" moves the number with the exercise
+    /// and a substitute keeps the number of the exercise it stood in for.
+    static func place(_ session: Session, exercise index: Int) -> (position: Int, of: Int) {
+        let order = exerciseOrder(session)
+        let position = (order.firstIndex(of: canonical(session, index)) ?? 0) + 1
+        return (position, max(order.count, position))
+    }
+
+    /// One block as the Overview and Session detail list it: its steps, the header's names and
+    /// time, and whether its rows name their exercise.
+    struct Block: Equatable {
+        var steps: [Int]
+        var names: [String]
+        /// "4:12", once the block is finished.
+        var duration: String?
+        var namesRows: Bool
+        /// "Lateral Raise + Tricep Pushdown · 4:12".
+        var title: String { names.joined(separator: " + ") + (duration.map { " · " + $0 } ?? "") }
+    }
+
+    /// The list both screens draw, one `Block` per block in the order the day now runs them.
+    static func blocks(_ session: Session) -> [Block] {
+        indices(session).map { steps in
+            Block(steps: steps, names: names(session, steps),
+                  duration: steps.first
+                      .flatMap { SessionStats.blockDuration(session.steps[$0].blockIndex, session: session) }
+                      .map(TargetText.time),
+                  namesRows: namesRows(session, steps))
+        }
+    }
+
     /// The exercises in a block, in order, de-duplicated the way exercise history matches
     /// names (§6.9) — so "Bench press" and "Bench Press" are one exercise here too.
     static func names(_ session: Session, _ indices: [Int]) -> [String] {
@@ -130,17 +162,6 @@ enum SessionBlocks {
         return indices
             .compactMap { session.exercises[safe: session.steps[$0].exerciseIndex]?.name }
             .filter { seen.insert(normalized($0)).inserted }
-    }
-
-    /// "Lateral Raise + Tricep Pushdown · 4:12" — the block's exercises and how long it took,
-    /// the duration only once the block is finished.
-    static func title(_ session: Session, _ indices: [Int]) -> String {
-        var text = names(session, indices).joined(separator: " + ")
-        if let block = indices.first.map({ session.steps[$0].blockIndex }),
-           let seconds = SessionStats.blockDuration(block, session: session) {
-            text += " · \(TargetText.time(seconds))"
-        }
-        return text
     }
 
     /// Whether the rows must name their exercise: in a superset every row would otherwise read

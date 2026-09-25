@@ -8,8 +8,7 @@ extension AppModel {
     var phase: Phase? { library.engine?.phase }
     var hasActiveSession: Bool { library.engine != nil }
 
-    /// The step the workout is on, whatever the phase. A block-just-finished status strip
-    /// (`blockDone`) overlays `.working`, so it needs no case of its own here.
+    /// The step the workout is on, whatever the phase — the step a rest leads to while one runs.
     var currentStep: Int? { library.engine?.active.currentStep }
     /// The status strip's block-just-finished state (D14, SPEC §4.7), if one is showing.
     var blockDone: BlockDone? { library.engine?.active.blockDone }

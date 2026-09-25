@@ -313,4 +313,219 @@ final class OneOwnerTests: XCTestCase {
         XCTAssertEqual(RepeatBlock.squares(plan, today: date(14), calendar: CoreTestSupport.utc()).map(\.dayIndex), plan.cycleDays)
         XCTAssertEqual(PlanPage.rows(plan).map(\.dayIndex), plan.cycleDays)
     }
+
+    // MARK: - L4: the session and the Workout screen
+
+    private let now = CoreTestSupport.now
+
+    private func engine(_ plan: Plan, walk: Int = 0) -> SessionEngine {
+        SessionEngine(session: CoreTestSupport.session(plan),
+                      settings: Settings(warmUpSeconds: 0, transitionRestSeconds: walk), now: now)
+    }
+
+    // TL14: the rest after a set is the engine's (§6.3). An exercise on its own that still carries a
+    // `groupRestSeconds` — left over from a superset it was taken out of — rests its own 1:30, and
+    // the idle line said the round's 0:30, a rest the engine never started. In a superset the
+    // round's rest is the one all three read, the day's estimate included.
+    func testTheRestAfterASetIsTheEngines() throws {
+        var alone = CoreTestSupport.plan(sets: 2, rest: 90)
+        alone.days[0].exercises[0].sets = alone.days[0].exercises[0].sets.map { var s = $0; s.groupRestSeconds = 30; return s }
+        var engine = engine(alone)
+        XCTAssertEqual(WorkoutScreen.idleLine(session: engine.session, step: 0), "Rest 1:30 starts when you log",
+                       "v1.11: \"Rest 0:30 starts when you log\"")
+        engine.apply(.logSet(step: 0, result: .reps(count: 10, weight: 60)), now: now)
+        guard case let .resting(rest) = engine.phase else { return XCTFail("expected a rest") }
+        XCTAssertEqual(rest.endsAt, now.addingTimeInterval(90))
+
+        var superset = CoreTestSupport.plan(sets: 2, secondExercise: true, rest: 90, group: "A")
+        for e in superset.days[0].exercises.indices {
+            superset.days[0].exercises[e].sets = superset.days[0].exercises[e].sets.map { var s = $0; s.groupRestSeconds = 30; return s }
+        }
+        let session = CoreTestSupport.session(superset)
+        XCTAssertNil(WorkoutScreen.idleLine(session: session, step: 0), "inside a round, no rest")
+        XCTAssertEqual(WorkoutScreen.idleLine(session: session, step: 1), "Rest 0:30 starts when you log")
+        XCTAssertEqual(RestResolution.after(1, next: 2, steps: session.steps, exercises: session.exercises), .rest(30))
+        XCTAssertEqual(RestResolution.betweenSets(after: session.steps[1], exercises: session.exercises), 30)
+        XCTAssertEqual(RestResolution.betweenSets(after: CoreTestSupport.session(alone).steps[0],
+                                                  exercises: CoreTestSupport.session(alone).exercises), 90,
+                       "what the built-ins' estimate counts")
+    }
+
+    // TL15: the next step is said one way (§6.4) — "Bench Press · set 2 of 2 · Aim 8–12 reps · 60 kg",
+    // led by "Next: " on the strip and in the rest's notification, by "Time!" when a hold ends, and
+    // bare on the Lock Screen. The notification said the work alone (v1.11: "… · 10 reps"), and the
+    // strip and the Lock Screen gave a drop the set's range.
+    func testTheNextStepIsSaidOneWay() throws {
+        let plan = CoreTestSupport.plan(sets: 2, work: .reps(.fixed(10)), rest: 90,
+                                        drops: [DropTarget(work: .reps(.fixed(10)), weight: 50)])
+        var engine = engine(plan)
+        engine.apply(.logSet(step: 0, result: .reps(count: 10, weight: 60)), now: now)
+        let effects = engine.apply(.logSet(step: 1, result: .reps(count: 10, weight: 50)), now: now)
+        let body = effects.compactMap { effect -> String? in
+            if case let .scheduleNotification(id, _, body) = effect, id == .rest { return body }
+            return nil
+        }.first
+        let line = "Bench Press · set 2 of 2 · Aim 8–12 reps · 60 kg"
+        XCTAssertEqual(StepCard.stepLine(session: engine.session, step: 2), line)
+        XCTAssertEqual(body, "Next: " + line)
+        let screen = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [], now: now))
+        XCTAssertEqual(screen.strip.next, "Next: " + line)
+        XCTAssertEqual(WorkoutActivityState.of(engine.active, now: now)?.detail, line)
+        XCTAssertEqual(WorkoutScreen.nextLine(session: engine.session, step: 1),
+                       "Next: Bench Press · set 1 of 2 · Aim 10 reps · 50 kg",
+                       "a drop's reps are its own; v1.11 said the set's 8–12")
+
+        var hold = self.engine(CoreTestSupport.plan(sets: 1, work: .duration(seconds: 30), weight: nil))
+        let timed = hold.apply(.startTimer(step: 0), now: now)
+        XCTAssertTrue(timed.contains(.scheduleNotification(id: .setEnd, at: now.addingTimeInterval(30),
+                                                           body: "Time! Bench Press · set 1 of 1 · For 30 seconds")))
+    }
+
+    // TL16: skipping an exercise starts the walk, as a skipped last set does (§6.3, §6.55): the ring
+    // fills over a rest whose end is the alert. v1.11 put Row's card up with the block's line and no
+    // rest under the ring, so it filled in silence. A walk of 0 is still straight through.
+    func testSkippingAnExerciseStartsTheWalk() throws {
+        let plan = CoreTestSupport.plan(sets: 2, secondExercise: true)
+        var engine = engine(plan, walk: 120)
+        let effects = engine.apply(.skipExercise(exerciseIndex: 0), now: now)
+        guard case let .resting(rest) = engine.phase else {
+            return XCTFail("v1.11: working on Row, with no rest under the ring")
+        }
+        XCTAssertEqual(rest, RestState(startedAt: now, endsAt: now.addingTimeInterval(120), nextStep: 2,
+                                       kind: .betweenExercises))
+        XCTAssertEqual(engine.active.blockDone, BlockDone(finishedBlock: 0, startedAt: now))
+        XCTAssertTrue(effects.contains(.scheduleNotification(id: .rest, at: rest.endsAt,
+                                                             body: "Next: Row · set 1 of 2 · Aim 8–12 reps · 60 kg")))
+
+        var skipped = self.engine(plan, walk: 120)
+        skipped.apply(.skipSet(step: 0), now: now)
+        skipped.apply(.skipSet(step: 1), now: now)
+        XCTAssertEqual(skipped.phase, engine.phase, "the walk a skipped last set starts")
+        XCTAssertEqual(skipped.active.blockDone, engine.active.blockDone)
+
+        var straight = self.engine(plan)
+        straight.apply(.skipExercise(exerciseIndex: 0), now: now)
+        XCTAssertEqual(straight.phase, .working(step: 2))
+        XCTAssertEqual(straight.active.blockDone, BlockDone(finishedBlock: 0, startedAt: now))
+    }
+
+    // TL17: the walk is read one way (`ActiveSession.walk`): while its rest runs the minimum, after
+    // it, and after `dismissBlockDone` has cleared the line (which leaves the rest running, §6.6),
+    // the stage, the strip and the Lock Screen say the same walk from the same start.
+    func testTheWalkIsReadOneWay() throws {
+        var engine = engine(CoreTestSupport.plan(sets: 1, secondExercise: true), walk: 60)
+        engine.apply(.logSet(step: 0, result: .reps(count: 10, weight: 60)), now: now)
+        func check(_ label: String, endsAt: Date?, line: Bool, at seconds: Int) throws {
+            let time = now.addingTimeInterval(Double(seconds))
+            let walk = try XCTUnwrap(engine.active.walk, label)
+            XCTAssertEqual(walk.startedAt, now, label)
+            XCTAssertEqual(walk.next, 1, label)
+            XCTAssertEqual(walk.endsAt, endsAt, label)
+            let screen = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [], now: time,
+                                                           walk: engine.walk))
+            XCTAssertEqual(screen.stage, .betweenExercises, label)
+            XCTAssertEqual(screen.strip.kind, .blockDone, label)
+            XCTAssertEqual(screen.strip.direction, .up, label)
+            XCTAssertEqual(screen.strip.countdown, TargetText.time(seconds), label)
+            XCTAssertEqual(screen.strip.ring?.minimum, 60, label)
+            XCTAssertEqual(screen.strip.title?.hasPrefix("Bench Press done"), line, label)
+            let activity = try XCTUnwrap(WorkoutActivityState.of(engine.active, now: time), label)
+            XCTAssertEqual(activity.title, "Between exercises", label)
+            XCTAssertNil(activity.endsAt, label)
+            XCTAssertEqual(activity.startedAt, now, label)
+        }
+        var dismissed = engine
+        try check("while its rest runs", endsAt: now.addingTimeInterval(60), line: true, at: 20)
+        engine.apply(.restElapsed, now: now.addingTimeInterval(60))
+        XCTAssertEqual(engine.phase, .working(step: 1))
+        try check("after it", endsAt: nil, line: true, at: 75)
+
+        dismissed.apply(.dismissBlockDone, now: now.addingTimeInterval(5))
+        engine = dismissed
+        try check("its line cleared", endsAt: now.addingTimeInterval(60), line: false, at: 20)
+
+        engine.apply(.logSet(step: 1, result: .reps(count: 10, weight: 60)), now: now.addingTimeInterval(80))
+        XCTAssertNil(engine.active.walk, "Log set ends it")
+    }
+
+    // TL18: last time is one lookup (§6.5). The result and the weight read the same set of last
+    // time, and differ by one argument: the weight's passes over a set logged without one.
+    func testLastTimeIsOneLookup() throws {
+        let plan = CoreTestSupport.plan(sets: 3, weight: 60)
+        let last = CoreTestSupport.completed([10, 8, 6], weights: [70, nil, 72.5], plan: plan)
+        let session = CoreTestSupport.session(plan)
+        let steps = try XCTUnwrap(Prefill.lastSteps(session: session, step: 1, history: [last])).steps
+        XCTAssertEqual(Prefill.lastResult(for: session.steps[1], in: steps), .reps(count: 8, weight: nil))
+        XCTAssertEqual(Prefill.lastResult(for: session.steps[1], in: steps, keep: { $0.weight != nil })?.weight, 72.5)
+        XCTAssertEqual(Prefill.historicalResult(session: session, step: 1, history: [last]), .reps(count: 8, weight: nil))
+        XCTAssertEqual(Prefill.values(session: session, step: 1, history: [last]).lastWeight, 72.5)
+        XCTAssertEqual(Prefill.values(session: session, step: 0, history: [last]).lastWeight, 70)
+    }
+
+    // TL19: the limits are said once, in `TargetGrammar`: a weight is 0 to 10,000 wherever it comes
+    // from, and a name is trimmed and cut to 100 characters wherever it is given.
+    func testTheLimitsAreSaidOnce() throws {
+        var engine = CoreTestSupport.engine()
+        let long = String(repeating: "a", count: 150)
+        engine.apply(.renameExercise(exerciseIndex: 0, name: "  \(long)  "), now: now)
+        XCTAssertEqual(engine.session.exercises[0].name, String(long.prefix(TargetGrammar.nameLength)))
+        XCTAssertEqual(TargetGrammar.cleanName("  \(long)  "), engine.session.exercises[0].name)
+        XCTAssertNil(TargetGrammar.cleanName("   "))
+        XCTAssertTrue(engine.apply(.renameExercise(exerciseIndex: 0, name: "   "), now: now).isEmpty)
+
+        engine.apply(.setWorkWeight(step: 0, weight: TargetGrammar.maxWeight), now: now)
+        XCTAssertEqual(engine.active.workWeight, TargetGrammar.maxWeight)
+        engine.apply(.setWorkWeight(step: 0, weight: TargetGrammar.maxWeight + 1), now: now)
+        XCTAssertEqual(engine.active.workWeight, TargetGrammar.maxWeight, "refused")
+        XCTAssertTrue(engine.apply(.logSet(step: 0, result: .reps(count: 5, weight: .nan)), now: now).isEmpty)
+        XCTAssertTrue(engine.apply(.substituteExercise(exerciseIndex: 0, name: "Row", weight: -1), now: now).isEmpty)
+        XCTAssertEqual(InputRules.weight("10001", previous: "100"), "100")
+        XCTAssertEqual(PlanImport.run(CoreTestSupport.planJSON(exercise: #"{ "name": "Bench Press", "sets": 1, "reps": 5, "weight": 10001 }"#),
+                                      settings: settings, now: now).errors.map(\.code), ["E_WEIGHT_INVALID"])
+    }
+
+    // TL20: a step is the session's step, and its target a named type. The flattener hands
+    // `Session.start` its `SessionStep`s as they are; `target(at:)` is a `StepTarget` — a set's
+    // warning and effort target, none for a drop, no weight on a bodyweight exercise; and the
+    // active session writes the keys it always has, the synthesized encoder in the hand-written
+    // one's place.
+    func testAStepIsTheSessionsStep() throws {
+        var plan = CoreTestSupport.plan(sets: 1, drops: [DropTarget(work: .reps(.fixed(8)), weight: 40)])
+        plan.days[0].exercises[0].sets[0].inReserve = 2
+        let session = CoreTestSupport.session(plan)
+        XCTAssertEqual(session.steps, flatten(day: plan.days[0]))
+        XCTAssertEqual(session.target(at: 0), StepTarget(work: .reps(.range(min: 8, max: 12)), weight: 60, reserve: 2))
+        XCTAssertEqual(session.target(at: 1), StepTarget(work: .reps(.fixed(8)), weight: 40))
+        XCTAssertNil(CoreTestSupport.session(CoreTestSupport.plan(bodyweight: true)).target(at: 0)?.weight)
+
+        let active = ActiveSession(session: session, phase: .working(step: 0))
+        let data = try JSONEncoder().encode(active)
+        let keys = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any]).keys
+        XCTAssertEqual(Set(keys), ["session", "phase", "timerRunning", "deliveredBeeps"])
+        XCTAssertEqual(try JSONDecoder().decode(ActiveSession.self, from: data), active)
+    }
+
+    // TL21: the day's blocks and its counts, once. The stage and the progress line count an
+    // exercise's place the same way after Do later; the bar and the Lock Screen count the steps
+    // finished the same way; and the Overview and Session detail draw one list of blocks.
+    func testCountsAndBlocksAreOnce() throws {
+        var engine = engine(CoreTestSupport.plan(sets: 2, secondExercise: true))
+        engine.apply(.skipSet(step: 0), now: now)
+        engine.apply(.deferExercise(exerciseIndex: 0), now: now)
+        let step = try XCTUnwrap(engine.active.currentStep)
+        let screen = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [], now: now))
+        XCTAssertEqual(screen.stage.title, StepCard.progress(session: engine.session, step: step))
+        XCTAssertEqual(screen.stage.title, "Exercise 1 of 2 · Set 1 of 2", "Row now runs first")
+        XCTAssertEqual(WorkoutActivityState.of(engine.active, now: now)?.done, SessionStats.finishedCount(engine.session))
+        XCTAssertEqual(WorkoutStage.progress(engine.session), 0.25)
+
+        guard let overview = FixtureLoader.doc("JimmsBro/Features/Overview/OverviewView.swift"),
+              let detail = FixtureLoader.doc("JimmsBro/Features/SessionDetail/SessionDetailView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        for source in [overview, detail] {
+            XCTAssertTrue(source.contains("SessionBlocks.blocks(session)"))
+            XCTAssertFalse(source.contains("SessionBlocks.indices"))
+        }
+    }
 }

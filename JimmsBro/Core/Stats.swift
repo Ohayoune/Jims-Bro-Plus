@@ -46,6 +46,8 @@ enum SessionStats {
         }
     }
     static func loggedCount(_ session: Session) -> Int { session.steps.filter { $0.status == .logged }.count }
+    /// Steps logged or skipped — how far through the day the bar and the Lock Screen say you are.
+    static func finishedCount(_ session: Session) -> Int { session.steps.filter { $0.status != .pending }.count }
     static func averageSetSeconds(_ session: Session) -> Double? {
         let values = session.steps.compactMap(\.setSeconds).map(Double.init)
         return mean(values)
@@ -305,7 +307,7 @@ enum TargetText {
         }
     }
 
-    static func target(_ target: SetTarget, range: RepRange?, units: WeightUnit,
+    static func target(_ target: StepTarget, range: RepRange?, units: WeightUnit,
                        wording: Wording = .plain) -> String {
         var text = workWithRange(work: target.work, range: range, wording: wording)
         if wording == .plain {
@@ -315,7 +317,7 @@ enum TargetText {
         }
         if let w = target.weight { text += " · \(number(w)) \(units.rawValue)" }
         // D51 (v1.5): the effort target, said as body text after the numbers you act on.
-        if let n = target.inReserve { text += " · \(reserve(n, wording: wording))" }
+        if let n = target.reserve { text += " · \(reserve(n, wording: wording))" }
         return text
     }
     /// "2 in reserve" — reps on a rep set, seconds on a hold; the number says which. Plain says

@@ -105,7 +105,7 @@ struct PlanLibrary {
     }
     mutating func completeSession() {
         guard let e = engine, e.phase == .completed else { return }
-        if e.loggedCount > 0 {
+        if SessionStats.loggedCount(e.session) > 0 {
             let completed = e.session
             if !sessions.contains(where: { $0.id == completed.id }) { sessions.append(completed) }
             if let index = plans.firstIndex(where: { $0.id == completed.planId }) {

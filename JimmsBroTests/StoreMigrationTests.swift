@@ -65,7 +65,7 @@ final class StoreMigrationTests: XCTestCase {
         XCTAssertEqual(active.lastCompletedStep, 3)
         XCTAssertTrue(active.canUndo)
         let engine = SessionEngine(active: active)
-        XCTAssertEqual(engine.loggedCount, 4)
+        XCTAssertEqual(SessionStats.loggedCount(engine.session), 4)
     }
 
     // Q16: the general rule. A file may leave out anything with a default; it may not leave out

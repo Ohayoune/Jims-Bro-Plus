@@ -65,7 +65,7 @@ final class WarmUpAndTransitionTests: XCTestCase {
         let effects = engine.apply(.restElapsed, now: now.addingTimeInterval(300))
         XCTAssertEqual(engine.phase, .working(step: 0))
         XCTAssertTrue(effects.contains(.playAlert(.end)))
-        XCTAssertEqual(engine.loggedCount, 0, "a warm-up is not a set")
+        XCTAssertEqual(SessionStats.loggedCount(engine.session), 0, "a warm-up is not a set")
         XCTAssertNil(engine.session.steps[0].result)
     }
 

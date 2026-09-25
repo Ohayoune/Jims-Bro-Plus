@@ -87,7 +87,7 @@ final class StepsAndEngineTests: XCTestCase {
         let last = e.apply(.logSet(step:2,result:.reps(count:10,weight:60)),now:now.addingTimeInterval(200))
         XCTAssertEqual(e.phase,.completed); XCTAssertEqual(e.session.endedAt,now.addingTimeInterval(200)); XCTAssertTrue(last.contains(.sessionCompleted))
         XCTAssertFalse(last.contains { if case .scheduleNotification = $0 { return true }; return false })
-        XCTAssertEqual(e.loggedCount,3); XCTAssertEqual(e.elapsed(now:now.addingTimeInterval(999)),200)
+        XCTAssertEqual(SessionStats.loggedCount(e.session),3); XCTAssertEqual(SessionStats.duration(e.session, now:now.addingTimeInterval(999)),200)
     }
     func testExpiredRestSkipAndInvalidEvents() {
         for action in [Event.restElapsed, .skipRest, .adjustRest(seconds:-30)] {
@@ -168,7 +168,7 @@ final class StepsAndEngineTests: XCTestCase {
         XCTAssertEqual(e.session.steps.map(\.status),[.logged,.skipped,.skipped]); XCTAssertEqual(e.phase,.completed)
         XCTAssertTrue(effects.contains(.cancelNotification(id:.rest))); XCTAssertTrue(effects.contains(.sessionCompleted))
         var empty = CoreTestSupport.engine(); empty.apply(.finish,now:now)
-        XCTAssertEqual(empty.loggedCount,0); XCTAssertEqual(empty.nextStep(after:0),nil)
+        XCTAssertEqual(SessionStats.loggedCount(empty.session),0); XCTAssertEqual(empty.nextStep(after:0),nil)
     }
     func testFixedTimersWarningsEarlyCompletionAndCancellation() {
         var e = CoreTestSupport.engine(CoreTestSupport.plan(work:.duration(seconds:45)))
@@ -276,7 +276,7 @@ final class StepsAndEngineTests: XCTestCase {
             XCTAssertEqual(e.phase,.working(step:i))
             e.apply(.logSet(step:i,result:.reps(count:10,weight:60)),now:time.addingTimeInterval(34))
         }
-        XCTAssertEqual(e.loggedCount,18); XCTAssertEqual(e.phase,.completed)
+        XCTAssertEqual(SessionStats.loggedCount(e.session),18); XCTAssertEqual(e.phase,.completed)
         var wrapped = CoreTestSupport.engine()
         wrapped.apply(.jumpTo(step:2),now:now)
         wrapped.apply(.logSet(step:2,result:.reps(count:10,weight:60)),now:now)

@@ -50,13 +50,7 @@ struct WorkoutView: View {
             // Debug-only (v1.3): open Change exercise on the current exercise.
             if ProcessInfo.processInfo.arguments.contains("-uiChangeExercise") {
                 try? await Task.sleep(for: .milliseconds(600))
-                let step: Int?
-                switch model.phase {
-                case let .working(index)?: step = index
-                case let .resting(rest)?: step = rest.nextStep
-                default: step = nil
-                }
-                if let session = model.session, let step,
+                if let session = model.session, let step = model.currentStep,
                    let exercise = session.exercises[safe: session.steps[step].exerciseIndex] {
                     changing = ChangeTarget(exerciseIndex: session.steps[step].exerciseIndex, name: exercise.name)
                 }

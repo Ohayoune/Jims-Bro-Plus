@@ -138,6 +138,37 @@ extension Session {
     }
 }
 
+extension ActiveSession {
+    /// The workout on disk mid-way. `session` and `phase` are the workout; everything else has
+    /// a default. A v1 file has no `blockDone` key; if its phase was the old `.transition`, one is
+    /// reconstructed from that payload so a session saved mid-transition survives the v1.1
+    /// upgrade (G53).
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(session: try container.decode(Session.self, forKey: .session),
+                  phase: try container.decode(Phase.self, forKey: .phase),
+                  lastRestEndedAt: try container.decodeIfPresent(Date.self, forKey: .lastRestEndedAt),
+                  workWeight: try container.decodeIfPresent(Double.self, forKey: .workWeight),
+                  timerRunning: try container.decodeIfPresent(Bool.self, forKey: .timerRunning) ?? false,
+                  deliveredBeeps: try container.decodeIfPresent(Set<TimerBeep>.self, forKey: .deliveredBeeps) ?? [],
+                  blockDone: try container.decodeIfPresent(BlockDone.self, forKey: .blockDone)
+                      ?? (try? Phase.legacyBlockDone(from: container.superDecoder(forKey: .phase))),
+                  lastCompletedStep: try container.decodeIfPresent(Int.self, forKey: .lastCompletedStep))
+    }
+}
+
+extension RestState {
+    /// A v1.1 file has no `kind` (it had an unused `isWork` instead); every rest it could have
+    /// been holding was a rest between sets.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(startedAt: try container.decode(Date.self, forKey: .startedAt),
+                  endsAt: try container.decode(Date.self, forKey: .endsAt),
+                  nextStep: try container.decode(Int.self, forKey: .nextStep),
+                  kind: container.value(.kind, or: .betweenSets))
+    }
+}
+
 extension DaySwap {
     /// D72 (v1.9): the two dates and what they say are the swap, so `id`, `planId`, `date`,
     /// `original`, `replacement` and `answered` are required; `askedOn` and `slideUndo` may

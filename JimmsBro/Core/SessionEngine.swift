@@ -41,7 +41,6 @@ struct SessionEngine {
     }
     var session: Session { active.session }
     var phase: Phase { active.phase }
-    var loggedCount: Int { session.steps.filter { $0.status == .logged }.count }
     /// What a freshly started session needs run: the warm-up's notification, if it has one,
     /// and the save. `PlanLibrary.startDay` returns these, so nothing else has to know.
     var initialEffects: [Effect] { startEffects + [.persist] }
@@ -73,7 +72,6 @@ struct SessionEngine {
                         .scheduleNotification(id: .rest, at: endsAt, body: nextBody(index))]
     }
     init(active: ActiveSession, settings: Settings = Settings(), history: [Session] = []) { self.active = active; self.settings = settings; self.history = history }
-    func elapsed(now: Date) -> TimeInterval { max(0, (session.endedAt ?? now).timeIntervalSince(session.startedAt)) }
     func nextStep(after index: Int) -> Int? {
         session.steps.indices.first { $0 > index && session.steps[$0].status == .pending }
         ?? session.steps.indices.first { session.steps[$0].status == .pending }
@@ -143,16 +141,15 @@ struct SessionEngine {
         return [.cancelNotification(id: .rest),
                 .scheduleNotification(id: .rest, at: endsAt, body: nextBody(next))]
     }
+    /// §6.4's body, "Next: Bench Press · set 2 of 3 · Aim 8–12 reps · 60 kg" — the step as the
+    /// strip says it (`StepCard.stepLine`). D58 (v1.6): the notification is read by a person on
+    /// a Lock Screen, so it uses whichever grammar the app is set to, like every other sentence.
     private func nextBody(_ index: Int) -> String {
-        guard let step = session.steps[safe: index], let e = session.exercises[safe: step.exerciseIndex], let target = session.target(at: index) else { return "Next set" }
-        // D58 (v1.6): the notification is read by a person on a Lock Screen, so it uses
-        // whichever grammar the app is set to, like every other sentence.
-        return "Next: \(e.name) · set \(step.setIndex + 1) of \(e.targets.count) · "
-            + TargetText.work(target.work, wording: settings.wording)
+        StepCard.stepLine(session: session, step: index, wording: settings.wording).map { "Next: " + $0 } ?? "Next set"
     }
     private func valid(_ result: SetResult) -> Bool {
         let count = result.reps ?? result.seconds ?? -1
-        return count >= 0 && count <= 99_999 && (result.weight.map { $0.isFinite && (0...10000).contains($0) } ?? true)
+        return count >= 0 && count <= 99_999 && (result.weight.map(TargetGrammar.isWeight) ?? true)
     }
     private func cleaned(_ result: SetResult, step: Int) -> SetResult {
         guard let s = session.steps[safe: step], session.exercises[safe: s.exerciseIndex]?.bodyweight == true else { return result }
@@ -207,11 +204,14 @@ struct SessionEngine {
             active.blockDone = nil
             for i in pending { active.session.steps[i].status = .skipped; active.session.steps[i].result = nil; active.session.steps[i].loggedAt = now }
             reevaluateAdvice(e)
+            // A block this ended advances from its last step, so the walk starts as it does after
+            // any block's last set — logged or skipped, the next machine is no closer (§6.3,
+            // §6.55). Until v1.12 it drew the walk's strip with no rest under it, so its ring
+            // filled with no alert.
             let block = session.steps[pending[0]].blockIndex
-            if let next = nextStep(after: current), !session.steps.contains(where: { $0.blockIndex == block && $0.status == .pending }), session.steps[next].blockIndex != block {
-                enterWorking(next, now: now)
-                active.blockDone = BlockDone(finishedBlock: block, startedAt: now)
-            } else { effects += advance(after: current, now: now, skipped: true) }
+            let ended = !session.steps.contains { $0.blockIndex == block && $0.status == .pending }
+            let from = ended ? session.steps.indices.last { session.steps[$0].blockIndex == block } ?? current : current
+            effects += advance(after: from, now: now, skipped: true)
         case let .jumpTo(i):
             guard session.steps.indices.contains(i), phase != .completed else { return [] }
             effects += cancelWork()
@@ -268,7 +268,8 @@ struct SessionEngine {
             switch target.work {
             case let .duration(n):
                 let end = now.addingTimeInterval(Double(n))
-                effects.append(.scheduleNotification(id: .setEnd, at: end, body: "Time! " + nextBody(i).replacingOccurrences(of: "Next: ", with: "")))
+                let line = StepCard.stepLine(session: session, step: i, wording: settings.wording)
+                effects.append(.scheduleNotification(id: .setEnd, at: end, body: "Time!" + (line.map { " " + $0 } ?? "")))
                 if let w = target.warning { effects.append(.scheduleNotification(id: .setWarning, at: end.addingTimeInterval(-Double(w)), body: "\(w) s left")) }
             case let .openDuration(minimum): if let minimum { effects.append(.scheduleNotification(id: .setMinimum, at: now.addingTimeInterval(Double(minimum)), body: "\(minimum) s reached")) }
             case .reps: break
@@ -294,11 +295,11 @@ struct SessionEngine {
             guard let moved = substitute(exercise: e, name: name, weight: weight, now: now) else { return [] }
             effects += moved
         case let .renameExercise(e, name):
-            guard session.exercises.indices.contains(e), !name.trimmed.isEmpty else { return [] }
-            active.session.exercises[e].name = String(name.trimmed.prefix(100))
+            guard session.exercises.indices.contains(e), let name = TargetGrammar.cleanName(name) else { return [] }
+            active.session.exercises[e].name = name
         case let .setWorkWeight(i, weight):
             guard case let .working(current) = phase, current == i, let step = session.steps[safe: i],
-                  weight.map({ $0.isFinite && (0...10000).contains($0) }) ?? true else { return [] }
+                  weight.map(TargetGrammar.isWeight) ?? true else { return [] }
             active.workWeight = session.exercises[safe: step.exerciseIndex]?.bodyweight == true ? nil : weight
         case .finish:
             guard phase != .completed else { return [] }
@@ -363,9 +364,7 @@ struct SessionEngine {
     /// weight change for the remaining sets. Returns nil when there is nothing to do.
     private mutating func substitute(exercise e: Int, name: String, weight: Double?, now: Date) -> [Effect]? {
         guard phase != .completed, session.exercises.indices.contains(e),
-              weight.map({ $0.isFinite && (0...10000).contains($0) }) ?? true else { return nil }
-        let newName = String(name.trimmed.prefix(100))
-        guard !newName.isEmpty else { return nil }
+              weight.map(TargetGrammar.isWeight) ?? true, let newName = TargetGrammar.cleanName(name) else { return nil }
         let pending = session.steps.indices.filter {
             session.steps[$0].exerciseIndex == e && session.steps[$0].status == .pending
         }

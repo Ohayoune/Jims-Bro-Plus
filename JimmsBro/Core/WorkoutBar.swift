@@ -34,6 +34,37 @@ extension ActiveSession {
         case .completed: return nil
         }
     }
+
+    /// D82 (§4.7, §6.55): the walk between exercises, from the moment a block ends until the next
+    /// set is logged or started — first as the rest that runs its minimum, then as `.working`
+    /// under the block's line (§6.4). The one reading of it: the strip, the stage and the Lock
+    /// Screen all ask here, so none of them handles the two forms on its own. Nil otherwise.
+    var walk: Walk? {
+        switch phase {
+        case let .resting(rest) where rest.kind == .betweenExercises:
+            return Walk(startedAt: blockDone?.startedAt ?? rest.startedAt, next: rest.nextStep,
+                        blockDone: blockDone, endsAt: rest.endsAt)
+        case let .working(step):
+            guard let blockDone, !timerRunning else { return nil }
+            return Walk(startedAt: blockDone.startedAt, next: step, blockDone: blockDone, endsAt: nil)
+        case .resting, .completed:
+            return nil
+        }
+    }
+}
+
+/// The walk between exercises as `ActiveSession.walk` reads it.
+struct Walk: Equatable {
+    /// When the block ended: the count-up runs from here.
+    var startedAt: Date
+    /// The step it walks to, whose card is already up.
+    var next: Int
+    /// The finished block, for its line. Nil once `dismissBlockDone` has cleared the line, which
+    /// leaves the rest running (§6.6).
+    var blockDone: BlockDone?
+    /// The end of the rest that runs the minimum, while it runs; nil once it has passed, or for a
+    /// walk of 0, which has no rest.
+    var endsAt: Date?
 }
 
 /// SPEC §6.53 (D80, v1.10): the header is the bar. One segment per block, in the order the day

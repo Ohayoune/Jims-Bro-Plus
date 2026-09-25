@@ -39,6 +39,9 @@ enum WorkoutStage: Equatable {
     }
 
     static func current(active: ActiveSession, step index: Int) -> WorkoutStage {
+        // The walk is "between exercises" before its minimum and after it: the next card is
+        // up, but you are walking, not lifting.
+        if active.walk != nil { return .betweenExercises }
         switch active.phase {
         case .completed:
             return .done
@@ -49,18 +52,11 @@ enum WorkoutStage: Equatable {
             case .betweenExercises: return .betweenExercises
             }
         case .working:
-            // A block that just ended without a countdown is still "between exercises": the
-            // next card is up, but you are walking, not lifting.
-            if active.blockDone != nil { return .betweenExercises }
             let session = active.session
             guard let step = session.steps[safe: index],
                   let exercise = session.exercises[safe: step.exerciseIndex] else { return .done }
-            // Counted over the exercises as the day now runs them, so "Do later" (D28) moves an
-            // exercise's number with it rather than leaving a gap, and a substitute (D42) keeps
-            // the number of the exercise it stood in for.
-            let order = SessionBlocks.exerciseOrder(session)
-            let position = (order.firstIndex(of: SessionBlocks.canonical(session, step.exerciseIndex)) ?? 0) + 1
-            return .working(exercise: position, exercises: max(order.count, position),
+            let place = SessionBlocks.place(session, exercise: step.exerciseIndex)
+            return .working(exercise: place.position, exercises: place.of,
                             set: step.setIndex + 1,
                             sets: max(exercise.targets.count, step.setIndex + 1))
         }
@@ -70,8 +66,7 @@ enum WorkoutStage: Equatable {
     /// sets, not exercises, so a long exercise moves the bar rather than sitting still.
     static func progress(_ session: Session) -> Double {
         guard !session.steps.isEmpty else { return 0 }
-        let done = session.steps.filter { $0.status != .pending }.count
-        return Double(done) / Double(session.steps.count)
+        return Double(SessionStats.finishedCount(session)) / Double(session.steps.count)
     }
 }
 
@@ -392,13 +387,7 @@ enum WorkoutScreen {
                       walk: (minimum: Int, fromPlan: Bool)? = nil,
                       showing: Int? = nil) -> WorkoutScreenModel? {
         let session = active.session
-        let index: Int
-        switch active.phase {
-        case let .working(step): index = step
-        case let .resting(rest): index = rest.nextStep
-        case .completed: return nil
-        }
-        guard let step = session.steps[safe: index],
+        guard let index = active.currentStep, let step = session.steps[safe: index],
               session.exercises.indices.contains(step.exerciseIndex),
               let target = session.target(at: index) else { return nil }
 
@@ -553,8 +542,7 @@ enum WorkoutScreen {
         }
     }
 
-    static func inputs(values: PrefillValues, target: (work: WorkTarget, weight: Double?, warning: Int?, reserve: Int?),
-                       units: WeightUnit) -> InputDefaults {
+    static func inputs(values: PrefillValues, target: StepTarget, units: WeightUnit) -> InputDefaults {
         var defaults = InputDefaults(
             reps: values.reps.map(String.init) ?? "",
             weight: InputRules.weightText(values.weight),
@@ -594,8 +582,8 @@ enum WorkoutScreen {
         }
     }
 
-    /// SPEC §4.6 and §4.7. Rest wins over a block-done line, because only one of them can be
-    /// true at a time: a block that just ended never starts a rest (§6.3).
+    /// SPEC §4.6 and §4.7. The walk wins over everything: it is the rest a block's end starts
+    /// (§6.3) and what the strip draws after that rest, until the next set is logged or started.
     static func strip(active: ActiveSession, step: Int, work: WorkTarget, warning: Int?,
                       wording: Wording = .plain,
                       history: [Session], now: Date,
@@ -611,17 +599,10 @@ enum WorkoutScreen {
         // D82 (v1.10, §6.55): the walk between exercises counts up beside a ring — while its
         // rest runs to the ring's end, and after, until Log set or Start timer ends it. The
         // rest's own span is the minimum while it runs; the plan's or the setting's after.
-        if case let .resting(rest) = active.phase, rest.kind == .betweenExercises {
-            return walkStrip(strip, session: session, blockDone: active.blockDone,
-                             startedAt: rest.startedAt, next: rest.nextStep,
-                             minimum: wholeSeconds(rest.endsAt.timeIntervalSince(rest.startedAt)),
+        if let walking = active.walk {
+            let minimum = walking.endsAt.map { wholeSeconds($0.timeIntervalSince(walking.startedAt)) } ?? walk.minimum
+            return walkStrip(strip, session: session, walk: walking, minimum: minimum,
                              fromPlan: walk.fromPlan, now: now)
-        }
-        if case .working = active.phase, let blockDone = active.blockDone,
-           StepCard.blockDoneLine(session: session, blockDone: blockDone) != nil {
-            return walkStrip(strip, session: session, blockDone: blockDone,
-                             startedAt: blockDone.startedAt, next: step,
-                             minimum: walk.minimum, fromPlan: walk.fromPlan, now: now)
         }
 
         if case let .resting(rest) = active.phase {
@@ -670,22 +651,20 @@ enum WorkoutScreen {
     /// D82 (v1.10, §6.55): the walk's strip — the count-up in the large figure, the ring, the
     /// next exercise's name, and no −30 / +30 / Skip. The finished block's line, advice and
     /// all, is what VoiceOver hears; the Summary keeps the advice in print (§4.7).
-    private static func walkStrip(_ base: StatusStrip, session: Session, blockDone: BlockDone?,
-                                  startedAt: Date, next: Int, minimum: Int, fromPlan: Bool,
-                                  now: Date) -> StatusStrip {
+    private static func walkStrip(_ base: StatusStrip, session: Session, walk: Walk, minimum: Int,
+                                  fromPlan: Bool, now: Date) -> StatusStrip {
         var strip = base
-        let start = blockDone?.startedAt ?? startedAt
-        let elapsed = TargetText.time(wholeSeconds(max(0, now.timeIntervalSince(start))))
-        let ring = WalkRing.of(startedAt: start, minimum: minimum, fromPlan: fromPlan, now: now)
+        let elapsed = TargetText.time(wholeSeconds(max(0, now.timeIntervalSince(walk.startedAt))))
+        let ring = WalkRing.of(startedAt: walk.startedAt, minimum: minimum, fromPlan: fromPlan, now: now)
         strip.kind = .blockDone
         strip.restKind = .betweenExercises
         strip.skipTitle = RestKind.betweenExercises.skipTitle
         strip.direction = .up
         strip.countdown = elapsed
         strip.ring = ring
-        strip.title = blockDone.flatMap { StepCard.blockDoneLine(session: session, blockDone: $0) }
+        strip.title = walk.blockDone.flatMap { StepCard.blockDoneLine(session: session, blockDone: $0) }
             ?? RestKind.betweenExercises.title
-        let name = session.steps[safe: next].flatMap { session.exercises[safe: $0.exerciseIndex]?.name }
+        let name = session.steps[safe: walk.next].flatMap { session.exercises[safe: $0.exerciseIndex]?.name }
         strip.next = name
         var spoken = ["\(RestKind.betweenExercises.title), \(elapsed)",
                       ring.full ? "ready" : "at least \(TargetText.time(ring.minimum))"]
@@ -698,13 +677,13 @@ enum WorkoutScreen {
 
     /// D59 (v1.6): what follows the set on the card — "Rest 1:30 starts when you log", or,
     /// on a block's last set, "Then on to Barbell Row". Nil for the last set of the day.
+    /// The rest is the one the engine will start (`RestResolution.betweenSets`), so the line
+    /// never promises a superset's round rest to an exercise on its own.
     static func idleLine(session: Session, step index: Int) -> String? {
         guard let step = session.steps[safe: index] else { return nil }
         if !step.isLastInBlock {
-            guard step.isLastInRound,
-                  let target = session.exercises[safe: step.exerciseIndex]?.targets[safe: step.setIndex],
-                  (target.groupRestSeconds ?? target.restSeconds) > 0 else { return nil }
-            return "Rest \(TargetText.time(target.groupRestSeconds ?? target.restSeconds)) starts when you log"
+            let rest = RestResolution.betweenSets(after: step, exercises: session.exercises)
+            return rest > 0 ? "Rest \(TargetText.time(rest)) starts when you log" : nil
         }
         guard let next = session.steps.dropFirst(index + 1).first(where: { $0.blockIndex != step.blockIndex && $0.status == .pending }),
               let exercise = session.exercises[safe: next.exerciseIndex] else { return nil }
@@ -714,13 +693,7 @@ enum WorkoutScreen {
     /// "Next: Bench Press · set 2 of 3 · Aim 8–12 reps · 60 kg".
     static func nextLine(session: Session, step index: Int,
                          wording: Wording = .plain) -> String? {
-        guard let step = session.steps[safe: index],
-              let exercise = session.exercises[safe: step.exerciseIndex],
-              let target = session.target(at: index) else { return nil }
-        let work = SetTarget(work: target.work, weight: target.weight, restSeconds: 0, inReserve: target.reserve)
-        return "Next: \(exercise.name) · set \(step.setIndex + 1) of \(exercise.targets.count) · "
-            + TargetText.target(work, range: exercise.repRange, units: session.units,
-                                wording: wording)
+        StepCard.stepLine(session: session, step: index, wording: wording).map { "Next: " + $0 }
     }
 
     /// "set 0:34" — how long the set that was just logged took (D19), small text only.

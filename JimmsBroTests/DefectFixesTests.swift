@@ -189,7 +189,8 @@ final class DefectFixesTests: XCTestCase {
         XCTAssertEqual(SessionBlocks.names(session, blocks[1]), ["Curl"])
         XCTAssertTrue(SessionBlocks.namesRows(session, blocks[0]), "a superset must name its rows")
         XCTAssertFalse(SessionBlocks.namesRows(session, blocks[1]))
-        XCTAssertEqual(SessionBlocks.title(session, blocks[0]), "Bench Press + Row",
+        XCTAssertEqual(SessionBlocks.blocks(session).map(\.steps), blocks, "the list both screens draw")
+        XCTAssertEqual(SessionBlocks.blocks(session)[0].title, "Bench Press + Row",
                        "no duration until the block is finished")
     }
 

@@ -378,8 +378,8 @@ enum PlanEdit {
         var plan = plan
         switch operation {
         case let .renameExercise(day, exercise, name):
-            guard let target = exerciseIndex(plan, day, exercise), !name.trimmed.isEmpty else { return nil }
-            plan.days[target.day].exercises[target.exercise].name = String(name.trimmed.prefix(100))
+            guard let target = exerciseIndex(plan, day, exercise), let name = TargetGrammar.cleanName(name) else { return nil }
+            plan.days[target.day].exercises[target.exercise].name = name
 
         case let .setSetCount(day, exercise, count):
             guard let target = exerciseIndex(plan, day, exercise), (1...50).contains(count) else { return nil }
@@ -392,7 +392,7 @@ enum PlanEdit {
 
         case let .setWeight(day, exercise, weight):
             guard let target = exerciseIndex(plan, day, exercise) else { return nil }
-            if let weight, !(0...10_000).contains(weight) { return nil }
+            if let weight, !TargetGrammar.isWeight(weight) { return nil }
             for index in plan.days[target.day].exercises[target.exercise].sets.indices {
                 plan.days[target.day].exercises[target.exercise].sets[index].weight = weight
             }
@@ -455,15 +455,15 @@ enum PlanEdit {
             // Named rather than left to the importer's duplicate-name suffix, so the copy says
             // what it is. It is deliberately not added to the cycle: duplicating a day is not a
             // request to change how often you train.
-            copy.name = String("\(copy.name) copy".prefix(100))
+            copy.name = TargetGrammar.cleanName("\(copy.name) copy") ?? copy.name
             copy.exercises = copy.exercises.map { var e = $0; e.id = UUID(); return e }
             plan.days.insert(copy, at: day + 1)
 
         case let .renameDay(day, name):
-            guard plan.days.indices.contains(day), !name.trimmed.isEmpty else { return nil }
+            guard plan.days.indices.contains(day), let name = TargetGrammar.cleanName(name) else { return nil }
             // `CycleEntry.day` holds an index, not a name, so the cycle needs no fixup here;
             // `PlanJSON.render` writes the day's current name into it on the way out.
-            plan.days[day].name = String(name.trimmed.prefix(100))
+            plan.days[day].name = name
 
         case .replaceExerciseJSON, .replaceDayJSON, .insertExercisesJSON, .insertDaysJSON:
             // Text edits are spliced (`spliced`), never mutated here.

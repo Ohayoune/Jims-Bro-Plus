@@ -234,12 +234,12 @@ enum HistoryCSV {
             let spacing = steps.isEmpty ? 0 : duration / Double(steps.count)
             let sessionSteps = steps.enumerated().map { index, step -> SessionStep in
                 let row = byName[names[step.exerciseIndex]]?[step.setIndex]
-                let result: SetResult = row?.reps.map { .reps(count: $0, weight: row?.weight) }
+                var step = step
+                step.status = .logged
+                step.result = row?.reps.map { .reps(count: $0, weight: row?.weight) }
                     ?? .duration(seconds: row?.seconds ?? 0, weight: row?.weight)
-                return SessionStep(exerciseIndex: step.exerciseIndex, setIndex: step.setIndex, dropIndex: 0,
-                                   blockIndex: step.blockIndex, isLastInRound: step.isLastInRound,
-                                   isLastInBlock: step.isLastInBlock, status: .logged, result: result,
-                                   startedAt: nil, loggedAt: start.addingTimeInterval(spacing * Double(index + 1)))
+                step.loggedAt = start.addingTimeInterval(spacing * Double(index + 1))
+                return step
             }
             return Session(planId: nil, planName: "Imported", dayName: day.name, units: units,
                            startedAt: start, endedAt: start.addingTimeInterval(duration),

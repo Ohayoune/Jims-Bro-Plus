@@ -3,7 +3,42 @@
 Updated 2026-09-24. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
 2026-09-24); the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
 against each other) was built on branch `fix-first` off it, and **L2** on `v1.12-one-of-each`,
-fast-forwarded to `fix-first` first, then **L3** on the same branch. L4–L8 are not built.
+fast-forwarded to `fix-first` first, then **L3** and **L4** on the same branch. L5–L8 are not built.
+
+## v1.12 L4: built and green on `v1.12-one-of-each`
+
+The session and the Workout screen, one owner each: `RestResolution.betweenSets` for the rest after a
+set (the engine, the idle line, a built-in day's estimate), `StepCard.stepLine` for a step said away from
+its card (the strip's "Next: …", the rest's and a hold's notification, the Lock Screen),
+`ActiveSession.currentStep` for the step that is on, `ActiveSession.walk` for the walk between exercises
+(the strip, the stage, the Lock Screen), `SessionBlocks.place` and `SessionStats.finishedCount` with
+`loggedCount` and `duration` for the counts, `Prefill.lastResult` over one scan of history,
+`TargetGrammar.isWeight`, `.maxWeight`, `.cleanName` and `.nameLength` for the limits, `SessionStep` and
+`StepTarget` for a step and its target, Persistence.swift for `ActiveSession`'s and `RestState`'s
+decoders with one reading of the v1 `.transition`, and `SessionBlocks.blocks` for the list the Overview
+and Session detail draw. Gone: `Step`, `StepBuilder`, `SessionEngine.loggedCount` and `elapsed(now:)`,
+`Prefill.historicalWeight`, `StepCard.blockNamesRows`, `SessionBlocks.title`, `InputRules.maxWeight`,
+`ActiveSession`'s hand-written memberwise init and encoder, and `RestState`'s init. Sides picked, each in
+`docs/DECISIONS_LOG.md` and pinned by TL14–TL21 (`docs/TEST_CASES.md`): the rest after a set is the
+engine's; the notification says the step as the strip does, target and weight, and a drop has no range;
+skipping an exercise starts the walk (SPEC §6.55); last time's lookups take the first logged set. The
+review's "one form" for the walk was narrowed to one reading: SPEC §6.3, §6.4 and §6.6 make the rest and
+the block's line two stages of one walk, so nothing on disk changed. SPEC §6.3, §6.4, §6.6 and §6.55
+name the owners.
+
+### Run for L4
+
+On `v1.12-one-of-each`, 2026-09-24: `xcodebuild test` on the iPhone 17 simulator, 463 tests, 0
+failures; `swift test`, 462 tests, 0 failures; `python3 tools/check_core.py`, 462 test bodies, 9,222
+assertions, 0 failures; `python3 tools/reference_import.py`, 118/118 fixtures match; the Release build
+succeeded and `python3 tools/check_release.py` is ready (still version 1.11 (1)); `python3
+tools/check_bundle.py` current after `python3 tools/build_bundle.py`.
+
+### Not run for L4
+
+Nothing was looked at on the simulator or the phone. What a person could see change — the rest's
+notification saying the target and weight, the ring after Skip exercise ending in the alert, the idle
+line's rest for an exercise taken out of a superset — is for L8's device rows.
 
 ## v1.12 L3: built and green on `v1.12-one-of-each`
 
