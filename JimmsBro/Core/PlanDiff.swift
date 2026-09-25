@@ -154,7 +154,7 @@ struct PlanDiff: Equatable {
         case let .dayAdded(day):
             let count = day.exercises.count
             return Row(mark: .added, struck: nil, name: day.name,
-                       detail: "added · \(count) exercise\(count == 1 ? "" : "s")")
+                       detail: "added · \(TargetText.counted(count, "exercise"))")
         case let .dayRemoved(name):
             return Row(mark: .removed, struck: name, name: nil, detail: "removed")
         case let .dayUnchanged(name):

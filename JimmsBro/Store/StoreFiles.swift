@@ -97,6 +97,24 @@ enum RestoreMode: Equatable { case replaceAll, merge }
 /// that must be true of it — that it never claims nothing changed after **Replace all**, which
 /// empties the store before it writes — is a unit test (v1.2).
 enum RestoreText {
+    /// The question's title: "Backup from 3 Sep 2026 at 18:40", or the bare question with no file.
+    static func title(_ summary: BackupSummary?) -> String {
+        guard let summary else { return "Restore this backup?" }
+        return "Backup from \(summary.exportedAt.formatted(date: .abbreviated, time: .shortened))"
+    }
+
+    /// Says what each choice would actually do, in counts, before either is tapped (D31).
+    static func detail(_ summary: BackupSummary) -> String {
+        let holds = "It holds \(TargetText.counted(summary.plans, "plan")) "
+            + "and \(TargetText.counted(summary.sessions, "workout"))."
+        let merge = summary.newPlans == 0 && summary.newSessions == 0
+            ? "Merge would add nothing — you already have all of it."
+            : "Merge adds \(TargetText.counted(summary.newPlans, "plan")) "
+              + "and \(TargetText.counted(summary.newSessions, "workout")), "
+              + "and changes nothing you already have."
+        return "\(holds) \(merge) Replace all deletes everything here first."
+    }
+
     static func failure(_ mode: RestoreMode) -> String {
         switch mode {
         case .replaceAll:

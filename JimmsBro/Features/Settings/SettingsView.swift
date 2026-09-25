@@ -38,6 +38,9 @@ struct SettingsView: View {
         // Pushed from Today's inline bar it would inherit an inline title; it is a place, not a
         // detail page, so it keeps the large title it had as a tab.
         .navigationBarTitleDisplayMode(.large)
+        // The backup and the CSV exist only after an await, so the sheet follows the file.
+        .shareSheet(isPresented: Binding(isPresent: $backup), items: backup.map { [$0] } ?? [])
+        .shareSheet(isPresented: Binding(isPresent: $historyFile), items: historyFile.map { [$0] } ?? [])
         .task { await model.refreshNotificationState() }
         .sheet(isPresented: $showIntro) {
             IntroductionView(purpose: .reference, dismiss: { showIntro = false })
@@ -75,32 +78,24 @@ struct SettingsView: View {
                 get: { model.settings.warmUpSeconds },
                 set: { seconds in Task { await model.setWarmUp(seconds) } }),
                     in: 0...1800, step: 60) {
-                row("Warm-up", duration(model.settings.warmUpSeconds))
+                row("Warm-up", TargetText.setting(model.settings.warmUpSeconds))
             }
             PresetRow(values: [0, 60, 120, 180, 300], current: model.settings.warmUpSeconds,
-                      label: duration) { seconds in Task { await model.setWarmUp(seconds) } }
+                      label: TargetText.setting) { seconds in Task { await model.setWarmUp(seconds) } }
             // D33 (v1.2): the walk to the next machine.
             Stepper(value: Binding(
                 get: { model.settings.transitionRestSeconds },
                 set: { seconds in Task { await model.setTransitionRest(seconds) } }),
                     in: 0...600, step: 30) {
-                row("Between exercises", duration(model.settings.transitionRestSeconds))
+                row("Between exercises", TargetText.setting(model.settings.transitionRestSeconds))
             }
             PresetRow(values: [0, 60, 120, 180], current: model.settings.transitionRestSeconds,
-                      label: duration) { seconds in Task { await model.setTransitionRest(seconds) } }
+                      label: TargetText.setting) { seconds in Task { await model.setTransitionRest(seconds) } }
         } footer: {
             Text("Default rest is used when a plan doesn't give a rest time. "
                  + "The warm-up runs before the first set, and \"between exercises\" is the "
                  + "walk to the next one. Set either to Off to go straight in.")
         }
-    }
-
-    /// "Off", "90 s", "5 min", "1 min 30 s" — a setting the owner reads in minutes.
-    private func duration(_ seconds: Int) -> String {
-        guard seconds > 0 else { return "Off" }
-        guard seconds >= 60 else { return "\(seconds) s" }
-        let minutes = seconds / 60, remainder = seconds % 60
-        return remainder == 0 ? "\(minutes) min" : "\(minutes) min \(remainder) s"
     }
 
     private var alertsSection: some View {
@@ -221,14 +216,6 @@ struct SettingsView: View {
                  + "or another app; a CSV from Strong or Hevy imports here the same way. "
                  + "Deleting the app deletes everything, so export a backup first.")
         }
-        .sheet(item: Binding(get: { backup.map(BackupFile.init(url:)) },
-                             set: { backup = $0?.url })) { file in
-            ShareSheet(url: file.url)
-        }
-        .sheet(item: Binding(get: { historyFile.map(BackupFile.init(url:)) },
-                             set: { historyFile = $0?.url })) { file in
-            ShareSheet(url: file.url)
-        }
         .historyImportFlow(choosing: $choosingHistory)
         .confirmationDialog("Delete every plan, workout and setting?",
                             isPresented: $confirmDelete, titleVisibility: .visible) {
@@ -245,40 +232,16 @@ struct SettingsView: View {
             }
         }
         // The file is only read at this point — nothing is written until one of these is tapped.
-        .confirmationDialog(restorePrompt, isPresented: Binding(
-            get: { pending != nil }, set: { if !$0 { pending = nil } }), titleVisibility: .visible) {
+        .confirmationDialog(RestoreText.title(pending?.summary), isPresented: Binding(isPresent: $pending), titleVisibility: .visible) {
             if let pending {
                 Button("Merge") { restore(pending, .merge) }
                 Button("Replace all", role: .destructive) { restore(pending, .replaceAll) }
             }
             Button("Cancel", role: .cancel) { pending = nil }
         } message: {
-            Text(restoreDetail)
+            Text(pending.map { RestoreText.detail($0.summary) } ?? "")
         }
-        .alert("That backup wasn't restored", isPresented: Binding(
-            get: { restoreError != nil }, set: { if !$0 { restoreError = nil } })) {
-            Button("OK", role: .cancel) { restoreError = nil }
-        } message: {
-            Text(restoreError ?? "")
-        }
-    }
-
-    private var restorePrompt: String {
-        guard let summary = pending?.summary else { return "Restore this backup?" }
-        return "Backup from \(summary.exportedAt.formatted(date: .abbreviated, time: .shortened))"
-    }
-
-    /// Says what each choice would actually do, in counts, before either is tapped.
-    private var restoreDetail: String {
-        guard let summary = pending?.summary else { return "" }
-        let holds = "It holds \(summary.plans) plan\(summary.plans == 1 ? "" : "s") "
-            + "and \(summary.sessions) workout\(summary.sessions == 1 ? "" : "s")."
-        let merge = summary.newPlans == 0 && summary.newSessions == 0
-            ? "Merge would add nothing — you already have all of it."
-            : "Merge adds \(summary.newPlans) plan\(summary.newPlans == 1 ? "" : "s") "
-              + "and \(summary.newSessions) workout\(summary.newSessions == 1 ? "" : "s"), "
-              + "and changes nothing you already have."
-        return "\(holds) \(merge) Replace all deletes everything here first."
+        .problemAlert("That backup wasn't restored", message: $restoreError)
     }
 
     private func restore(_ pending: AppModel.PendingRestore, _ mode: RestoreMode) {
@@ -307,21 +270,6 @@ struct SettingsView: View {
             Text(value).foregroundStyle(.secondary).monospacedDigit()
         }
     }
-}
-
-private struct BackupFile: Identifiable {
-    let url: URL
-    var id: URL { url }
-}
-
-/// ShareLink can't take a URL that only exists after an await, so the sheet wraps the system one.
-private struct ShareSheet: UIViewControllerRepresentable {
-    let url: URL
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: [url], applicationActivities: nil)
-    }
-    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 
 /// D59 (v1.6): the usual values of a duration setting as small buttons, the current one tinted.

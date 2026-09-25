@@ -2,7 +2,18 @@ import Foundation
 
 enum LibraryError: Error, Equatable { case sessionInProgress, invalidDay, planNotFound }
 enum ConflictChoice { case replace, keepBoth, cancel }
-enum SessionSwitch { case finish, discard }
+enum SessionSwitch {
+    case finish, discard
+
+    /// D17: the question a start raises while a workout is open, the same on Today and on Plan
+    /// detail — "You're in the middle of Push (3 of 18 sets). …" (D96, v1.12 L6: each view said it).
+    static func prompt(_ open: Session?) -> String {
+        guard let open else { return "Switch workout?" }
+        return "You're in the middle of \(open.dayName) "
+            + "(\(SessionStats.loggedCount(open)) of \(open.steps.count) sets). "
+            + "Switching workouts mid-session isn't recommended."
+    }
+}
 struct PlanLibrary {
     var plans: [Plan] = []
     var activePlanId: UUID?

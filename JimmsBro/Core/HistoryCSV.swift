@@ -287,7 +287,7 @@ enum HistoryCSV {
         /// "42 workouts (610 sets) from 12 Jan to 3 Sep · 5 already here · weights read as kg".
         func text(locale: Locale = .current, timeZone: TimeZone = .current) -> String {
             var parts: [String] = []
-            var lead = "\(workouts) workout\(workouts == 1 ? "" : "s") (\(sets) set\(sets == 1 ? "" : "s"))"
+            var lead = "\(TargetText.counted(workouts, "workout")) (\(TargetText.counted(sets, "set")))"
             if let from, let to {
                 let formatter = DateFormatter()
                 formatter.locale = locale
@@ -299,7 +299,7 @@ enum HistoryCSV {
             }
             parts.append(lead)
             if alreadyHere > 0 { parts.append("\(alreadyHere) already here") }
-            if skippedLines > 0 { parts.append("\(skippedLines) line\(skippedLines == 1 ? "" : "s") skipped") }
+            if skippedLines > 0 { parts.append("\(TargetText.counted(skippedLines, "line")) skipped") }
             if let assumedUnits { parts.append("weights read as \(assumedUnits.rawValue)") }
             return parts.joined(separator: " · ")
         }

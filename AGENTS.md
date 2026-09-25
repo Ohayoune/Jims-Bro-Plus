@@ -333,7 +333,15 @@ way back its one argument, and a refusal that names no error is fixed at Chat (S
 `ImportView(replacingPlanId:)` and `AppModel.replacePlan` are gone); a draft's day is tried once
 (`PlanDrafting.preview`, held by `DraftTrip` from `pasted(_:settings:)`); and the refusal with its Details,
 Worth knowing, the tidying and Paste are drawn once in `Features/Shared/TripParts.swift` (TL22–TL27).
-L6–L8 are not built.
+L6 is built and green on the same branch: the other views say each thing once — the Summary's
+lines are `SummaryText.headline` and `.exercises`, worked out once per draw with the records, and
+Progression's are `ProgressionText.started`, `.now` and `.steps` with `ProgressionEntry.isDone`; every
+plural is `TargetText.counted`, the restore question `RestoreText.title` and `.detail`; D17's question
+is `SessionSwitch.prompt`, drawn by one `switchWorkoutAlert` with `beginWorkout` catching the refusal,
+for Today and Plan detail; `Binding(isPresent:)`, `problemAlert` and one `shareSheet` — the prompt's,
+the backup's and the CSV's — live in `Features/Shared/Presenting.swift`; and the exercise sheet saves
+once, `PlanEdit.Operation.editExercise`, all of its fields or none (TL28–TL33).
+L7–L8 are not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

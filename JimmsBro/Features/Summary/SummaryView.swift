@@ -11,19 +11,17 @@ struct SummaryView: View {
 
     @State private var showDetails = false
 
-    private var volume: Double { SessionStats.volume(session.steps) }
-    /// D30 (v1.1): the sets that beat everything logged for that exercise before today.
-    private var records: Set<Int> {
-        SessionStats.personalRecords(session: session, history: model.sessions)
-    }
-
     var body: some View {
+        // D96 (v1.12 L6): Core's lines, worked out once per draw — the records included, which
+        // were read again for every exercise.
+        let exercises = SummaryText.exercises(session, history: model.sessions,
+                                              wording: model.settings.wording)
         List {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Workout saved")
                         .font(.title2.weight(.semibold))
-                    Text(headlineLine)
+                    Text(SummaryText.headline(session))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -38,40 +36,35 @@ struct SummaryView: View {
                 .accessibilityElement(children: .combine)
             }
 
-            ForEach(Array(session.exercises.enumerated()), id: \.element.id) { index, exercise in
+            ForEach(Array(exercises.enumerated()), id: \.offset) { _, exercise in
                 Section {
-                    let comparison = SessionStats.comparison(
-                        for: exercise.name, session: session,
-                        history: model.sessions.filter { $0.id != session.id },
-                        wording: model.settings.wording)
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(comparison.headline)
+                        Text(exercise.comparison.headline)
                             .font(.subheadline)
                             .fixedSize(horizontal: false, vertical: true)
-                        if let record = recordText(index: index) {
+                        if let record = exercise.record {
                             PRBadge(text: record)
                         }
                     }
-                    // D42 (v1.3): what it stood in for, said once.
-                    if let was = exercise.substitutedFor {
-                        Text("Instead of \(was)")
+                    if let was = exercise.insteadOf {
+                        Text(was)
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
                     // Only when no single sentence is true of the whole exercise.
-                    ForEach(Array(comparison.rows.enumerated()), id: \.offset) { _, row in
+                    ForEach(Array(exercise.comparison.rows.enumerated()), id: \.offset) { _, row in
                         Text(row)
                             .font(.footnote.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
-                    if let advice = adviceLine(index: index, exercise: exercise) {
+                    if let advice = exercise.advice {
                         Text(advice)
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    if showDetails, let detail = detailLine(index: index) {
-                        Text(detail).font(.caption).foregroundStyle(.tertiary)
+                    if showDetails, let took = exercise.took {
+                        Text(took).font(.caption).foregroundStyle(.tertiary)
                     }
                 } header: {
                     // O16: reachable from the summary as well.
@@ -92,49 +85,5 @@ struct SummaryView: View {
         .bottomAction {
             PrimaryButton(title: "Done") { done() }
         }
-    }
-
-    /// "Push · 48 min · 16 of 18 sets · Volume 12,400 kg", each part only when it has data (§4.0).
-    private var headlineLine: String {
-        var parts = [session.dayName,
-                     HomeActivity.duration(SessionStats.duration(session)),
-                     "\(SessionStats.loggedCount(session)) of \(session.steps.count) sets"]
-        // P5: a bare number is not a label. Zero volume is a bodyweight day, not a failure.
-        if volume > 0 { parts.append("Volume \(TargetText.grouped(volume)) \(session.units.rawValue)") }
-        // D44 (v1.3): which week of the progression this was, when it was one.
-        if let week = ProgressionText.weekLine(session) { parts.append(week) }
-        return parts.joined(separator: " · ")
-    }
-
-    /// "PR 5 × 85 kg" for the best record this exercise set today, or nil when it set none.
-    private func recordText(index: Int) -> String? {
-        let mine = records.filter { session.steps[$0].exerciseIndex == index }
-        guard !mine.isEmpty else { return nil }
-        let results = mine.compactMap { session.steps[$0].result }
-        guard let best = SessionStats.best(mine.map { session.steps[$0] }) ?? results.last
-        else { return nil }
-        // F4 (2026-09-24): the record in the words every best set uses.
-        return ExerciseText.bestSet(best, units: session.units).map { "PR \($0)" } ?? "PR"
-    }
-
-    private func adviceLine(index: Int, exercise: SessionExercise) -> String? {
-        guard let advice = exercise.advice, let range = exercise.repRange else { return nil }
-        let logged = session.steps.filter { $0.exerciseIndex == index && $0.status == .logged }
-        return ProgressionAdvice.message(advice, range: range, loggedSets: logged.count,
-                                         currentWeight: logged.first?.result?.weight,
-                                         units: session.units)
-    }
-
-    /// D19: how long the exercise took, behind Details.
-    private func detailLine(index: Int) -> String? {
-        let steps = session.steps.filter { $0.exerciseIndex == index }
-        guard let block = steps.first?.blockIndex,
-              let seconds = SessionStats.blockDuration(block, session: session) else { return nil }
-        let sets = steps.compactMap(\.setSeconds)
-        var text = "Took \(TargetText.time(seconds))"
-        if let average = mean(sets.map(Double.init)) {
-            text += " · \(TargetText.time(Int(average.rounded()))) a set"
-        }
-        return text
     }
 }

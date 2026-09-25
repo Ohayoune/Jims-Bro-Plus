@@ -110,26 +110,18 @@ struct ProgressionView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(ProgressionText.status(current, on: Date()))
                         .font(.title3.weight(.semibold))
-                    // D53: a calendar progression ends on a date; one you earn ends when every
-                    // exercise is past its last step.
-                    Text(current.mode == .performance
-                         ? "Started \(current.startDate.formatted(date: .abbreviated, time: .omitted)) · "
-                           + "\(current.entries.filter { $0.step >= $0.weeks.count }.count) of \(current.entries.count) exercises done"
-                         : "Started \(current.startDate.formatted(date: .abbreviated, time: .omitted)) · "
-                           + "ends \(current.endDate().formatted(date: .abbreviated, time: .omitted))")
+                    Text(ProgressionText.started(current))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 2)
             }
             ForEach(plan.days) { day in
-                let entries = day.exercises.compactMap { exercise -> (Exercise, ProgressionEntry)? in
-                    current.entry(day: day.name, exercise: exercise.name).map { (exercise, $0) }
-                }
+                let entries = current.entries(on: day)
                 if !entries.isEmpty {
                     Section(day.name) {
-                        ForEach(Array(entries.enumerated()), id: \.offset) { _, pair in
-                            entryRow(pair.0, pair.1, current: current, units: plan.units)
+                        ForEach(Array(entries.enumerated()), id: \.offset) { _, row in
+                            entryRow(row.exercise, row.entry, current: current, units: plan.units)
                         }
                     }
                 }
@@ -142,7 +134,7 @@ struct ProgressionView: View {
 
     private func entryRow(_ exercise: Exercise, _ entry: ProgressionEntry, current: Progression,
                           units: WeightUnit) -> some View {
-        let step = current.stepIndex(for: entry, on: Date())
+        let now = Date()
         return VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline) {
                 Text(exercise.name)
@@ -154,14 +146,12 @@ struct ProgressionView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            if let step, let change = entry.weeks[safe: step] {
-                Text((current.mode == .performance ? "This step: " : "This week: ")
-                     + ProgressionText.change(change, units: units, bodyweight: exercise.bodyweight))
-                    .font(.footnote)
+            if let line = ProgressionText.now(entry, in: current, units: units,
+                                              bodyweight: exercise.bodyweight, on: now) {
+                Text(line).font(.footnote)
             }
-            Text(current.mode == .performance
-                 ? ProgressionText.ladder(entry, units: units, bodyweight: exercise.bodyweight, current: step)
-                 : ProgressionText.weeksLine(entry, units: units, bodyweight: exercise.bodyweight))
+            Text(ProgressionText.steps(entry, in: current, units: units,
+                                       bodyweight: exercise.bodyweight, on: now))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

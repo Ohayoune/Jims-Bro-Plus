@@ -15,7 +15,7 @@ enum PlanText {
         let workouts = cycle.compactMap { $0 }.count
         guard workouts > 0 else { return nil }
         if workouts == cycle.count { return "Every day" }
-        let days = "\(workouts) day\(workouts == 1 ? "" : "s")"
+        let days = "\(TargetText.counted(workouts, "day"))"
         return cycle.count == 7 ? "\(days) a week" : "\(days) every \(cycle.count)"
     }
 

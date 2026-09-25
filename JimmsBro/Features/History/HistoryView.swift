@@ -95,8 +95,7 @@ struct HistoryView: View {
                     ProgressionView(planId: plan.id).environment(model)
                 }
             }
-            .confirmationDialog("Delete this workout?", isPresented: Binding(
-                get: { confirmDeleteId != nil }, set: { if !$0 { confirmDeleteId = nil } }),
+            .confirmationDialog("Delete this workout?", isPresented: Binding(isPresent: $confirmDeleteId),
                                 titleVisibility: .visible) {
                 Button("Delete", role: .destructive) {
                     if let id = confirmDeleteId { Task { await model.deleteHistorySession(id) } }

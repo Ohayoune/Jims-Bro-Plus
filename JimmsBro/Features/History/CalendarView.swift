@@ -98,8 +98,7 @@ struct CalendarView: View {
                 }
             }
         }
-        .confirmationDialog("Which workout?", isPresented: Binding(
-            get: { choosingAmong != nil }, set: { if !$0 { choosingAmong = nil } })) {
+        .confirmationDialog("Which workout?", isPresented: Binding(isPresent: $choosingAmong)) {
             if let sessions = choosingAmong {
                 ForEach(sessions) { session in
                     Button("\(session.dayName) · \(session.startedAt.formatted(date: .omitted, time: .shortened))") {

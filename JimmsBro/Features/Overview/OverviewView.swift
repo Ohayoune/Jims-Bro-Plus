@@ -43,8 +43,7 @@ struct OverviewView: View {
                     Task { await model.apply(.editSet(step: target.step, result: result)) }
                 }
             }
-            .confirmationDialog("Recover this set", isPresented: Binding(
-                get: { recovering != nil }, set: { if !$0 { recovering = nil } }), titleVisibility: .visible) {
+            .confirmationDialog("Recover this set", isPresented: Binding(isPresent: $recovering), titleVisibility: .visible) {
                 if let index = recovering {
                     Button("Do this set") { Task { await model.apply(.jumpTo(step: index)) }; dismiss() }
                     Button("Add result") { editing = index }

@@ -74,8 +74,8 @@ struct PlanDetailView: View {
                         ExerciseEditSheet(exercise: exercise, units: plan.units, editAsJSON: {
                             pendingFragment = .exercise(day: address.day, exercise: address.exercise)
                             editing = nil
-                        }) { operation in
-                            edit(operation(address))
+                        }) { changes in
+                            edit(.editExercise(day: address.day, exercise: address.exercise, changes: changes))
                         }
                     }
                 }
@@ -91,8 +91,7 @@ struct PlanDetailView: View {
                         }
                     }
                 }
-                .alert("Rename day", isPresented: Binding(get: { renamingDay != nil },
-                                                          set: { if !$0 { renamingDay = nil } })) {
+                .alert("Rename day", isPresented: Binding(isPresent: $renamingDay)) {
                     TextField("Name", text: $draftDayName)
                     Button("Cancel", role: .cancel) { renamingDay = nil }
                     Button("Rename") {
@@ -102,17 +101,9 @@ struct PlanDetailView: View {
                 }
                 // D29: an edit that the import pipeline refuses says why, rather than
                 // appearing to work and changing nothing.
-                .alert("That change wasn't saved", isPresented: Binding(
-                    get: { editError != nil }, set: { if !$0 { editError = nil } })) {
-                    Button("OK", role: .cancel) { editError = nil }
-                } message: {
-                    Text(editError ?? "")
-                }
-                .alert(switchPrompt, isPresented: Binding(get: { switching != nil },
-                                                          set: { if !$0 { switching = nil } })) {
-                    Button("Keep going", role: .cancel) { switchDay(nil) }
-                    Button("Finish and start") { switchDay(.finish) }
-                    Button("Discard and start", role: .destructive) { switchDay(.discard) }
+                .problemAlert("That change wasn't saved", message: $editError)
+                .switchWorkoutAlert($switching, open: model.session) { dayIndex, choice in
+                    start(dayIndex, switching: choice)
                 }
                 .alert("Rename plan", isPresented: $renaming) {
                     TextField("Name", text: $draftName)
@@ -128,8 +119,7 @@ struct PlanDetailView: View {
                 // F2 (2026-09-24): a swipe asks before an exercise leaves the plan, as a plan's and
                 // a workout's do — the edit is written at once, and nothing brings it back.
                 .alert(deletingExercise.flatMap { PlanText.deleteExercise(plan, day: $0.day, exercise: $0.exercise) } ?? "",
-                       isPresented: Binding(get: { deletingExercise != nil },
-                                            set: { if !$0 { deletingExercise = nil } })) {
+                       isPresented: Binding(isPresent: $deletingExercise)) {
                     Button("Delete", role: .destructive) {
                         guard let address = deletingExercise else { return }
                         edit(.deleteExercise(day: address.day, exercise: address.exercise))
@@ -148,13 +138,6 @@ struct PlanDetailView: View {
             let errors = await model.editPlan(planId, operation)
             if let first = errors.first { editError = IssueText.friendly(first) }
         }
-    }
-
-    private var switchPrompt: String {
-        guard let session = model.session else { return "Switch workout?" }
-        let logged = SessionStats.loggedCount(session)
-        return "You're in the middle of \(session.dayName) (\(logged) of \(session.steps.count) sets). "
-            + "Switching workouts mid-session isn't recommended."
     }
 
     private func repeatBlock(_ plan: Plan) -> some View {
@@ -271,7 +254,7 @@ struct PlanDetailView: View {
         Button { fragment = .addExercise(day: index) } label: {
             Label("Add exercise", systemImage: "plus")
         }
-        Button("Start \(day.name)") { start(plan, index) }
+        Button("Start \(day.name)") { start(index) }
             .buttonStyle(.bordered)
             .buttonBorderShape(.capsule)
             .tint(Color.accentColor)
@@ -300,23 +283,10 @@ struct PlanDetailView: View {
     /// D17: starting a day mid-session raises the popup rather than switching silently.
     /// D48 (v1.4): the cover opens on `startedWorkouts`, not after the await — the refusal is
     /// thrown before anything changes, so the popup still comes from here.
-    private func start(_ plan: Plan, _ dayIndex: Int) {
-        Task {
-            do {
-                try await model.startDay(planId: planId, dayIndex: dayIndex)
-            } catch LibraryError.sessionInProgress {
-                switching = dayIndex
-            } catch {
-                switching = nil
-            }
+    private func start(_ dayIndex: Int, switching choice: SessionSwitch? = nil) {
+        beginWorkout(dayIndex, asking: $switching) {
+            try await model.startDay(planId: planId, dayIndex: dayIndex, switching: choice)
         }
-    }
-
-    private func switchDay(_ choice: SessionSwitch?) {
-        guard let dayIndex = switching else { return }
-        switching = nil
-        guard let choice else { return }
-        Task { try? await model.startDay(planId: planId, dayIndex: dayIndex, switching: choice) }
     }
 }
 

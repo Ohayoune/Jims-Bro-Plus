@@ -768,4 +768,199 @@ final class OneOwnerTests: XCTestCase {
             XCTAssertTrue(source.contains("RefusalDetails(refusal: "), "\(name) draws a refusal itself")
         }
     }
+
+    // TL28: the Summary's lines are Core's (`SummaryText`), worked out once per screen — the
+    // records read once, not once per exercise, and the comparison never against itself.
+    func testTheSummarysLinesAreCores() throws {
+        let plan = CoreTestSupport.plan(sets: 2, secondExercise: true)
+        let now = CoreTestSupport.now
+        let before = CoreTestSupport.completed([10], weights: [60, 60, 60, 60], plan: plan,
+                                               start: now.addingTimeInterval(-7 * 86400))
+        var today = CoreTestSupport.completed([10], weights: [60, 62.5, 60, 60], plan: plan, start: now)
+        today.exercises[1].substitutedFor = "Cable Row"
+
+        XCTAssertEqual(SummaryText.headline(today), "Push · 3 min · 4 of 4 sets · Volume 2,425 kg")
+
+        let lines = SummaryText.exercises(today, history: [before, today])
+        XCTAssertEqual(lines.map(\.name), ["Bench Press", "Row"])
+        XCTAssertEqual(lines.map(\.record), ["PR 10 × 62.5 kg", nil])
+        XCTAssertEqual(lines.map(\.insteadOf), [nil, "Instead of Cable Row"])
+        XCTAssertEqual(lines.map(\.took), ["Took 1:34 · 0:34 a set", "Took 2:00 · 0:34 a set"])
+        XCTAssertEqual(lines[0].comparison,
+                       SessionStats.comparison(for: "Bench Press", session: today, history: [before]),
+                       "the session is compared with the ones before it, never itself")
+        XCTAssertEqual(lines, SummaryText.exercises(today, history: [before]),
+                       "the session itself in the history changes nothing")
+
+        guard let summary = FixtureLoader.doc("JimmsBro/Features/Summary/SummaryView.swift"),
+              let detail = FixtureLoader.doc("JimmsBro/Features/SessionDetail/SessionDetailView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        for owner in ["SummaryText.headline(", "SummaryText.exercises("] {
+            XCTAssertTrue(summary.contains(owner), "the Summary no longer draws \(owner)")
+        }
+        for gone in ["personalRecords", "ProgressionAdvice", "mean(", "\"Took ", "Volume \\(", "SessionStats.comparison"] {
+            XCTAssertFalse(summary.contains(gone), "the Summary works out \(gone) itself again")
+        }
+        XCTAssertEqual(detail.components(separatedBy: "personalRecords(").count - 1, 1,
+                       "Session detail reads the records once")
+        XCTAssertFalse(detail.contains("private var records"), "Session detail reads the records per row again")
+    }
+
+    // TL29: Progression's lines are Core's — the second line, the step it is on, the ladder or
+    // the weeks, the rows of a day, and one test of an entry done (`ProgressionEntry.isDone`).
+    func testProgressionsLinesAreCores() throws {
+        let calendar = CoreTestSupport.utc()
+        let start = calendar.startOfDay(for: CoreTestSupport.date(10))
+        let bench = ProgressionEntry(dayName: "Push", exerciseName: "Bench Press",
+                                     weeks: [ProgressionWeek(weight: 80), ProgressionWeek(weight: 82.5)], step: 1)
+        let row = ProgressionEntry(dayName: "Push", exerciseName: "Row",
+                                   weeks: [ProgressionWeek(weight: 50), ProgressionWeek(weight: 52.5)], step: 2)
+        XCTAssertEqual([bench.isDone, row.isDone], [false, true])
+
+        var earned = Progression(startDate: start, weeks: 2, entries: [row, bench], mode: .performance)
+        let date = CoreTestSupport.date(11)
+        let startedText = "Started \(start.formatted(date: .abbreviated, time: .omitted))"
+        XCTAssertEqual(ProgressionText.started(earned, calendar: calendar), "\(startedText) · 1 of 2 exercises done")
+        XCTAssertEqual(ProgressionText.now(bench, in: earned, units: .kg, bodyweight: false, on: date, calendar: calendar),
+                       "This step: 82.5 kg")
+        XCTAssertNil(ProgressionText.now(row, in: earned, units: .kg, bodyweight: false, on: date, calendar: calendar),
+                     "an entry past its last step is on none")
+        XCTAssertEqual(ProgressionText.steps(bench, in: earned, units: .kg, bodyweight: false, on: date, calendar: calendar),
+                       "1) 80 kg · ▸ 2) 82.5 kg")
+        XCTAssertFalse(earned.isFinished(on: date, calendar: calendar))
+        earned.entries = [row]
+        XCTAssertEqual(ProgressionText.started(earned, calendar: calendar), "\(startedText) · 1 of 1 exercise done")
+        XCTAssertTrue(earned.isFinished(on: date, calendar: calendar))
+
+        let weekly = Progression(startDate: start, weeks: 2, entries: [row, bench], mode: .calendar)
+        let ends = weekly.endDate(calendar: calendar).formatted(date: .abbreviated, time: .omitted)
+        XCTAssertEqual(ProgressionText.started(weekly, calendar: calendar), "\(startedText) · ends \(ends)")
+        XCTAssertEqual(ProgressionText.now(bench, in: weekly, units: .kg, bodyweight: false, on: date, calendar: calendar),
+                       "This week: 80 kg")
+        XCTAssertEqual(ProgressionText.steps(bench, in: weekly, units: .kg, bodyweight: false, on: date, calendar: calendar),
+                       ProgressionText.weeksLine(bench, units: .kg, bodyweight: false))
+
+        let day = CoreTestSupport.plan(secondExercise: true).days[0]
+        XCTAssertEqual(weekly.entries(on: day).map(\.exercise.name), ["Bench Press", "Row"], "in the day's order")
+
+        guard let view = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ProgressionView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        for gone in ["exercises done", "\"This step: \"", "\"This week: \"", "compactMap { exercise ->", "weeks.count"] {
+            XCTAssertFalse(view.contains(gone), "ProgressionView works out \(gone) itself again")
+        }
+        for owner in ["ProgressionText.started(", "ProgressionText.now(", "ProgressionText.steps(", ".entries(on: "] {
+            XCTAssertTrue(view.contains(owner), "ProgressionView no longer draws \(owner)")
+        }
+    }
+
+    // TL30: one plural (`TargetText.counted`), one duration setting (`TargetText.setting`) and the
+    // restore's sentences in `RestoreText`, where Settings wrote them.
+    func testOnePluralAndSettingsSentences() throws {
+        XCTAssertEqual(TargetText.counted(1, "plan"), "1 plan")
+        XCTAssertEqual(TargetText.counted(0, "workout"), "0 workouts")
+        XCTAssertEqual(TargetText.counted(3, "set"), "3 sets")
+        XCTAssertEqual([0, 45, 60, 90, 300].map(TargetText.setting), ["Off", "45 s", "1 min", "1 min 30 s", "5 min"])
+
+        let one = BackupSummary(exportedAt: CoreTestSupport.now, appVersion: "1.12", plans: 1, sessions: 2,
+                                newPlans: 1, newSessions: 0)
+        XCTAssertEqual(RestoreText.detail(one), "It holds 1 plan and 2 workouts. Merge adds 1 plan and 0 workouts, "
+                       + "and changes nothing you already have. Replace all deletes everything here first.")
+        var nothing = one
+        nothing.newPlans = 0
+        XCTAssertEqual(RestoreText.detail(nothing), "It holds 1 plan and 2 workouts. Merge would add nothing — "
+                       + "you already have all of it. Replace all deletes everything here first.")
+        XCTAssertEqual(RestoreText.title(nil), "Restore this backup?")
+        XCTAssertTrue(RestoreText.title(one).hasPrefix("Backup from "))
+
+        let sources = try TripTests.swiftSources()
+        guard !sources.isEmpty else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        let plurals = sources.filter { $0.text.contains("== 1 ? \"\" : \"s\"") }.map(\.path)
+        XCTAssertEqual(plurals, ["JimmsBro/Core/Stats.swift"], "a plural spelled out again")
+        let settings = try XCTUnwrap(sources.first { $0.path.hasSuffix("Settings/SettingsView.swift") }).text
+        for gone in ["func duration", "restoreDetail", "restorePrompt", "It holds"] {
+            XCTAssertFalse(settings.contains(gone), "Settings writes \(gone) again")
+        }
+    }
+
+    // TL31: one question when a start meets an open workout (D17) — the words Core's, the alert
+    // and the refusal's catch drawn once, for Today and Plan detail alike.
+    func testOneSwitchWorkoutAlert() throws {
+        var open = CoreTestSupport.session(CoreTestSupport.plan(sets: 3))
+        open.steps[0].status = .logged
+        XCTAssertEqual(SessionSwitch.prompt(open),
+                       "You're in the middle of Push (1 of 3 sets). Switching workouts mid-session isn't recommended.")
+        XCTAssertEqual(SessionSwitch.prompt(nil), "Switch workout?")
+
+        let sources = try TripTests.swiftSources()
+        guard !sources.isEmpty else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        let asking = sources.filter { $0.text.contains("\"Discard and start\"") }.map(\.path)
+        XCTAssertEqual(asking, ["JimmsBro/Features/Shared/Presenting.swift"], "the switch alert is drawn twice again")
+        let catching = sources.filter { $0.text.contains("LibraryError.sessionInProgress")
+                                        && $0.path.hasPrefix("JimmsBro/Features/") }.map(\.path)
+        XCTAssertEqual(catching, ["JimmsBro/Features/Shared/Presenting.swift"])
+        for name in ["Home/HomeView.swift", "PlanDetail/PlanDetailView.swift"] {
+            let view = try XCTUnwrap(sources.first { $0.path.hasSuffix(name) }).text
+            XCTAssertTrue(view.contains(".switchWorkoutAlert("), "\(name) asks its own way")
+            XCTAssertTrue(view.contains("beginWorkout("), "\(name) catches the refusal itself")
+            XCTAssertFalse(view.contains("switchPrompt"), "\(name) words the question itself")
+            XCTAssertFalse(view.contains("try? await model.start"), "\(name) swallows a start's error")
+        }
+    }
+
+    // TL32: the views' small repeats, once — an optional as a presentation's flag, the alert that
+    // only says why, and one share sheet for the prompt, the backup and the CSV.
+    func testTheViewsSmallRepeatsAreOnce() throws {
+        let sources = try TripTests.swiftSources()
+        guard !sources.isEmpty else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        let shared = "JimmsBro/Features/Shared/Presenting.swift"
+        let flags = sources.filter { $0.text.contains("!= nil }, set: { if !$0") }.map(\.path)
+        XCTAssertEqual(flags, [], "an optional bound to a flag by hand again")
+        let oks = sources.filter { $0.text.contains("Button(\"OK\", role: .cancel)") }.map(\.path)
+        XCTAssertEqual(oks, [shared], "an OK-only alert written out again")
+        let sheets = sources.filter { $0.text.contains("UIActivityViewController(") }.map(\.path)
+        XCTAssertEqual(sheets, [shared], "a second share sheet")
+        let settings = try XCTUnwrap(sources.first { $0.path.hasSuffix("Settings/SettingsView.swift") }).text
+        XCTAssertTrue(settings.contains(".shareSheet("))
+        XCTAssertFalse(settings.contains("ShareSheet("))
+    }
+
+    // TL33: the exercise sheet saves once — every changed field one `editExercise`, one pipeline
+    // run, all of them or none — and makes what the fields made one at a time.
+    func testTheExerciseSheetSavesOnce() throws {
+        let plan = CoreTestSupport.plan(secondExercise: true, group: "A")
+        let changes: [PlanEdit.ExerciseChange] = [.name("Incline Press"), .setCount(4), .rest(120)]
+        let once = PlanEdit.apply(.editExercise(day: 0, exercise: 0, changes: changes), to: plan,
+                                  settings: settings, now: CoreTestSupport.now)
+        let edited = try XCTUnwrap(once.plan, "\(once.errors)")
+        var stepwise = plan
+        for change in changes {
+            stepwise = try XCTUnwrap(PlanEdit.apply(change.operation(day: 0, exercise: 0), to: stepwise,
+                                                    settings: settings, now: CoreTestSupport.now).plan)
+        }
+        XCTAssertEqual(PlanJSON.render(edited), PlanJSON.render(stepwise), "one edit makes what the fields made one by one")
+        XCTAssertEqual(edited.days[0].exercises[0].name, "Incline Press")
+        XCTAssertEqual(edited.days[0].exercises[0].sets.count, 4)
+        XCTAssertEqual(edited.days[0].exercises[1].sets.map(\.groupRestSeconds), [120, 120, 120],
+                       "a superset's rest still reaches the round")
+
+        let refused = PlanEdit.apply(.editExercise(day: 0, exercise: 0, changes: [.name("Incline Press"), .rest(5000)]),
+                                     to: plan, settings: settings, now: CoreTestSupport.now)
+        XCTAssertNil(refused.plan, "a refusal part-way saves none of it")
+        XCTAssertEqual(refused.errors.map(\.code), ["E_EDIT_INVALID"])
+
+        guard let sheet = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ExerciseEditSheet.swift"),
+              let detail = FixtureLoader.doc("JimmsBro/Features/PlanDetail/PlanDetailView.swift") else {
+            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
+        }
+        XCTAssertFalse(sheet.contains("for change in changes"), "the sheet commits a field at a time again")
+        XCTAssertTrue(detail.contains(".editExercise("))
+    }
 }

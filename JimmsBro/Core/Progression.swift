@@ -7,6 +7,12 @@ import Foundation
 /// The week is calendar weeks from the start date. `Session.start` applies the current week's
 /// targets to the day's snapshot (D7 holds: the session records what it was asked to do), and
 /// everything downstream — prefill, the chip, advice, the Summary — reads the snapshot.
+extension ProgressionEntry {
+    /// D53 (v1.5): past its last step — the one test of an entry done, where five places wrote
+    /// `step >= weeks.count` or its negation (D96, v1.12 L6).
+    var isDone: Bool { step >= weeks.count }
+}
+
 extension Progression {
     static let maxWeeks = 52
     static let periods = [4, 6, 8, 12]
@@ -30,7 +36,7 @@ extension Progression {
     func isFinished(on date: Date, calendar: Calendar = .current) -> Bool {
         switch mode {
         case .calendar: return calendar.startOfDay(for: date) >= endDate(calendar: calendar)
-        case .performance: return entries.allSatisfy { $0.step >= $0.weeks.count }
+        case .performance: return entries.allSatisfy(\.isDone)
         }
     }
 
@@ -39,7 +45,7 @@ extension Progression {
     func stepIndex(for entry: ProgressionEntry, on date: Date, calendar: Calendar = .current) -> Int? {
         switch mode {
         case .calendar: return weekIndex(on: date, calendar: calendar)
-        case .performance: return entry.step < entry.weeks.count ? entry.step : nil
+        case .performance: return entry.isDone ? nil : entry.step
         }
     }
 
@@ -51,7 +57,7 @@ extension Progression {
             return weekIndex(on: date, calendar: calendar)
         case .performance:
             let relevant = entries.filter { entry in dayName.map { normalized(entry.dayName) == normalized($0) } ?? true }
-            return relevant.compactMap { $0.step < $0.weeks.count ? $0.step : nil }.min()
+            return relevant.filter { !$0.isDone }.map(\.step).min()
         }
     }
 
@@ -79,6 +85,11 @@ extension Progression {
 
     func entry(day: String, exercise: String) -> ProgressionEntry? {
         entries.first { normalized($0.dayName) == normalized(day) && normalized($0.exerciseName) == normalized(exercise) }
+    }
+
+    /// A day's exercises that carry an entry, in the day's order — the progression screen's rows.
+    func entries(on day: Day) -> [(exercise: Exercise, entry: ProgressionEntry)] {
+        day.exercises.compactMap { exercise in entry(day: day.name, exercise: exercise.name).map { (exercise, $0) } }
     }
 
     /// The day with the week's targets applied, and which exercises it touched. An exercise,
@@ -210,9 +221,46 @@ enum ProgressionText {
         }.joined(separator: " · ")
     }
 
+    /// The progression screen's second line (D53): a calendar progression ends on a date; one
+    /// you earn ends when every exercise is past its last step — "Started 3 Sep 2026 · ends
+    /// 29 Oct 2026", "Started 3 Sep 2026 · 2 of 5 exercises done".
+    static func started(_ progression: Progression, calendar: Calendar = .current) -> String {
+        let started = "Started \(progression.startDate.formatted(date: .abbreviated, time: .omitted))"
+        switch progression.mode {
+        case .performance:
+            let done = progression.entries.filter(\.isDone).count
+            return "\(started) · \(done) of \(TargetText.counted(progression.entries.count, "exercise")) done"
+        case .calendar:
+            return "\(started) · ends \(progression.endDate(calendar: calendar).formatted(date: .abbreviated, time: .omitted))"
+        }
+    }
+
+    /// An entry's change now: "This step: 8 × 82.5 kg", "This week: same", or nil when it is on
+    /// no step — before the start, after the end, or past its last.
+    static func now(_ entry: ProgressionEntry, in progression: Progression, units: WeightUnit,
+                    bodyweight: Bool, on date: Date, calendar: Calendar = .current) -> String? {
+        guard let step = progression.stepIndex(for: entry, on: date, calendar: calendar),
+              let change = entry.weeks[safe: step] else { return nil }
+        return "This \(word(progression.mode).lowercased()): "
+            + self.change(change, units: units, bodyweight: bodyweight)
+    }
+
+    /// An entry's steps in one line, as its mode reads them: the ladder with the step it is on
+    /// marked (D53), or the calendar's weeks.
+    static func steps(_ entry: ProgressionEntry, in progression: Progression, units: WeightUnit,
+                      bodyweight: Bool, on date: Date, calendar: Calendar = .current) -> String {
+        switch progression.mode {
+        case .performance:
+            return ladder(entry, units: units, bodyweight: bodyweight,
+                          current: progression.stepIndex(for: entry, on: date, calendar: calendar))
+        case .calendar:
+            return weeksLine(entry, units: units, bodyweight: bodyweight)
+        }
+    }
+
     /// D53: "Step 3 of 8", "Step 3 of 8 · 2 tries", or "Done" once an entry is past its last.
     static func entryStatus(_ entry: ProgressionEntry, of weeks: Int) -> String {
-        guard entry.step < entry.weeks.count else { return "Done" }
+        guard !entry.isDone else { return "Done" }
         var text = "Step \(entry.step + 1) of \(weeks)"
         if entry.tries > 0 { text += " · \(entry.tries) \(entry.tries == 1 ? "try" : "tries")" }
         return text

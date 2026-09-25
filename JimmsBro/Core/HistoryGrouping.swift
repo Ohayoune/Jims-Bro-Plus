@@ -72,7 +72,7 @@ enum ExerciseText {
     static func summary(_ session: Session) -> String {
         var parts = [HomeActivity.duration(SessionStats.duration(session))]
         let sets = SessionStats.loggedCount(session)
-        parts.append("\(sets) set\(sets == 1 ? "" : "s")")
+        parts.append("\(TargetText.counted(sets, "set"))")
         let volume = SessionStats.volume(session.steps)
         if volume > 0 { parts.append("\(TargetText.grouped(volume)) \(session.units.rawValue) lifted") }
         // D44 (v1.3): which week of the progression it was, when it was one.

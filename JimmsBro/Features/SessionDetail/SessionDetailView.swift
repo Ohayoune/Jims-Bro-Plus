@@ -15,13 +15,13 @@ struct SessionDetailView: View {
     @State private var choosingRename = false
 
     private var session: Session? { model.sessions.first { $0.id == sessionId } }
-    private var records: Set<Int> {
-        session.map { SessionStats.personalRecords(session: $0, history: model.sessions) } ?? []
-    }
 
     var body: some View {
         Group {
             if let session {
+                // D30 (v1.1): the sets that beat everything before them — worked out once per
+                // draw (D96, v1.12 L6), where every row read them again.
+                let records = SessionStats.personalRecords(session: session, history: model.sessions)
                 List {
                     Section {
                         Text(ExerciseText.summary(session))
@@ -41,7 +41,8 @@ struct SessionDetailView: View {
                                 Button {
                                     editing = EditTarget(session: session, step: index)
                                 } label: {
-                                    row(session: session, index: index, named: block.namesRows)
+                                    row(session: session, index: index, named: block.namesRows,
+                                        record: records.contains(index))
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -84,8 +85,7 @@ struct SessionDetailView: View {
                     }
                     Button("Cancel", role: .cancel) {}
                 }
-                .alert("Rename exercise", isPresented: Binding(get: { renaming != nil },
-                                                               set: { if !$0 { renaming = nil } })) {
+                .alert("Rename exercise", isPresented: Binding(isPresent: $renaming)) {
                     TextField("Name", text: $draftName)
                     Button("Cancel", role: .cancel) { renaming = nil }
                     Button("Rename") {
@@ -130,7 +130,7 @@ struct SessionDetailView: View {
         }
     }
 
-    private func row(session: Session, index: Int, named: Bool) -> some View {
+    private func row(session: Session, index: Int, named: Bool, record: Bool) -> some View {
         let step = session.steps[index]
         let label = StepCard.rowLabel(session: session, step: index, naming: named,
                                       wording: model.settings.wording)
@@ -139,7 +139,7 @@ struct SessionDetailView: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
             // D30 (v1.1): the set that beat everything before it, marked where you go looking.
-            if records.contains(index) { PRBadge(text: "PR") }
+            if record { PRBadge(text: "PR") }
             Text(ExerciseText.result(step, wording: model.settings.wording))
                 .font(.footnote.monospacedDigit())
                 .foregroundStyle(step.status == .logged ? .primary : .secondary)

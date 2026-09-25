@@ -140,7 +140,7 @@ enum TrendMetrics {
 
         if let favourite = mostTrained(window) {
             metrics.append(Metric(label: "Most trained", value: favourite.name,
-                                  note: "\(favourite.count) session\(favourite.count == 1 ? "" : "s")"))
+                                  note: "\(TargetText.counted(favourite.count, "session"))"))
         }
 
         metrics.append(Metric(label: "All time", value: "\(all.count) workouts",

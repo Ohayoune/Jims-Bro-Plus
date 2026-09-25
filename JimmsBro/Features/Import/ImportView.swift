@@ -60,7 +60,7 @@ struct ImportView: View {
         // An alert rather than a confirmationDialog: the dialog presentation drops the cancel row
         // when it comes up over a sheet, and O6 needs all three choices.
         .alert("A plan named \"\(conflicting?.name ?? "")\" already exists",
-               isPresented: Binding(get: { conflicting != nil }, set: { if !$0 { conflicting = nil } })) {
+               isPresented: Binding(isPresent: $conflicting)) {
             Button("Replace") { resolve(.replace) }
             Button("Keep both") { resolve(.keepBoth) }
             Button("Cancel", role: .cancel) { conflicting = nil }
@@ -72,12 +72,7 @@ struct ImportView: View {
         } message: {
             Text("The outline and every day you pasted go. Nothing you saved changes.")
         }
-        .alert("That plan couldn't be saved", isPresented: Binding(
-            get: { problem != nil }, set: { if !$0 { problem = nil } })) {
-            Button("OK", role: .cancel) { problem = nil }
-        } message: {
-            Text(problem ?? "")
-        }
+        .problemAlert("That plan couldn't be saved", message: $problem)
         .task {
             // A sheet can come up before the store has loaded; the draft is only known after.
             await model.waitUntilLoaded()
@@ -355,7 +350,7 @@ struct ImportView: View {
     private func counts(_ day: Day) -> String {
         let exercises = day.exercises.count
         let sets = day.exercises.reduce(0) { $0 + $1.sets.count }
-        return "\(exercises) exercise\(exercises == 1 ? "" : "s") · \(sets) set\(sets == 1 ? "" : "s")"
+        return "\(TargetText.counted(exercises, "exercise")) · \(TargetText.counted(sets, "set"))"
     }
 
     // MARK: - Pasting

@@ -166,7 +166,7 @@ struct DayEditorView: View {
                 apply(.add(DayEdit.exercise(named: name, in: day, settings: model.settings)))
             }
         }
-        .sheet(isPresented: Binding(get: { text != nil }, set: { if !$0 { text = nil } })) {
+        .sheet(isPresented: Binding(isPresent: $text)) {
             if let text {
                 JSONFragmentSheet(point: text) { written in
                     // D95: Save puts the text's day in the editor; Use still writes it.
@@ -197,7 +197,7 @@ struct DayEditorView: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(row.name)
-        .accessibilityValue("\(row.sets) set\(row.sets == 1 ? "" : "s")")
+        .accessibilityValue("\(TargetText.counted(row.sets, "set"))")
     }
 
     /// A change clears the refusal: the day it named is gone.

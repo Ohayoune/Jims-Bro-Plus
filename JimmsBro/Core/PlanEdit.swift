@@ -153,6 +153,10 @@ enum PlanEdit {
         case setRest(day: Int, exercise: Int, seconds: Int)
         /// D51 (v1.5): the effort target for every set of the exercise; nil clears it.
         case setInReserve(day: Int, exercise: Int, value: Int?)
+        /// D96 (v1.12 L6): the exercise sheet's Save — every field it changed, as one edit and
+        /// one pipeline run. The sheet sent one operation per field until then: N runs, N writes,
+        /// and a refusal part-way left the fields before it saved and the ones after it not.
+        case editExercise(day: Int, exercise: Int, changes: [ExerciseChange])
         case moveExercise(day: Int, from: Int, to: Int)
         case deleteExercise(day: Int, exercise: Int)
         case duplicateDay(day: Int)
@@ -441,6 +445,14 @@ enum PlanEdit {
                 plan.days[target.day].exercises[target.exercise].sets[index].inReserve = value
             }
 
+        case let .editExercise(day, exercise, changes):
+            // Each field as its own edit makes it, in the order the sheet lists them, so a rest
+            // in a superset still reaches the round (`setRest`); all of them or none.
+            for change in changes {
+                guard let next = mutated(change.operation(day: day, exercise: exercise), plan) else { return nil }
+                plan = next
+            }
+
         case let .moveExercise(day, from, to):
             guard plan.days.indices.contains(day) else { return nil }
             var exercises = plan.days[day].exercises
@@ -631,12 +643,8 @@ extension PlanEdit {
     /// (`ChangeDay.ownDay`), where an exercise out of its day cannot be judged. Nil when a change
     /// does not apply, as the operation form refuses it with `E_EDIT_INVALID`.
     static func edited(_ exercise: Exercise, _ changes: [ExerciseChange]) -> Exercise? {
-        var plan = Plan(name: "", units: .kg, schedule: .rotation, days: [Day(name: "", exercises: [exercise])],
+        let plan = Plan(name: "", units: .kg, schedule: .rotation, days: [Day(name: "", exercises: [exercise])],
                         importedAt: Date(timeIntervalSince1970: 0), sourceText: "", cycle: [.day(0)])
-        for change in changes {
-            guard let next = mutated(change.operation(day: 0, exercise: 0), plan) else { return nil }
-            plan = next
-        }
-        return plan.days.first?.exercises.first
+        return mutated(.editExercise(day: 0, exercise: 0, changes: changes), plan)?.days.first?.exercises.first
     }
 }

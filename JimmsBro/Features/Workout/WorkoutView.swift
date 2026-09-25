@@ -83,8 +83,7 @@ struct WorkoutView: View {
         }
         // F2 (2026-09-24): Skip exercise asks first, as Finish does beside it — it skips every
         // set left in the block at once, and only each set's own dot brings one back.
-        .alert(WorkoutText.skipExercise(skipping?.name ?? ""), isPresented: Binding(
-            get: { skipping != nil }, set: { if !$0 { skipping = nil } })) {
+        .alert(WorkoutText.skipExercise(skipping?.name ?? ""), isPresented: Binding(isPresent: $skipping)) {
             Button("Skip exercise") {
                 guard let target = skipping else { return }
                 Task { await model.apply(.skipExercise(exerciseIndex: target.exerciseIndex)) }
@@ -98,7 +97,7 @@ struct WorkoutView: View {
 
     private var finishPrompt: String {
         let pending = model.pendingStepCount
-        return pending == 0 ? "Finish workout?" : "\(pending) set\(pending == 1 ? "" : "s") not done. Finish anyway?"
+        return pending == 0 ? "Finish workout?" : "\(TargetText.counted(pending, "set")) not done. Finish anyway?"
     }
 
     @ViewBuilder private func content(now: Date) -> some View {

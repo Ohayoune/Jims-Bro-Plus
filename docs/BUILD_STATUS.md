@@ -3,8 +3,42 @@
 Updated 2026-09-25. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
 2026-09-24); the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
 against each other) was built on branch `fix-first` off it, and **L2** on `v1.12-one-of-each`,
-fast-forwarded to `fix-first` first, then **L3**, **L4** and **L5** on the same branch. L6–L8 are not
-built.
+fast-forwarded to `fix-first` first, then **L3**, **L4**, **L5** and **L6** on the same branch. L7–L8 are
+not built.
+
+## v1.12 L6: built and green on `v1.12-one-of-each`
+
+The other views, one owner each: `SummaryText.headline` and `SummaryText.exercises` for the Summary's
+lines — the headline, each exercise's comparison, record, *Instead of*, advice and time — worked out once
+per draw with the records; `ProgressionText.started`, `.now` and `.steps`, `Progression.entries(on:)` and
+`ProgressionEntry.isDone` for the progression screen; `TargetText.counted` for every plural (22 spellings)
+and `TargetText.setting` for the warm-up's and the walk's setting; `RestoreText.title` and `.detail` for
+the restore question; `SessionSwitch.prompt` for D17's question, drawn by one `switchWorkoutAlert` with
+`beginWorkout` catching the refusal, on Today and Plan detail; `Binding(isPresent:)`, `problemAlert` (the
+five OK-only alerts and the corrupt-file notice) and one `shareSheet` for the prompt, the backup and the
+CSV, in `Features/Shared/Presenting.swift`; Session detail's records once per draw; and the exercise
+sheet's Save as one `PlanEdit.Operation.editExercise`, which `PlanEdit.edited` also runs. The exercise
+history's notation was F4's, so nothing was left to move there. The sides picked, in
+`docs/DECISIONS_LOG.md`: the exercise sheet saves all of its fields or none (it saved them one by one, and
+a refusal part-way kept the ones before it); Plan detail's Finish and start no longer swallows a failure;
+*"1 of 1 exercise done"* where it read *exercises*. What a person sees move: Settings' share sheet comes
+up over the screen as Send the prompt's does, not inside a sheet of its own; an exercise sheet with one
+field refused saves none of them, with one alert. SPEC §4.3's Editing line names the one edit. TL28–TL33.
+
+### Run for L6
+
+On `v1.12-one-of-each`, 2026-09-25: `xcodebuild test` on the iPhone 17 simulator, 475 tests, 0
+failures; `swift test`, 474 tests, 0 failures; `python3 tools/check_core.py`, 474 test bodies, 9,435
+assertions, 0 failures; `python3 tools/reference_import.py`, 118/118 fixtures match; the Release build
+succeeded and `python3 tools/check_release.py` is ready (still version 1.11 (1)); `python3
+tools/check_bundle.py` current after `python3 tools/build_bundle.py`. On the simulator (`tools/shot.sh`,
+seeded): Settings → **Export backup** brings up the share sheet with *JimmsBro-backup · JSON*, a tap
+outside closes it, and **Export history (CSV)** then brings up *JimmsBro-history.csv*.
+
+### Not run for L6
+
+The Summary, Progression, Session detail, the switch alert and the exercise sheet were not looked at on
+the simulator, nor anything on the phone.
 
 ## v1.12 L5: built and green on `v1.12-one-of-each`
 

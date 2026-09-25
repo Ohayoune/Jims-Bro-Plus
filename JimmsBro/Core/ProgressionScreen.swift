@@ -167,6 +167,6 @@ struct ProgressionScreen: Equatable {
     /// The review's header, the one place the mode is said: *6 steps · when you hit it*.
     static func header(_ progression: Progression) -> String {
         let count = progression.weeks
-        return "\(count) step\(count == 1 ? "" : "s") · " + (progression.mode == .performance ? "when you hit it" : "every week")
+        return "\(TargetText.counted(count, "step")) · " + (progression.mode == .performance ? "when you hit it" : "every week")
     }
 }

@@ -156,7 +156,7 @@ enum Prefill {
         func line(_ reps: Int?, _ weight: Double?) -> String {
             switch (reps, weight) {
             case let (reps?, weight?): return "\(reps) × \(TargetText.number(weight)) \(unit)"
-            case let (reps?, nil): return "\(reps) rep\(reps == 1 ? "" : "s")"
+            case let (reps?, nil): return "\(TargetText.counted(reps, "rep"))"
             case let (nil, weight?): return "\(TargetText.number(weight)) \(unit)"
             case (nil, nil): return ""
             }
@@ -202,7 +202,7 @@ enum Prefill {
         }
         if let lastReps = last?.reps, exercise.bodyweight {
             return SetSuggestion(reps: lastReps, weight: nil, text: line(lastReps, nil),
-                                 reason: "Last time \(lastReps) rep\(lastReps == 1 ? "" : "s")",
+                                 reason: "Last time \(TargetText.counted(lastReps, "rep"))",
                                  isProgression: false)
         }
         guard let reps else { return nil }

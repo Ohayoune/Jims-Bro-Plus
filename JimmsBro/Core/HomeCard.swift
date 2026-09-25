@@ -666,7 +666,7 @@ enum HomeActivity {
         }
         guard !week.isEmpty else { return "No workouts yet this week" }
         let seconds = week.reduce(0.0) { $0 + SessionStats.duration($1) }
-        return "\(week.count) workout\(week.count == 1 ? "" : "s") this week · \(duration(seconds))"
+        return "\(TargetText.counted(week.count, "workout")) this week · \(duration(seconds))"
     }
 
     /// "48 min", "1 h 32 min", "2 h".
@@ -681,6 +681,79 @@ enum HomeActivity {
 /// D57 (v1.6): the Summary's one line about what comes next, from the same schedule the
 /// calendar draws — read after the rotation has advanced, so "next" is never the day just done.
 enum SummaryText {
+    /// SPEC §4.9: "Push · 48 min · 16 of 18 sets · Volume 12,400 kg · week 3 of 8", each part
+    /// only when it has data (§4.0). D96 (v1.12 L6): Core's, where the view built it.
+    static func headline(_ session: Session) -> String {
+        var parts = [session.dayName,
+                     HomeActivity.duration(SessionStats.duration(session)),
+                     "\(SessionStats.loggedCount(session)) of \(session.steps.count) sets"]
+        // P5: a bare number is not a label. Zero volume is a bodyweight day, not a failure.
+        let volume = SessionStats.volume(session.steps)
+        if volume > 0 { parts.append("Volume \(TargetText.grouped(volume)) \(session.units.rawValue)") }
+        // D44 (v1.3): which week of the progression this was, when it was one.
+        if let week = ProgressionText.weekLine(session) { parts.append(week) }
+        return parts.joined(separator: " · ")
+    }
+
+    /// One exercise's lines on the Summary.
+    struct ExerciseLines: Equatable {
+        var name: String
+        var comparison: ExerciseComparison
+        /// D30: "PR 5 × 85 kg" for the best record the exercise set today, nil when it set none.
+        var record: String?
+        /// D42 (v1.3): what it stood in for, said once.
+        var insteadOf: String?
+        /// The plan's advice for next time, when it carries one and a range.
+        var advice: String?
+        /// D19: how long the exercise took, behind Details — "Took 6:12 · 0:48 a set".
+        var took: String?
+    }
+
+    /// Every exercise's lines, worked out once per screen (D96, v1.12 L6) — the view read the
+    /// records again for every exercise, and the history without this session for each one.
+    static func exercises(_ session: Session, history: [Session],
+                          wording: Wording = .plain) -> [ExerciseLines] {
+        let earlier = history.filter { $0.id != session.id }
+        let records = SessionStats.personalRecords(session: session, history: earlier)
+        return session.exercises.enumerated().map { index, exercise in
+            let steps = session.steps.filter { $0.exerciseIndex == index }
+            return ExerciseLines(
+                name: exercise.name,
+                comparison: SessionStats.comparison(for: exercise.name, session: session,
+                                                    history: earlier, wording: wording),
+                record: record(session, exercise: index, records: records),
+                insteadOf: exercise.substitutedFor.map { "Instead of \($0)" },
+                advice: advice(exercise, steps: steps, units: session.units),
+                took: took(session, steps: steps))
+        }
+    }
+
+    private static func record(_ session: Session, exercise index: Int, records: Set<Int>) -> String? {
+        let mine = records.sorted().filter { session.steps[$0].exerciseIndex == index }
+        guard !mine.isEmpty else { return nil }
+        let steps = mine.map { session.steps[$0] }
+        guard let best = SessionStats.best(steps) ?? steps.compactMap(\.result).last else { return nil }
+        // F4 (2026-09-24): the record in the words every best set uses.
+        return ExerciseText.bestSet(best, units: session.units).map { "PR \($0)" } ?? "PR"
+    }
+
+    private static func advice(_ exercise: SessionExercise, steps: [SessionStep], units: WeightUnit) -> String? {
+        guard let advice = exercise.advice, let range = exercise.repRange else { return nil }
+        let logged = steps.filter { $0.status == .logged }
+        return ProgressionAdvice.message(advice, range: range, loggedSets: logged.count,
+                                         currentWeight: logged.first?.result?.weight, units: units)
+    }
+
+    private static func took(_ session: Session, steps: [SessionStep]) -> String? {
+        guard let block = steps.first?.blockIndex,
+              let seconds = SessionStats.blockDuration(block, session: session) else { return nil }
+        var text = "Took \(TargetText.time(seconds))"
+        if let average = mean(steps.compactMap(\.setSeconds).map(Double.init)) {
+            text += " · \(TargetText.time(Int(average.rounded()))) a set"
+        }
+        return text
+    }
+
     static func next(after session: Session, library: PlanLibrary, now: Date = Date(),
                      calendar: Calendar = .current) -> String? {
         guard let planId = session.planId,

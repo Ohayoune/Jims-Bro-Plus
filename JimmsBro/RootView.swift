@@ -75,13 +75,9 @@ struct RootView: View {
             // Keep the cover up while the Summary is still on screen.
             if !running && model.justCompleted == nil { showWorkout = false }
         }
-        .alert("A data file couldn't be read and was set aside",
-               isPresented: Binding(get: { model.showCorruptAlert },
-                                    set: { if !$0 { model.dismissCorruptAlert() } })) {
-            Button("OK", role: .cancel) { model.dismissCorruptAlert() }
-        } message: {
-            Text(model.corruptFiles.joined(separator: "\n"))
-        }
+        .problemAlert("A data file couldn't be read and was set aside", message: Binding(
+            get: { model.showCorruptAlert ? model.corruptFiles.joined(separator: "\n") : nil },
+            set: { if $0 == nil { model.dismissCorruptAlert() } }))
         // D24 (v1.1): a failed write says so and offers Retry, rather than a silent try?.
         // Only while the workout cover is down — the cover is presented over this view, so an
         // alert attached here cannot be seen (and cancels the cover's own presentation) while

@@ -19,7 +19,7 @@ struct PlanDraft: Codable, Equatable {
     var filled: Int { dayTexts.filter { $0 != nil }.count }
     var isComplete: Bool { !dayTexts.isEmpty && dayTexts.allSatisfy { $0 != nil } }
     /// "2 of 4 days pasted"
-    var progress: String { "\(filled) of \(dayTexts.count) day\(dayTexts.count == 1 ? "" : "s") pasted" }
+    var progress: String { "\(filled) of \(TargetText.counted(dayTexts.count, "day")) pasted" }
 
     enum CodingKeys: String, CodingKey { case outlineText, outline, dayTexts, createdAt }
 }
