@@ -108,10 +108,8 @@ final class GatesTests: XCTestCase {
     // T21: SPEC §6.40's table and `Gates` name the same controls, one row per function, so a
     // control that is not there from the first launch needs SPEC's row before it can appear.
     func testEveryGateIsARowOfSpec() throws {
-        guard let spec = FixtureLoader.doc("docs/SPEC.md"),
-              let source = FixtureLoader.doc("JimmsBro/Core/Gates.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let spec = try FixtureLoader.requiredDoc("docs/SPEC.md")
+        let source = try FixtureLoader.requiredDoc("JimmsBro/Core/Gates.swift")
         // Every function a view may ask: each `static func` that is not private.
         let functions = source.components(separatedBy: "\n").compactMap { line -> String? in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -122,9 +120,7 @@ final class GatesTests: XCTestCase {
         // when Another day's went with the chooser the strip replaced (D70).
         XCTAssertEqual(functions.count, 4, "one function per row of the plan's table")
 
-        let lines = spec.components(separatedBy: "\n")
-        let heading = try XCTUnwrap(lines.firstIndex { $0.hasPrefix("### 6.40 ") }, "SPEC has no §6.40")
-        let section = lines[(heading + 1)...].prefix { !$0.hasPrefix("#") }
+        let section = try FixtureLoader.section(spec, "### 6.40 ").components(separatedBy: "\n")
         let rows = section.filter { $0.hasPrefix("| ") && !$0.hasPrefix("| Control ") }
         let named = rows.compactMap { row -> String? in
             guard let start = row.range(of: "`Gates.") else { return nil }
@@ -151,9 +147,7 @@ final class GatesTests: XCTestCase {
     // T27 (D66): one way to find an exercise — the row. The search field was a second way to
     // the same list, at the top of History, and it went.
     func testHistoryHasOneWayToFindAnExercise() throws {
-        guard let source = FixtureLoader.doc("JimmsBro/Features/History/HistoryView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let source = try FixtureLoader.requiredDoc("JimmsBro/Features/History/HistoryView.swift")
         XCTAssertFalse(source.contains(".searchable("), "History draws a search field again")
         XCTAssertTrue(source.contains("Label(\"Find an exercise\""), "History lost its Find an exercise row")
     }
@@ -162,11 +156,9 @@ final class GatesTests: XCTestCase {
     // the screen it opens — and Plan detail no longer has it. Today's Plan the next one opens
     // the screen itself, since the plan no longer leads there.
     func testProgressionIsHistorys() throws {
-        guard let history = FixtureLoader.doc("JimmsBro/Features/History/HistoryView.swift"),
-              let detail = FixtureLoader.doc("JimmsBro/Features/PlanDetail/PlanDetailView.swift"),
-              let today = FixtureLoader.doc("JimmsBro/Features/Home/HomeView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let history = try FixtureLoader.requiredDoc("JimmsBro/Features/History/HistoryView.swift")
+        let detail = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/PlanDetailView.swift")
+        let today = try FixtureLoader.requiredDoc("JimmsBro/Features/Home/HomeView.swift")
         for literal in ["Text(\"Progression\")", "PromptText.progressionRow", "ProgressionView(planId:"] {
             XCTAssertTrue(history.contains(literal), "History no longer has \(literal)")
         }

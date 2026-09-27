@@ -55,10 +55,8 @@ final class DayColourTests: XCTestCase {
     // v1.10 (D79, TP2) the same file maps a mark's state too, and *now* is the accent there, so
     // the pin reads the day's mapping alone.
     func testEachDayColourIsTheSystemColourOfItsName() throws {
-        guard let file = FixtureLoader.doc("JimmsBro/DaySquare.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
-        let source = try XCTUnwrap(SymbolsTests.block(file, from: "extension DayColour {", to: "\n}\n"))
+        let file = try FixtureLoader.requiredDoc("JimmsBro/DaySquare.swift")
+        let source = try XCTUnwrap(FixtureLoader.block(file, from: "extension DayColour {", to: "\n}\n"))
         for colour in DayColour.allCases {
             XCTAssertTrue(source.contains("case .\(colour.rawValue): return .\(colour.rawValue)\n"), colour.rawValue)
         }
@@ -102,10 +100,8 @@ final class DayColourTests: XCTestCase {
         XCTAssertEqual(cut.squares, Array(month.prefix(14)), "the first fourteen, in order")
         XCTAssertTrue(cut.continues, "and a trailing mark")
 
-        guard let square = FixtureLoader.doc("JimmsBro/DaySquare.swift"),
-              let today = FixtureLoader.doc("JimmsBro/Features/Home/HomeView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let square = try FixtureLoader.requiredDoc("JimmsBro/DaySquare.swift")
+        let today = try FixtureLoader.requiredDoc("JimmsBro/Features/Home/HomeView.swift")
         XCTAssertTrue(square.contains("let glyph = CycleGlyph(cycle)"), "CycleSymbol no longer cuts through CycleGlyph")
         XCTAssertTrue(today.contains("CycleSymbol(cycle: cycle)"), "Change plan lost its symbol")
     }

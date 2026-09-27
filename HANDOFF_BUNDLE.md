@@ -359,7 +359,13 @@ is `SessionSwitch.prompt`, drawn by one `switchWorkoutAlert` with `beginWorkout`
 for Today and Plan detail; `Binding(isPresent:)`, `problemAlert` and one `shareSheet` — the prompt's,
 the backup's and the CSV's — live in `Features/Shared/Presenting.swift`; and the exercise sheet saves
 once, `PlanEdit.Operation.editExercise`, all of its fields or none (TL28–TL33).
-L7–L8 are not built.
+L7 is built and green on the same branch: one script edits the project — `tools/add_sources.py` adds
+(to `app`, `tests`, `activity` or `resource`, a file its group already holds gaining the target),
+`remove`s and `remove-group`s, `tools/pbxproj_edit.py` is gone, and `add_activity_target.py` adds its
+files through it — and the tests' helpers are written once: reading the checkout is `FixtureLoader`'s
+(`requiredDoc`, `swiftSources`, `section`, `block`, `withoutComments`), building things
+`CoreTestSupport`'s (`importing`, `imported`, `engine(history:)`, `logged`, `days`, `warmUp`, the two
+rotations), and a one-line forward to the owner stays as a name. L8 is not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -8207,11 +8213,43 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 `````markdown
 # Build status
 
-Updated 2026-09-25. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
+Updated 2026-09-27. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
 2026-09-24); the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
 against each other) was built on branch `fix-first` off it, and **L2** on `v1.12-one-of-each`,
-fast-forwarded to `fix-first` first, then **L3**, **L4**, **L5** and **L6** on the same branch. L7–L8 are
-not built.
+fast-forwarded to `fix-first` first, then **L3**, **L4**, **L5**, **L6** and **L7** on the same branch. L8
+is not built.
+
+## v1.12 L7: built and green on `v1.12-one-of-each`
+
+Tools and the tests' support, one owner each. **One script edits the project**: `tools/add_sources.py`
+adds a file to `app`, `tests`, `activity` or `resource` — a file its group already holds gains a build
+file in that target, which is how a Core file reaches the extension — `remove`s a file from a group and
+every target that builds it, and `remove-group`s a group with everything in it; a target's phase is found
+from the target's name. `tools/pbxproj_edit.py` is gone, and `tools/add_activity_target.py` adds its four
+files through `add_sources.add_file`. **The tests' helpers are written once**: `FixtureLoader.requiredDoc`
+for the 40 pins that skipped by hand, and `swiftSources`, `section`, `block` and `withoutComments` moved
+there from the test classes that owned them; `CoreTestSupport.importing` and `.imported`,
+`engine(history:)`, `threeExercises`, `stepNames`, `warmUp`, `days`, `logged`, `sevenDayRotation` and
+`fourDayRotation` in place of the copies the sweep found; and `CoreChecks.check` for the portable
+runner's assertions. `docs/DECISIONS_LOG.md` has what differed and which side was kept, and what was left
+on purpose. No TL case: nothing the app does changed, and the test count did not either.
+
+### Run for L7
+
+On `v1.12-one-of-each`, 2026-09-27: `xcodebuild test` on the iPhone 17 simulator, 475 tests, 0
+failures; `swift test`, 474 tests, 0 failures; `python3 tools/check_core.py`, 474 test bodies, 9,435
+assertions, 0 failures — the same three counts as L6. On a copy of the checkout, `add_sources.py` added
+a file to the app, the tests and the resources, and a Core file to the extension, a second run changed
+nothing, and `remove` put the project back byte for byte; `remove-group` left no dangling id and `plutil
+-lint` passed after each. `add_activity_target.py`, old and new, each run on V7's parent project (with
+`WorkoutActivityState.swift` added first, as V7 did), wrote the same object graph compared id-free; on
+the real project it is a no-op. The Release build succeeded and `python3 tools/check_release.py` is ready (still
+version 1.11 (1)); `python3 tools/check_bundle.py` current after `python3 tools/build_bundle.py`;
+`python3 tools/reference_import.py`, 118/118 fixtures match.
+
+### Not run for L7
+
+Nothing on the phone; no screen changed.
 
 ## v1.12 L6: built and green on `v1.12-one-of-each`
 
@@ -9863,6 +9901,8 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.12 L6 (D96): **one switch-workout alert.** Today and Plan detail each worded D17's question from `SessionStats`, drew the same three buttons and caught `LibraryError.sessionInProgress`; the words are `SessionSwitch.prompt`, the alert `switchWorkoutAlert` and the catch `beginWorkout` (`Features/Shared/Presenting.swift`). Plan detail's Finish and start / Discard and start swallowed a failure with `try?`; both now clear the question as Today did. SPEC §4.3's buttons read *Finish Pull and start Legs*; both copies said *Finish and start* before L6 and still do. TL31.
 - v1.12 L6 (D96): **the views' small repeats, once** (`Features/Shared/Presenting.swift`): `Binding(isPresent:)` for an optional as a presentation's flag, in place of `Binding(get: { x != nil }, set: { if !$0 { x = nil } })`; `problemAlert` for the alert that only says why — the five the review found and the corrupt-file notice in `RootView`; and one share sheet, `shareSheet(isPresented:items:closed:)`, which PromptButtons' Send and Settings' backup and CSV share — Settings wrapped `UIActivityViewController` in a SwiftUI sheet of its own, and now presents it over the screen as Send does. Session detail reads the records once per draw, not once per row. TL28, TL32.
 - v1.12 L6 (D96): **one way to save an exercise.** Plan detail's exercise sheet committed one `PlanEdit.Operation` per changed field — N pipeline runs, N writes, a refusal part-way keeping the fields before it, each refusal's alert replacing the last — while the day editor's saved once. Save is one `PlanEdit.Operation.editExercise(day:exercise:changes:)`, each field applied as its own edit makes it (so a superset's rest still reaches the round) and one run: all of them or none — the stricter rule, SPEC being silent. `PlanEdit.edited`, the value form, is the same edit on an exercise alone. TL33.
+- v1.12 L7 (D96): **one script edits the project.** `tools/pbxproj_edit.py` and `tools/add_sources.py` both added files to `project.pbxproj`; `add_sources.py`, the one `check_release.py` names, now also removes (`remove <group-path> <file>…`) and removes a group with everything in it (`remove-group <group-path>`), and `pbxproj_edit.py` is gone. Where the two disagreed: a group is found by its path from the root (`add_sources.py`), which names one group, not by its bare name; a file is removed from a named group, not by a name anywhere in the project; a removed group takes its files with it, where `pbxproj_edit.py` left them referenced and orphaned; a new line goes last in its list, as Xcode puts it (`add_sources.py` put it first); and a file its group already holds gains a build file in the named target instead of being skipped — how a Core file reaches the extension, a fourth target name (`activity`), which had been done by hand. A target's phase is found from the target's name, in place of three hard-coded phase ids. `add_activity_target.py` keeps its one-shot job and adds its four files through `add_sources.add_file`; run on V7's parent project it writes the same object graph as V7's version did.
+- v1.12 L7 (D96): **the tests' helpers, once.** Reading the checkout is `FixtureLoader`'s: `requiredDoc` in place of 40 `guard let … = doc(…) else { throw XCTSkip(…) }` with three skip messages (now one, naming the path), `swiftSources` (from `TripTests`, skipping by itself), `section` (`TripTests`', and `GatesTests` inline), `block` (from `SymbolsTests`) and `withoutComments` (twice in `SymbolsTests`); the portable runner's fixtures read `sourceRoot` like the rest. Building things is `CoreTestSupport`'s: `importing` and `imported` (seven copies of the default import), `engine(history:)` (fifteen inline or private copies), `threeExercises` and `stepNames` (`ChangeExerciseTests` and `DeferExerciseTests`, byte for byte), `warmUp` (five spellings of v1.2's defaults), `days` (a pair and four inline), `sevenDayRotation` (`PlansTests` = `SwapTests`), `fourDayRotation` (`ScheduleAnchorTests` = `UsabilityTests`), and `logged` for `RecordsAndChartTests` and `SummaryAndVisualTests`, which differed — Records logged a set every 100 s with no start, Summary started each and logged it 40 s on; Summary's, since it asserts the four minutes that makes and Records asserts no time. `DefectFixesTests` takes `makeRoot`, `ImportTests` its calendar and date (and drops a `now` nothing read), `SwapTests` logs a session one way, and `CoreCheckSupport.swift`'s assertions share `CoreChecks.check`. Kept on purpose: a one-line forward to the owner — a file's `now`, `calendar`, `day(n)` or `makeRoot()` — is a name, not a copy; builders that make different things (the several Push/Pull/Legs plans, `finished` in `SwapTests` and `DayColourTests`, Today's and Swap's `library` and `card`) stay with their tests; `StoreMigrationTests` is untouched (D96). 474 tests and 9,435 portable assertions before and after.
 `````
 
 ---
@@ -12508,7 +12548,13 @@ is `SessionSwitch.prompt`, drawn by one `switchWorkoutAlert` with `beginWorkout`
 for Today and Plan detail; `Binding(isPresent:)`, `problemAlert` and one `shareSheet` — the prompt's,
 the backup's and the CSV's — live in `Features/Shared/Presenting.swift`; and the exercise sheet saves
 once, `PlanEdit.Operation.editExercise`, all of its fields or none (TL28–TL33).
-L7–L8 are not built.
+L7 is built and green on the same branch: one script edits the project — `tools/add_sources.py` adds
+(to `app`, `tests`, `activity` or `resource`, a file its group already holds gaining the target),
+`remove`s and `remove-group`s, `tools/pbxproj_edit.py` is gone, and `add_activity_target.py` adds its
+files through it — and the tests' helpers are written once: reading the checkout is `FixtureLoader`'s
+(`requiredDoc`, `swiftSources`, `section`, `block`, `withoutComments`), building things
+`CoreTestSupport`'s (`importing`, `imported`, `engine(history:)`, `logged`, `days`, `warmUp`, the two
+rotations), and a one-line forward to the owner stays as a name. L8 is not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

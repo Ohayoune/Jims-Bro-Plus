@@ -86,11 +86,9 @@ final class SymbolsTests: XCTestCase {
     // accent; not yet the system's fill — none red, amber or yellow; the Lock Screen's bar done
     // in the day's colour, never the accent or a fixed green. Source reads on the host routes.
     func testThreeStateColours() throws {
-        guard let square = FixtureLoader.doc("JimmsBro/DaySquare.swift"),
-              let activity = FixtureLoader.doc("JimmsBroActivity/WorkoutLiveActivity.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
-        let mapping = try XCTUnwrap(Self.block(square, from: "extension MarkState {", to: "\n}\n"))
+        let square = try FixtureLoader.requiredDoc("JimmsBro/DaySquare.swift")
+        let activity = try FixtureLoader.requiredDoc("JimmsBroActivity/WorkoutLiveActivity.swift")
+        let mapping = try XCTUnwrap(FixtureLoader.block(square, from: "extension MarkState {", to: "\n}\n"))
         XCTAssertTrue(mapping.contains("case .done: return day?.color ?? DaySquare.noColour"))
         XCTAssertTrue(mapping.contains("case .now: return .accentColor"))
         XCTAssertTrue(mapping.contains("case .todo: return Color(.secondarySystemFill)"))
@@ -101,7 +99,7 @@ final class SymbolsTests: XCTestCase {
         XCTAssertTrue(square.contains("static let noColour = Color.secondary.opacity(0.4)"),
                       "done with no day colour is the grey History draws")
 
-        let progress = try XCTUnwrap(Self.block(activity, from: "private func progress(", to: "\n    }\n"))
+        let progress = try XCTUnwrap(FixtureLoader.block(activity, from: "private func progress(", to: "\n    }\n"))
         XCTAssertTrue(progress.contains(".tint(MarkState.done.color(day: state.dayColour))"))
         XCTAssertFalse(progress.contains("accentColor"))
         XCTAssertFalse(progress.contains(".green"))
@@ -154,7 +152,7 @@ final class SymbolsTests: XCTestCase {
     // TP5 (D80, extends O50): the same five zones in every state, one caret and one now on the
     // bar, and the header's spoken line is the stage in words, exactly as D34 wrote it.
     func testTheHeaderSpeaksTheStage() throws {
-        let warmUp = Settings(warmUpSeconds: 300, transitionRestSeconds: 120)
+        let warmUp = CoreTestSupport.warmUp
         let session = try XCTUnwrap(Session.start(plan: pushPullLegs(), dayIndex: 0, now: now))
         var engine = SessionEngine(session: session, settings: warmUp, now: now)
         var screens: [(String, WorkoutScreenModel)] = []
@@ -204,12 +202,9 @@ final class SymbolsTests: XCTestCase {
     // progress line, no Exercises — draws the bar, speaks the stage, and opens the Overview; the
     // screen's primary button is ink and its controls take ink, not the accent (D79).
     func testZoneOneHasNoWordsButTheElapsedTime() throws {
-        guard let view = FixtureLoader.doc("JimmsBro/Features/Workout/WorkoutView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
-        let zone = try XCTUnwrap(Self.block(view, from: "// MARK: - Zone 1", to: "// MARK: - Zone 2"))
-        let code = zone.split(separator: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
-            .joined(separator: "\n")
+        let view = try FixtureLoader.requiredDoc("JimmsBro/Features/Workout/WorkoutView.swift")
+        let zone = try XCTUnwrap(FixtureLoader.block(view, from: "// MARK: - Zone 1", to: "// MARK: - Zone 2"))
+        let code = FixtureLoader.withoutComments(zone)
         XCTAssertEqual(code.components(separatedBy: "Text(").count - 1, 1, "one Text in zone 1")
         XCTAssertTrue(code.contains("Text(screen.elapsed)"))
         for gone in ["stage.title", "progressLine", "\"Exercises\"", "ProgressView", "percent\")", " Label(\""] {
@@ -545,17 +540,14 @@ final class SymbolsTests: XCTestCase {
     // manifest's `restBetweenExercises` check, which `reference_import.py` also reads, covers
     // the same three files in `ImportTests`.
     func testThePlanFormatReadsTheWalk() throws {
-        func run(_ path: String) throws -> ImportResult {
-            PlanImport.run(try FixtureLoader.text(path), settings: Settings(units: .kg, defaultRestSeconds: 90), now: now)
-        }
-        let number = try run("valid/rest-between-exercises.json")
+        let number = try CoreTestSupport.importing(fixture: "valid/rest-between-exercises.json")
         XCTAssertEqual(number.plan?.restBetweenExercises, 90)
         XCTAssertFalse(number.issues.contains { $0.code == "W_UNKNOWN_FIELD" }, "a known field, not an ignored one")
         XCTAssertEqual(number.plan?.days[0].exercises[0].sets.map(\.restSeconds), [60, 60],
                        "the walk is not a set's rest, and does not resolve into one")
-        XCTAssertEqual(try run("valid/rest-between-exercises-string.json").plan?.restBetweenExercises, 90)
-        XCTAssertNil(try run("valid/rest-precedence.json").plan?.restBetweenExercises, "absent is nil, not 120")
-        let negative = try run("invalid/rest-between-exercises-negative.json")
+        XCTAssertEqual(try CoreTestSupport.importing(fixture: "valid/rest-between-exercises-string.json").plan?.restBetweenExercises, 90)
+        XCTAssertNil(try CoreTestSupport.importing(fixture: "valid/rest-precedence.json").plan?.restBetweenExercises, "absent is nil, not 120")
+        let negative = try CoreTestSupport.importing(fixture: "invalid/rest-between-exercises-negative.json")
         XCTAssertNil(negative.plan)
         XCTAssertTrue(negative.issues.contains { $0.code == "E_REST_INVALID" && $0.path == "restBetweenExercises" })
         // The prompts ask for it in the plan and the outline, and never for one day.
@@ -644,7 +636,7 @@ final class SymbolsTests: XCTestCase {
         XCTAssertEqual(walking.apply(.skipRest, now: now.addingTimeInterval(5)), [])
         XCTAssertEqual(walking.active, engine.active)
         var warm = SessionEngine(session: try XCTUnwrap(Session.start(plan: twoLifts(walk: 90), dayIndex: 0, now: now)),
-                                 settings: Settings(warmUpSeconds: 300), now: now)
+                                 settings: CoreTestSupport.warmUp, now: now)
         XCTAssertFalse(warm.apply(.adjustRest(seconds: 30), now: now).isEmpty)
         XCTAssertTrue(try XCTUnwrap(WorkoutScreen.model(active: warm.active, history: [], now: now)).strip.showsRestControls)
 
@@ -723,14 +715,8 @@ final class SymbolsTests: XCTestCase {
     // weight — draws the dots and the card, keeps the ? and the name's history; the edit sheet
     // left this screen for the Overview and Session detail; Undo is the strip's at every size.
     func testZoneTwoHasNoSentence() throws {
-        guard let view = FixtureLoader.doc("JimmsBro/Features/Workout/WorkoutView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
-        func code(_ text: String) -> String {
-            text.split(separator: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
-                .joined(separator: "\n")
-        }
-        let zone = code(try XCTUnwrap(Self.block(view, from: "// MARK: - Zone 2", to: "// MARK: - Zone 3")))
+        let view = try FixtureLoader.requiredDoc("JimmsBro/Features/Workout/WorkoutView.swift")
+        let zone = FixtureLoader.withoutComments(try XCTUnwrap(FixtureLoader.block(view, from: "// MARK: - Zone 2", to: "// MARK: - Zone 3")))
         XCTAssertEqual(zone.components(separatedBy: "Text(").count - 1, 1, "one Text in zone 2")
         XCTAssertTrue(zone.contains("Text(page.exerciseName)"), "since D83, a page's")
         for gone in ["targetLine", "screen.rows", "SetRowView", "InsetGroup", "Text(\""] {
@@ -741,7 +727,7 @@ final class SymbolsTests: XCTestCase {
                      ".accessibilityLabel(page.spoken)", "model.apply(.jumpTo(step: dot.step))", "editing = dot.step"] {
             XCTAssertTrue(zone.contains(kept), kept)
         }
-        let card = code(try XCTUnwrap(Self.block(view, from: "private struct SetCardView", to: "\n}\n")))
+        let card = FixtureLoader.withoutComments(try XCTUnwrap(FixtureLoader.block(view, from: "private struct SetCardView", to: "\n}\n")))
         XCTAssertEqual(card.components(separatedBy: "Text(").count - 1, 3)
         for text in ["Text(card.range)", "Text(unit)", "Text(weight)"] { XCTAssertTrue(card.contains(text), text) }
         XCTAssertFalse(view.contains("EditResultSheet"), "the sheet stays for the Overview and Session detail")
@@ -969,12 +955,10 @@ final class SymbolsTests: XCTestCase {
     // or arrows, a page behind at its card's opacity — kept level with the view's `showing`, which
     // the model takes and nothing stores; zone 5's Back and Do this now; zone 3 only with inputs.
     func testZoneTwoIsAPager() throws {
-        guard let view = FixtureLoader.doc("JimmsBro/Features/Workout/WorkoutView.swift"),
-              let app = FixtureLoader.doc("JimmsBro/Store/AppModel.swift"),
-              let activity = FixtureLoader.doc("JimmsBro/Core/WorkoutActivity.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
-        let zone = try XCTUnwrap(Self.block(view, from: "// MARK: - Zone 2", to: "// MARK: - Zone 3"))
+        let view = try FixtureLoader.requiredDoc("JimmsBro/Features/Workout/WorkoutView.swift")
+        let app = try FixtureLoader.requiredDoc("JimmsBro/Store/AppModel.swift")
+        let activity = try FixtureLoader.requiredDoc("JimmsBro/Core/WorkoutActivity.swift")
+        let zone = try XCTUnwrap(FixtureLoader.block(view, from: "// MARK: - Zone 2", to: "// MARK: - Zone 3"))
         for kept in ["ScrollView(.horizontal)", ".scrollTargetLayout()", ".modifier(OnePagePerSwipe())",
                      ".containerRelativeFrame(.horizontal)", ".scrollPosition(id: $scrolled)",
                      ".contentMargins(.horizontal, Self.gutter, for: .scrollContent)",
@@ -989,7 +973,7 @@ final class SymbolsTests: XCTestCase {
         XCTAssertTrue(view.contains(".viewAligned(limitBehavior: .alwaysByOne)"))
         XCTAssertTrue(view.contains("walk: model.engine?.walk, showing: showing)"))
         XCTAssertTrue(view.contains("@State private var showing: Int?"))
-        let primary = try XCTUnwrap(Self.block(view, from: "private func primaryTapped()", to: "\n    }\n"))
+        let primary = try XCTUnwrap(FixtureLoader.block(view, from: "private func primaryTapped()", to: "\n    }\n"))
         XCTAssertTrue(primary.contains("case .back:"))
         XCTAssertTrue(primary.contains("await model.apply(.jumpTo(step: step))"))
         XCTAssertTrue(view.contains("if !screen.showsInputs {"))
@@ -1188,11 +1172,9 @@ final class SymbolsTests: XCTestCase {
     // TP41: one joined strip draws a cycle everywhere — the symbol, the plan's page and the
     // picker — and the picker is strips, not a grouped list with section headers.
     func testOneJoinedStripDrawsTheCycleEverywhere() throws {
-        guard let square = FixtureLoader.doc("JimmsBro/DaySquare.swift"),
-              let picker = FixtureLoader.doc("JimmsBro/Features/Home/ChangeDayView.swift"),
-              let page = FixtureLoader.doc("JimmsBro/Features/PlanDetail/PlanDetailView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let square = try FixtureLoader.requiredDoc("JimmsBro/DaySquare.swift")
+        let picker = try FixtureLoader.requiredDoc("JimmsBro/Features/Home/ChangeDayView.swift")
+        let page = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/PlanDetailView.swift")
         XCTAssertFalse(picker.contains("List {"), "the picker is not a grouped list")
         XCTAssertFalse(picker.contains("Section("), "the strips are the sections")
         XCTAssertTrue(picker.contains("CycleStrip(count: strip.tiles.count, side: Self.tile, spacing: 2"),
@@ -1202,12 +1184,5 @@ final class SymbolsTests: XCTestCase {
         XCTAssertFalse(page.contains("WrapLayout"), "the page's squares wrap at seven, not at the width")
         XCTAssertTrue(square.contains("CycleStrip(count: glyph.squares.count"), "the symbol is the same drawing")
         XCTAssertTrue(square.contains("CycleGlyph.ends(index, count: count)"), "the corners are Core's")
-    }
-
-    /// The text from `start` up to and including the first `end` after it.
-    static func block(_ text: String, from start: String, to end: String) -> String? {
-        guard let head = text.range(of: start),
-              let tail = text.range(of: end, range: head.upperBound..<text.endIndex) else { return nil }
-        return String(text[head.lowerBound..<tail.upperBound])
     }
 }

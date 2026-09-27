@@ -199,11 +199,9 @@ final class RoundTripProgressionTests: XCTestCase {
         XCTAssertTrue(ProgressionScreen().prompt(plan: saved, history: model.sessions, settings: model.settings, now: now)
             .contains("MY HISTORY"))
 
-        guard let prompts = FixtureLoader.doc("JimmsBro/Core/Prompts.swift"),
-              let app = FixtureLoader.doc("JimmsBro/Store/ProgressionModel.swift"),
-              let view = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ProgressionView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let prompts = try FixtureLoader.requiredDoc("JimmsBro/Core/Prompts.swift")
+        let app = try FixtureLoader.requiredDoc("JimmsBro/Store/ProgressionModel.swift")
+        let view = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/ProgressionView.swift")
         for (name, source) in [("Prompts", prompts), ("ProgressionModel", app), ("ProgressionView", view)] {
             XCTAssertFalse(source.contains("includeHistory"), "\(name) has a history switch again")
         }
@@ -296,9 +294,7 @@ final class RoundTripProgressionTests: XCTestCase {
     // TN21 (pin): the planning screen has no picker, no switch, no editor and no footer, and the
     // v1.10 words are gone from it.
     func testThePlanningScreenIsTilesAndTheTrip() throws {
-        guard let view = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ProgressionView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let view = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/ProgressionView.swift")
         for gone in ["Picker(", "Toggle(", "TextEditor(", "footer:", "PromptText.", "Copy prompt", "Copied",
                      "Paste progression", "Show text", "Use my history", "Save progression"] {
             XCTAssertFalse(view.contains(gone), "ProgressionView has \(gone) again")

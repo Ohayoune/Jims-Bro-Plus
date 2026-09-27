@@ -63,11 +63,6 @@ final class PlanDiffTests: XCTestCase {
         return "{ " + fields.joined(separator: ", ") + " }"
     }
 
-    private func imported(_ text: String, file: StaticString = #filePath, line: UInt = #line) throws -> Plan {
-        let result = PlanImport.run(text, settings: settings, now: now)
-        return try XCTUnwrap(result.plan, "\(result.issues)", file: file, line: line)
-    }
-
     private var example: String { text(days: [("Push", push), ("Pull", pull), ("Legs", legs)]) }
 
     /// The chatbot's reply to the example request.
@@ -79,8 +74,8 @@ final class PlanDiffTests: XCTestCase {
 
     // TN32: what a change did to a plan.
     func testTheDiffOfTheExample() throws {
-        let old = try imported(example)
-        let diff = PlanDiff.between(old: old, new: try imported(reply))
+        let old = try CoreTestSupport.imported(example)
+        let diff = PlanDiff.between(old: old, new: try CoreTestSupport.imported(reply))
         XCTAssertEqual(diff.count, 2)
         XCTAssertEqual(diff.lines.count, 3)
         guard case let .replaced(day, oldName, new) = diff.lines[0] else { return XCTFail("\(diff.lines[0])") }
@@ -100,13 +95,13 @@ final class PlanDiffTests: XCTestCase {
         XCTAssertEqual(diff.row(diff.lines[2]).mark, .unchanged)
 
         // The same plan twice — imported twice, so every id differs — is every day unchanged.
-        let same = PlanDiff.between(old: old, new: try imported(example))
+        let same = PlanDiff.between(old: old, new: try CoreTestSupport.imported(example))
         XCTAssertEqual(same.lines, [.dayUnchanged("Push"), .dayUnchanged("Pull"), .dayUnchanged("Legs")])
         XCTAssertEqual(same.count, 0)
 
         // A day renamed is a day removed and a day added, the removed one where it stood; the
         // cycle's own line stays out, since the days' lines already say it.
-        let renamed = PlanDiff.between(old: old, new: try imported(text(
+        let renamed = PlanDiff.between(old: old, new: try CoreTestSupport.imported(text(
             cycle: ["Push", "Pull", "Lower", "Push", "Pull", "Lower", "rest"],
             days: [("Push", push), ("Pull", pull), ("Lower", legs)])))
         XCTAssertEqual(renamed.count, 2)
@@ -120,7 +115,7 @@ final class PlanDiffTests: XCTestCase {
         // line is parked).
         var moved = push
         moved.swapAt(2, 3)
-        let move = PlanDiff.between(old: old, new: try imported(text(days: [("Push", moved), ("Pull", pull), ("Legs", legs)])))
+        let move = PlanDiff.between(old: old, new: try CoreTestSupport.imported(text(days: [("Push", moved), ("Pull", pull), ("Legs", legs)])))
         XCTAssertEqual(move.count, 2)
         let pushLines = move.lines.filter { if case .dayUnchanged = $0 { return false }; return true }
         XCTAssertEqual(pushLines.count, 2)
@@ -128,7 +123,7 @@ final class PlanDiffTests: XCTestCase {
         XCTAssertTrue(pushLines.contains { if case .added("Push", _) = $0 { return true }; return false })
 
         // A day in reverse is removed and added, never "replaced" by a name still in the day.
-        let reversed = PlanDiff.between(old: old, new: try imported(text(days: [("Push", push), ("Pull", Array(pull.reversed())), ("Legs", legs)])))
+        let reversed = PlanDiff.between(old: old, new: try CoreTestSupport.imported(text(days: [("Push", push), ("Pull", Array(pull.reversed())), ("Legs", legs)])))
         XCTAssertFalse(reversed.lines.contains { if case .replaced = $0 { return true }; return false })
         XCTAssertGreaterThan(reversed.count, 0)
 
@@ -137,7 +132,7 @@ final class PlanDiffTests: XCTestCase {
         var heavier = push
         heavier[1].weight = 42.5
         heavier[5].rest = 120
-        let changed = PlanDiff.between(old: old, new: try imported(text(days: [("Push", heavier), ("Pull", pull), ("Legs", legs)])))
+        let changed = PlanDiff.between(old: old, new: try CoreTestSupport.imported(text(days: [("Push", heavier), ("Pull", pull), ("Legs", legs)])))
         XCTAssertEqual(changed.count, 2)
         XCTAssertEqual(changed.lines[0], .changed(day: "Push", name: "Overhead Press",
                                                  from: "3 sets of 8–10 reps · 40 kg", to: "3 sets of 8–10 reps · 42.5 kg"))
@@ -153,13 +148,13 @@ final class PlanDiffTests: XCTestCase {
         var paired = pull
         paired[2].group = "B"
         paired[3].group = "B"
-        let supersetPlan = try imported(text(days: [("Push", push), ("Pull", paired), ("Legs", legs)]))
-        let partnerGone = PlanDiff.between(old: supersetPlan, new: try imported(text(days: [("Push", push), ("Pull", Array(paired.dropLast())), ("Legs", legs)])))
+        let supersetPlan = try CoreTestSupport.imported(text(days: [("Push", push), ("Pull", paired), ("Legs", legs)]))
+        let partnerGone = PlanDiff.between(old: supersetPlan, new: try CoreTestSupport.imported(text(days: [("Push", push), ("Pull", Array(paired.dropLast())), ("Legs", legs)])))
         XCTAssertEqual(partnerGone.count, 1, "\(partnerGone.lines)")
         XCTAssertEqual(partnerGone.lines[1], .removed(day: "Pull", name: "Hammer Curl"))
         var repaired = paired
         repaired[1].group = "B"
-        let joined = PlanDiff.between(old: supersetPlan, new: try imported(text(days: [("Push", push), ("Pull", repaired), ("Legs", legs)])))
+        let joined = PlanDiff.between(old: supersetPlan, new: try CoreTestSupport.imported(text(days: [("Push", push), ("Pull", repaired), ("Legs", legs)])))
         guard case let .changed("Pull", "Lat Pulldown", _, to) = joined.lines.first(where: { if case .changed = $0 { return true }; return false }) else {
             return XCTFail("\(joined.lines)")
         }
@@ -168,7 +163,7 @@ final class PlanDiffTests: XCTestCase {
         // An exercise added, and one replaced beside a removal, pair by position between matches.
         var added = pull
         added.insert(Ex(name: "Chin-Up", reps: "6-10"), at: 2)
-        let addition = PlanDiff.between(old: old, new: try imported(text(days: [("Push", push), ("Pull", added), ("Legs", legs)])))
+        let addition = PlanDiff.between(old: old, new: try CoreTestSupport.imported(text(days: [("Push", push), ("Pull", added), ("Legs", legs)])))
         XCTAssertEqual(addition.count, 1)
         guard case let .added("Pull", chin) = addition.lines[1] else { return XCTFail("\(addition.lines)") }
         XCTAssertEqual(chin.name, "Chin-Up")
@@ -176,21 +171,21 @@ final class PlanDiffTests: XCTestCase {
 
         // The plan's own fields are lines, so a reply that only moved the rest day is not
         // Nothing changed.
-        let cycle = PlanDiff.between(old: old, new: try imported(text(
+        let cycle = PlanDiff.between(old: old, new: try CoreTestSupport.imported(text(
             cycle: ["Push", "Pull", "rest", "Legs", "Push", "Pull", "Legs"],
             days: [("Push", push), ("Pull", pull), ("Legs", legs)])))
         XCTAssertEqual(cycle.count, 1)
         XCTAssertEqual(cycle.groups.first?.day, nil)
         XCTAssertEqual(cycle.lines.first, .plan(.schedule, from: "Push · Pull · Legs · Push · Pull · Legs · rest",
                                                 to: "Push · Pull · rest · Legs · Push · Pull · Legs"))
-        let renamedPlan = PlanDiff.between(old: old, new: try imported(text(name: "PPL", days: [("Push", push), ("Pull", pull), ("Legs", legs)])))
+        let renamedPlan = PlanDiff.between(old: old, new: try CoreTestSupport.imported(text(name: "PPL", days: [("Push", push), ("Pull", pull), ("Legs", legs)])))
         XCTAssertEqual(renamedPlan.lines.first, .plan(.name, from: "Push Pull Legs", to: "PPL"))
         XCTAssertEqual(renamedPlan.count, 1)
     }
 
     // TN33: the screen's trip — typed, sent, pasted, and the three ways a reply comes back.
     func testTheChangeRequestsTransitions() throws {
-        let plan = try imported(example)
+        let plan = try CoreTestSupport.imported(example)
         var screen = ChangeRequest(plan: plan)
         XCTAssertEqual(screen.stage, .ask)
         XCTAssertFalse(screen.canSend, "Send waits for something typed")
@@ -282,7 +277,7 @@ final class PlanDiffTests: XCTestCase {
         XCTAssertEqual(screen.stage, .paste)
 
         // A reply that dropped its unit keeps the plan's, rather than a change of unit nobody asked for.
-        let pounds = try imported(text(units: "lb", days: [("Push", push), ("Pull", pull), ("Legs", legs)]))
+        let pounds = try CoreTestSupport.imported(text(units: "lb", days: [("Push", push), ("Pull", pull), ("Legs", legs)]))
         var lb = ChangeRequest(plan: pounds)
         lb.say(request)
         lb.sent()
@@ -316,7 +311,7 @@ final class PlanDiffTests: XCTestCase {
         XCTAssertEqual(ChangeRequest.apply(count: 1), "Apply 1 change")
         XCTAssertEqual(ChangeRequest.apply(count: 2), "Apply 2 changes")
 
-        var screen = ChangeRequest(plan: try imported(example))
+        var screen = ChangeRequest(plan: try CoreTestSupport.imported(example))
         screen.say("Drop the hammer curls.")
         screen.sent()
         screen.pasted(result: PlanImport.run(text(days: [("Push", push), ("Pull", Array(pull.dropLast())), ("Legs", legs)]),
@@ -339,7 +334,7 @@ final class PlanDiffTests: XCTestCase {
         let model = AppModel(store: Store(root: root), scheduler: RecordingAlerts(), alerts: RecordingAlerts())
         await model.load()
 
-        var plan = try imported(example)
+        var plan = try CoreTestSupport.imported(example)
         plan.progression = Progression(startDate: now, weeks: 6, entries: [
             ProgressionEntry(dayName: "Push", exerciseName: "Barbell Bench Press",
                              weeks: [ProgressionWeek(weight: 82.5), ProgressionWeek(weight: 85)]),
@@ -395,7 +390,7 @@ final class PlanDiffTests: XCTestCase {
         XCTAssertFalse(missing)
 
         // Where the cycle moved under the place, the place follows its day by name.
-        var shifted = try imported(text(cycle: ["Legs", "Push", "Pull", "rest"], days: [("Push", push), ("Pull", pull), ("Legs", legs)]))
+        var shifted = try CoreTestSupport.imported(text(cycle: ["Legs", "Push", "Pull", "rest"], days: [("Push", push), ("Pull", pull), ("Legs", legs)]))
         shifted = before.carried(into: shifted, as: .edit)
         XCTAssertEqual(shifted.cyclePosition, 1, "Push, wherever it now stands")
         XCTAssertEqual(shifted.cycleAnchor, anchor)
@@ -403,10 +398,7 @@ final class PlanDiffTests: XCTestCase {
 
     // TN36 (pin): PROMPT.md §7's marker and first sentence are what the screen sends.
     func testTheChangePromptOpensAsPublished() throws {
-        guard let document = FixtureLoader.doc("docs/PROMPT.md") else {
-            throw XCTSkip("docs/PROMPT.md is outside the simulator's sandbox; "
-                          + "this pin runs under `swift test` and `tools/check_core.py`")
-        }
+        let document = try FixtureLoader.requiredDoc("docs/PROMPT.md")
         let section = try XCTUnwrap(document.components(separatedBy: "## 7. Change prompt").dropFirst().first)
         let block = try XCTUnwrap(section.components(separatedBy: "```").dropFirst().first)
         let lines = block.split(separator: "\n", omittingEmptySubsequences: true).prefix(2).map(String.init)
@@ -414,7 +406,7 @@ final class PlanDiffTests: XCTestCase {
         XCTAssertEqual(lines.first, PlanImport.changePromptMarker)
         XCTAssertTrue(lines.last?.hasPrefix("Change the plan below as I ask") == true)
 
-        var screen = ChangeRequest(plan: try imported(example))
+        var screen = ChangeRequest(plan: try CoreTestSupport.imported(example))
         screen.say(request)
         let sent = screen.prompt(settings: settings)
         XCTAssertTrue(sent.hasPrefix(lines.joined(separator: "\n") + "\n"), String(sent.prefix(300)))

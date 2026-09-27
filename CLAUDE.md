@@ -341,7 +341,13 @@ is `SessionSwitch.prompt`, drawn by one `switchWorkoutAlert` with `beginWorkout`
 for Today and Plan detail; `Binding(isPresent:)`, `problemAlert` and one `shareSheet` — the prompt's,
 the backup's and the CSV's — live in `Features/Shared/Presenting.swift`; and the exercise sheet saves
 once, `PlanEdit.Operation.editExercise`, all of its fields or none (TL28–TL33).
-L7–L8 are not built.
+L7 is built and green on the same branch: one script edits the project — `tools/add_sources.py` adds
+(to `app`, `tests`, `activity` or `resource`, a file its group already holds gaining the target),
+`remove`s and `remove-group`s, `tools/pbxproj_edit.py` is gone, and `add_activity_target.py` adds its
+files through it — and the tests' helpers are written once: reading the checkout is `FixtureLoader`'s
+(`requiredDoc`, `swiftSources`, `section`, `block`, `withoutComments`), building things
+`CoreTestSupport`'s (`importing`, `imported`, `engine(history:)`, `logged`, `days`, `warmUp`, the two
+rotations), and a one-line forward to the owner stays as a name. L8 is not built.
 
 Three v1.2 rules are worth knowing before touching anything:
 

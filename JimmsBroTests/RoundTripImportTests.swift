@@ -11,10 +11,6 @@ final class RoundTripImportTests: XCTestCase {
     private let now = CoreTestSupport.now
     private let settings = Settings()
 
-    private func imported(_ fixture: String) throws -> ImportResult {
-        PlanImport.run(try FixtureLoader.text(fixture), settings: settings, now: now)
-    }
-
     // TN7: the transitions, on the fixtures: a valid paste, the prompt, nothing, a reply cut
     // short, a plan in words, any other refusal, the fix, a built-in.
     func testAddPlansTransitions() throws {
@@ -39,7 +35,7 @@ final class RoundTripImportTests: XCTestCase {
         for fixture in ["invalid/prompt-pasted.txt", "invalid/empty.txt"] {
             var refused = ImportTrip()
             refused.sent()
-            refused.pasted(result: try imported(fixture))
+            refused.pasted(result: try CoreTestSupport.importing(fixture: fixture))
             XCTAssertEqual(refused.stage, .refused, fixture)
             XCTAssertEqual(refused.refusal?.fix, .paste, fixture)
             XCTAssertEqual(refused.strip.marks, [.done, .done, .now], fixture)
@@ -53,21 +49,21 @@ final class RoundTripImportTests: XCTestCase {
         // A reply cut short: asked for whole at Chat, or day by day.
         var cut = ImportTrip()
         cut.sent()
-        cut.pasted(result: try imported("invalid/truncated.txt"))
+        cut.pasted(result: try CoreTestSupport.importing(fixture: "invalid/truncated.txt"))
         XCTAssertEqual(cut.refusal?.fix, .chat)
         XCTAssertEqual(cut.strip.marks, [.done, .now, .todo])
         XCTAssertEqual(cut.buttons, TripButtons(primary: "Ask for the whole plan", secondary: "Copy the prompt"))
         XCTAssertEqual(cut.refusal?.offersDayByDay, true, "Get it day by day, a button of its own beneath")
         XCTAssertEqual(TripRefusal.dayByDay, "Get it day by day")
         XCTAssertEqual(cut.refusal?.sends, .wholePlan)
-        XCTAssertEqual(cut.prompt(settings: settings), Prompts.render(errors: try imported("invalid/truncated.txt").errors))
+        XCTAssertEqual(cut.prompt(settings: settings), Prompts.render(errors: try CoreTestSupport.importing(fixture: "invalid/truncated.txt").errors))
         XCTAssertEqual(cut.refusal?.sentences.first,
                        "The plan isn't complete — the chatbot's reply looks cut off. Ask it to send the whole plan again.",
                        "the refusal offers day by day exactly where IssueText says cut off")
 
         // A plan in words has not met the prompt yet: its sentence says to send it one (D55).
         var words = ImportTrip()
-        words.pasted(result: try imported("invalid/not-json-at-all.txt"))
+        words.pasted(result: try CoreTestSupport.importing(fixture: "invalid/not-json-at-all.txt"))
         XCTAssertEqual(words.refusal?.fix, .chat)
         XCTAssertEqual(words.buttons, .ask())
         XCTAssertEqual(words.refusal?.offersDayByDay, false)
@@ -76,7 +72,7 @@ final class RoundTripImportTests: XCTestCase {
         // Any other refusal: Ask for the whole plan, alone.
         for fixture in ["invalid/no-days.json", "invalid/multi-error.json", "invalid/cycle-unknown-day.json"] {
             var other = ImportTrip()
-            other.pasted(result: try imported(fixture))
+            other.pasted(result: try CoreTestSupport.importing(fixture: fixture))
             XCTAssertEqual(other.stage, .refused, fixture)
             XCTAssertEqual(other.refusal?.fix, .chat, fixture)
             XCTAssertEqual(other.buttons, TripButtons(primary: "Ask for the whole plan", secondary: "Copy the prompt"), fixture)
@@ -110,9 +106,9 @@ final class RoundTripImportTests: XCTestCase {
         XCTAssertEqual(trip.strip, TripStrip.of(.ask))
         trip.sent()
         XCTAssertEqual(trip.strip, TripStrip.of(.paste))
-        trip.pasted(result: try imported("invalid/no-days.json"))
+        trip.pasted(result: try CoreTestSupport.importing(fixture: "invalid/no-days.json"))
         XCTAssertEqual(trip.strip, TripStrip.of(.refused, fix: .chat))
-        trip.pasted(result: try imported("invalid/prompt-pasted.txt"))
+        trip.pasted(result: try CoreTestSupport.importing(fixture: "invalid/prompt-pasted.txt"))
         XCTAssertEqual(trip.strip, TripStrip.of(.refused, fix: .paste))
         trip.pasted(result: PlanImport.run(CoreTestSupport.planJSON(), settings: settings, now: now))
         XCTAssertEqual(trip.strip, TripStrip.of(.review))
@@ -336,19 +332,17 @@ final class RoundTripImportTests: XCTestCase {
         XCTAssertEqual(whole.buttons.primary, "Use Training")
 
         // The refusal that offers it is the cut-short one, and only that one.
-        let cut = TripRefusal.of(try imported("invalid/truncated.txt").errors, way: .wholePlanOrDayByDay)
+        let cut = TripRefusal.of(try CoreTestSupport.importing(fixture: "invalid/truncated.txt").errors, way: .wholePlanOrDayByDay)
         XCTAssertTrue(cut.offersDayByDay)
         for fixture in ["invalid/not-json-at-all.txt", "invalid/no-days.json", "invalid/prompt-pasted.txt", "invalid/empty.txt"] {
-            XCTAssertFalse(TripRefusal.of(try imported(fixture).errors, way: .wholePlanOrDayByDay).offersDayByDay, fixture)
+            XCTAssertFalse(TripRefusal.of(try CoreTestSupport.importing(fixture: fixture).errors, way: .wholePlanOrDayByDay).offersDayByDay, fixture)
         }
     }
 
     // TN13 (pin): Add plan's footers, Show text, Import file row and Build it day by day row are
     // gone from the source — and no title or placeholder says JSON.
     func testAddPlanLostItsInstructionManual() throws {
-        guard let source = FixtureLoader.doc("JimmsBro/Features/Import/ImportView.swift") else {
-            throw XCTSkip("ImportView.swift is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let source = try FixtureLoader.requiredDoc("JimmsBro/Features/Import/ImportView.swift")
         for gone in ["footer:", "Show text", "Import file", "Build it day by day", "Copy prompt\"", "\"Copied\"",
                      "Toggle(", "Review plan\"", "Save plan\""] {
             XCTAssertFalse(source.contains(gone), "ImportView still shows \(gone)")

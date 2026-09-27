@@ -172,7 +172,7 @@ final class BuiltInPlanTests: XCTestCase {
     func testEveryDayRunsInAboutAnHour() throws {
         // The picker's minutes under v1.2's defaults, warm-up and walk included. (D57, v1.6:
         // a fresh install's warm-up is off; the plans' own numbers are judged with it on.)
-        let v15 = Settings(warmUpSeconds: 300)
+        let v15 = CoreTestSupport.warmUp
         for entry in BuiltInPlans.all {
             let plan = try imported(entry)
             var minutes: [Int] = []

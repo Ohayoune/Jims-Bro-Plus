@@ -19,13 +19,7 @@ final class PromptPinningTests: XCTestCase {
     }
 
     /// The published prompt, or a skip when the checkout is out of reach (see `FixtureLoader.doc`).
-    private func document() throws -> String {
-        guard let text = FixtureLoader.doc("docs/PROMPT.md") else {
-            throw XCTSkip("docs/PROMPT.md is outside the simulator's sandbox; "
-                          + "this pin runs under `swift test` and `tools/check_core.py`")
-        }
-        return text
-    }
+    private func document() throws -> String { try FixtureLoader.requiredDoc("docs/PROMPT.md") }
 
     // M9: the plan prompt, placeholders and all.
     func testPlanPromptMatchesTheDocument() throws {

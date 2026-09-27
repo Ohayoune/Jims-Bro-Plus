@@ -14,17 +14,7 @@ final class ScheduleAnchorTests: XCTestCase {
     private func day(_ number: Int) -> Date { CoreTestSupport.date(number) }
 
     /// Push / Pull / Legs / rest, anchored to the 7th with Push just done.
-    private func plan() -> Plan {
-        var plan = Plan(name: "PPL", units: .kg, schedule: .rotation,
-                        days: [Day(name: "Push", exercises: []),
-                               Day(name: "Pull", exercises: []),
-                               Day(name: "Legs", exercises: [])],
-                        importedAt: day(1), sourceText: "",
-                        cycle: [.day(0), .day(1), .day(2), .rest])
-        plan.cyclePosition = 0                  // Push
-        plan.cycleAnchor = calendar.startOfDay(for: day(7))
-        return plan
-    }
+    private func plan() -> Plan { CoreTestSupport.fourDayRotation(anchor: 7, position: 0) }
 
     private func entry(_ plan: Plan, _ number: Int) -> CycleEntry? {
         PlanSchedule.entry(plan, on: day(number), today: day(8), calendar: calendar)?.entry

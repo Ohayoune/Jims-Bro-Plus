@@ -8,7 +8,7 @@ import XCTest
 /// app read here. One row per logged set, in the column order Strong writes and Hevy reads.
 final class HistoryCSVTests: XCTestCase {
     private let now = CoreTestSupport.now
-    private let utc = TimeZone(secondsFromGMT: 0)!
+    private let utc = CoreTestSupport.utc().timeZone
 
     /// Bench 10, 10, 8 @ 60 kg, then a second session a day later with one set skipped and a
     /// comma in its name, then a timed one.

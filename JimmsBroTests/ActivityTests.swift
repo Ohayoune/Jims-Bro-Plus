@@ -16,8 +16,8 @@ final class ActivityTests: XCTestCase {
     /// v1.2's defaults — the warm-up on — which these states were written against. (D57,
     /// v1.6: a fresh install's warm-up is off, so it is said here.)
     private func engine(_ plan: Plan = CoreTestSupport.plan(sets: 3, secondExercise: true),
-                        settings: Settings = Settings(warmUpSeconds: 300)) -> SessionEngine {
-        SessionEngine(session: CoreTestSupport.session(plan), settings: settings, now: now)
+                        settings: Settings = CoreTestSupport.warmUp) -> SessionEngine {
+        CoreTestSupport.engine(plan, settings: settings)
     }
 
     // Q64: a warm-up is a countdown with the first exercise named under it.

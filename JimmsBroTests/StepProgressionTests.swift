@@ -43,7 +43,6 @@ final class StepProgressionTests: XCTestCase {
         ], mode: mode)
     }
 
-    private func days(_ count: Int) -> Date { now.addingTimeInterval(Double(count) * 86_400) }
 
     /// A completed session of Push with every Bench set as given and every Plank held for
     /// `plankSeconds`, at `weight`.
@@ -67,10 +66,10 @@ final class StepProgressionTests: XCTestCase {
     func testStepsDoNotDependOnTheDate() {
         var p = progression()
         XCTAssertEqual(p.stepIndex(for: p.entries[0], on: now, calendar: calendar), 0)
-        XCTAssertEqual(p.stepIndex(for: p.entries[0], on: days(100), calendar: calendar), 0, "the calendar has nothing to say")
-        XCTAssertEqual(p.currentStep(on: days(100), calendar: calendar), 0)
-        XCTAssertFalse(p.isFinished(on: days(100), calendar: calendar))
-        XCTAssertEqual(ProgressionText.status(p, on: days(100), calendar: calendar), "Step 1 of 4")
+        XCTAssertEqual(p.stepIndex(for: p.entries[0], on: CoreTestSupport.days(100), calendar: calendar), 0, "the calendar has nothing to say")
+        XCTAssertEqual(p.currentStep(on: CoreTestSupport.days(100), calendar: calendar), 0)
+        XCTAssertFalse(p.isFinished(on: CoreTestSupport.days(100), calendar: calendar))
+        XCTAssertEqual(ProgressionText.status(p, on: CoreTestSupport.days(100), calendar: calendar), "Step 1 of 4")
 
         p.entries[0].step = 2
         p.entries[1].step = 1
@@ -90,9 +89,9 @@ final class StepProgressionTests: XCTestCase {
 
         // The calendar mode is what it was in v1.3.
         let c = progression(mode: .calendar)
-        XCTAssertEqual(c.stepIndex(for: c.entries[0], on: days(8), calendar: calendar), 1)
-        XCTAssertEqual(ProgressionText.status(c, on: days(8), calendar: calendar), "Week 2 of 4")
-        XCTAssertTrue(c.isFinished(on: days(28), calendar: calendar))
+        XCTAssertEqual(c.stepIndex(for: c.entries[0], on: CoreTestSupport.days(8), calendar: calendar), 1)
+        XCTAssertEqual(ProgressionText.status(c, on: CoreTestSupport.days(8), calendar: calendar), "Week 2 of 4")
+        XCTAssertTrue(c.isFinished(on: CoreTestSupport.days(28), calendar: calendar))
     }
 
     // Z19: each entry's own step is applied, a `{}` step still counts, and the session says
@@ -107,7 +106,7 @@ final class StepProgressionTests: XCTestCase {
         XCTAssertEqual(applied.day.exercises[0].sets.map(\.weight), [62.5, 62.5, 62.5])
         XCTAssertEqual(applied.day.exercises[1].sets.map(\.work), Array(repeating: .duration(seconds: 50), count: 3))
 
-        let session = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: days(100), calendar: calendar))
+        let session = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: CoreTestSupport.days(100), calendar: calendar))
         XCTAssertEqual(session.exercises[0].progressionWeek, 2)
         XCTAssertEqual(session.exercises[1].progressionWeek, 1)
         XCTAssertEqual(session.progressionWeek, 1, "the lowest")
@@ -124,7 +123,7 @@ final class StepProgressionTests: XCTestCase {
         // In calendar mode a `{}` week touches nothing, as in v1.3 (W33).
         var c = plan
         c.progression = progression(mode: .calendar)
-        let week3 = try XCTUnwrap(Session.start(plan: c, dayIndex: 0, now: days(15), calendar: calendar))
+        let week3 = try XCTUnwrap(Session.start(plan: c, dayIndex: 0, now: CoreTestSupport.days(15), calendar: calendar))
         XCTAssertNil(week3.exercises[0].progressionWeek)
         XCTAssertNil(week3.progressionMode, "nothing applied, nothing recorded")
 

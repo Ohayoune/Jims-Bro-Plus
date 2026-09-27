@@ -7,9 +7,9 @@ import XCTest
 #endif
 
 final class ImportTests: XCTestCase {
-    static var calendar: Calendar { var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone(secondsFromGMT: 0)!; return c }
-    static let now = Date(timeIntervalSince1970: 1_788_480_000) // Date supplied below from manifest components.
-    static var fixtureDate: Date { calendar.date(from: DateComponents(year: 2026, month: 9, day: 4))! }
+    static var calendar: Calendar { CoreTestSupport.utc() }
+    /// The manifest's `today`, 2026-09-04, at midnight UTC.
+    static var fixtureDate: Date { CoreTestSupport.date(4, hour: 0) }
     func run(_ text: String, units: WeightUnit = .kg) -> ImportResult { PlanImport.run(text, settings: Settings(units: units), now: Self.fixtureDate, calendar: Self.calendar) }
     func object(_ value: Any) throws -> String { String(decoding: try JSONSerialization.data(withJSONObject: value, options: [.sortedKeys,.fragmentsAllowed]), as: UTF8.self) }
     func plan(_ fields: [String: Any]) throws -> ImportResult {

@@ -32,8 +32,65 @@ enum CoreTestSupport {
     /// being rewritten to expect the new defaults. `warmUpSeconds` and `transitionRestSeconds`
     /// have their own tests (WarmUpAndTransitionTests).
     static let classic = Settings(warmUpSeconds: 0, transitionRestSeconds: 0)
-    static func engine(_ plan: Plan = plan(), settings: Settings = classic) -> SessionEngine {
-        SessionEngine(session:session(plan),settings:settings,now:now)
+    /// v1.2's defaults, the warm-up on: 5 min of it, 2 min between exercises. D57 (v1.6) turned
+    /// a fresh install's warm-up off, so the tests written against these say so.
+    static let warmUp = Settings(warmUpSeconds: 300)
+    static func engine(_ plan: Plan = plan(), settings: Settings = classic, history: [Session] = []) -> SessionEngine {
+        SessionEngine(session:session(plan),settings:settings,history:history,now:now)
+    }
+    /// Three exercises of two sets each, 50 kg, 8–12, 60 s rest, so a block has somewhere to go.
+    static func threeExercises(group: String? = nil) -> Plan {
+        let target = SetTarget(work: .reps(.range(min: 8, max: 12)), weight: 50, restSeconds: 60)
+        let exercises = ["Bench Press", "Row", "Squat"].map {
+            Exercise(name: $0, group: group, repRange: RepRange(min: 8, max: 12), sets: [target, target])
+        }
+        return Plan(name: "Full", units: .kg, schedule: .rotation, days: [Day(name: "All", exercises: exercises)],
+                    importedAt: now, sourceText: "", cycle: [.day(0)])
+    }
+    /// The exercise of every step, in the order the session will do them.
+    static func stepNames(_ engine: SessionEngine) -> [String] {
+        engine.session.steps.map { engine.session.exercises[$0.exerciseIndex].name }
+    }
+    /// A day `count` days from `now`; negative for days back.
+    static func days(_ count: Int) -> Date { now.addingTimeInterval(Double(count) * 86_400) }
+    /// One exercise logged with the given reps and weights, `daysAgo` days back: a set every
+    /// 100 s, each taking 40 s.
+    static func logged(_ reps: [Int], _ weights: [Double?], daysAgo: Int, units: WeightUnit = .kg, bodyweight: Bool = false) -> Session {
+        var plan = plan(sets: reps.count, bodyweight: bodyweight)
+        plan.units = units
+        var s = session(plan, start: days(-daysAgo))
+        s.units = units
+        for i in s.steps.indices {
+            s.steps[i].status = .logged
+            s.steps[i].result = .reps(count: reps[i], weight: bodyweight ? nil : weights[i])
+            s.steps[i].startedAt = s.startedAt.addingTimeInterval(Double(i) * 100)
+            s.steps[i].loggedAt = s.startedAt.addingTimeInterval(Double(i) * 100 + 40)
+        }
+        s.endedAt = s.steps.last?.loggedAt
+        return s
+    }
+    /// Push / Pull / Legs / rest / Push / Pull / Legs, one set of 5 at 60 kg each, imported on
+    /// the 1st and anchored with Push done on the 7th.
+    static func sevenDayRotation() -> Plan {
+        let set = SetTarget(work: .reps(.fixed(5)), weight: 60, restSeconds: 90)
+        func day(_ name: String, _ exercise: String) -> Day { Day(name: name, exercises: [Exercise(name: exercise, sets: [set])]) }
+        var plan = Plan(name: "Push Pull Legs", units: .kg, schedule: .rotation,
+                        days: [day("Push", "Bench Press"), day("Pull", "Row"), day("Legs", "Squat")],
+                        importedAt: date(1), sourceText: "",
+                        cycle: [.day(0), .day(1), .day(2), .rest, .day(0), .day(1), .day(2)])
+        plan.cyclePosition = 0
+        plan.cycleAnchor = utc().startOfDay(for: date(7))
+        return plan
+    }
+    /// Push / Pull / Legs / rest with no exercises, imported on the `imported`th, at `position`
+    /// since the `anchor`th.
+    static func fourDayRotation(anchor: Int?, position: Int? = nil, imported: Int = 1) -> Plan {
+        var plan = Plan(name: "PPL", units: .kg, schedule: .rotation,
+                        days: [Day(name: "Push", exercises: []), Day(name: "Pull", exercises: []), Day(name: "Legs", exercises: [])],
+                        importedAt: date(imported), sourceText: "", cycle: [.day(0), .day(1), .day(2), .rest])
+        plan.cyclePosition = position
+        plan.cycleAnchor = anchor.map { utc().startOfDay(for: date($0)) }
+        return plan
     }
     /// A one-day plan as JSON, so tests exercise the real import (resolved rest, warning offsets).
     static func planJSON(exercise: String = #"{ "name": "Bench Press", "sets": 3, "reps": "8-12", "repRange": "8-12", "weight": 60, "restSeconds": 90 }"#) -> String {
@@ -41,6 +98,18 @@ enum CoreTestSupport {
         { "schemaVersion": 1, "name": "Training", "units": "kg", "schedule": "rotation",
           "cycle": ["Push"], "days": [ { "name": "Push", "exercises": [ \(exercise) ] } ] }
         """
+    }
+    /// A paste through the real importer, with the default settings.
+    static func importing(_ text: String) -> ImportResult { PlanImport.run(text, settings: Settings(), now: now) }
+    static func importing(fixture path: String) throws -> ImportResult { importing(try FixtureLoader.text(path)) }
+    /// The plan a paste makes, or a failure that names its issues.
+    static func imported(_ text: String, file: StaticString = #filePath, line: UInt = #line) throws -> Plan {
+        let result = importing(text)
+        return try XCTUnwrap(result.plan, "\(result.issues)", file: file, line: line)
+    }
+    static func imported(fixture path: String, file: StaticString = #filePath, line: UInt = #line) throws -> Plan {
+        let result = try importing(fixture: path)
+        return try XCTUnwrap(result.plan, "\(path): \(result.issues)", file: file, line: line)
     }
     /// A fresh, empty store directory, and the way to get rid of it. Every store-backed test
     /// wants one; eight files had pasted their own copy.

@@ -64,9 +64,7 @@ final class IntroductionTests: XCTestCase {
             ("Add plan", "JimmsBro/Features/Plans/PlansView.swift", "Button(\"Add plan\") { addPlan = .plan }"),
         ]
         for pin in literals {
-            guard let source = FixtureLoader.doc(pin.file) else {
-                throw XCTSkip("\(pin.file) is outside the simulator's sandbox; this pin runs on the host routes")
-            }
+            let source = try FixtureLoader.requiredDoc(pin.file)
             XCTAssertTrue(source.contains(pin.literal), "\(pin.file) no longer has \(pin.literal)")
             XCTAssertTrue(Introduction.namedControls.contains(pin.control))
         }

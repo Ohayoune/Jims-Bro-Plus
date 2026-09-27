@@ -1,4 +1,7 @@
 import Foundation
+#if !CORE_CHECKS
+import XCTest
+#endif
 
 /// Reads the folder reference in the test bundle, independent of the checkout path.
 enum FixtureLoader {
@@ -6,8 +9,7 @@ enum FixtureLoader {
 
     static func data(_ path: String) throws -> Data {
         #if CORE_CHECKS
-        let root = URL(fileURLWithPath: ProcessInfo.processInfo.environment["JIMMSBRO_FIXTURE_ROOT"] ?? FileManager.default.currentDirectoryPath)
-        return try Data(contentsOf: root.appendingPathComponent("examples").appendingPathComponent(path))
+        return try Data(contentsOf: sourceRoot.appendingPathComponent("examples").appendingPathComponent(path))
         #else
         #if SWIFT_PACKAGE
         let bundle = Bundle.module
@@ -69,6 +71,52 @@ enum FixtureLoader {
     /// and `tools/check_core.py`, both of which execute on the host).
     static func doc(_ path: String) -> String? {
         try? String(contentsOf: sourceRoot.appendingPathComponent(path), encoding: .utf8)
+    }
+
+    /// A document a pin needs, or the skip that says the pin runs on the host routes.
+    static func requiredDoc(_ path: String) throws -> String {
+        guard let text = doc(path) else { throw outOfReach(path) }
+        return text
+    }
+
+    /// Every Swift file of the app target, as (path relative to the checkout, contents), or the
+    /// skip when the checkout is out of reach.
+    static func swiftSources() throws -> [(path: String, text: String)] {
+        let app = sourceRoot.appendingPathComponent("JimmsBro")
+        var out: [(String, String)] = []
+        if let walk = FileManager.default.enumerator(at: app, includingPropertiesForKeys: nil) {
+            for case let url as URL in walk where url.pathExtension == "swift" {
+                let path = url.path.replacingOccurrences(of: sourceRoot.path + "/", with: "")
+                out.append((path, try String(contentsOf: url, encoding: .utf8)))
+            }
+        }
+        guard !out.isEmpty else { throw outOfReach("JimmsBro/") }
+        return out
+    }
+
+    /// The lines under a heading that starts with `heading`, up to the next heading that starts
+    /// with `until`.
+    static func section(_ text: String, _ heading: String, until: String = "#") throws -> String {
+        let lines = text.components(separatedBy: "\n")
+        let start = try XCTUnwrap(lines.firstIndex { $0.hasPrefix(heading) }, "no \(heading)")
+        return lines[(start + 1)...].prefix { !$0.hasPrefix(until) }.joined(separator: "\n")
+    }
+
+    /// The text from `start` up to and including the first `end` after it.
+    static func block(_ text: String, from start: String, to end: String) -> String? {
+        guard let head = text.range(of: start),
+              let tail = text.range(of: end, range: head.upperBound..<text.endIndex) else { return nil }
+        return String(text[head.lowerBound..<tail.upperBound])
+    }
+
+    /// Source text without its comment lines, so a pin reads the code and not what it says.
+    static func withoutComments(_ source: String) -> String {
+        source.split(separator: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+            .joined(separator: "\n")
+    }
+
+    private static func outOfReach(_ path: String) -> XCTSkip {
+        XCTSkip("\(path) is outside the simulator's sandbox; this pin runs on the host routes")
     }
 
     static func manifest() throws -> FixtureManifest {

@@ -7,7 +7,7 @@ import XCTest
 /// v1.12 (D96): one owner for each piece of logic. Where two copies disagreed, these pin the side
 /// that won, so a copy that grows back and drifts shows up here.
 final class OneOwnerTests: XCTestCase {
-    private let settings = Settings(warmUpSeconds: 0, transitionRestSeconds: 0)
+    private let settings = CoreTestSupport.classic
 
     private func step(_ fields: String) -> ProgressionImport.Result {
         let reply = #"{ "steps": 1, "exercises": [ { "name": "Bench Press", "steps": [ "# + fields + #" ] } ] }"#
@@ -282,10 +282,8 @@ final class OneOwnerTests: XCTestCase {
         }
         XCTAssertEqual(ExerciseNames.known(plans: [], history: [session], query: "").count, 2, "History's alone")
 
-        guard let history = FixtureLoader.doc("JimmsBro/Features/History/HistoryView.swift"),
-              let change = FixtureLoader.doc("JimmsBro/Features/Workout/ChangeExerciseSheet.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let history = try FixtureLoader.requiredDoc("JimmsBro/Features/History/HistoryView.swift")
+        let change = try FixtureLoader.requiredDoc("JimmsBro/Features/Workout/ChangeExerciseSheet.swift")
         for source in [history, change] {
             XCTAssertTrue(source.contains("ExerciseNames.known(plans: [], history: model.sessions"))
         }
@@ -319,8 +317,7 @@ final class OneOwnerTests: XCTestCase {
     private let now = CoreTestSupport.now
 
     private func engine(_ plan: Plan, walk: Int = 0) -> SessionEngine {
-        SessionEngine(session: CoreTestSupport.session(plan),
-                      settings: Settings(warmUpSeconds: 0, transitionRestSeconds: walk), now: now)
+        CoreTestSupport.engine(plan, settings: Settings(warmUpSeconds: 0, transitionRestSeconds: walk))
     }
 
     // TL14: the rest after a set is the engine's (§6.3). An exercise on its own that still carries a
@@ -519,10 +516,8 @@ final class OneOwnerTests: XCTestCase {
         XCTAssertEqual(WorkoutActivityState.of(engine.active, now: now)?.done, SessionStats.finishedCount(engine.session))
         XCTAssertEqual(WorkoutStage.progress(engine.session), 0.25)
 
-        guard let overview = FixtureLoader.doc("JimmsBro/Features/Overview/OverviewView.swift"),
-              let detail = FixtureLoader.doc("JimmsBro/Features/SessionDetail/SessionDetailView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let overview = try FixtureLoader.requiredDoc("JimmsBro/Features/Overview/OverviewView.swift")
+        let detail = try FixtureLoader.requiredDoc("JimmsBro/Features/SessionDetail/SessionDetailView.swift")
         for source in [overview, detail] {
             XCTAssertTrue(source.contains("SessionBlocks.blocks(session)"))
             XCTAssertFalse(source.contains("SessionBlocks.indices"))
@@ -530,10 +525,6 @@ final class OneOwnerTests: XCTestCase {
     }
 
     // MARK: - L5: the chatbot screens
-
-    private func imported(_ fixture: String) throws -> ImportResult {
-        PlanImport.run(try FixtureLoader.text(fixture), settings: settings, now: now)
-    }
 
     // TL22: one refusal for every trip screen (`TripRefusal`), which differ only in their way back.
     // The prompt pasted, or nothing, is fixed at Paste everywhere by the screen's own prompt; the
@@ -544,7 +535,7 @@ final class OneOwnerTests: XCTestCase {
     func testOneRefusalForEveryTripScreen() throws {
         let ways: [TripRefusal.WayBack] = [.prompt, .wholePlan, .wholePlanOrDayByDay]
         for fixture in ["invalid/prompt-pasted.txt", "invalid/empty.txt"] {
-            let issues = try imported(fixture).issues
+            let issues = try CoreTestSupport.importing(fixture: fixture).issues
             for way in ways {
                 let refusal = TripRefusal.of(issues, way: way)
                 XCTAssertEqual(refusal.fix, .paste, "\(fixture), \(way)")
@@ -552,8 +543,8 @@ final class OneOwnerTests: XCTestCase {
                 XCTAssertEqual(refusal.buttons(prompt: "the outline prompt"), .ask("the outline prompt"))
             }
         }
-        let cut = try imported("invalid/truncated.txt").issues
-        let words = try imported("invalid/not-json-at-all.txt").issues
+        let cut = try CoreTestSupport.importing(fixture: "invalid/truncated.txt").issues
+        let words = try CoreTestSupport.importing(fixture: "invalid/not-json-at-all.txt").issues
         XCTAssertEqual(ways.map { TripRefusal.of(cut, way: $0).sends }, [.prompt, .wholePlan, .wholePlan])
         XCTAssertEqual(ways.map { TripRefusal.of(cut, way: $0).offersDayByDay }, [false, false, true])
         XCTAssertEqual(ways.map { TripRefusal.of(words, way: $0).sends }, [.prompt, .wholePlan, .prompt])
@@ -620,11 +611,9 @@ final class OneOwnerTests: XCTestCase {
         XCTAssertEqual([TripMenuItem.sendAgain, .openFile, .keepWithoutUsing, .discardDraft, .keepCurrent,
                         .removeProgression, .editText].filter(\.isDestructive), [.discardDraft, .removeProgression])
 
-        guard let add = FixtureLoader.doc("JimmsBro/Features/Import/ImportView.swift"),
-              let changing = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ChangePlanView.swift"),
-              let planning = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ProgressionView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let add = try FixtureLoader.requiredDoc("JimmsBro/Features/Import/ImportView.swift")
+        let changing = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/ChangePlanView.swift")
+        let planning = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/ProgressionView.swift")
         for (name, source) in [("ImportView", add), ("ChangePlanView", changing), ("ProgressionView", planning)] {
             XCTAssertTrue(source.contains("TripMenu(items: "), "\(name) builds its own ···")
             XCTAssertFalse(source.contains("Menu {"), "\(name) builds its own ···")
@@ -639,9 +628,9 @@ final class OneOwnerTests: XCTestCase {
     func testCoreChoosesThePrompt() throws {
         var add = ImportTrip()
         XCTAssertEqual(add.prompt(settings: settings), Prompts.render(settings: settings))
-        add.pasted(result: try imported("invalid/no-days.json"))
-        XCTAssertEqual(add.prompt(settings: settings), Prompts.render(errors: try imported("invalid/no-days.json").errors))
-        add.pasted(result: try imported("invalid/not-json-at-all.txt"))
+        add.pasted(result: try CoreTestSupport.importing(fixture: "invalid/no-days.json"))
+        XCTAssertEqual(add.prompt(settings: settings), Prompts.render(errors: try CoreTestSupport.importing(fixture: "invalid/no-days.json").errors))
+        add.pasted(result: try CoreTestSupport.importing(fixture: "invalid/not-json-at-all.txt"))
         XCTAssertEqual(add.prompt(settings: settings), Prompts.render(settings: settings), "a plan in words meets the prompt")
 
         let plan = CoreTestSupport.plan()
@@ -653,14 +642,12 @@ final class OneOwnerTests: XCTestCase {
                                            mode: ProgressionScreen.defaultMode))
         XCTAssertEqual(ProgressionScreen.subject(plan), "Progression for \(plan.name)")
 
-        guard let add = FixtureLoader.doc("JimmsBro/Features/Import/ImportView.swift"),
-              let changing = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ChangePlanView.swift"),
-              let planning = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ProgressionView.swift"),
-              let drafts = FixtureLoader.doc("JimmsBro/Store/DraftModel.swift"),
-              let progressions = FixtureLoader.doc("JimmsBro/Store/ProgressionModel.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
-        for (name, source) in [("ImportView", add), ("ChangePlanView", changing), ("ProgressionView", planning)] {
+        let addView = try FixtureLoader.requiredDoc("JimmsBro/Features/Import/ImportView.swift")
+        let changing = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/ChangePlanView.swift")
+        let planning = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/ProgressionView.swift")
+        let drafts = try FixtureLoader.requiredDoc("JimmsBro/Store/DraftModel.swift")
+        let progressions = try FixtureLoader.requiredDoc("JimmsBro/Store/ProgressionModel.swift")
+        for (name, source) in [("ImportView", addView), ("ChangePlanView", changing), ("ProgressionView", planning)] {
             XCTAssertFalse(source.contains("Prompts."), "\(name) chooses a prompt itself")
             XCTAssertFalse(source.contains("subject: \""), "\(name) writes the share sheet's subject itself")
         }
@@ -703,10 +690,8 @@ final class OneOwnerTests: XCTestCase {
         XCTAssertEqual(saved.progression, plan.progression)
         XCTAssertEqual(PlanImport.run(silent, settings: Settings(), now: now).planKeepingUnits(of: plan)?.units, .lb)
 
-        guard let add = FixtureLoader.doc("JimmsBro/Features/Import/ImportView.swift"),
-              let detail = FixtureLoader.doc("JimmsBro/Features/PlanDetail/PlanDetailView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let add = try FixtureLoader.requiredDoc("JimmsBro/Features/Import/ImportView.swift")
+        let detail = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/PlanDetailView.swift")
         for file in ["ImportTrip", "DraftTrip", "ChangeRequest", "ProgressionScreen"] {
             let source = try XCTUnwrap(FixtureLoader.doc("JimmsBro/Core/\(file).swift"))
             XCTAssertFalse(source.contains("JSONPoint("), "\(file) builds a sheet itself")
@@ -738,22 +723,18 @@ final class OneOwnerTests: XCTestCase {
         trip.pasted((taken, []), settings: settings, now: now)
         XCTAssertEqual(trip.preview?.days.map { $0.exercises.map(\.name) }, [["Squat"], []])
 
-        guard let add = FixtureLoader.doc("JimmsBro/Features/Import/ImportView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let add = try FixtureLoader.requiredDoc("JimmsBro/Features/Import/ImportView.swift")
         XCTAssertFalse(add.contains("preview(settings"), "Add plan reads the draft again each time it draws")
     }
 
     // TL27: the chatbot screens' shared parts are drawn once, in Features/Shared — the refusal and
     // its Details, Worth knowing, the tidying, the Paste button.
     func testTheChatbotScreensShareTheirParts() throws {
-        guard let parts = FixtureLoader.doc("JimmsBro/Features/Shared/TripParts.swift"),
-              let add = FixtureLoader.doc("JimmsBro/Features/Import/ImportView.swift"),
-              let changing = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ChangePlanView.swift"),
-              let planning = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ProgressionView.swift"),
-              let sheet = FixtureLoader.doc("JimmsBro/Features/PlanDetail/JSONFragmentSheet.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let parts = try FixtureLoader.requiredDoc("JimmsBro/Features/Shared/TripParts.swift")
+        let add = try FixtureLoader.requiredDoc("JimmsBro/Features/Import/ImportView.swift")
+        let changing = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/ChangePlanView.swift")
+        let planning = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/ProgressionView.swift")
+        let sheet = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/JSONFragmentSheet.swift")
         for literal in ["issue.code) · ", "Section(\"Worth knowing\")", "DisclosureGroup(\"Details", "PasteButton(payloadType"] {
             XCTAssertTrue(parts.contains(literal), "the shared parts lost \(literal)")
         }
@@ -792,10 +773,8 @@ final class OneOwnerTests: XCTestCase {
         XCTAssertEqual(lines, SummaryText.exercises(today, history: [before]),
                        "the session itself in the history changes nothing")
 
-        guard let summary = FixtureLoader.doc("JimmsBro/Features/Summary/SummaryView.swift"),
-              let detail = FixtureLoader.doc("JimmsBro/Features/SessionDetail/SessionDetailView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let summary = try FixtureLoader.requiredDoc("JimmsBro/Features/Summary/SummaryView.swift")
+        let detail = try FixtureLoader.requiredDoc("JimmsBro/Features/SessionDetail/SessionDetailView.swift")
         for owner in ["SummaryText.headline(", "SummaryText.exercises("] {
             XCTAssertTrue(summary.contains(owner), "the Summary no longer draws \(owner)")
         }
@@ -844,9 +823,7 @@ final class OneOwnerTests: XCTestCase {
         let day = CoreTestSupport.plan(secondExercise: true).days[0]
         XCTAssertEqual(weekly.entries(on: day).map(\.exercise.name), ["Bench Press", "Row"], "in the day's order")
 
-        guard let view = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ProgressionView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let view = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/ProgressionView.swift")
         for gone in ["exercises done", "\"This step: \"", "\"This week: \"", "compactMap { exercise ->", "weeks.count"] {
             XCTAssertFalse(view.contains(gone), "ProgressionView works out \(gone) itself again")
         }
@@ -874,10 +851,7 @@ final class OneOwnerTests: XCTestCase {
         XCTAssertEqual(RestoreText.title(nil), "Restore this backup?")
         XCTAssertTrue(RestoreText.title(one).hasPrefix("Backup from "))
 
-        let sources = try TripTests.swiftSources()
-        guard !sources.isEmpty else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let sources = try FixtureLoader.swiftSources()
         let plurals = sources.filter { $0.text.contains("== 1 ? \"\" : \"s\"") }.map(\.path)
         XCTAssertEqual(plurals, ["JimmsBro/Core/Stats.swift"], "a plural spelled out again")
         let settings = try XCTUnwrap(sources.first { $0.path.hasSuffix("Settings/SettingsView.swift") }).text
@@ -895,10 +869,7 @@ final class OneOwnerTests: XCTestCase {
                        "You're in the middle of Push (1 of 3 sets). Switching workouts mid-session isn't recommended.")
         XCTAssertEqual(SessionSwitch.prompt(nil), "Switch workout?")
 
-        let sources = try TripTests.swiftSources()
-        guard !sources.isEmpty else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let sources = try FixtureLoader.swiftSources()
         let asking = sources.filter { $0.text.contains("\"Discard and start\"") }.map(\.path)
         XCTAssertEqual(asking, ["JimmsBro/Features/Shared/Presenting.swift"], "the switch alert is drawn twice again")
         let catching = sources.filter { $0.text.contains("LibraryError.sessionInProgress")
@@ -916,10 +887,7 @@ final class OneOwnerTests: XCTestCase {
     // TL32: the views' small repeats, once — an optional as a presentation's flag, the alert that
     // only says why, and one share sheet for the prompt, the backup and the CSV.
     func testTheViewsSmallRepeatsAreOnce() throws {
-        let sources = try TripTests.swiftSources()
-        guard !sources.isEmpty else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let sources = try FixtureLoader.swiftSources()
         let shared = "JimmsBro/Features/Shared/Presenting.swift"
         let flags = sources.filter { $0.text.contains("!= nil }, set: { if !$0") }.map(\.path)
         XCTAssertEqual(flags, [], "an optional bound to a flag by hand again")
@@ -956,10 +924,8 @@ final class OneOwnerTests: XCTestCase {
         XCTAssertNil(refused.plan, "a refusal part-way saves none of it")
         XCTAssertEqual(refused.errors.map(\.code), ["E_EDIT_INVALID"])
 
-        guard let sheet = FixtureLoader.doc("JimmsBro/Features/PlanDetail/ExerciseEditSheet.swift"),
-              let detail = FixtureLoader.doc("JimmsBro/Features/PlanDetail/PlanDetailView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let sheet = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/ExerciseEditSheet.swift")
+        let detail = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/PlanDetailView.swift")
         XCTAssertFalse(sheet.contains("for change in changes"), "the sheet commits a field at a time again")
         XCTAssertTrue(detail.contains(".editExercise("))
     }

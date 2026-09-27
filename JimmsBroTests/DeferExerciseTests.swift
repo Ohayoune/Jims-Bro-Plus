@@ -9,29 +9,13 @@ import XCTest
 final class DeferExerciseTests: XCTestCase {
     private let now = CoreTestSupport.now
 
-    /// Three exercises of two sets each, so a deferred block has somewhere to go.
-    private func plan(group: String? = nil) -> Plan {
-        let target = SetTarget(work: .reps(.range(min: 8, max: 12)), weight: 50, restSeconds: 60)
-        let exercises = ["Bench Press", "Row", "Squat"].map {
-            Exercise(name: $0, group: group, repRange: RepRange(min: 8, max: 12),
-                     sets: [target, target])
-        }
-        return Plan(name: "Full", units: .kg, schedule: .rotation,
-                    days: [Day(name: "All", exercises: exercises)],
-                    importedAt: now, sourceText: "", cycle: [.day(0)])
-    }
-
-    private func names(_ engine: SessionEngine) -> [String] {
-        engine.session.steps.map { engine.session.exercises[$0.exerciseIndex].name }
-    }
-
     // G61: the block's pending steps move after the last pending step of the day.
     func testDeferMovesTheBlockToTheEnd() throws {
-        var engine = SessionEngine(session: CoreTestSupport.session(plan()), settings: CoreTestSupport.classic, now: now)
-        XCTAssertEqual(names(engine), ["Bench Press", "Bench Press", "Row", "Row", "Squat", "Squat"])
+        var engine = CoreTestSupport.engine(CoreTestSupport.threeExercises())
+        XCTAssertEqual(CoreTestSupport.stepNames(engine), ["Bench Press", "Bench Press", "Row", "Row", "Squat", "Squat"])
 
         engine.apply(.deferExercise(exerciseIndex: 0), now: now)
-        XCTAssertEqual(names(engine), ["Row", "Row", "Squat", "Squat", "Bench Press", "Bench Press"])
+        XCTAssertEqual(CoreTestSupport.stepNames(engine), ["Row", "Row", "Squat", "Squat", "Bench Press", "Bench Press"])
         XCTAssertEqual(engine.phase, .working(step: 0), "the next exercise is already on screen")
         XCTAssertEqual(engine.session.exercises[engine.session.steps[0].exerciseIndex].name, "Row")
         // `blockIndex` still identifies the block; only the order changed.
@@ -41,14 +25,14 @@ final class DeferExerciseTests: XCTestCase {
 
     // G62: a partly-done exercise takes only what is left with it, and keeps what was logged.
     func testDeferKeepsLoggedSetsInPlace() throws {
-        var engine = SessionEngine(session: CoreTestSupport.session(plan()), settings: CoreTestSupport.classic, now: now)
+        var engine = CoreTestSupport.engine(CoreTestSupport.threeExercises())
         engine.apply(.logSet(step: 0, result: .reps(count: 10, weight: 50)), now: now)
         engine.apply(.skipRest, now: now.addingTimeInterval(10))
         XCTAssertEqual(engine.phase, .working(step: 1))
 
         engine.apply(.deferExercise(exerciseIndex: 0), now: now.addingTimeInterval(20))
         // The whole block moves, logged set included, so the exercise stays one thing.
-        XCTAssertEqual(names(engine), ["Row", "Row", "Squat", "Squat", "Bench Press", "Bench Press"])
+        XCTAssertEqual(CoreTestSupport.stepNames(engine), ["Row", "Row", "Squat", "Squat", "Bench Press", "Bench Press"])
         XCTAssertEqual(engine.session.steps[4].status, .logged)
         XCTAssertEqual(engine.session.steps[4].result, .reps(count: 10, weight: 50))
         XCTAssertEqual(engine.session.steps[5].status, .pending)
@@ -60,7 +44,7 @@ final class DeferExerciseTests: XCTestCase {
 
     // G63: deferring out of a rest cancels it; deferring clears a block-done strip.
     func testDeferCancelsRestAndClearsTheStrip() throws {
-        var engine = SessionEngine(session: CoreTestSupport.session(plan()), settings: CoreTestSupport.classic, now: now)
+        var engine = CoreTestSupport.engine(CoreTestSupport.threeExercises())
         engine.apply(.logSet(step: 0, result: .reps(count: 10, weight: 50)), now: now)
         guard case .resting = engine.phase else { return XCTFail("expected a rest") }
 
@@ -71,7 +55,7 @@ final class DeferExerciseTests: XCTestCase {
         guard case .working = engine.phase else { return XCTFail("deferring resumes work") }
 
         // And a block-done strip does not survive the reorder it no longer describes.
-        var second = SessionEngine(session: CoreTestSupport.session(plan()), settings: CoreTestSupport.classic, now: now)
+        var second = CoreTestSupport.engine(CoreTestSupport.threeExercises())
         second.apply(.logSet(step: 0, result: .reps(count: 10, weight: 50)), now: now)
         second.apply(.skipRest, now: now)
         second.apply(.logSet(step: 1, result: .reps(count: 10, weight: 50)), now: now)
@@ -82,7 +66,7 @@ final class DeferExerciseTests: XCTestCase {
 
     // G64: the cases where there is nothing to do, and the superset that moves as one.
     func testDeferIsANoOpWhenItWouldChangeNothing() throws {
-        var engine = SessionEngine(session: CoreTestSupport.session(plan()), settings: CoreTestSupport.classic, now: now)
+        var engine = CoreTestSupport.engine(CoreTestSupport.threeExercises())
 
         // Nothing pending outside this block: deferring the last exercise moves it nowhere.
         for step in 0..<4 {
@@ -93,27 +77,27 @@ final class DeferExerciseTests: XCTestCase {
         XCTAssertEqual(engine.session.steps, before)
 
         // An exercise with nothing left pending has nothing to defer either.
-        var done = SessionEngine(session: CoreTestSupport.session(plan()), settings: CoreTestSupport.classic, now: now)
+        var done = CoreTestSupport.engine(CoreTestSupport.threeExercises())
         done.apply(.skipSet(step: 0), now: now)
         done.apply(.skipSet(step: 1), now: now)
         XCTAssertTrue(done.apply(.deferExercise(exerciseIndex: 0), now: now).isEmpty)
         XCTAssertTrue(done.apply(.deferExercise(exerciseIndex: 99), now: now).isEmpty)
 
         // A superset moves as one block: its members are one station.
-        var superset = SessionEngine(session: CoreTestSupport.session(plan(group: "A")), settings: CoreTestSupport.classic, now: now)
+        var superset = CoreTestSupport.engine(CoreTestSupport.threeExercises(group: "A"))
         let blocks = Set(superset.session.steps.map(\.blockIndex))
         XCTAssertEqual(blocks.count, 1, "one group means one block, so there is nowhere to move")
         XCTAssertTrue(superset.apply(.deferExercise(exerciseIndex: 0), now: now).isEmpty)
 
         // And a completed session refuses it outright.
-        var finished = SessionEngine(session: CoreTestSupport.session(plan()), settings: CoreTestSupport.classic, now: now)
+        var finished = CoreTestSupport.engine(CoreTestSupport.threeExercises())
         finished.apply(.finish, now: now)
         XCTAssertTrue(finished.apply(.deferExercise(exerciseIndex: 0), now: now).isEmpty)
     }
 
     // G61: the overview's block order follows the steps, not `blockIndex`.
     func testOverviewOrderFollowsTheDeferredSteps() throws {
-        var engine = SessionEngine(session: CoreTestSupport.session(plan()), settings: CoreTestSupport.classic, now: now)
+        var engine = CoreTestSupport.engine(CoreTestSupport.threeExercises())
         engine.apply(.deferExercise(exerciseIndex: 0), now: now)
         let session = engine.session
         let ordered = Dictionary(grouping: session.steps.indices, by: { session.steps[$0].blockIndex })

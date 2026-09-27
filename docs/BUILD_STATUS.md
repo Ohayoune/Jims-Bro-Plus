@@ -1,10 +1,42 @@
 # Build status
 
-Updated 2026-09-25. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
+Updated 2026-09-27. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
 2026-09-24); the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
 against each other) was built on branch `fix-first` off it, and **L2** on `v1.12-one-of-each`,
-fast-forwarded to `fix-first` first, then **L3**, **L4**, **L5** and **L6** on the same branch. L7–L8 are
-not built.
+fast-forwarded to `fix-first` first, then **L3**, **L4**, **L5**, **L6** and **L7** on the same branch. L8
+is not built.
+
+## v1.12 L7: built and green on `v1.12-one-of-each`
+
+Tools and the tests' support, one owner each. **One script edits the project**: `tools/add_sources.py`
+adds a file to `app`, `tests`, `activity` or `resource` — a file its group already holds gains a build
+file in that target, which is how a Core file reaches the extension — `remove`s a file from a group and
+every target that builds it, and `remove-group`s a group with everything in it; a target's phase is found
+from the target's name. `tools/pbxproj_edit.py` is gone, and `tools/add_activity_target.py` adds its four
+files through `add_sources.add_file`. **The tests' helpers are written once**: `FixtureLoader.requiredDoc`
+for the 40 pins that skipped by hand, and `swiftSources`, `section`, `block` and `withoutComments` moved
+there from the test classes that owned them; `CoreTestSupport.importing` and `.imported`,
+`engine(history:)`, `threeExercises`, `stepNames`, `warmUp`, `days`, `logged`, `sevenDayRotation` and
+`fourDayRotation` in place of the copies the sweep found; and `CoreChecks.check` for the portable
+runner's assertions. `docs/DECISIONS_LOG.md` has what differed and which side was kept, and what was left
+on purpose. No TL case: nothing the app does changed, and the test count did not either.
+
+### Run for L7
+
+On `v1.12-one-of-each`, 2026-09-27: `xcodebuild test` on the iPhone 17 simulator, 475 tests, 0
+failures; `swift test`, 474 tests, 0 failures; `python3 tools/check_core.py`, 474 test bodies, 9,435
+assertions, 0 failures — the same three counts as L6. On a copy of the checkout, `add_sources.py` added
+a file to the app, the tests and the resources, and a Core file to the extension, a second run changed
+nothing, and `remove` put the project back byte for byte; `remove-group` left no dangling id and `plutil
+-lint` passed after each. `add_activity_target.py`, old and new, each run on V7's parent project (with
+`WorkoutActivityState.swift` added first, as V7 did), wrote the same object graph compared id-free; on
+the real project it is a no-op. The Release build succeeded and `python3 tools/check_release.py` is ready (still
+version 1.11 (1)); `python3 tools/check_bundle.py` current after `python3 tools/build_bundle.py`;
+`python3 tools/reference_import.py`, 118/118 fixtures match.
+
+### Not run for L7
+
+Nothing on the phone; no screen changed.
 
 ## v1.12 L6: built and green on `v1.12-one-of-each`
 

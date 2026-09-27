@@ -28,9 +28,7 @@ final class ClarityTests: XCTestCase {
             ("JimmsBro/Features/Home/HomeView.swift", "alternative.title"),
         ]
         for pin in pins {
-            guard let source = FixtureLoader.doc(pin.file) else {
-                throw XCTSkip("\(pin.file) is outside the simulator's sandbox; this pin runs on the host routes")
-            }
+            let source = try FixtureLoader.requiredDoc(pin.file)
             XCTAssertTrue(source.contains(pin.literal), "\(pin.file) no longer shows \(pin.literal)")
         }
         // And the old bare sentences are gone from the views.
