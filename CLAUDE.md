@@ -290,7 +290,7 @@ the sanctioned copy (the owner's choice: it is the fixtures' independent oracle)
 disk. L1 one parser per value, L2 one JSON grammar, L3 plans and the schedule, L4 the session and the
 Workout screen, L5 the chatbot screens, L6 the other views, L7 tools and the tests' support, L8 the
 documents. Dead code, misnamed files and long functions the review found are parked at the plan's end,
-with two bugs first in line. L0–L1 are built and green on `v1.12-one-of-each`: L1 made
+with two bugs first in line. L0–L8 are built and green on `v1.12-one-of-each`: L1 made
 `TargetGrammar` (`Core/PlanImport.swift`) the one reader of reps, a hold and a weight — for the
 importer, a progression step and the exercise sheet — with `PlanJSON.string` the one JSON escaper,
 `TargetText.number` the one number, `RawJSON.jsonText` the one encoder, `Issue.isPlanInWords` the one
@@ -347,7 +347,15 @@ L7 is built and green on the same branch: one script edits the project — `tool
 files through it — and the tests' helpers are written once: reading the checkout is `FixtureLoader`'s
 (`requiredDoc`, `swiftSources`, `section`, `block`, `withoutComments`), building things
 `CoreTestSupport`'s (`importing`, `imported`, `engine(history:)`, `logged`, `days`, `warmUp`, the two
-rotations), and a one-line forward to the owner stays as a name. L8 is not built.
+rotations), and a one-line forward to the owner stays as a name. L8 made the documents say so:
+the three things a person can see change are `manual` cases beside the change each checks — **TF6**
+(Find an exercise in the rows' words and the notation's) in F's block, **TL34** (Change exercise's
+search) and **TL35** (the day's name on a German phone) in L3's — and `docs/DEVICE_CHECKLIST.md`'s
+**v1.12 rows**; the L8 lines in `docs/DECISIONS_LOG.md`, no screenshot changed, version **1.12** on the
+app, the extension and the tests, and the bundle regenerated. What remains is the owner's: the device
+checklist (the v1.7 to v1.12 rows all need the phone), the Developer Program, a release Xcode and the
+submission (`docs/APP_STORE.md` §1 and §6); and the review's parked findings are the plan after this
+one, its two bugs first.
 
 Three v1.2 rules are worth knowing before touching anything:
 

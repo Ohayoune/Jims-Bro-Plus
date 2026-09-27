@@ -1,10 +1,63 @@
 # Build status
 
-Updated 2026-09-27. **v1.12 is in progress.** `main` holds L0–L1 (a5d7d28, fast-forwarded
-2026-09-24); the fix-first milestone **F** (F1–F4, from the 2026-09-24 audit of the screens
-against each other) was built on branch `fix-first` off it, and **L2** on `v1.12-one-of-each`,
-fast-forwarded to `fix-first` first, then **L3**, **L4**, **L5**, **L6** and **L7** on the same branch. L8
-is not built.
+Updated 2026-09-27. **v1.12 is built and green on `v1.12-one-of-each`: L0–L8, with F (F1–F4)
+before L2.** `main` holds L0–L1 (a5d7d28, fast-forwarded 2026-09-24); the fix-first milestone **F**
+(from the 2026-09-24 audit of the screens against each other) was built on branch `fix-first` off
+it, and **L2**–**L8** on `v1.12-one-of-each`, fast-forwarded to `fix-first` first. What remains is
+the owner's: the device checklist (the v1.7 to v1.12 rows all need the phone), the Developer
+Program, a release Xcode and the submission (`docs/APP_STORE.md` §1 and §6). The review's other
+findings — two bugs first — are parked for the plan after this one (`docs/ITERATION_13_PLAN.md`,
+the last section).
+
+## v1.12 (L0–L8 and F): built and green
+
+`docs/ITERATION_13_PLAN.md` is the v1.12 plan, written from the owner's note *"I don't want logic
+duplicates anywhere"*: one owner for each piece of logic (D96), Core's unless it draws, and where
+two copies disagreed SPEC decides, else the stricter rule, one line in `docs/DECISIONS_LOG.md`.
+Nothing changed on disk; `StoreMigrationTests` stayed green untouched throughout.
+
+After L8:
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **475 tests, 0 skipped, 0 failures** |
+| `swift test` | **474 tests, 0 failures** |
+| `python3 tools/check_core.py` | **474 test bodies, 9,435 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **118/118 fixtures match** (unchanged: v1.12 touches no fixture) |
+| `xcodebuild build -scheme JimmsBro -configuration Release` | **BUILD SUCCEEDED** |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version **1.12 (1)** |
+| `python3 tools/check_bundle.py` | **current** (regenerated in L8) |
+
+v1.11 ended at 438 on the simulator with 32 skipped; the 37 added are F's and L1–L6's TF and TL
+cases and the pins beside them. The simulator skipped none this time: a pin that reads the checkout skips
+only when the simulator's sandbox keeps the checkout out of reach (`FixtureLoader.outOfReach`), and on
+this run, on the iPhone 17 rather than v1.11's clone, it did not.
+
+| Milestone | What it did | State |
+|---|---|---|
+| L0 | The plan, the branch, the bundle | Done |
+| L1 | One parser per value (`TargetGrammar`), one escaper, one formatter. TL1–TL5 | Done |
+| F | Fix first: Edit the text keeps the progression, three destructive actions ask, a screen holding edits keeps them, a set reads reps first everywhere. TF1–TF5 | Done |
+| L2 | One JSON grammar (`JSONGrammar`). TL6–TL8 | Done |
+| L3 | Plans and the schedule: `Plan.carried(into:as:)`, English day and month names, one swap search, one exercise search, one reading of a cycle. TL9–TL13 | Done |
+| L4 | The session and the Workout screen: one rest, one step line, one walk, one set of counts. TL14–TL21 | Done |
+| L5 | The chatbot screens: one refusal, one ···, one sheet per text, their parts drawn once. TL22–TL27 | Done |
+| L6 | The other views: the Summary's and Progression's lines, one plural, one switch-workout alert, the small SwiftUI repeats, one exercise save. TL28–TL33 | Done |
+| L7 | One script edits the project; the tests' helpers written once | Done |
+| L8 | Docs, checklist, bundle, 1.12: **TF6**, **TL34** and **TL35** as the `manual` cases a person can see, in the block of the change each checks, and `docs/DEVICE_CHECKLIST.md`'s **v1.12 rows**; three L8 lines in `DECISIONS_LOG.md`; the TL header says the ids landed in order; the README's status, handoff paragraph, test paragraph and docs table say v1.12; version **1.12** in all six `MARKETING_VERSION` settings and in `docs/APP_STORE.md`; the handoff paragraph in `CLAUDE.md` and `AGENTS.md`; the bundle regenerated. No screenshot changed | Done |
+| — | The v1.12 device rows (TF6, TL34, TL35) | **Written, not run** — need the phone |
+
+### Run for L8
+
+On `v1.12-one-of-each`, 2026-09-27, after the version bump: the three routes, the Release build,
+`check_release.py` and `reference_import.py` as in the table above. The two host routes — where the
+pins that read SPEC, TEST_CASES and the project file run — ran after the last edit to a document they
+read. `python3 tools/build_bundle.py`, then `python3 tools/check_bundle.py`, after the last document
+edit of all.
+
+### Not run for L8
+
+The v1.12 device rows, and every earlier release's; the phone is the owner's.
 
 ## v1.12 L7: built and green on `v1.12-one-of-each`
 

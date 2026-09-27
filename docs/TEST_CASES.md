@@ -1292,7 +1292,7 @@ The four tracks merged onto the trunk in order — N2, N3, N4, N5, each `--no-ff
 
 ## TL. v1.12 — One of each
 
-`docs/ITERATION_13_PLAN.md` is the plan: one owner for each piece of logic (D96), no behaviour change except where two copies disagreed and a side was chosen. TN was v1.11's, so the prefix is **TL**. Every case is in `JimmsBroTests/OneOwnerTests.swift` unless it says otherwise; each one pins the side that won, so a copy that grows back and drifts fails here.
+`docs/ITERATION_13_PLAN.md` is the plan: one owner for each piece of logic (D96), no behaviour change except where two copies disagreed and a side was chosen. TN was v1.11's, so the prefix is **TL**. Every case is in `JimmsBroTests/OneOwnerTests.swift` unless it says otherwise; each one pins the side that won, so a copy that grows back and drifts fails here. The ids landed in order as each milestone was built, TL1–TL33, with no renumbering; L7 added none, because nothing the app does changed. L8 added the three `manual` cases a person can see — **TF6** in F's block, **TL34** and **TL35** in L3's, beside the change each one checks — and they are the v1.12 rows of `docs/DEVICE_CHECKLIST.md`.
 
 ### L1 — One parser per value, one escaper, one formatter (D96)
 
@@ -1317,6 +1317,7 @@ The audit read the screens against each other; F took the four findings that cou
 | TF3 | manual | (F2, v1.12) Each asks before it acts | In the simulator: Skip exercise from the Workout ···, a swipe-delete of an exercise on Plan detail and Back to Push as written from the day editor's ··· each show an alert with two named buttons; the cancel changes nothing, and the confirm does what the item did before F2 |
 | TF4 | manual | (F3, v1.12) Edits are kept until you say otherwise | With a field changed, the exercise sheet, the text sheet (Plan detail's Edit the text and every other point) and Edit set ignore a swipe down, and Cancel asks "Discard changes?": Discard closes without saving, Keep editing keeps the change; the day editor's back asks the same and its edge swipe does nothing; with nothing changed each closes at once, as before |
 | TF5 | unit | (F4, v1.12) A set reads reps first, everywhere | `StepCard.setText` is "10 × 60 kg" ("10 × 60 lb", compact "10 @ 60", "10" without a weight) and a row's `resultText` "10 × 60"; `ExerciseText.bestSet` is "10 × 60 kg", "12 reps" without a weight and a hold's time for a hold, so Best, Heaviest set and the Summary's record agree (HistoryTests, MetricsTests) |
+| TF6 | manual | (F4, v1.12) Find an exercise speaks the notation you chose | On the phone: History → Find an exercise → an exercise logged with a weight. Each date lists its sets in the rows' words — *"10 × 60, 8 × 60"*, then *"… kg · top 10 × 60 kg"* — under *"Best: 10 × 60 kg"*; with Settings → Compact notation on, the sets read *"10 @ 60, 8 @ 60"*. Until F4 they read *"10@60"* whatever the switch said, and Best put the weight first |
 
 ### L2 — One JSON grammar (D96)
 
@@ -1339,6 +1340,8 @@ One owner each: `Plan.carried(into:as:)` for what a plan hands the plan saved in
 | TL11 | unit | (D96, v1.12) The swap search's horizon is the calendar's | `PlanSchedule.firstDay` reads 63 dates from today and 62 from tomorrow, the same last day — today and 62 days (§6.12); with no test given it finds the first day to train |
 | TL12 | unit | (D96, v1.12) One exercise search | `ExerciseNames.known` finds *Développé couché* for *"developpe"* and *Bench  Press* for *" BENCH PRESS "*, with or without plans (a plan's *Bench Press* first when there is one); with no plans and no query it is History's names alone; `HistoryView` and `ChangeExerciseSheet` search through it (source reads on the host routes) |
 | TL13 | unit | (D96, v1.12) A cycle is read one way | Push · rest · Pull · a dead entry: `cycleDays` [0, nil, 1, nil], `cycleNames` [Push, nil, Pull, nil]; the plan's JSON and the prompt write *rest* for both nils and so does the diff's schedule line, which wrote *"?"*; `CycleSquare.of`, `ImportTrip.squares`, `RepeatBlock.squares` and `PlanPage.rows` agree on the days and `DayColour.cycle(of:)` on the colours |
+| TL34 | manual | (D96, v1.12) Change exercise finds a name however it is typed | On the phone, with *Développé couché* logged once (Change exercise on a set, log it, finish): in the next workout, ··· → Change exercise and type *"developpe"*, then *"COUCHE"*, then *"développé"* with a space before it — each time **Done before** lists *Développé couché*. History → Find an exercise finds it for the same three. Until L3, *"developpe"* found nothing in either |
+| TL35 | manual | (D96, v1.12) Day names stay English on a non-English phone | On the phone, iPhone Settings → General → Language & Region → iPhone Language → Deutsch. Finish a Full Body workout on its day: the Summary's last line names the next workout's day in English — *"Next: Full Body B, Friday"*, not *Freitag* — and a missed workout on Today, if one shows, reads *"… was due Tuesday"*. History's month headings and the calendar's header follow the phone's own formatting and are not this case |
 
 ### L4 — The session and the Workout screen (D96)
 
