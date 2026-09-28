@@ -304,6 +304,7 @@ final class SettingsAndHomeTests: XCTestCase {
         XCTAssertEqual(model.activePlanId, second)
         await model.renamePlan(second, to: "  Renamed  ")
         XCTAssertEqual(model.plans.last?.name, "Renamed")
+        XCTAssertTrue(model.plans.last?.sourceText.contains("\"Renamed\"") == true, "the text follows the name (TL36)")
         await model.renamePlan(second, to: "   ")
         XCTAssertEqual(model.plans.last?.name, "Renamed", "an empty name is ignored")
 
@@ -343,23 +344,24 @@ final class SettingsAndHomeTests: XCTestCase {
         XCTAssertEqual(reloaded.activePlanId, thirdId)
     }
 
-    /// L37 (D25, v1.1): a whole plan put in a plan's place — Plan detail's Replace then, Say what
-    /// should change's Apply since v1.12's L5 — keeps the plan's id and active status, unlike the
-    /// name-based conflict flow, and persists.
+    /// L37 (D25, v1.1): a whole plan put in a plan's place — Plan detail's Replace then, its Edit
+    /// the text since v1.12's L5, saved as `PlanEdit.Operation.replacePlanJSON` through
+    /// `AppModel.editPlan` — keeps the plan's id and active status, unlike the name-based conflict
+    /// flow, and persists. (Say what should change's Apply is TN35's.)
     @MainActor func testReplacePlanKeepsIdAndActiveStatus() async throws {
         let root = makeRoot()
         defer { discard(root) }
         let model = AppModel(store: Store(root: root), sampleJSON: { nil })
         await model.load()
-        let text = try sample()
-        let original = try XCTUnwrap(model.runImport(text).plan)
+        let original = try XCTUnwrap(model.runImport(try sample()).plan)
         await model.save(original, makeActive: true)
         let id = try XCTUnwrap(model.activePlanId)
 
-        var revised = try XCTUnwrap(model.runImport(text).plan)
+        var revised = original
         revised.name = "A Completely Different Name"
-        let result = await model.applyChange(planId: id, plan: revised)
-        XCTAssertTrue(result)
+        let text = PlanJSON.render(revised)
+        let issues = await model.editPlan(id, .replacePlanJSON(text: text))
+        XCTAssertEqual(issues, [])
         XCTAssertEqual(model.plans.count, 1, "replace does not add a second plan")
         XCTAssertEqual(model.plans.first?.id, id)
         XCTAssertEqual(model.plans.first?.name, "A Completely Different Name")
@@ -370,8 +372,9 @@ final class SettingsAndHomeTests: XCTestCase {
         XCTAssertEqual(reloaded.plans.first?.name, "A Completely Different Name")
         XCTAssertEqual(reloaded.activePlanId, id)
 
-        let missingResult = await model.applyChange(planId: UUID(), plan: revised)
-        XCTAssertFalse(missingResult, "a missing id is a no-op")
+        let missing = await model.editPlan(UUID(), .replacePlanJSON(text: text))
+        XCTAssertEqual(missing.map(\.code), ["E_EDIT_INVALID"], "a missing id is a no-op")
+        XCTAssertEqual(model.plans.map(\.id), [id])
     }
 
     // SPEC §8.3: a corrupt file surfaces as one alert and the app carries on.

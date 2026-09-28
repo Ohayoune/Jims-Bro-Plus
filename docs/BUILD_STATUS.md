@@ -1,7 +1,7 @@
 # Build status
 
 Updated 2026-09-27. **v1.12 is built and green on `v1.12-one-of-each`: L0–L8, with F (F1–F4)
-before L2.** `main` holds L0–L1 (a5d7d28, fast-forwarded 2026-09-24); the fix-first milestone **F**
+before L2, and the three fixes a review of the branch found before the pull request.** `main` holds L0–L1 (a5d7d28, fast-forwarded 2026-09-24); the fix-first milestone **F**
 (from the 2026-09-24 audit of the screens against each other) was built on branch `fix-first` off
 it, and **L2**–**L8** on `v1.12-one-of-each`, fast-forwarded to `fix-first` first. What remains is
 the owner's: the device checklist (the v1.7 to v1.12 rows all need the phone), the Developer
@@ -16,20 +16,20 @@ duplicates anywhere"*: one owner for each piece of logic (D96), Core's unless it
 two copies disagreed SPEC decides, else the stricter rule, one line in `docs/DECISIONS_LOG.md`.
 Nothing changed on disk; `StoreMigrationTests` stayed green untouched throughout.
 
-After L8:
+After the review's three fixes:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **475 tests, 0 skipped, 0 failures** |
-| `swift test` | **474 tests, 0 failures** |
-| `python3 tools/check_core.py` | **474 test bodies, 9,435 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **476 tests, 0 skipped, 0 failures** |
+| `swift test` | **475 tests, 0 failures** |
+| `python3 tools/check_core.py` | **475 test bodies, 9,453 assertions, 0 failures** |
 | `python3 tools/reference_import.py` | **118/118 fixtures match** (unchanged: v1.12 touches no fixture) |
 | `xcodebuild build -scheme JimmsBro -configuration Release` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version **1.12 (1)** |
-| `python3 tools/check_bundle.py` | **current** (regenerated in L8) |
+| `python3 tools/check_bundle.py` | **current** (regenerated after the fixes) |
 
-v1.11 ended at 438 on the simulator with 32 skipped; the 37 added are F's and L1–L6's TF and TL
-cases and the pins beside them. The simulator skipped none this time: a pin that reads the checkout skips
+v1.11 ended at 438 on the simulator with 32 skipped; the 38 added are F's and L1–L6's TF and TL
+cases, the review's TL36, and the pins beside them. The simulator skipped none this time: a pin that reads the checkout skips
 only when the simulator's sandbox keeps the checkout out of reach (`FixtureLoader.outOfReach`), and on
 this run, on the iPhone 17 rather than v1.11's clone, it did not.
 
@@ -45,7 +45,15 @@ this run, on the iPhone 17 rather than v1.11's clone, it did not.
 | L6 | The other views: the Summary's and Progression's lines, one plural, one switch-workout alert, the small SwiftUI repeats, one exercise save. TL28–TL33 | Done |
 | L7 | One script edits the project; the tests' helpers written once | Done |
 | L8 | Docs, checklist, bundle, 1.12: **TF6**, **TL34** and **TL35** as the `manual` cases a person can see, in the block of the change each checks, and `docs/DEVICE_CHECKLIST.md`'s **v1.12 rows**; three L8 lines in `DECISIONS_LOG.md`; the TL header says the ids landed in order; the README's status, handoff paragraph, test paragraph and docs table say v1.12; version **1.12** in all six `MARKETING_VERSION` settings and in `docs/APP_STORE.md`; the handoff paragraph in `CLAUDE.md` and `AGENTS.md`; the bundle regenerated. No screenshot changed | Done |
+| Review | Before the pull request, three findings of a review of the branch: a date's day and month read in the Gregorian calendar whatever the phone's (`MonthText`, TL10 gains a Hebrew calendar); L37 back on the path Plan detail saves by (`AppModel.editPlan` with `.replacePlanJSON`); Rename an edit (`PlanEdit.Operation.renamePlan`) and a kept copy's text rendered, so a plan's text says its name (TL36). Three lines in `DECISIONS_LOG.md`. The review's other findings are minor — SPEC and the checklist naming symbols the branch renamed, and repeats D96 missed — and are not in this commit | Done |
 | — | The v1.12 device rows (TF6, TL34, TL35) | **Written, not run** — need the phone |
+
+### Run for the review's three
+
+On `v1.12-one-of-each`, 2026-09-27, as in the table above. The simulator's first run hung before its
+runner connected (*"The test runner hung before establishing connection"*), with no test run; the second
+ran all 476. `python3 tools/build_bundle.py`, then `check_bundle.py` and the two host routes, after the
+last document edit.
 
 ### Run for L8
 

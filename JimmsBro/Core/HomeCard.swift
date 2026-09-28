@@ -116,18 +116,31 @@ enum WeekdayText {
     static func full(_ weekday: Weekday) -> String { weekday.rawValue.capitalized }
 }
 
-/// D96 (v1.12 L3): a month's name. The app speaks English whatever the phone's language (§2,
+/// D96 (v1.12 L3): a date as a day and a month. The app speaks English whatever the phone's language (§2,
 /// "English only"), so the names are a fixed list, as `WeekdayText`'s are — where a formatter in
-/// the phone's language put "17. Sept." or "Freitag" beside English words.
+/// the phone's language put "17. Sept." or "Freitag" beside English words. The names are the
+/// Gregorian months, so the numbers are read in a Gregorian calendar in `calendar`'s zone: a phone
+/// set to the Hebrew or Islamic calendar would otherwise put its own month's number on a
+/// Gregorian name — "1 Feb" for 12 October.
 enum MonthText {
     private static let names = ["January", "February", "March", "April", "May", "June", "July",
                                 "August", "September", "October", "November", "December"]
-    /// "September": the month `date` falls in, in `calendar`'s zone.
+    /// "17 September": the day `date` falls on, in `calendar`'s zone.
     static func full(_ date: Date, calendar: Calendar) -> String {
-        names[safe: calendar.component(.month, from: date) - 1] ?? ""
+        let (day, month) = dayAndMonth(date, calendar: calendar)
+        return "\(day) \(month)"
     }
-    /// "Sep".
-    static func short(_ date: Date, calendar: Calendar) -> String { String(full(date, calendar: calendar).prefix(3)) }
+    /// "17 Sep".
+    static func short(_ date: Date, calendar: Calendar) -> String {
+        let (day, month) = dayAndMonth(date, calendar: calendar)
+        return "\(day) \(month.prefix(3))"
+    }
+    private static func dayAndMonth(_ date: Date, calendar: Calendar) -> (Int, String) {
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = calendar.timeZone
+        let parts = gregorian.dateComponents([.day, .month], from: date)
+        return (parts.day ?? 0, names[safe: (parts.month ?? 0) - 1] ?? "")
+    }
 }
 
 /// Plan detail's repeat block (SPEC §4.3): its caption, and its squares (`RepeatBlock.squares`).
@@ -774,7 +787,7 @@ enum SummaryText {
         // In English, in the calendar's own zone (D96, v1.12 L3): "Friday", "on 17 Sep".
         case 2...6: when = WeekdayText.full(Weekday(found.date, calendar: calendar))
         default:
-            when = "on \(calendar.component(.day, from: found.date)) \(MonthText.short(found.date, calendar: calendar))"
+            when = "on \(MonthText.short(found.date, calendar: calendar))"
         }
         return "Next: \(found.name), \(when)"
     }

@@ -356,6 +356,10 @@ app, the extension and the tests, and the bundle regenerated. What remains is th
 checklist (the v1.7 to v1.12 rows all need the phone), the Developer Program, a release Xcode and the
 submission (`docs/APP_STORE.md` §1 and §6); and the review's parked findings are the plan after this
 one, its two bugs first.
+Before the pull request, a review of the branch found three things, fixed on the same branch: a
+date's day and month read in the Gregorian calendar whatever the phone's (`MonthText`, TL10), L37
+pointed back at the path Plan detail saves by (`AppModel.editPlan` with `.replacePlanJSON`), and
+Rename made an edit (`PlanEdit.Operation.renamePlan`), so a plan's text says its name (TL36).
 
 Three v1.2 rules are worth knowing before touching anything:
 

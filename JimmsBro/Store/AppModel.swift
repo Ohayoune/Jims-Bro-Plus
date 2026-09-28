@@ -269,12 +269,10 @@ enum SaveFailure: Equatable {
         await persistPlans()
     }
 
+    /// Plan detail's Rename: an edit (`PlanEdit.Operation.renamePlan`), so the plan's text follows
+    /// the name. A name with nothing in it changes nothing, as it always did.
     func renamePlan(_ id: UUID, to name: String) async {
-        guard let index = library.plans.firstIndex(where: { $0.id == id }) else { return }
-        let trimmed = name.trimmed
-        guard !trimmed.isEmpty else { return }
-        library.plans[index].name = trimmed
-        await persistPlans()
+        _ = await editPlan(id, .renamePlan(name: name))
     }
 
     func deletePlan(_ id: UUID) async {

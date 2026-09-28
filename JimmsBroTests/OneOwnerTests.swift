@@ -245,6 +245,16 @@ final class OneOwnerTests: XCTestCase {
         XCTAssertEqual(summary.dayChoices(for: date(16), now: date(9))?.line,
                        "For Wednesday 16 September only. The plan does not change.")
         XCTAssertEqual(WeekdayText.full(Weekday(date(13), calendar: calendar)), "Sunday")
+
+        // And in the Gregorian calendar's numbers whatever calendar the phone is set to: on a
+        // Hebrew calendar the 17th of September is the 6th of its first month, which read "6 Jan".
+        var hebrew = Calendar(identifier: .hebrew)
+        hebrew.timeZone = calendar.timeZone
+        hebrew.locale = calendar.locale
+        summary.calendar = hebrew
+        XCTAssertEqual(SummaryText.next(after: push, library: summary, now: date(9), calendar: hebrew), "Next: Push, on 17 Sep")
+        XCTAssertEqual(summary.dayChoices(for: date(16), now: date(9))?.line,
+                       "For Wednesday 16 September only. The plan does not change.")
     }
 
     // TL11: the swap search's horizon is the calendar's — today and 62 days (§6.12). One search
@@ -928,5 +938,30 @@ final class OneOwnerTests: XCTestCase {
         let detail = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/PlanDetailView.swift")
         XCTAssertFalse(sheet.contains("for change in changes"), "the sheet commits a field at a time again")
         XCTAssertTrue(detail.contains(".editExercise("))
+    }
+
+    // TL36 (v1.12's review): a plan's name and its text agree (D29). Rename set the name beside
+    // the text and a keep-both import put "(2)" on the name alone, so Copy JSON and Edit the text
+    // gave the old name back, and saving that text as it stood undid the rename.
+    func testAPlansNameAndItsTextAgree() throws {
+        let plan = try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json")
+        let renamed = try XCTUnwrap(PlanEdit.apply(.renamePlan(name: "  PPL  "), to: plan, settings: settings,
+                                                   now: CoreTestSupport.now).plan)
+        XCTAssertEqual(renamed.name, "PPL")
+        XCTAssertEqual(renamed.id, plan.id)
+        XCTAssertEqual(try CoreTestSupport.imported(renamed.sourceText).name, "PPL", "the text says the new name")
+        let saved = try XCTUnwrap(PlanEdit.apply(.replacePlanJSON(text: renamed.sourceText), to: renamed,
+                                                 settings: settings, now: CoreTestSupport.now).plan)
+        XCTAssertEqual(saved.name, "PPL", "Edit the text saved as it stands keeps the name")
+        let empty = PlanEdit.apply(.renamePlan(name: "   "), to: plan, settings: settings, now: CoreTestSupport.now)
+        XCTAssertNil(empty.plan, "a name with nothing in it changes nothing")
+        XCTAssertEqual(empty.errors.map(\.code), ["E_EDIT_INVALID"])
+
+        var library = PlanLibrary()
+        library.save(plan, makeActive: true)
+        let second = try XCTUnwrap(library.save(plan, conflict: .keepBoth))
+        let both = try XCTUnwrap(library.plans.first { $0.id == second })
+        XCTAssertEqual(both.name, "\(plan.name) (2)")
+        XCTAssertEqual(try CoreTestSupport.imported(both.sourceText).name, both.name, "the kept copy's text says its name")
     }
 }

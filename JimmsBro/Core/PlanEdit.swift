@@ -161,6 +161,9 @@ enum PlanEdit {
         case deleteExercise(day: Int, exercise: Int)
         case duplicateDay(day: Int)
         case renameDay(day: Int, name: String)
+        /// Plan detail's Rename. An edit like the others (v1.12's review), so the plan's text says
+        /// the new name: set beside it, the text kept the old one, and Edit the text saved it back.
+        case renamePlan(name: String)
         /// D43 (v1.3): the JSON edits. Each takes text, spliced into the plan's own JSON and
         /// re-imported, so the errors it can raise are the import pipeline's, with full paths.
         case replaceExerciseJSON(day: Int, exercise: Int, text: String)
@@ -482,6 +485,10 @@ enum PlanEdit {
             // `CycleEntry.day` holds an index, not a name, so the cycle needs no fixup here;
             // `PlanJSON.render` writes the day's current name into it on the way out.
             plan.days[day].name = name
+
+        case let .renamePlan(name):
+            guard let name = TargetGrammar.cleanName(name) else { return nil }
+            plan.name = name
 
         case .replaceExerciseJSON, .replaceDayJSON, .insertExercisesJSON, .insertDaysJSON, .replacePlanJSON:
             // Text edits are spliced (`spliced`) or read whole, never mutated here.

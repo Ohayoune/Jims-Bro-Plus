@@ -374,6 +374,10 @@ app, the extension and the tests, and the bundle regenerated. What remains is th
 checklist (the v1.7 to v1.12 rows all need the phone), the Developer Program, a release Xcode and the
 submission (`docs/APP_STORE.md` §1 and §6); and the review's parked findings are the plan after this
 one, its two bugs first.
+Before the pull request, a review of the branch found three things, fixed on the same branch: a
+date's day and month read in the Gregorian calendar whatever the phone's (`MonthText`, TL10), L37
+pointed back at the path Plan detail saves by (`AppModel.editPlan` with `.replacePlanJSON`), and
+Rename made an edit (`PlanEdit.Operation.renamePlan`), so a plan's text says its name (TL36).
 
 Three v1.2 rules are worth knowing before touching anything:
 
@@ -3756,12 +3760,13 @@ One owner each: `Plan.carried(into:as:)` for what a plan hands the plan saved in
 | ID | Type | Title | Expected |
 |---|---|---|---|
 | TL9 | unit | (D96, v1.12) A replacement is carried one way | Push · Pull · Push · Legs on its second Push, anchored, with a progression: a name-conflict Replace keeps the id, place 2 (not the first Push's 0) and the anchor, with its own import date and text and no progression; Rename day, a day pasted as JSON under a new name and an edit carried as Apply all keep the id, place 2, the anchor, the import date and the progression, with the canonical text; a replacement without the day has no place and no anchor |
-| TL10 | unit | (D96, v1.12) Dates speak English whatever the phone's language | Under a calendar whose locale is German: *"Pull was due Tuesday"*, *"Next: Pull, Friday"*, *"Next: Push, on 17 Sep"*, the picker's *"For Wednesday 16 September only. …"*, and `WeekdayText.full(Weekday(date, calendar:))` is *Sunday* for 13 September 2026 |
+| TL10 | unit | (D96, v1.12) Dates speak English whatever the phone's language | Under a calendar whose locale is German: *"Pull was due Tuesday"*, *"Next: Pull, Friday"*, *"Next: Push, on 17 Sep"*, the picker's *"For Wednesday 16 September only. …"*, and `WeekdayText.full(Weekday(date, calendar:))` is *Sunday* for 13 September 2026; under a Hebrew calendar the Summary still says *"on 17 Sep"* and the picker *"Wednesday 16 September"*, where the month's number was the Hebrew one (*"6 Jan"*) |
 | TL11 | unit | (D96, v1.12) The swap search's horizon is the calendar's | `PlanSchedule.firstDay` reads 63 dates from today and 62 from tomorrow, the same last day — today and 62 days (§6.12); with no test given it finds the first day to train |
 | TL12 | unit | (D96, v1.12) One exercise search | `ExerciseNames.known` finds *Développé couché* for *"developpe"* and *Bench  Press* for *" BENCH PRESS "*, with or without plans (a plan's *Bench Press* first when there is one); with no plans and no query it is History's names alone; `HistoryView` and `ChangeExerciseSheet` search through it (source reads on the host routes) |
 | TL13 | unit | (D96, v1.12) A cycle is read one way | Push · rest · Pull · a dead entry: `cycleDays` [0, nil, 1, nil], `cycleNames` [Push, nil, Pull, nil]; the plan's JSON and the prompt write *rest* for both nils and so does the diff's schedule line, which wrote *"?"*; `CycleSquare.of`, `ImportTrip.squares`, `RepeatBlock.squares` and `PlanPage.rows` agree on the days and `DayColour.cycle(of:)` on the colours |
 | TL34 | manual | (D96, v1.12) Change exercise finds a name however it is typed | On the phone, with *Développé couché* logged once (Change exercise on a set, log it, finish): in the next workout, ··· → Change exercise and type *"developpe"*, then *"COUCHE"*, then *"développé"* with a space before it — each time **Done before** lists *Développé couché*. History → Find an exercise finds it for the same three. Until L3, *"developpe"* found nothing in either |
 | TL35 | manual | (D96, v1.12) Day names stay English on a non-English phone | On the phone, iPhone Settings → General → Language & Region → iPhone Language → Deutsch. Finish a Full Body workout on its day: the Summary's last line names the next workout's day in English — *"Next: Full Body B, Friday"*, not *Freitag* — and a missed workout on Today, if one shows, reads *"… was due Tuesday"*. History's month headings and the calendar's header follow the phone's own formatting and are not this case |
+| TL36 | unit | (D29, v1.12's review) A plan's name and its text agree | `.renamePlan(name: "  PPL  ")` keeps the id and names the plan *PPL*, and its text re-imports as *PPL*; Edit the text saved as it stands keeps *PPL*; a name of spaces is `E_EDIT_INVALID` and changes nothing; a keep-both import's *"… (2)"* is in its text too. Until the review Rename and keep-both set the name alone |
 
 ### L4 — The session and the Workout screen (D96)
 
@@ -3873,7 +3878,7 @@ One owner each: `SummaryText.headline` and `SummaryText.exercises` for the Summa
 | L34 | unit | Calendar, today with a completed session | `.completed`, not projected |
 | L35 | unit | Calendar uses the injected today/time zone | Deterministic in tests |
 | L36 | unit | (D26, v1.1) Import a second plan with the preview's activation choice off, then a third with it on | The second does not change `activePlanId`; the third does; both persist and survive reload |
-| L37 | unit | (D25, v1.1) Plan detail's Replace, given a plan whose new JSON renamed it entirely | Keeps the same id (no second plan created); keeps active status if it was active; persists; a missing id is a no-op |
+| L37 | unit | (D25, v1.1) Plan detail's Replace — its **Edit the text** since v1.11, `.replacePlanJSON` through `AppModel.editPlan` — given a plan whose new JSON renamed it entirely | Keeps the same id (no second plan created); keeps active status if it was active; persists; a missing id is a no-op |
 | L38 | unit | (D18, v1.1) Start a weekday plan's next day early from a rest day | `HomeStart` targets that day, and starting it runs that day's session |
 | L39 | unit | (D29, v1.1) Edit an exercise's name, sets, reps, rep range, weight and rest | Each goes through the import pipeline; the plan keeps its id, importedAt and cycle position, and `sourceText` is regenerated so Copy JSON and the export file match |
 | L40 | unit | (D29, v1.1) Reorder and delete exercises within a day | The order changes as asked; deleting leaves the rest untouched |
@@ -8226,7 +8231,7 @@ without surfacing the alert; `Phase.init(from:)` decodes any unrecognised payloa
 # Build status
 
 Updated 2026-09-27. **v1.12 is built and green on `v1.12-one-of-each`: L0–L8, with F (F1–F4)
-before L2.** `main` holds L0–L1 (a5d7d28, fast-forwarded 2026-09-24); the fix-first milestone **F**
+before L2, and the three fixes a review of the branch found before the pull request.** `main` holds L0–L1 (a5d7d28, fast-forwarded 2026-09-24); the fix-first milestone **F**
 (from the 2026-09-24 audit of the screens against each other) was built on branch `fix-first` off
 it, and **L2**–**L8** on `v1.12-one-of-each`, fast-forwarded to `fix-first` first. What remains is
 the owner's: the device checklist (the v1.7 to v1.12 rows all need the phone), the Developer
@@ -8241,20 +8246,20 @@ duplicates anywhere"*: one owner for each piece of logic (D96), Core's unless it
 two copies disagreed SPEC decides, else the stricter rule, one line in `docs/DECISIONS_LOG.md`.
 Nothing changed on disk; `StoreMigrationTests` stayed green untouched throughout.
 
-After L8:
+After the review's three fixes:
 
 | Route | Result |
 |---|---|
-| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **475 tests, 0 skipped, 0 failures** |
-| `swift test` | **474 tests, 0 failures** |
-| `python3 tools/check_core.py` | **474 test bodies, 9,435 assertions, 0 failures** |
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **476 tests, 0 skipped, 0 failures** |
+| `swift test` | **475 tests, 0 failures** |
+| `python3 tools/check_core.py` | **475 test bodies, 9,453 assertions, 0 failures** |
 | `python3 tools/reference_import.py` | **118/118 fixtures match** (unchanged: v1.12 touches no fixture) |
 | `xcodebuild build -scheme JimmsBro -configuration Release` | **BUILD SUCCEEDED** |
 | `python3 tools/check_release.py` | **ready, as far as a script can tell** — version **1.12 (1)** |
-| `python3 tools/check_bundle.py` | **current** (regenerated in L8) |
+| `python3 tools/check_bundle.py` | **current** (regenerated after the fixes) |
 
-v1.11 ended at 438 on the simulator with 32 skipped; the 37 added are F's and L1–L6's TF and TL
-cases and the pins beside them. The simulator skipped none this time: a pin that reads the checkout skips
+v1.11 ended at 438 on the simulator with 32 skipped; the 38 added are F's and L1–L6's TF and TL
+cases, the review's TL36, and the pins beside them. The simulator skipped none this time: a pin that reads the checkout skips
 only when the simulator's sandbox keeps the checkout out of reach (`FixtureLoader.outOfReach`), and on
 this run, on the iPhone 17 rather than v1.11's clone, it did not.
 
@@ -8270,7 +8275,15 @@ this run, on the iPhone 17 rather than v1.11's clone, it did not.
 | L6 | The other views: the Summary's and Progression's lines, one plural, one switch-workout alert, the small SwiftUI repeats, one exercise save. TL28–TL33 | Done |
 | L7 | One script edits the project; the tests' helpers written once | Done |
 | L8 | Docs, checklist, bundle, 1.12: **TF6**, **TL34** and **TL35** as the `manual` cases a person can see, in the block of the change each checks, and `docs/DEVICE_CHECKLIST.md`'s **v1.12 rows**; three L8 lines in `DECISIONS_LOG.md`; the TL header says the ids landed in order; the README's status, handoff paragraph, test paragraph and docs table say v1.12; version **1.12** in all six `MARKETING_VERSION` settings and in `docs/APP_STORE.md`; the handoff paragraph in `CLAUDE.md` and `AGENTS.md`; the bundle regenerated. No screenshot changed | Done |
+| Review | Before the pull request, three findings of a review of the branch: a date's day and month read in the Gregorian calendar whatever the phone's (`MonthText`, TL10 gains a Hebrew calendar); L37 back on the path Plan detail saves by (`AppModel.editPlan` with `.replacePlanJSON`); Rename an edit (`PlanEdit.Operation.renamePlan`) and a kept copy's text rendered, so a plan's text says its name (TL36). Three lines in `DECISIONS_LOG.md`. The review's other findings are minor — SPEC and the checklist naming symbols the branch renamed, and repeats D96 missed — and are not in this commit | Done |
 | — | The v1.12 device rows (TF6, TL34, TL35) | **Written, not run** — need the phone |
+
+### Run for the review's three
+
+On `v1.12-one-of-each`, 2026-09-27, as in the table above. The simulator's first run hung before its
+runner connected (*"The test runner hung before establishing connection"*), with no test run; the second
+ran all 476. `python3 tools/build_bundle.py`, then `check_bundle.py` and the two host routes, after the
+last document edit.
 
 ### Run for L8
 
@@ -9971,6 +9984,9 @@ marked `manual` in `TEST_CASES.md` and need the resume banner from M5/M6 before 
 - v1.12 L8: **the v1.12 device rows are the three the plan named, as new `manual` cases in the block of the change each one checks** — **TF6** (Find an exercise in the rows' words and the notation's) in F's, because F4 took that item from L6, and **TL34** (Change exercise's search) and **TL35** (the day's name on a German phone) in L3's — rather than an L8 block, as N7 put TN39 in N1's. Everything else v1.12 changed is text or plumbing a unit test pins; it needs no phone.
 - v1.12 L8: **no screenshot changed.** v1.12 moved logic, not screens: F4's reps-first Best and L3's English day names are lines on Find an exercise and the Summary, which neither the README nor the store list shows. The store list's six shots, `tools/shot.sh` and `docs/PRIVACY.md` are as v1.11 left them.
 - v1.12 L8: **the review's other findings stay parked** — the two bugs, the code nothing calls, the code only the tests call, the misnamed files, the long functions, the repeated work and the DEBUG hooks (`docs/ITERATION_13_PLAN.md`, the last section). They are not duplication, D96 does not cover them, and the owner asked for them in the plan after this one, the two bugs first.
+- v1.12, before the pull request: **a date's day and month are read in the Gregorian calendar, in the phone's zone.** `MonthText` names the Gregorian months but took the month's number, and the Summary and the picker the day's, from the phone's calendar, so a phone set to the Hebrew, Islamic or Persian calendar read 17 September as *"6 Jan"*. L3 carried the picker's flaw to the Summary through the shared `MonthText`. `MonthText.full` and `.short` now say the day too (*"17 September"*, *"17 Sep"*), so no caller reads it alone. TL10.
+- v1.12, before the pull request: **L37 tests Plan detail's Edit the text again.** L5 pointed it at Say what should change's Apply, which TN35 already covers, and left `AppModel.editPlan` with `.replacePlanJSON` — the path Plan detail saves by — with no test. It now saves renamed JSON that way and reloads it, and a missing id is `E_EDIT_INVALID` with nothing changed.
+- v1.12, before the pull request: **a plan's name and its text agree (D29).** Rename set the name beside the text, and a keep-both import put *"(2)"* on the name alone, so Copy JSON and Edit the text gave the old name back and saving that text as it stood undid the rename — or, after a keep-both, left two plans with one name. Rename is `PlanEdit.Operation.renamePlan`, an edit as Rename day is: the name goes through `TargetGrammar.cleanName`, so it is now cut at 100 as a pasted one is, and an empty one still changes nothing. A kept copy's text is rendered with its new name. TL36.
 `````
 
 ---
@@ -12653,6 +12669,10 @@ app, the extension and the tests, and the bundle regenerated. What remains is th
 checklist (the v1.7 to v1.12 rows all need the phone), the Developer Program, a release Xcode and the
 submission (`docs/APP_STORE.md` §1 and §6); and the review's parked findings are the plan after this
 one, its two bugs first.
+Before the pull request, a review of the branch found three things, fixed on the same branch: a
+date's day and month read in the Gregorian calendar whatever the phone's (`MonthText`, TL10), L37
+pointed back at the path Plan detail saves by (`AppModel.editPlan` with `.replacePlanJSON`), and
+Rename made an edit (`PlanEdit.Operation.renamePlan`), so a plan's text says its name (TL36).
 
 Three v1.2 rules are worth knowing before touching anything:
 

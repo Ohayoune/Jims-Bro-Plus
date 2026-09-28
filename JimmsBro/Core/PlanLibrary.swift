@@ -40,6 +40,9 @@ struct PlanLibrary {
             case .keepBoth:
                 let base = incoming.name; var n = 2
                 while plans.contains(where: { normalized($0.name) == normalized(incoming.name) }) { incoming.name = "\(base) (\(n))"; n += 1 }
+                // The text says the name the plan now has, as an edit's does (D29): the pasted
+                // text still named the first plan, and Edit the text saved that back.
+                incoming.sourceText = PlanJSON.render(incoming)
                 if plans.contains(where: { $0.id == incoming.id }) { incoming.id = UUID() }
                 plans.append(incoming)
             }

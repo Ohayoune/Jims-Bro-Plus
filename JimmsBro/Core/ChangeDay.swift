@@ -233,8 +233,7 @@ extension PlanLibrary {
         let weekday = Weekday(day, calendar: calendar)
         let when = WeekStrip.when(offset: offset, weekday: weekday)
         let weekdayName = WeekdayText.full(weekday)
-        let month = MonthText.full(day, calendar: calendar)
-        let fullDate = "\(weekdayName) \(calendar.component(.day, from: day)) \(month)"
+        let fullDate = "\(weekdayName) \(MonthText.full(day, calendar: calendar))"
         let slot = PlanSchedule.slot(plan, on: day, swaps: swaps, today: now, calendar: calendar)
 
         func strip(_ source: Plan) -> DayChoices.Strip {
