@@ -9,12 +9,14 @@
 #
 # The simulator is whichever iPhone the runner's Xcode ships; the docs name the one on the
 # owner's Mac, and any installed iPhone works (README).
+#
+# It runs only when started by hand (Actions → CI → Run workflow). The repository is private,
+# where Actions spends the account's monthly minutes and a Mac minute counts ten, so the checks
+# run on the owner's Mac instead: `tools/check_all.sh` runs the same steps.
 name: CI
 
 on:
-  push:
-    branches: ["**"]
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   checks:
