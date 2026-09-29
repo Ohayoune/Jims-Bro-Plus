@@ -24,15 +24,6 @@ final class PlansTests: XCTestCase {
              importedAt: CoreTestSupport.date(1), sourceText: "", cycle: cycle)
     }
 
-    /// The seven-day rotation, Push done on the 7th.
-    private func pushPullLegs() -> Plan {
-        var plan = makePlan(days: [day("Push", "Bench Press"), day("Pull", "Row"), day("Legs", "Squat")],
-                            cycle: [.day(0), .day(1), .day(2), .rest, .day(0), .day(1), .day(2)])
-        plan.cyclePosition = 0
-        plan.cycleAnchor = calendar.startOfDay(for: CoreTestSupport.date(7))
-        return plan
-    }
-
     private func upperLower() -> Plan {
         makePlan("Upper Lower", schedule: .weekday,
                  days: [day("Upper A", "Bench Press", .monday), day("Lower A", "Squat", .tuesday),
@@ -43,7 +34,7 @@ final class PlansTests: XCTestCase {
     // TQ34 (D78): how often, beneath the name — counted from the squares the symbol draws — and
     // the button the circle raises.
     func testHowOftenAndTheButton() {
-        XCTAssertEqual(PlanText.howOften(pushPullLegs()), "6 days a week", "a seven-entry rotation")
+        XCTAssertEqual(PlanText.howOften(CoreTestSupport.sevenDayRotation()), "6 days a week", "a seven-entry rotation")
         XCTAssertEqual(PlanText.howOften(upperLower()), "4 days a week", "a weekday plan")
         let fullBody = makePlan("Full Body", days: [day("A"), day("B"), day("C")],
                                 cycle: [.day(0), .rest, .day(1), .rest, .rest, .day(2), .rest, .rest, .rest, .rest])
@@ -61,7 +52,7 @@ final class PlansTests: XCTestCase {
         XCTAssertNil(PlanText.howOften(makePlan(days: [], cycle: [])), "no days")
         XCTAssertNil(PlanText.howOften(makePlan(days: [day("A")], cycle: [.rest, .rest])), "nothing but rest")
 
-        let ppl = pushPullLegs(), ul = upperLower()
+        let ppl = CoreTestSupport.sevenDayRotation(), ul = upperLower()
         let plans = [ppl, ul]
         XCTAssertNil(PlanText.toUse(marked: nil, activePlanId: ppl.id, plans: plans), "nothing tapped: no button")
         XCTAssertNil(PlanText.toUse(marked: ppl.id, activePlanId: ppl.id, plans: plans),
@@ -75,7 +66,7 @@ final class PlansTests: XCTestCase {
     // TQ35 (D78): the cycle as squares — `DayColour`'s colours, the names beneath, the entry
     // Next up would start marked.
     func testTheCycleAsSquares() {
-        let plan = pushPullLegs()
+        let plan = CoreTestSupport.sevenDayRotation()
         let monday = RepeatBlock.squares(plan, today: CoreTestSupport.date(14), calendar: calendar)
         XCTAssertEqual(monday.map(\.name), ["Push", "Pull", "Legs", "Rest", "Push", "Pull", "Legs"])
         XCTAssertEqual(monday.map(\.colour), [.green, .orange, .purple, nil, .green, .orange, .purple])
@@ -87,7 +78,7 @@ final class PlansTests: XCTestCase {
                        "on Thursday's rest, the entry Next up would start: Friday's Push")
 
         let week = RepeatBlock.squares(upperLower(), today: CoreTestSupport.date(14), calendar: calendar)
-        XCTAssertEqual(week.map(\.weekday), ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+        XCTAssertEqual(week.map { $0.weekday.map(WeekdayText.short) }, ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
         XCTAssertEqual(week.map(\.name), ["Upper A", "Lower A", "Rest", "Upper B", "Lower B", "Rest", "Rest"])
         XCTAssertEqual(week.map(\.colour), [.green, .orange, nil, .purple, .pink, nil, nil])
         XCTAssertFalse(week.contains { $0.isNow }, "a weekday plan marks none, as since v1.1")
@@ -96,7 +87,7 @@ final class PlansTests: XCTestCase {
     // TQ36 (D78): the page's rows are the whole cycle, repeats included; the same day twice
     // opens the same exercises, and no day is out of reach.
     func testThePageListsTheWholeCycle() throws {
-        let plan = pushPullLegs()
+        let plan = CoreTestSupport.sevenDayRotation()
         let rows = PlanPage.rows(plan)
         XCTAssertEqual(rows.map(\.name), ["Push", "Pull", "Legs", "Rest", "Push", "Pull", "Legs"])
         XCTAssertEqual(rows.map(\.dayIndex), [0, 1, 2, nil, 0, 1, 2])
@@ -108,7 +99,7 @@ final class PlansTests: XCTestCase {
         XCTAssertNil(rows[3].dayIndex, "a rest has nothing to open")
 
         let week = PlanPage.rows(upperLower())
-        XCTAssertEqual(week.map(\.weekday), ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
+        XCTAssertEqual(week.map { $0.weekday.map(WeekdayText.full) }, ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
         XCTAssertEqual(week.map(\.name), ["Upper A", "Lower A", "Rest", "Upper B", "Lower B", "Rest", "Rest"])
         XCTAssertEqual(week.map(\.dayIndex), [0, 1, nil, 2, 3, nil, nil])
 
@@ -126,10 +117,8 @@ final class PlansTests: XCTestCase {
 
     // TQ37 (D78, pin): the circle is the one way to change plan, and the page speaks in squares.
     func testTheCircleIsTheOneWay() throws {
-        guard let list = FixtureLoader.doc("JimmsBro/Features/Plans/PlansView.swift"),
-              let page = FixtureLoader.doc("JimmsBro/Features/PlanDetail/PlanDetailView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let list = try FixtureLoader.requiredDoc("JimmsBro/Features/Plans/PlansView.swift")
+        let page = try FixtureLoader.requiredDoc("JimmsBro/Features/PlanDetail/PlanDetailView.swift")
         XCTAssertFalse(page.contains("Use this plan"), "Plan detail's ··· offers Use this plan again")
         XCTAssertFalse(page.contains("setActivePlan"), "Plan detail changes the active plan again")
         XCTAssertTrue(page.contains("RepeatBlock.squares(plan)"), "the page lost the cycle as squares")

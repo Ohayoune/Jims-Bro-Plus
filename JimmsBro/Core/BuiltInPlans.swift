@@ -106,10 +106,8 @@ enum BuiltInPlans {
             case let .duration(held): seconds += Double(held)
             case let .openDuration(minimum): seconds += Double(minimum ?? 45)
             }
-            guard step.isLastInRound, !step.isLastInBlock,
-                  let set = session.exercises[safe: step.exerciseIndex]?.targets[safe: step.setIndex]
-            else { continue }
-            seconds += Double(set.groupRestSeconds ?? set.restSeconds)
+            guard !step.isLastInBlock else { continue }
+            seconds += Double(RestResolution.betweenSets(after: step, exercises: session.exercises))
         }
         return Int((seconds / 60).rounded())
     }

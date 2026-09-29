@@ -15,18 +15,18 @@ final class TripTests: XCTestCase {
         XCTAssertEqual(TripStrip.of(.paste).marks, [.done, .done, .now])
         XCTAssertEqual(TripStrip.of(.review).marks, [.done, .done, .done])
         XCTAssertEqual(TripStrip.of(.refused).marks, [.done, .now, .todo], "the fix is at Chat by default")
-        XCTAssertEqual(TripStrip.of(.refused, fixAt: 1).marks, [.done, .now, .todo], "ask the chatbot again")
-        XCTAssertEqual(TripStrip.of(.refused, fixAt: 2).marks, [.done, .done, .now], "the prompt itself, or nothing, was pasted")
-        // The fix-at is only read on a refusal, and never makes a fourth mark.
-        XCTAssertEqual(TripStrip.of(.ask, fixAt: 2), TripStrip.of(.ask))
+        XCTAssertEqual(TripStrip.of(.refused, fix: .chat).marks, [.done, .now, .todo], "ask the chatbot again")
+        XCTAssertEqual(TripStrip.of(.refused, fix: .paste).marks, [.done, .done, .now], "the prompt itself, or nothing, was pasted")
+        // The fix is only read on a refusal, and never makes a fourth mark.
+        XCTAssertEqual(TripStrip.of(.ask, fix: .paste), TripStrip.of(.ask))
         for stage in [TripStage.ask, .paste, .review, .refused] {
-            for fixAt in [0, 1, 2, 3] {
-                let strip = TripStrip.of(stage, fixAt: fixAt)
-                XCTAssertEqual(strip.marks.count, 3, "\(stage) at \(fixAt)")
-                XCTAssertLessThanOrEqual(strip.marks.filter { $0 == .now }.count, 1, "\(stage) at \(fixAt)")
+            for fix in TripFix.allCases {
+                let strip = TripStrip.of(stage, fix: fix)
+                XCTAssertEqual(strip.marks.count, 3, "\(stage) at \(fix)")
+                XCTAssertLessThanOrEqual(strip.marks.filter { $0 == .now }.count, 1, "\(stage) at \(fix)")
             }
         }
-        XCTAssertEqual(TripStrip.of(.refused, fixAt: 1).spoken, "Prompt, done. Chat, now. Paste, not yet.")
+        XCTAssertEqual(TripStrip.of(.refused, fix: .chat).spoken, "Prompt, done. Chat, now. Paste, not yet.")
     }
 
     // TN2: the bottom slot's words.
@@ -142,14 +142,12 @@ final class TripTests: XCTestCase {
         XCTAssertEqual(Introduction.pages.filter { $0.body.contains(sentence) }.count, 1, "said once")
         XCTAssertFalse(Prompts.render(settings: Settings()).contains(sentence), "the chatbot is not told it")
 
-        guard let spec = FixtureLoader.doc("docs/SPEC.md") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
-        let rule = try section(spec, "### 6.60 ")
+        let spec = try FixtureLoader.requiredDoc("docs/SPEC.md")
+        let rule = try FixtureLoader.section(spec, "### 6.60 ")
         for state in ["Ask", "Paste", "Review", "Refused"] {
             XCTAssertTrue(rule.contains("\n- **\(state).**"), "§6.60 no longer names \(state) as a state")
         }
-        let strip = try section(spec, "### 6.62 ")
+        let strip = try FixtureLoader.section(spec, "### 6.62 ")
         XCTAssertTrue(strip.contains(TripStrip.names.map { "*\($0)*" }.joined(separator: ", ")),
                       "§6.62's words are not TripStrip.names")
     }
@@ -157,12 +155,10 @@ final class TripTests: XCTestCase {
     // TN6 (pin): TEST_CASES has a block per milestone of the release, and the project file
     // already holds every file a track fills — so no track adds one.
     func testTheTracksFindTheirFilesAndTheirBlocks() throws {
-        guard let cases = FixtureLoader.doc("docs/TEST_CASES.md"),
-              let project = FixtureLoader.doc("JimmsBro.xcodeproj/project.pbxproj"),
-              let package = FixtureLoader.doc("Package.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
-        let release = try section(cases, "## TN. ", until: "## ")
+        let cases = try FixtureLoader.requiredDoc("docs/TEST_CASES.md")
+        let project = try FixtureLoader.requiredDoc("JimmsBro.xcodeproj/project.pbxproj")
+        let package = try FixtureLoader.requiredDoc("Package.swift")
+        let release = try FixtureLoader.section(cases, "## TN. ", until: "## ")
         let blocks = release.components(separatedBy: "\n").filter { $0.hasPrefix("### N") }
         XCTAssertEqual(blocks.map { String($0.prefix(6)) },
                        ["### N1", "### N2", "### N3", "### N4", "### N5", "### N6"])
@@ -184,10 +180,7 @@ final class TripTests: XCTestCase {
     // sentences the numbered steps carried (D87), the picker's closing line and the word JSON
     // from the doors, so no file under JimmsBro/ names any of them again.
     func testWhatTheMergeTookOutStaysOut() throws {
-        let sources = try Self.swiftSources()
-        guard !sources.isEmpty else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let sources = try FixtureLoader.swiftSources()
         // A name that must appear nowhere, and what replaced it.
         let gone = [("copyStep", "D87: the trip strip says where you are"),
                     ("PromptText.mechanism", "D87: the sentence is the introduction's first page"),
@@ -203,27 +196,5 @@ final class TripTests: XCTestCase {
         // And the one word each door uses is Core's, written once (§6.68).
         let editors = sources.filter { $0.path.hasPrefix("JimmsBro/Features/") && $0.text.contains("\"Edit the text\"") }
         XCTAssertTrue(editors.isEmpty, "\(editors.map(\.path).joined(separator: ", ")) writes Edit the text out again")
-    }
-
-    /// Every Swift file of the app target, as (path relative to the checkout, contents) — empty
-    /// when the checkout is out of reach, as it is inside the simulator.
-    static func swiftSources() throws -> [(path: String, text: String)] {
-        let root = FixtureLoader.sourceRoot
-        let app = root.appendingPathComponent("JimmsBro")
-        guard let walk = FileManager.default.enumerator(at: app, includingPropertiesForKeys: nil) else { return [] }
-        var out: [(String, String)] = []
-        for case let url as URL in walk where url.pathExtension == "swift" {
-            let path = url.path.replacingOccurrences(of: root.path + "/", with: "")
-            out.append((path, try String(contentsOf: url, encoding: .utf8)))
-        }
-        return out
-    }
-
-    /// The lines under a heading that starts with `heading`, up to the next heading that starts
-    /// with `until`.
-    private func section(_ text: String, _ heading: String, until: String = "#") throws -> String {
-        let lines = text.components(separatedBy: "\n")
-        let start = try XCTUnwrap(lines.firstIndex { $0.hasPrefix(heading) }, "no \(heading)")
-        return lines[(start + 1)...].prefix { !$0.hasPrefix(until) }.joined(separator: "\n")
     }
 }

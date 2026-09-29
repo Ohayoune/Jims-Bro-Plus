@@ -4,9 +4,9 @@ import SwiftUI
 /// name, set count, reps, rep range, weight, rest, in reserve — decided in Core
 /// (`PlanEdit.ExerciseFields`), and TN3 holds them to the same exercise:
 ///
-/// - **The operation form**, Plan detail's: each changed field commits one `PlanEdit.Operation`,
-///   so every change goes through the import pipeline on its own and a refusal never leaves the
-///   sheet in a state the plan does not have.
+/// - **The operation form**, Plan detail's: the changed fields are handed to `commit` together,
+///   which makes them one `PlanEdit.Operation.editExercise` through the import pipeline — all of
+///   them or, refused, none (D96, v1.12 L6: one commit per field until then).
 /// - **The value form** (D93, v1.11): the exercise of a day that belongs to no plan — a day
 ///   written for one date — edited as a value and handed to `save`, which checks the whole day
 ///   and returns what it refused; the sheet stays open with the sentence until it is fixed.
@@ -20,18 +20,20 @@ struct ExerciseEditSheet: View {
     private let output: Output
 
     private enum Output {
-        /// Called with a builder, so the sheet doesn't need to know its own address.
-        case operations((@escaping (ExerciseAddress) -> PlanEdit.Operation) -> Void)
+        /// The fields that changed; the caller knows the exercise's address.
+        case operations(([PlanEdit.ExerciseChange]) -> Void)
         case value((Exercise) -> [Issue])
     }
 
     @State private var fields: PlanEdit.ExerciseFields
     /// The value form's refusal, until the next Save.
     @State private var refusal: String?
+    /// F3 (2026-09-24): Cancel with a field changed, asking before the change goes.
+    @State private var discarding = false
 
     /// The operation form (D29).
     init(exercise: Exercise, units: WeightUnit, editAsJSON: (() -> Void)? = nil,
-         commit: @escaping (@escaping (ExerciseAddress) -> PlanEdit.Operation) -> Void) {
+         commit: @escaping ([PlanEdit.ExerciseChange]) -> Void) {
         self.exercise = exercise
         self.units = units
         self.editAsJSON = editAsJSON
@@ -57,7 +59,7 @@ struct ExerciseEditSheet: View {
                 }
 
                 Section("Sets") {
-                    Stepper("\(fields.sets) set\(fields.sets == 1 ? "" : "s")", value: $fields.sets, in: 1...50)
+                    Stepper("\(TargetText.counted(fields.sets, "set"))", value: $fields.sets, in: 1...50)
                 }
 
                 Section {
@@ -115,22 +117,24 @@ struct ExerciseEditSheet: View {
             .navigationTitle("Edit exercise")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { if dirty { discarding = true } else { dismiss() } } }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") { save() }.disabled(!fields.canSave)
                 }
             }
+            .discardGuard(dirty, asking: $discarding) { dismiss() }
         }
     }
+
+    /// F3 (2026-09-24): a field changed from the exercise as it opened.
+    private var dirty: Bool { fields != PlanEdit.ExerciseFields(exercise) }
 
     /// Only the fields that actually changed are sent, so an untouched exercise is untouched.
     private func save() {
         let changes = fields.changes(from: exercise)
         switch output {
         case let .operations(commit):
-            for change in changes {
-                commit { change.operation(day: $0.day, exercise: $0.exercise) }
-            }
+            if !changes.isEmpty { commit(changes) }
             dismiss()
         case let .value(save):
             guard let edited = PlanEdit.edited(exercise, changes) else {

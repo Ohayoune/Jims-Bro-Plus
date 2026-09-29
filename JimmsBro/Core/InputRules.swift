@@ -3,8 +3,6 @@ import Foundation
 /// SPEC §6.10. Each field filters what it will accept as the user types, so an unacceptable
 /// edit leaves the last valid text in place rather than clearing the field.
 enum InputRules {
-    static let maxWeight = 10_000.0
-
     /// Digits only, at most three. Over-long input is truncated; non-digits are refused.
     static func reps(_ new: String, previous: String = "") -> String {
         guard new.allSatisfy(\.isWholeNumber) else { return previous }
@@ -24,7 +22,7 @@ enum InputRules {
         guard text.allSatisfy({ $0.isWholeNumber || $0 == "." }) else { return previous }
         guard text.filter({ $0 == "." }).count <= 1 else { return previous }
         guard let value = Double(text) ?? (text.isEmpty || text == "." ? 0 : nil) else { return previous }
-        guard value <= maxWeight else { return previous }
+        guard value <= TargetGrammar.maxWeight else { return previous }
         return text
     }
 
@@ -35,7 +33,7 @@ enum InputRules {
     static func weightValue(_ text: String) -> Double? {
         let text = text.replacingOccurrences(of: ",", with: ".")
         guard !text.isEmpty, text != ".", let value = Double(text), value.isFinite else { return nil }
-        return min(maxWeight, max(0, (value * 10).rounded() / 10))
+        return min(TargetGrammar.maxWeight, max(0, (value * 10).rounded() / 10))
     }
 
     /// The text a committed weight goes back into the field as.
@@ -53,13 +51,13 @@ enum InputRules {
         let base = weight ?? 0
         guard let increment, increment > 0 else {
             let moved = up ? base + step : base - step
-            return min(maxWeight, max(0, (moved * 10).rounded() / 10))
+            return min(TargetGrammar.maxWeight, max(0, (moved * 10).rounded() / 10))
         }
         let direction: WeightRounding.Direction = up ? .up : .down
         let target = WeightRounding.isLoadable(base, increment: increment)
             ? (up ? base + step : base - step)
             : base
-        return min(maxWeight, WeightRounding.snap(target, increment: increment, direction: direction))
+        return min(TargetGrammar.maxWeight, WeightRounding.snap(target, increment: increment, direction: direction))
     }
 
     static func stepped(reps: Int?, up: Bool) -> Int {
@@ -150,11 +148,6 @@ enum StepCard {
         return "\(exercise.name) · \(bare)"
     }
 
-    /// True when the step's block holds more than one exercise, i.e. it is a superset round.
-    static func blockNamesRows(session: Session, block: Int) -> Bool {
-        Set(session.steps.filter { $0.blockIndex == block }.map(\.exerciseIndex)).count > 1
-    }
-
     /// The target line, with the exercise's notes after a "·" when it has any. The set rows pass
     /// `notes: false`: the notes belong to the exercise, and repeating them on all four of its
     /// rows is noise, not information. Since v1.10 (D81) the Workout screen has no target line;
@@ -163,15 +156,24 @@ enum StepCard {
                            wording: Wording = .plain) -> String {
         guard let step = session.steps[safe: index],
               let exercise = session.exercises[safe: step.exerciseIndex],
-              let resolved = session.target(at: index) else { return "" }
-        let target = SetTarget(work: resolved.work, weight: resolved.weight, restSeconds: 0,
-                               inReserve: resolved.reserve)
+              let target = session.target(at: index) else { return "" }
         var text = TargetText.target(target, range: step.dropIndex == 0 ? exercise.repRange : nil,
                                      units: session.units, wording: wording)
         // D42: said once, on the exercise's line, like the notes — never on every row.
         if notes, let was = exercise.substitutedFor { text += " · was \(was)" }
         if notes, let note = exercise.notes?.trimmed, !note.isEmpty { text += " · \(note)" }
         return text
+    }
+
+    /// "Bench Press · set 2 of 3 · Aim 8–12 reps · 60 kg" — a step in one line, for whoever
+    /// says it away from its card: the strip's "Next: …" (`WorkoutScreen.nextLine`), the rest's
+    /// notification and the Lock Screen. Each adds its own lead; nil for a step that isn't one.
+    static func stepLine(session: Session, step index: Int, wording: Wording = .plain) -> String? {
+        guard let step = session.steps[safe: index],
+              let exercise = session.exercises[safe: step.exerciseIndex],
+              session.target(at: index) != nil else { return nil }
+        return "\(exercise.name) · set \(step.setIndex + 1) of \(exercise.targets.count) · "
+            + targetLine(session: session, step: index, notes: false, wording: wording)
     }
 
     /// O8: Log set is disabled until the field holds a number.
@@ -232,9 +234,8 @@ enum StepCard {
         } else {
             // The same count the stage uses (D34), so the header cannot disagree with itself
             // after "Do later" (D28) or a substitution (D42).
-            let order = SessionBlocks.exerciseOrder(session)
-            let position = (order.firstIndex(of: SessionBlocks.canonical(session, step.exerciseIndex)) ?? 0) + 1
-            text = "Exercise \(position) of \(max(order.count, position))"
+            let place = SessionBlocks.place(session, exercise: step.exerciseIndex)
+            text = "Exercise \(place.position) of \(place.of)"
                  + " · Set \(step.setIndex + 1) of \(exercise.targets.count)"
         }
         if step.dropIndex > 0, let target = exercise.targets[safe: step.setIndex] {
@@ -254,6 +255,16 @@ enum StepCard {
         }
         if let setSeconds { text += " · \(TargetText.time(setSeconds))" }
         return text
+    }
+
+    /// F4 (2026-09-24): a set standing alone — "10 × 60 kg", reps first as every row writes it,
+    /// with the unit a row leaves to its list. Last time, Best, Heaviest set, Find an exercise's
+    /// top set and the Summary's record all say it this way; until F4 the last four put the
+    /// weight first ("60 kg × 10"). Compact keeps v1.5's "10 @ 60", which names no unit.
+    static func setText(_ result: SetResult, units: WeightUnit, wording: Wording = .plain) -> String {
+        let text = resultText(result, wording: wording)
+        guard wording == .plain, result.weight != nil else { return text }
+        return text + " " + units.rawValue
     }
 
     /// The current exercise's set rows: every set of a straight exercise, or just the current
@@ -276,7 +287,7 @@ enum StepCard {
             // which stay on screen under their own name rather than vanishing.
             indices = session.steps.indices.filter { session.steps[$0].blockIndex == step.blockIndex }
         }
-        let naming = blockNamesRows(session: session, block: step.blockIndex)
+        let naming = SessionBlocks.namesRows(session, session.steps.indices.filter { session.steps[$0].blockIndex == step.blockIndex })
         return indices.map { i in
             let s = session.steps[i]
             let value: String
@@ -293,10 +304,8 @@ enum StepCard {
             // written here rather than in the view, so a test can pin it (Y13's rule).
             let lastTime = Prefill.historicalResult(session: session, step: i, history: history)
                 .map { result -> String in
-                    let text = resultText(result, wording: wording)
-                    guard wording == .plain else { return "last " + text }
-                    let unit = result.weight == nil ? "" : " \(session.units.rawValue)"
-                    return "Last time " + text + unit
+                    wording == .plain ? "Last time " + setText(result, units: session.units)
+                                      : "last " + resultText(result, wording: wording)
                 }
             return SetRow(stepIndex: i, status: s.status, isCurrent: i == index,
                          label: rowLabel(session: session, step: i, naming: naming,

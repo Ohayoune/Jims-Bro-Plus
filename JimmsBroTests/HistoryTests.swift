@@ -129,11 +129,11 @@ final class HistoryTests: XCTestCase {
     // SPEC §6.7's best set, including its fallbacks.
     func testBestSetText() throws {
         let weighted = CoreTestSupport.completed([10, 8, 5], weights: [60, 80, 100])
-        XCTAssertEqual(ExerciseText.best(steps: weighted.steps, units: .kg), "Best: 100 kg × 5")
+        XCTAssertEqual(ExerciseText.best(steps: weighted.steps, units: .kg), "Best: 5 × 100 kg")
 
         // A tie on weight is broken by reps.
         let tied = CoreTestSupport.completed([5, 9, 3], weights: [100, 100, 60])
-        XCTAssertEqual(ExerciseText.best(steps: tied.steps, units: .kg), "Best: 100 kg × 9")
+        XCTAssertEqual(ExerciseText.best(steps: tied.steps, units: .kg), "Best: 9 × 100 kg")
 
         // No weighted sets: most reps, with no unit.
         let bodyweight = CoreTestSupport.completed([10, 15, 12], weights: [nil, nil, nil])

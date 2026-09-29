@@ -120,10 +120,6 @@ struct CycleStrip<Place: View>: View {
     var side: CGFloat
     var spacing: CGFloat = 2
     var lineSpacing: CGFloat = 2
-    /// D91 (v1.11): the places a plan built day by day has not filled yet. Not drawn here — the
-    /// caller's place draws a hollow day (`StripSquare(outlined:)`) — but carried by the strip so
-    /// the review and its squares read one set.
-    var hollow: Set<Int> = []
     @ViewBuilder let place: (Int) -> Place
 
     var body: some View {

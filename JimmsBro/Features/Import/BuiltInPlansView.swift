@@ -25,12 +25,7 @@ struct BuiltInPlansView: View {
             }
         }
         .task { readCycles() }
-        .alert("That plan couldn't be opened", isPresented: Binding(
-            get: { problem != nil }, set: { if !$0 { problem = nil } })) {
-            Button("OK", role: .cancel) { problem = nil }
-        } message: {
-            Text(problem ?? "")
-        }
+        .problemAlert("That plan couldn't be opened", message: $problem)
     }
 
     private func tile(_ entry: BuiltInPlan) -> some View {

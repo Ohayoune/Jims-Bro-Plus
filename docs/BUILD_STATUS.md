@@ -1,5 +1,294 @@
 # Build status
 
+Updated 2026-09-27. **v1.12 is built and green on `v1.12-one-of-each`: L0–L8, with F (F1–F4)
+before L2, and the three fixes a review of the branch found before the pull request.** `main` holds L0–L1 (a5d7d28, fast-forwarded 2026-09-24); the fix-first milestone **F**
+(from the 2026-09-24 audit of the screens against each other) was built on branch `fix-first` off
+it, and **L2**–**L8** on `v1.12-one-of-each`, fast-forwarded to `fix-first` first. What remains is
+the owner's: the device checklist (the v1.7 to v1.12 rows all need the phone), the Developer
+Program, a release Xcode and the submission (`docs/APP_STORE.md` §1 and §6). The review's other
+findings — two bugs first — are parked for the plan after this one (`docs/ITERATION_13_PLAN.md`,
+the last section).
+
+## v1.12 (L0–L8 and F): built and green
+
+`docs/ITERATION_13_PLAN.md` is the v1.12 plan, written from the owner's note *"I don't want logic
+duplicates anywhere"*: one owner for each piece of logic (D96), Core's unless it draws, and where
+two copies disagreed SPEC decides, else the stricter rule, one line in `docs/DECISIONS_LOG.md`.
+Nothing changed on disk; `StoreMigrationTests` stayed green untouched throughout.
+
+After the review's three fixes:
+
+| Route | Result |
+|---|---|
+| `xcodebuild test -scheme JimmsBro -destination 'platform=iOS Simulator,name=iPhone 17'` | **476 tests, 0 skipped, 0 failures** |
+| `swift test` | **475 tests, 0 failures** |
+| `python3 tools/check_core.py` | **475 test bodies, 9,453 assertions, 0 failures** |
+| `python3 tools/reference_import.py` | **118/118 fixtures match** (unchanged: v1.12 touches no fixture) |
+| `xcodebuild build -scheme JimmsBro -configuration Release` | **BUILD SUCCEEDED** |
+| `python3 tools/check_release.py` | **ready, as far as a script can tell** — version **1.12 (1)** |
+| `python3 tools/check_bundle.py` | **current** (regenerated after the fixes) |
+
+v1.11 ended at 438 on the simulator with 32 skipped; the 38 added are F's and L1–L6's TF and TL
+cases, the review's TL36, and the pins beside them. The simulator skipped none this time: a pin that reads the checkout skips
+only when the simulator's sandbox keeps the checkout out of reach (`FixtureLoader.outOfReach`), and on
+this run, on the iPhone 17 rather than v1.11's clone, it did not.
+
+| Milestone | What it did | State |
+|---|---|---|
+| L0 | The plan, the branch, the bundle | Done |
+| L1 | One parser per value (`TargetGrammar`), one escaper, one formatter. TL1–TL5 | Done |
+| F | Fix first: Edit the text keeps the progression, three destructive actions ask, a screen holding edits keeps them, a set reads reps first everywhere. TF1–TF5 | Done |
+| L2 | One JSON grammar (`JSONGrammar`). TL6–TL8 | Done |
+| L3 | Plans and the schedule: `Plan.carried(into:as:)`, English day and month names, one swap search, one exercise search, one reading of a cycle. TL9–TL13 | Done |
+| L4 | The session and the Workout screen: one rest, one step line, one walk, one set of counts. TL14–TL21 | Done |
+| L5 | The chatbot screens: one refusal, one ···, one sheet per text, their parts drawn once. TL22–TL27 | Done |
+| L6 | The other views: the Summary's and Progression's lines, one plural, one switch-workout alert, the small SwiftUI repeats, one exercise save. TL28–TL33 | Done |
+| L7 | One script edits the project; the tests' helpers written once | Done |
+| L8 | Docs, checklist, bundle, 1.12: **TF6**, **TL34** and **TL35** as the `manual` cases a person can see, in the block of the change each checks, and `docs/DEVICE_CHECKLIST.md`'s **v1.12 rows**; three L8 lines in `DECISIONS_LOG.md`; the TL header says the ids landed in order; the README's status, handoff paragraph, test paragraph and docs table say v1.12; version **1.12** in all six `MARKETING_VERSION` settings and in `docs/APP_STORE.md`; the handoff paragraph in `CLAUDE.md` and `AGENTS.md`; the bundle regenerated. No screenshot changed | Done |
+| Review | Before the pull request, three findings of a review of the branch: a date's day and month read in the Gregorian calendar whatever the phone's (`MonthText`, TL10 gains a Hebrew calendar); L37 back on the path Plan detail saves by (`AppModel.editPlan` with `.replacePlanJSON`); Rename an edit (`PlanEdit.Operation.renamePlan`) and a kept copy's text rendered, so a plan's text says its name (TL36). Three lines in `DECISIONS_LOG.md`. The review's other findings are minor — SPEC and the checklist naming symbols the branch renamed, and repeats D96 missed — and are not in this commit | Done |
+| — | The v1.12 device rows (TF6, TL34, TL35) | **Written, not run** — need the phone |
+
+### Run for the review's three
+
+On `v1.12-one-of-each`, 2026-09-27, as in the table above. The simulator's first run hung before its
+runner connected (*"The test runner hung before establishing connection"*), with no test run; the second
+ran all 476. `python3 tools/build_bundle.py`, then `check_bundle.py` and the two host routes, after the
+last document edit.
+
+### Run for L8
+
+On `v1.12-one-of-each`, 2026-09-27, after the version bump: the three routes, the Release build,
+`check_release.py` and `reference_import.py` as in the table above. The two host routes — where the
+pins that read SPEC, TEST_CASES and the project file run — ran after the last edit to a document they
+read. `python3 tools/build_bundle.py`, then `python3 tools/check_bundle.py`, after the last document
+edit of all.
+
+### Not run for L8
+
+The v1.12 device rows, and every earlier release's; the phone is the owner's.
+
+## v1.12 L7: built and green on `v1.12-one-of-each`
+
+Tools and the tests' support, one owner each. **One script edits the project**: `tools/add_sources.py`
+adds a file to `app`, `tests`, `activity` or `resource` — a file its group already holds gains a build
+file in that target, which is how a Core file reaches the extension — `remove`s a file from a group and
+every target that builds it, and `remove-group`s a group with everything in it; a target's phase is found
+from the target's name. `tools/pbxproj_edit.py` is gone, and `tools/add_activity_target.py` adds its four
+files through `add_sources.add_file`. **The tests' helpers are written once**: `FixtureLoader.requiredDoc`
+for the 40 pins that skipped by hand, and `swiftSources`, `section`, `block` and `withoutComments` moved
+there from the test classes that owned them; `CoreTestSupport.importing` and `.imported`,
+`engine(history:)`, `threeExercises`, `stepNames`, `warmUp`, `days`, `logged`, `sevenDayRotation` and
+`fourDayRotation` in place of the copies the sweep found; and `CoreChecks.check` for the portable
+runner's assertions. `docs/DECISIONS_LOG.md` has what differed and which side was kept, and what was left
+on purpose. No TL case: nothing the app does changed, and the test count did not either.
+
+### Run for L7
+
+On `v1.12-one-of-each`, 2026-09-27: `xcodebuild test` on the iPhone 17 simulator, 475 tests, 0
+failures; `swift test`, 474 tests, 0 failures; `python3 tools/check_core.py`, 474 test bodies, 9,435
+assertions, 0 failures — the same three counts as L6. On a copy of the checkout, `add_sources.py` added
+a file to the app, the tests and the resources, and a Core file to the extension, a second run changed
+nothing, and `remove` put the project back byte for byte; `remove-group` left no dangling id and `plutil
+-lint` passed after each. `add_activity_target.py`, old and new, each run on V7's parent project (with
+`WorkoutActivityState.swift` added first, as V7 did), wrote the same object graph compared id-free; on
+the real project it is a no-op. The Release build succeeded and `python3 tools/check_release.py` is ready (still
+version 1.11 (1)); `python3 tools/check_bundle.py` current after `python3 tools/build_bundle.py`;
+`python3 tools/reference_import.py`, 118/118 fixtures match.
+
+### Not run for L7
+
+Nothing on the phone; no screen changed.
+
+## v1.12 L6: built and green on `v1.12-one-of-each`
+
+The other views, one owner each: `SummaryText.headline` and `SummaryText.exercises` for the Summary's
+lines — the headline, each exercise's comparison, record, *Instead of*, advice and time — worked out once
+per draw with the records; `ProgressionText.started`, `.now` and `.steps`, `Progression.entries(on:)` and
+`ProgressionEntry.isDone` for the progression screen; `TargetText.counted` for every plural (22 spellings)
+and `TargetText.setting` for the warm-up's and the walk's setting; `RestoreText.title` and `.detail` for
+the restore question; `SessionSwitch.prompt` for D17's question, drawn by one `switchWorkoutAlert` with
+`beginWorkout` catching the refusal, on Today and Plan detail; `Binding(isPresent:)`, `problemAlert` (the
+five OK-only alerts and the corrupt-file notice) and one `shareSheet` for the prompt, the backup and the
+CSV, in `Features/Shared/Presenting.swift`; Session detail's records once per draw; and the exercise
+sheet's Save as one `PlanEdit.Operation.editExercise`, which `PlanEdit.edited` also runs. The exercise
+history's notation was F4's, so nothing was left to move there. The sides picked, in
+`docs/DECISIONS_LOG.md`: the exercise sheet saves all of its fields or none (it saved them one by one, and
+a refusal part-way kept the ones before it); Plan detail's Finish and start no longer swallows a failure;
+*"1 of 1 exercise done"* where it read *exercises*. What a person sees move: Settings' share sheet comes
+up over the screen as Send the prompt's does, not inside a sheet of its own; an exercise sheet with one
+field refused saves none of them, with one alert. SPEC §4.3's Editing line names the one edit. TL28–TL33.
+
+### Run for L6
+
+On `v1.12-one-of-each`, 2026-09-25: `xcodebuild test` on the iPhone 17 simulator, 475 tests, 0
+failures; `swift test`, 474 tests, 0 failures; `python3 tools/check_core.py`, 474 test bodies, 9,435
+assertions, 0 failures; `python3 tools/reference_import.py`, 118/118 fixtures match; the Release build
+succeeded and `python3 tools/check_release.py` is ready (still version 1.11 (1)); `python3
+tools/check_bundle.py` current after `python3 tools/build_bundle.py`. On the simulator (`tools/shot.sh`,
+seeded): Settings → **Export backup** brings up the share sheet with *JimmsBro-backup · JSON*, a tap
+outside closes it, and **Export history (CSV)** then brings up *JimmsBro-history.csv*.
+
+### Not run for L6
+
+The Summary, Progression, Session detail, the switch alert and the exercise sheet were not looked at on
+the simulator, nor anything on the phone.
+
+## v1.12 L5: built and green on `v1.12-one-of-each`
+
+The chatbot screens, one owner each: `TripRefusal` (`Core/TripRefusal.swift`) for a refused reply on
+Add plan, a draft, Progression and Say what should change — the errors, `TripFix` (`.chat`, `.paste`) for
+where the fix is, what the buttons send, day by day, the sentence — with each screen's way back its one
+argument; `TripMenuItem` and one `TripMenu` for the ···; each screen type's `prompt(…)` and `subject` for
+what Send and Copy send; `JSONPoint` for every text sheet (`newPlan`, `replacing`, `assembled`, `outline`,
+`draftDay`, `changing`, `progression`, and the examples); `PlanDrafting.preview` over one trial import
+(`tried`), held by `DraftTrip` and read when the draft changes; `ImportResult.planKeepingUnits(of:)` for a
+whole plan read in a plan's place; Plan detail's Edit the text as a `.plan` fragment target saved through
+`PlanEdit.Operation.replacePlanJSON`; and `Features/Shared/TripParts.swift` for `RefusalDetails`,
+`IssueDetail`, `WorthKnowing`, `Tidying` and `TripPasteButton`. Gone: `ImportTrip.Refusal`, `.Outgoing`,
+`.MenuItem`, `.sendButtons`, `.outgoing`, `.fix()`, `.replacing`, `.examplePlan`; `ChangeRequest.askAgain`,
+`.pasteCodes`, `.fixAt`; `ProgressionScreen.fixAt`, `.issues`, `.textPoint`, `.exampleReply`;
+`DraftTrip.pastedOutline`, `pasted(index:read:)`, `preview(settings:now:)`; `AppModel.progressionPrompt`,
+`outlinePrompt`, `dayPrompt` and `replacePlan`; `ImportView(replacingPlanId:prefillText:)`. The side
+picked, in `docs/DECISIONS_LOG.md` and pinned by TL22: a refusal that names no error is fixed at Chat and
+sends the screen's own prompt (Add plan had it at Paste). What a person sees move: Add plan's ··· is the
+quiet glyph; Say what should change's and Progression's Details show every error's sentence, and a draft's
+refusal has Details; Progression's review has the tidying's caption; Progression's ··· lost its divider.
+SPEC §6.60, §6.62, §6.64, §6.65 and §4.3's whole-plan line name the owners. TL22–TL27.
+
+### Run for L5
+
+On `v1.12-one-of-each`, 2026-09-25: `xcodebuild test` on the iPhone 17 simulator, 469 tests, 0
+failures; `swift test`, 468 tests, 0 failures; `python3 tools/check_core.py`, 468 test bodies, 9,351
+assertions, 0 failures; `python3 tools/reference_import.py`, 118/118 fixtures match; the Release build
+succeeded and `python3 tools/check_release.py` is ready (still version 1.11 (1)); `python3
+tools/check_bundle.py` current after `python3 tools/build_bundle.py`. On the simulator, Add plan's refusal
+for a reply cut short (`tools/shot.sh` with `-uiImportText`): the band, *Details (1)*, **Ask for the whole
+plan**, *Copy the prompt*, *Get it day by day*, and the ··· as the quiet glyph.
+
+### Not run for L5
+
+Say what should change, Progression and a draft were not looked at on the simulator, nor anything on the
+phone; Plan detail's Edit the text as the fragment sheet is for L8's device rows.
+
+## v1.12 L4: built and green on `v1.12-one-of-each`
+
+The session and the Workout screen, one owner each: `RestResolution.betweenSets` for the rest after a
+set (the engine, the idle line, a built-in day's estimate), `StepCard.stepLine` for a step said away from
+its card (the strip's "Next: …", the rest's and a hold's notification, the Lock Screen),
+`ActiveSession.currentStep` for the step that is on, `ActiveSession.walk` for the walk between exercises
+(the strip, the stage, the Lock Screen), `SessionBlocks.place` and `SessionStats.finishedCount` with
+`loggedCount` and `duration` for the counts, `Prefill.lastResult` over one scan of history,
+`TargetGrammar.isWeight`, `.maxWeight`, `.cleanName` and `.nameLength` for the limits, `SessionStep` and
+`StepTarget` for a step and its target, Persistence.swift for `ActiveSession`'s and `RestState`'s
+decoders with one reading of the v1 `.transition`, and `SessionBlocks.blocks` for the list the Overview
+and Session detail draw. Gone: `Step`, `StepBuilder`, `SessionEngine.loggedCount` and `elapsed(now:)`,
+`Prefill.historicalWeight`, `StepCard.blockNamesRows`, `SessionBlocks.title`, `InputRules.maxWeight`,
+`ActiveSession`'s hand-written memberwise init and encoder, and `RestState`'s init. Sides picked, each in
+`docs/DECISIONS_LOG.md` and pinned by TL14–TL21 (`docs/TEST_CASES.md`): the rest after a set is the
+engine's; the notification says the step as the strip does, target and weight, and a drop has no range;
+skipping an exercise starts the walk (SPEC §6.55); last time's lookups take the first logged set. The
+review's "one form" for the walk was narrowed to one reading: SPEC §6.3, §6.4 and §6.6 make the rest and
+the block's line two stages of one walk, so nothing on disk changed. SPEC §6.3, §6.4, §6.6 and §6.55
+name the owners.
+
+### Run for L4
+
+On `v1.12-one-of-each`, 2026-09-24: `xcodebuild test` on the iPhone 17 simulator, 463 tests, 0
+failures; `swift test`, 462 tests, 0 failures; `python3 tools/check_core.py`, 462 test bodies, 9,222
+assertions, 0 failures; `python3 tools/reference_import.py`, 118/118 fixtures match; the Release build
+succeeded and `python3 tools/check_release.py` is ready (still version 1.11 (1)); `python3
+tools/check_bundle.py` current after `python3 tools/build_bundle.py`.
+
+### Not run for L4
+
+Nothing was looked at on the simulator or the phone. What a person could see change — the rest's
+notification saying the target and weight, the ring after Skip exercise ending in the alert, the idle
+line's rest for an exercise taken out of a superset — is for L8's device rows.
+
+## v1.12 L3: built and green on `v1.12-one-of-each`
+
+Plans and the schedule, one owner each: `Plan.carried(into:as:)` for what a plan hands the plan saved
+in its place (a name-conflict Replace, every edit, Apply and Edit the text), `Plan.dayIndex(named:)`,
+`Weekday(_:calendar:)` with `WeekdayText` and a new `MonthText`, `finished(on:plan:day:except:calendar:)`
+over sessions, one horizon search (`PlanSchedule.firstDay`), `week(containing:)` as `next(days: 7, …)`,
+`CycleSquare.of` with `Plan.cycleDays` and `cycleNames` for the cycle as squares and as words, and
+`ExerciseNames.known` as the one exercise search. Gone: `ChangeRequest.applied`,
+`PlanSchedule.positionAfterReplacement`, `firstDate`, the date-less `nextInPattern`,
+`ExerciseText.search`, `RepeatBlock.chips`, `DayChoices.months`, `ImportTrip.Square`,
+`RepeatBlock.Square`, `PlanPage.Row` and `CycleStrip.hollow`. Five sides picked, each in
+`docs/DECISIONS_LOG.md` and pinned by TL9–TL13 (`docs/TEST_CASES.md`): a Replace keeps the anchor with
+its place and a repeated day's own place; dates in English whatever the phone's language; the swap
+search's horizon is the calendar's; one exercise search blind to case, accents and runs of spaces; a
+dead cycle entry reads *rest* in the diff. SPEC §4.6, §6.12, §6.21, §6.42 and §6.51 name the owners.
+
+### Run for L3
+
+On `v1.12-one-of-each`, 2026-09-24: `xcodebuild test` on the iPhone 17 simulator, 455 tests, 0
+failures; `swift test`, 454 tests, 0 failures; `python3 tools/check_core.py`, 454 test bodies, 9,120
+assertions, 0 failures; `python3 tools/reference_import.py`, 118/118 fixtures match; the Release build
+succeeded and `python3 tools/check_release.py` is ready (still version 1.11 (1)); `python3
+tools/check_bundle.py` current after `python3 tools/build_bundle.py`.
+
+### Not run for L3
+
+Nothing was looked at on the simulator. What a person could see change — the missed line and the
+Summary's "Next:" line in English on a non-English phone, Change exercise's suggestions and Find an
+exercise finding a name typed without its accents — is L8's device row. Found in passing and left for
+its own change: Duplicate day on a rotation shifts the days under the cycle, which keeps their old
+indices, so on Push Pull Legs the copy of Push takes Pull's place and Legs leaves the repeat block.
+
+## v1.12 L2: built and green on `v1.12-one-of-each`
+
+One JSON grammar: `JSONGrammar` (`Core/JSONGrammar.swift`) is the importer's check, the JSON sheet's
+walk to a line and the extraction's cut, in place of `StrictJSON`, the locator's `LocatorParser` and
+`PlanImport.valueEnd`. `docs/DECISIONS_LOG.md` has the why, `docs/TEST_CASES.md` TL6–TL8 the cases;
+SPEC §6.19 names the grammar.
+
+### Run for L2
+
+On `v1.12-one-of-each`, 2026-09-24: `xcodebuild test` on the iPhone 17 simulator, 450 tests, 0
+failures; `swift test`, 449 tests, 0 failures; `python3 tools/check_core.py`, 449 test bodies, 9,064
+assertions, 0 failures; `python3 tools/reference_import.py`, 118/118 fixtures match; the Release build
+succeeded and `python3 tools/check_release.py` is ready (still version 1.11 (1)); `python3
+tools/check_bundle.py` current after `python3 tools/build_bundle.py`.
+
+A scratch harness, not committed, ran the old `StrictJSON`, `LocatorParser` and `valueEnd` beside
+`JSONGrammar` over 327,783 texts — every file in `examples/`, each cut short at every byte and missing
+each byte (sampled past 6 KB), random edits with the bytes JSON turns on, curly quotes, and hand-written
+edges (nesting 256–258, a BOM, CRLF, a lone `-`, short escapes). Every text got the same verdict,
+message, tree and lines, and 778,753 of 778,758 cuts the same end; the other 5 are TL8's case, a
+delimiter with a combining mark after it, and each now gives the oracle's answer.
+
+### Not run for L2
+
+No manual case is new, and nothing on screen changed.
+
+## v1.12 F (F1–F4): built and green on `fix-first`
+
+Edit the text keeps the progression (F1); Skip exercise, a swipe-delete on Plan detail and the
+day editor's Back ask first (F2); screens holding edits ask before discarding them (F3); a set
+reads reps first everywhere (F4). `docs/DECISIONS_LOG.md` has the why, `docs/TEST_CASES.md` TF1–TF5
+the cases; W38, TN35 and J5 were amended, SPEC §6.7, §6.21 and §6.67 say the same.
+
+### Run for F
+
+On `fix-first`, 2026-09-24: `xcodebuild test` on the iPhone 17 simulator, 447 tests, 0 failures;
+`swift test`, 446 tests, 0 failures; `python3 tools/check_core.py`, 446 test bodies, 9,010
+assertions, 0 failures; the Release build succeeded and `python3 tools/check_release.py` is ready
+(still version 1.11 (1) — v1.12's number is L8's); `python3 tools/check_bundle.py` current after
+`python3 tools/build_bundle.py`.
+
+Before, on `main` at a5d7d28 (L1): `swift test` 443 tests, 0 failures; `python3 tools/check_core.py`
+443 test bodies, 0 failures (after deleting `build/core-checks/module-cache`, compiled when the
+project lived under `~/Desktop/SummerProjects`); `python3 tools/check_bundle.py` current.
+
+### Not run for F
+
+TF3 and TF4, the manual cases, were not yet walked through on the simulator: the alerts and the
+guard are built and compiled, not seen. No device row is new.
+
+## Earlier (v1.11 and before)
+
 Updated 2026-09-17. **v1.11 is built and green on branch `v1.11-round-trip` (off `v1.10-symbols`
 at 33e7d50): N0–N7, the whole release.** v1.10 and everything before it are below, unchanged except where a later milestone corrected
 them; the device checklist, the Developer Program, a release Xcode and the submission itself are

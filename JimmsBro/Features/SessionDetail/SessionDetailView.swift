@@ -15,13 +15,13 @@ struct SessionDetailView: View {
     @State private var choosingRename = false
 
     private var session: Session? { model.sessions.first { $0.id == sessionId } }
-    private var records: Set<Int> {
-        session.map { SessionStats.personalRecords(session: $0, history: model.sessions) } ?? []
-    }
 
     var body: some View {
         Group {
             if let session {
+                // D30 (v1.1): the sets that beat everything before them — worked out once per
+                // draw (D96, v1.12 L6), where every row read them again.
+                let records = SessionStats.personalRecords(session: session, history: model.sessions)
                 List {
                     Section {
                         Text(ExerciseText.summary(session))
@@ -35,18 +35,19 @@ struct SessionDetailView: View {
                             MetricRow(metric: metric)
                         }
                     }
-                    ForEach(Array(SessionBlocks.indices(session).enumerated()), id: \.offset) { _, indices in
+                    ForEach(Array(SessionBlocks.blocks(session).enumerated()), id: \.offset) { _, block in
                         Section {
-                            ForEach(indices, id: \.self) { index in
+                            ForEach(block.steps, id: \.self) { index in
                                 Button {
                                     editing = EditTarget(session: session, step: index)
                                 } label: {
-                                    row(session: session, index: index, named: SessionBlocks.namesRows(session, indices))
+                                    row(session: session, index: index, named: block.namesRows,
+                                        record: records.contains(index))
                                 }
                                 .buttonStyle(.plain)
                             }
                         } header: {
-                            header(session: session, indices: indices)
+                            header(session: session, block: block)
                         }
                     }
                 }
@@ -84,8 +85,7 @@ struct SessionDetailView: View {
                     }
                     Button("Cancel", role: .cancel) {}
                 }
-                .alert("Rename exercise", isPresented: Binding(get: { renaming != nil },
-                                                               set: { if !$0 { renaming = nil } })) {
+                .alert("Rename exercise", isPresented: Binding(isPresent: $renaming)) {
                     TextField("Name", text: $draftName)
                     Button("Cancel", role: .cancel) { renaming = nil }
                     Button("Rename") {
@@ -114,17 +114,11 @@ struct SessionDetailView: View {
 
 
     /// The block header names its exercises, and each name opens that exercise's history.
-    /// The names and the duration come from Core, so this header and the Overview's — which is
-    /// plain text — always say the same thing.
-    private func header(session: Session, indices: [Int]) -> some View {
-        let unique = SessionBlocks.names(session, indices)
-        var duration = ""
-        if let block = indices.first.map({ session.steps[$0].blockIndex }),
-           let seconds = SessionStats.blockDuration(block, session: session) {
-            duration = " · \(TargetText.time(seconds))"
-        }
-        return HStack(spacing: 4) {
-            ForEach(Array(unique.enumerated()), id: \.offset) { offset, name in
+    /// The names and the duration are Core's `SessionBlocks.Block`, so this header and the
+    /// Overview's — which is plain text — always say the same thing.
+    private func header(session: Session, block: SessionBlocks.Block) -> some View {
+        HStack(spacing: 4) {
+            ForEach(Array(block.names.enumerated()), id: \.offset) { offset, name in
                 if offset > 0 { Text("+") }
                 NavigationLink(value: HistoryRoute.exercise(name: name, units: session.units)) {
                     Text(name)
@@ -132,11 +126,11 @@ struct SessionDetailView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.accentColor)
             }
-            Text(duration)
+            Text(block.duration.map { " · " + $0 } ?? "")
         }
     }
 
-    private func row(session: Session, index: Int, named: Bool) -> some View {
+    private func row(session: Session, index: Int, named: Bool, record: Bool) -> some View {
         let step = session.steps[index]
         let label = StepCard.rowLabel(session: session, step: index, naming: named,
                                       wording: model.settings.wording)
@@ -145,7 +139,7 @@ struct SessionDetailView: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
             // D30 (v1.1): the set that beat everything before it, marked where you go looking.
-            if records.contains(index) { PRBadge(text: "PR") }
+            if record { PRBadge(text: "PR") }
             Text(ExerciseText.result(step, wording: model.settings.wording))
                 .font(.footnote.monospacedDigit())
                 .foregroundStyle(step.status == .logged ? .primary : .secondary)
@@ -178,6 +172,8 @@ struct EditResultSheet: View {
     @State private var valueText = ""
     @State private var weightText = ""
     @State private var loaded = false
+    /// F3 (2026-09-24): Cancel with a field changed, asking before the change goes.
+    @State private var discarding = false
 
     var body: some View {
         NavigationStack {
@@ -203,7 +199,7 @@ struct EditResultSheet: View {
             .navigationTitle("Edit set")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { if dirty { discarding = true } else { dismiss() } } }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") { commit() }.disabled(!canSave)
                 }
@@ -211,12 +207,20 @@ struct EditResultSheet: View {
             .task {
                 guard !loaded else { return }
                 loaded = true
-                let result = target.result
-                valueText = result?.reps.map(String.init) ?? result?.seconds.map(String.init) ?? ""
-                weightText = InputRules.weightText(result?.weight)
+                valueText = originalValue
+                weightText = originalWeight
             }
+            .discardGuard(dirty, asking: $discarding) { dismiss() }
         }
     }
+
+    /// The set as it was logged, as the fields first show it.
+    private var originalValue: String {
+        target.result?.reps.map(String.init) ?? target.result?.seconds.map(String.init) ?? ""
+    }
+    private var originalWeight: String { InputRules.weightText(target.result?.weight) }
+    /// F3 (2026-09-24): a field changed from the set as it was logged.
+    private var dirty: Bool { loaded && (valueText != originalValue || weightText != originalWeight) }
 
     private var canSave: Bool {
         target.isTimed ? InputRules.secondsValue(valueText) != nil

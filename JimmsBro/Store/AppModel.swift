@@ -214,22 +214,14 @@ enum SaveFailure: Equatable {
         return []
     }
 
-    /// Plan detail's Replace action (D25 v1.1): replaces the plan at `id` outright, keeping its
-    /// id and, if it was active, keeping it active. Returns nil if `id` no longer exists.
-    @discardableResult
-    func replacePlan(_ id: UUID, with plan: Plan) async -> UUID? {
-        let result = library.replace(id, with: plan)
-        if result != nil { await persistPlans() }
-        return result
-    }
-
     /// D94 (v1.11, §6.67): **Say what should change**'s Apply — the reviewed reply put in the
-    /// plan's place as an edit, not a Replace: the id, the import date, the cycle's place and
-    /// anchor, and the progression stay (`ChangeRequest.applied`). False if the plan has gone.
+    /// plan's place as an edit, not a Replace: the id, its active status, the import date, the
+    /// cycle's place and anchor, and the progression stay (`PlanLibrary.replace`). False if the
+    /// plan has gone. Plan detail's Edit the text is the same edit, from text
+    /// (`PlanEdit.Operation.replacePlanJSON`, through `editPlan`).
     @discardableResult
     func applyChange(planId: UUID, plan: Plan) async -> Bool {
-        guard let index = library.plans.firstIndex(where: { $0.id == planId }) else { return false }
-        library.plans[index] = ChangeRequest.applied(plan, to: library.plans[index])
+        guard library.replace(planId, with: plan) != nil else { return false }
         await persistPlans()
         return true
     }
@@ -277,12 +269,10 @@ enum SaveFailure: Equatable {
         await persistPlans()
     }
 
+    /// Plan detail's Rename: an edit (`PlanEdit.Operation.renamePlan`), so the plan's text follows
+    /// the name. A name with nothing in it changes nothing, as it always did.
     func renamePlan(_ id: UUID, to name: String) async {
-        guard let index = library.plans.firstIndex(where: { $0.id == id }) else { return }
-        let trimmed = name.trimmed
-        guard !trimmed.isEmpty else { return }
-        library.plans[index].name = trimmed
-        await persistPlans()
+        _ = await editPlan(id, .renamePlan(name: name))
     }
 
     func deletePlan(_ id: UUID) async {

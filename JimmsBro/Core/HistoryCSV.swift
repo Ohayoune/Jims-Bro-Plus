@@ -234,12 +234,12 @@ enum HistoryCSV {
             let spacing = steps.isEmpty ? 0 : duration / Double(steps.count)
             let sessionSteps = steps.enumerated().map { index, step -> SessionStep in
                 let row = byName[names[step.exerciseIndex]]?[step.setIndex]
-                let result: SetResult = row?.reps.map { .reps(count: $0, weight: row?.weight) }
+                var step = step
+                step.status = .logged
+                step.result = row?.reps.map { .reps(count: $0, weight: row?.weight) }
                     ?? .duration(seconds: row?.seconds ?? 0, weight: row?.weight)
-                return SessionStep(exerciseIndex: step.exerciseIndex, setIndex: step.setIndex, dropIndex: 0,
-                                   blockIndex: step.blockIndex, isLastInRound: step.isLastInRound,
-                                   isLastInBlock: step.isLastInBlock, status: .logged, result: result,
-                                   startedAt: nil, loggedAt: start.addingTimeInterval(spacing * Double(index + 1)))
+                step.loggedAt = start.addingTimeInterval(spacing * Double(index + 1))
+                return step
             }
             return Session(planId: nil, planName: "Imported", dayName: day.name, units: units,
                            startedAt: start, endedAt: start.addingTimeInterval(duration),
@@ -287,7 +287,7 @@ enum HistoryCSV {
         /// "42 workouts (610 sets) from 12 Jan to 3 Sep · 5 already here · weights read as kg".
         func text(locale: Locale = .current, timeZone: TimeZone = .current) -> String {
             var parts: [String] = []
-            var lead = "\(workouts) workout\(workouts == 1 ? "" : "s") (\(sets) set\(sets == 1 ? "" : "s"))"
+            var lead = "\(TargetText.counted(workouts, "workout")) (\(TargetText.counted(sets, "set")))"
             if let from, let to {
                 let formatter = DateFormatter()
                 formatter.locale = locale
@@ -299,7 +299,7 @@ enum HistoryCSV {
             }
             parts.append(lead)
             if alreadyHere > 0 { parts.append("\(alreadyHere) already here") }
-            if skippedLines > 0 { parts.append("\(skippedLines) line\(skippedLines == 1 ? "" : "s") skipped") }
+            if skippedLines > 0 { parts.append("\(TargetText.counted(skippedLines, "line")) skipped") }
             if let assumedUnits { parts.append("weights read as \(assumedUnits.rawValue)") }
             return parts.joined(separator: " · ")
         }

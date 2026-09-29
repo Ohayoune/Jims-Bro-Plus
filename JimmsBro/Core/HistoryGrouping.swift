@@ -40,13 +40,18 @@ enum ExerciseText {
     /// SPEC §6.7: the heaviest logged set, ties broken by reps. Weightless sets fall back to
     /// most reps, and an exercise with only timed sets falls back to its longest hold.
     static func best(steps: [SessionStep], units: WeightUnit) -> String? {
-        if let result = SessionStats.best(steps) {
-            guard let reps = result.reps else { return nil }
-            guard let weight = result.weight else { return "Best: \(reps) reps" }
-            return "Best: \(TargetText.number(weight)) \(units.rawValue) × \(reps)"
-        }
+        if let result = SessionStats.best(steps) { return bestSet(result, units: units).map { "Best: \($0)" } }
         let longest = steps.filter { $0.status == .logged }.compactMap { $0.result?.seconds }.max()
         return longest.map { "Best: \(TargetText.time($0))" }
+    }
+
+    /// A best set: "10 × 60 kg" (`StepCard.setText` — "60 kg × 10" until F4), "10 reps" without a
+    /// weight, or a hold's time. History's line, the Summary's metrics and its record say it this way.
+    static func bestSet(_ result: SetResult, units: WeightUnit) -> String? {
+        if let seconds = result.seconds { return TargetText.time(seconds) }
+        guard let reps = result.reps else { return nil }
+        guard result.weight != nil else { return "\(reps) reps" }
+        return StepCard.setText(result, units: units)
     }
 
     /// One logged step as the detail screens show it: "10 × 60 · 0:34". D58 (v1.6): the same
@@ -67,29 +72,12 @@ enum ExerciseText {
     static func summary(_ session: Session) -> String {
         var parts = [HomeActivity.duration(SessionStats.duration(session))]
         let sets = SessionStats.loggedCount(session)
-        parts.append("\(sets) set\(sets == 1 ? "" : "s")")
+        parts.append("\(TargetText.counted(sets, "set"))")
         let volume = SessionStats.volume(session.steps)
         if volume > 0 { parts.append("\(TargetText.grouped(volume)) \(session.units.rawValue) lifted") }
         // D44 (v1.3): which week of the progression it was, when it was one.
         if let week = ProgressionText.weekLine(session) { parts.append(week) }
         return parts.joined(separator: " · ")
-    }
-
-    /// D30 (v1.1): every exercise in history, de-duplicated by normalized name and ordered by
-    /// how recently it was done, filtered by a search query. History's search box uses it, so
-    /// finding one exercise no longer means remembering which day you did it on.
-    static func search(_ query: String, sessions: [Session]) -> [String] {
-        let needle = normalized(query)
-        var seen = Set<String>()
-        var found: [String] = []
-        for session in sessions.sorted(by: { $0.startedAt > $1.startedAt }) {
-            for name in session.exercises.map(\.name) {
-                let key = normalized(name)
-                guard needle.isEmpty || key.contains(needle), seen.insert(key).inserted else { continue }
-                found.append(name)
-            }
-        }
-        return found
     }
 
     /// The names an exercise-history screen can be opened for, in session order, de-duplicated.
@@ -135,6 +123,38 @@ enum SessionBlocks {
             .filter { seen.insert($0).inserted }
     }
 
+    /// "Exercise 2 of 5": where an exercise stands in the day as it now runs — the one count the
+    /// stage (D34) and the progress line read, so "Do later" moves the number with the exercise
+    /// and a substitute keeps the number of the exercise it stood in for.
+    static func place(_ session: Session, exercise index: Int) -> (position: Int, of: Int) {
+        let order = exerciseOrder(session)
+        let position = (order.firstIndex(of: canonical(session, index)) ?? 0) + 1
+        return (position, max(order.count, position))
+    }
+
+    /// One block as the Overview and Session detail list it: its steps, the header's names and
+    /// time, and whether its rows name their exercise.
+    struct Block: Equatable {
+        var steps: [Int]
+        var names: [String]
+        /// "4:12", once the block is finished.
+        var duration: String?
+        var namesRows: Bool
+        /// "Lateral Raise + Tricep Pushdown · 4:12".
+        var title: String { names.joined(separator: " + ") + (duration.map { " · " + $0 } ?? "") }
+    }
+
+    /// The list both screens draw, one `Block` per block in the order the day now runs them.
+    static func blocks(_ session: Session) -> [Block] {
+        indices(session).map { steps in
+            Block(steps: steps, names: names(session, steps),
+                  duration: steps.first
+                      .flatMap { SessionStats.blockDuration(session.steps[$0].blockIndex, session: session) }
+                      .map(TargetText.time),
+                  namesRows: namesRows(session, steps))
+        }
+    }
+
     /// The exercises in a block, in order, de-duplicated the way exercise history matches
     /// names (§6.9) — so "Bench press" and "Bench Press" are one exercise here too.
     static func names(_ session: Session, _ indices: [Int]) -> [String] {
@@ -142,17 +162,6 @@ enum SessionBlocks {
         return indices
             .compactMap { session.exercises[safe: session.steps[$0].exerciseIndex]?.name }
             .filter { seen.insert(normalized($0)).inserted }
-    }
-
-    /// "Lateral Raise + Tricep Pushdown · 4:12" — the block's exercises and how long it took,
-    /// the duration only once the block is finished.
-    static func title(_ session: Session, _ indices: [Int]) -> String {
-        var text = names(session, indices).joined(separator: " + ")
-        if let block = indices.first.map({ session.steps[$0].blockIndex }),
-           let seconds = SessionStats.blockDuration(block, session: session) {
-            text += " · \(TargetText.time(seconds))"
-        }
-        return text
     }
 
     /// Whether the rows must name their exercise: in a superset every row would otherwise read

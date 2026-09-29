@@ -95,7 +95,7 @@ enum WeekStrip {
                 let owner = known.first { $0.id == session.planId } ?? plan
                 square.dayName = session.dayName
                 square.planId = owner?.id
-                square.dayIndex = owner?.days.firstIndex { normalized($0.name) == normalized(session.dayName) }
+                square.dayIndex = owner?.dayIndex(named: session.dayName)
             case let .own(day):
                 // D76: a day written just for this date — named, outlined, in no plan.
                 square.dayName = day.name
@@ -163,7 +163,6 @@ enum WeekStrip {
     /// The weekday `offset` days from today, in the calendar's own zone.
     static func weekday(offset: Int, today: Date, calendar: Calendar = .current) -> Weekday? {
         guard let date = date(offset: offset, today: today, calendar: calendar) else { return nil }
-        let value = calendar.component(.weekday, from: date)
-        return Weekday.allCases.first { $0.calendarValue == value }
+        return Weekday(date, calendar: calendar)
     }
 }

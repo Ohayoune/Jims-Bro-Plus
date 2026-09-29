@@ -232,10 +232,8 @@ final class TodayTests: XCTestCase {
     func testTheTabsAreSpecsList() throws {
         XCTAssertEqual(AppTab.allCases.map(\.title), ["Today", "History"])
         XCTAssertEqual(AppTab.allCases.map(\.rawValue), ["today", "history"])
-        guard let spec = FixtureLoader.doc("docs/SPEC.md"),
-              let root = FixtureLoader.doc("JimmsBro/RootView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let spec = try FixtureLoader.requiredDoc("docs/SPEC.md")
+        let root = try FixtureLoader.requiredDoc("JimmsBro/RootView.swift")
         let rule = try XCTUnwrap(spec.components(separatedBy: "\n").first(where: { $0.hasPrefix("- Tab bar with ") }),
                                  "SPEC §4.0 no longer has its tab rule")
         // The rule's first bold run is the list.
@@ -361,12 +359,10 @@ final class TodayTests: XCTestCase {
             XCTAssertNil(start.message)
         }
 
-        guard let home = FixtureLoader.doc("JimmsBro/Core/HomeCard.swift"),
-              let gates = FixtureLoader.doc("JimmsBro/Core/Gates.swift"),
-              let prompts = FixtureLoader.doc("JimmsBro/Core/Prompts.swift"),
-              let today = FixtureLoader.doc("JimmsBro/Features/Home/HomeView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let home = try FixtureLoader.requiredDoc("JimmsBro/Core/HomeCard.swift")
+        let gates = try FixtureLoader.requiredDoc("JimmsBro/Core/Gates.swift")
+        let prompts = try FixtureLoader.requiredDoc("JimmsBro/Core/Prompts.swift")
+        let today = try FixtureLoader.requiredDoc("JimmsBro/Features/Home/HomeView.swift")
         XCTAssertFalse(home.contains("case planProgression"), "Today's ··· offers a progression again")
         XCTAssertFalse(gates.contains("func planProgression"), "Gates has Plan a progression's gate again")
         XCTAssertFalse(prompts.contains("static let planProgression"), "PromptText names Today's link again")
@@ -573,11 +569,9 @@ final class TodayTests: XCTestCase {
         XCTAssertEqual(card(library(nothing), on: 14).alternatives.map(\.title), ["Change plan"],
                        "nothing scheduled offered Another day until v1.8; the strip is the way")
 
-        guard let core = FixtureLoader.doc("JimmsBro/Core/HomeCard.swift"),
-              let gates = FixtureLoader.doc("JimmsBro/Core/Gates.swift"),
-              let today = FixtureLoader.doc("JimmsBro/Features/Home/HomeView.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let core = try FixtureLoader.requiredDoc("JimmsBro/Core/HomeCard.swift")
+        let gates = try FixtureLoader.requiredDoc("JimmsBro/Core/Gates.swift")
+        let today = try FixtureLoader.requiredDoc("JimmsBro/Features/Home/HomeView.swift")
         XCTAssertFalse(core.contains("case anotherDay"), "HomeStart offers Another day again")
         XCTAssertFalse(gates.contains("func anotherDay"), "Gates has Another day's gate again")
         XCTAssertFalse(today.contains("Which day?"), "Today draws the day chooser again")
@@ -600,9 +594,7 @@ final class TodayTests: XCTestCase {
         // And HomeStart does carry it, as a value: the strip's shown square is Today's, not the disk's.
         XCTAssertTrue(Mirror(reflecting: card(PlanLibrary(), on: 14)).children.contains { $0.label == "shownOffset" })
 
-        guard let source = FixtureLoader.doc("JimmsBro/Core/Persistence.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let source = try FixtureLoader.requiredDoc("JimmsBro/Core/Persistence.swift")
         let block = try XCTUnwrap(source.components(separatedBy: "extension Settings {").last?
                                     .components(separatedBy: "\nextension ").first)
         let keys = block.components(separatedBy: "container.value(.").dropFirst()

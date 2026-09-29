@@ -225,6 +225,9 @@ final class DayEditTests: XCTestCase {
 
         let back = try XCTUnwrap(try wednesday(library).back)
         XCTAssertEqual(back.title, "Back to Push as written")
+        // TF2 (F2): it asks first, since it discards what was written for the date.
+        XCTAssertEqual(back.question, "Discard Wednesday's exercises?")
+        XCTAssertEqual(back.message, "Wednesday goes back to Push as written.")
         XCTAssertEqual(back.slot, .day(name: "Push"))
         library.choose(back.slot, for: day(16), now: day(16))
         XCTAssertTrue(library.swaps.isEmpty, "the own day is gone")
@@ -264,10 +267,8 @@ final class DayEditTests: XCTestCase {
 
     // TN29 (pin): the picker's card opens the editor, not the text sheet.
     func testTheCardNoLongerPresentsTheSheetDirectly() throws {
-        guard let view = FixtureLoader.doc("JimmsBro/Features/Home/ChangeDayView.swift"),
-              let editor = FixtureLoader.doc("JimmsBro/Features/Home/DayEditorView.swift") else {
-            throw XCTSkip("the checkout is out of reach on this route")
-        }
+        let view = try FixtureLoader.requiredDoc("JimmsBro/Features/Home/ChangeDayView.swift")
+        let editor = try FixtureLoader.requiredDoc("JimmsBro/Features/Home/DayEditorView.swift")
         XCTAssertFalse(view.contains("writing = exercises.point"), "the card opens the editor")
         XCTAssertTrue(view.contains("DayEditorView("))
         XCTAssertTrue(editor.contains("text = exercises.textPoint(day)") && editor.contains("JSONFragmentSheet(point: text)"),

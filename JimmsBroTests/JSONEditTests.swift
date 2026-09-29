@@ -11,11 +11,6 @@ final class JSONEditTests: XCTestCase {
     private let now = CoreTestSupport.now
     private let settings = Settings()
 
-    private func imported(_ file: String) throws -> Plan {
-        let result = PlanImport.run(try FixtureLoader.text(file), settings: settings, now: now)
-        return try XCTUnwrap(result.plan, "\(file): \(result.issues)")
-    }
-
     private func apply(_ operation: PlanEdit.Operation, _ plan: Plan) -> ImportResult {
         PlanEdit.apply(operation, to: plan, settings: settings, now: now)
     }
@@ -31,7 +26,7 @@ final class JSONEditTests: XCTestCase {
     func testAFragmentSplicedOverItselfChangesNothing() throws {
         var checked = 0
         for fixture in try FixtureLoader.manifest().fixtures where fixture.outcome == .valid {
-            let plan = try imported(fixture.file)
+            let plan = try CoreTestSupport.imported(fixture: fixture.file)
             let rendered = PlanJSON.render(plan)
             for (d, day) in plan.days.enumerated() {
                 let sameDay = try edited(.replaceDayJSON(day: d, text: PlanJSON.render(day: day)), plan)
@@ -49,7 +44,7 @@ final class JSONEditTests: XCTestCase {
 
     // W14: a compact fragment replaces one exercise; its neighbours and the plan's identity stay.
     func testReplacingAnExerciseFromCompactJSON() throws {
-        var plan = try imported("valid/weekly-rotation.json")
+        var plan = try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json")
         plan.cyclePosition = 1
         plan.cycleAnchor = CoreTestSupport.date(1)
         let text = #"{ "name": "Barbell Bench Press", "sets": 5, "reps": 5, "repRange": "4-6", "weight": 100, "restSeconds": 180, "notes": "Belt on" }"#
@@ -74,7 +69,7 @@ final class JSONEditTests: XCTestCase {
 
     // W15: one set unlike the others — what the structured sheet cannot say (SPEC §10, closed).
     func testOneSetCanDifferFromTheOthers() throws {
-        let plan = try imported("valid/weekly-rotation.json")
+        let plan = try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json")
         let text = """
         { "name": "Barbell Bench Press", "repRange": "6-8", "restSeconds": 150,
           "sets": [ { "reps": 8, "weight": 70 }, { "reps": 6, "weight": 80, "restSeconds": 240 }, { "reps": 4, "weight": 90 } ] }
@@ -91,7 +86,7 @@ final class JSONEditTests: XCTestCase {
 
     // W16: a refused fragment names the real place, and the plan is untouched.
     func testARefusedFragmentNamesTheRealPlace() throws {
-        let plan = try imported("valid/weekly-rotation.json")
+        let plan = try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json")
         let bad = #"{ "name": "Barbell Bench Press", "sets": [ { "reps": "eight", "weight": 80 } ] }"#
         let result = apply(.replaceExerciseJSON(day: 0, exercise: 1, text: bad), plan)
         XCTAssertNil(result.plan)
@@ -112,7 +107,7 @@ final class JSONEditTests: XCTestCase {
     // W17: adding exercises — at the end, at an index, several at once, out of a day, with
     // prose and a fence around them.
     func testAddingExercises() throws {
-        let plan = try imported("valid/weekly-rotation.json")
+        let plan = try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json")
         let before = plan.days[1].exercises.map(\.name)
 
         let one = try edited(.insertExercisesJSON(day: 1, at: nil, text: #"{ "name": "Face Pull", "sets": 3, "reps": 15, "weight": 20 }"#), plan)
@@ -137,7 +132,7 @@ final class JSONEditTests: XCTestCase {
     // W18: adding days — a bare day, a whole plan holding the missing days (the truncated
     // week), and a weekday plan insisting on a weekday. A new day joins the rotation.
     func testAddingDays() throws {
-        let plan = try imported("valid/weekly-rotation.json")
+        let plan = try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json")
         let bare = try edited(.insertDaysJSON(text: #"{ "name": "Arms", "exercises": [ { "name": "Curl", "sets": 3, "reps": 12 } ] }"#), plan)
         XCTAssertEqual(bare.days.map(\.name), plan.days.map(\.name) + ["Arms"])
         XCTAssertEqual(bare.cycle, plan.cycle + [.day(plan.days.count)])
@@ -151,7 +146,7 @@ final class JSONEditTests: XCTestCase {
         XCTAssertFalse(week.warnings.contains { $0.code == "W_CYCLE_MISSING_DAY" })
         XCTAssertFalse(week.warnings.contains { $0.code == "W_DEFAULT_NAME" }, "named here, deliberately")
 
-        let weekday = try imported("valid/weekly-weekday.json")
+        let weekday = try CoreTestSupport.imported(fixture: "valid/weekly-weekday.json")
         let refused = apply(.insertDaysJSON(text: #"{ "name": "Arms", "exercises": [ { "name": "Curl", "sets": 3, "reps": 12 } ] }"#), weekday)
         XCTAssertEqual(refused.errors.first?.code, "E_WEEKDAY_MISSING")
         XCTAssertEqual(refused.errors.first?.path, "days[\(weekday.days.count)].weekday")
@@ -163,7 +158,7 @@ final class JSONEditTests: XCTestCase {
 
     // W19: a day replaced as text keeps its place in the repeat block, renamed or not.
     func testReplacingADayKeepsItsPlaceInTheRepeatBlock() throws {
-        let plan = try imported("valid/weekly-rotation.json")
+        let plan = try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json")
         let renamed = try edited(.replaceDayJSON(day: 0, text: #"{ "name": "Chest", "exercises": [ { "name": "Bench", "sets": 3, "reps": 8 } ] }"#), plan)
         XCTAssertEqual(renamed.days[0].name, "Chest")
         XCTAssertEqual(renamed.cycle, plan.cycle)
@@ -179,7 +174,7 @@ final class JSONEditTests: XCTestCase {
     // W20: the rotation's anchor (D37) survives an edit and a Replace. In v1.2 both dropped it,
     // so the next launch re-anchored the pattern to that day and the calendar moved.
     func testTheAnchorSurvivesEditsAndReplace() throws {
-        var plan = try imported("valid/weekly-rotation.json")
+        var plan = try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json")
         plan.cyclePosition = 1
         plan.cycleAnchor = CoreTestSupport.date(1)
         let edited = try edited(.renameExercise(day: 0, exercise: 0, name: "Bench"), plan)
@@ -187,12 +182,12 @@ final class JSONEditTests: XCTestCase {
 
         var library = PlanLibrary()
         library.save(plan, makeActive: true)
-        library.replace(plan.id, with: try imported("valid/weekly-rotation.json"))
+        library.replace(plan.id, with: try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json"))
         XCTAssertEqual(library.plans[0].cyclePosition, 1)
         XCTAssertEqual(library.plans[0].cycleAnchor, plan.cycleAnchor)
 
         // A replacement that cannot carry the position over has nothing to anchor either.
-        var unrelated = try imported("valid/minimal.json")
+        var unrelated = try CoreTestSupport.imported(fixture: "valid/minimal.json")
         unrelated.days[0].name = "Something else entirely"
         library.replace(plan.id, with: unrelated)
         XCTAssertNil(library.plans[0].cyclePosition)
@@ -217,8 +212,7 @@ final class JSONEditTests: XCTestCase {
             { "name": "Legs", "exercises": [ { "name": "Squat", "sets": 3, "reps": 5, "weight": 100 } ] }
           ] }
         """
-        let result = PlanImport.run(text, settings: settings, now: now)
-        return try XCTUnwrap(result.plan, "\(result.issues)")
+        return try CoreTestSupport.imported(text)
     }
 
     private func wednesday(_ plan: Plan, own: Day? = nil) -> JSONPoint {
@@ -230,7 +224,7 @@ final class JSONEditTests: XCTestCase {
     // itself, which saved changes nothing; an addition on an example that saves as it stands, on
     // a rotation and on a weekday plan; and a day just for a date, named by the date.
     func testEveryPointOpensOnTextItCanSave() throws {
-        for plan in [try pushPullLegs(), try imported("valid/weekly-weekday.json")] {
+        for plan in [try pushPullLegs(), try CoreTestSupport.imported(fixture: "valid/weekly-weekday.json")] {
             let rendered = PlanJSON.render(plan)
             let exercise = try XCTUnwrap(JSONPoint.exercise(plan, day: 0, exercise: 0))
             XCTAssertEqual(PlanJSON.render(try edited(XCTUnwrap(exercise.operation(exercise.template)), plan)), rendered)

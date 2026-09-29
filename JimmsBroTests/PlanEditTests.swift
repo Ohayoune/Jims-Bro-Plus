@@ -11,17 +11,12 @@ final class PlanEditTests: XCTestCase {
     private let now = CoreTestSupport.now
     private let settings = Settings()
 
-    private func imported(_ file: String) throws -> Plan {
-        let result = PlanImport.run(try FixtureLoader.text(file), settings: settings, now: now)
-        return try XCTUnwrap(result.plan, "\(file): \(result.issues)")
-    }
-
     // C-section: rendering a plan and importing it again is a fixpoint, for every valid fixture.
     // This is what lets an edit go out through the real pipeline instead of around it.
     func testRenderReimportsIdenticallyForEveryValidFixture() throws {
         var checked = 0
         for fixture in try FixtureLoader.manifest().fixtures where fixture.outcome == .valid {
-            let original = try imported(fixture.file)
+            let original = try CoreTestSupport.imported(fixture: fixture.file)
             let rendered = PlanJSON.render(original)
             let round = PlanImport.run(rendered, settings: settings, now: now)
             let again = try XCTUnwrap(round.plan, "\(fixture.file) failed to re-import: \(round.issues)")
@@ -44,7 +39,7 @@ final class PlanEditTests: XCTestCase {
 
     // L39: the everyday edits, each validated by the import pipeline on the way through.
     func testExerciseEdits() throws {
-        let plan = try imported("valid/weekly-rotation.json")
+        let plan = try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json")
         func edit(_ op: PlanEdit.Operation, _ plan: Plan) throws -> Plan {
             let result = PlanEdit.apply(op, to: plan, settings: settings, now: now)
             return try XCTUnwrap(result.plan, "\(result.issues)")
@@ -88,7 +83,7 @@ final class PlanEditTests: XCTestCase {
 
     // L40: reordering and deleting.
     func testReorderAndDelete() throws {
-        let plan = try imported("valid/weekly-rotation.json")
+        let plan = try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json")
         let names = plan.days[0].exercises.map(\.name)
         XCTAssertGreaterThan(names.count, 2)
 
@@ -106,7 +101,7 @@ final class PlanEditTests: XCTestCase {
 
     // L41: duplicating a day, and what it deliberately does not touch.
     func testDuplicateDay() throws {
-        let plan = try imported("valid/weekly-rotation.json")
+        let plan = try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json")
         let result = PlanEdit.apply(.duplicateDay(day: 0), to: plan, settings: settings, now: now)
         let copied = try XCTUnwrap(result.plan, "\(result.issues)")
         XCTAssertEqual(copied.days.count, plan.days.count + 1)
@@ -119,7 +114,7 @@ final class PlanEditTests: XCTestCase {
 
     // L42: an edit that would break the plan is refused, and the plan is left alone.
     func testInvalidEditsAreRefused() throws {
-        let plan = try imported("valid/weekly-rotation.json")
+        let plan = try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json")
         func refused(_ op: PlanEdit.Operation) {
             let result = PlanEdit.apply(op, to: plan, settings: settings, now: now)
             XCTAssertNil(result.plan, "\(op) should have been refused")
@@ -160,7 +155,8 @@ final class PlanEditTests: XCTestCase {
         XCTAssertNil(PlanEdit.parseWork("0s"))
         XCTAssertEqual(PlanEdit.parseRange("8-12"), RepRange(min: 8, max: 12))
         XCTAssertNil(PlanEdit.parseRange("12-8"), "a backwards range is not a range")
-        XCTAssertNil(PlanEdit.parseRange("8"))
+        // TL2 (D96): the field reads a range as a plan's repRange is read — one number is 8–8.
+        XCTAssertEqual(PlanEdit.parseRange("8"), RepRange(min: 8, max: 8))
     }
 
     // L45: `text(for:)` and `parseWork` are inverses. Without this, opening the edit sheet on a
@@ -168,8 +164,8 @@ final class PlanEditTests: XCTestCase {
     // an AMRAP rep target while `.openDuration(30)` is a hold.
     func testWorkTextRoundTripsThroughTheParser() throws {
         let every: [WorkTarget] = [
-            .reps(.fixed(0)), .reps(.fixed(1)), .reps(.fixed(12)), .reps(.fixed(999)),
-            .reps(.range(min: 8, max: 12)), .reps(.range(min: 1, max: 999)),
+            .reps(.fixed(1)), .reps(.fixed(12)), .reps(.fixed(1000)),
+            .reps(.range(min: 8, max: 12)), .reps(.range(min: 1, max: 1000)),
             .reps(.amrap(min: nil)), .reps(.amrap(min: 5)),
             .duration(seconds: 1), .duration(seconds: 45), .duration(seconds: 86_400),
             .openDuration(minSeconds: nil), .openDuration(minSeconds: 30),
@@ -191,7 +187,7 @@ final class PlanEditTests: XCTestCase {
 
     // L44: an edited plan still runs — the sets it produces are the sets you asked for.
     func testEditedPlanStillFlattensAndRuns() throws {
-        let plan = try imported("valid/weekly-rotation.json")
+        let plan = try CoreTestSupport.imported(fixture: "valid/weekly-rotation.json")
         let edited = try XCTUnwrap(PlanEdit.apply(.setSetCount(day: 0, exercise: 0, count: 2),
                                                   to: plan, settings: settings, now: now).plan)
         let before = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: now))

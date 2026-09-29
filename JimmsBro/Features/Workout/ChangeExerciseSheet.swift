@@ -23,7 +23,8 @@ struct ChangeExerciseSheet: View {
 
     /// Exercises done before, most recent first, narrowed as the name is typed.
     private var suggestions: [String] {
-        Array(ExerciseText.search(trimmedName, sessions: model.sessions)
+        Array(ExerciseNames.known(plans: [], history: model.sessions, query: trimmedName)
+            .map(\.name)
             .filter { normalized($0) != normalized(currentName) && normalized($0) != normalized(trimmedName) }
             .prefix(6))
     }

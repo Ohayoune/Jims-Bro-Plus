@@ -24,10 +24,9 @@ struct HistoryImportFlow: ViewModifier {
                 }
             }
             // The file is only read at this point — nothing is written until Import is tapped.
-            .confirmationDialog(prompt, isPresented: Binding(
-                get: { pending != nil }, set: { if !$0 { pending = nil } }), titleVisibility: .visible) {
+            .confirmationDialog(prompt, isPresented: Binding(isPresent: $pending), titleVisibility: .visible) {
                 if let pending, pending.summary.workouts > 0 {
-                    Button("Import \(pending.summary.workouts) workout\(pending.summary.workouts == 1 ? "" : "s")") {
+                    Button("Import \(TargetText.counted(pending.summary.workouts, "workout"))") {
                         run(pending)
                     }
                 }
@@ -35,12 +34,7 @@ struct HistoryImportFlow: ViewModifier {
             } message: {
                 Text(pending?.summary.text() ?? "")
             }
-            .alert("That file wasn't imported", isPresented: Binding(
-                get: { failure != nil }, set: { if !$0 { failure = nil } })) {
-                Button("OK", role: .cancel) { failure = nil }
-            } message: {
-                Text(failure ?? "")
-            }
+            .problemAlert("That file wasn't imported", message: $failure)
     }
 
     private var prompt: String {

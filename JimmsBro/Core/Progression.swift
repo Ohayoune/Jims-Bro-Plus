@@ -7,6 +7,12 @@ import Foundation
 /// The week is calendar weeks from the start date. `Session.start` applies the current week's
 /// targets to the day's snapshot (D7 holds: the session records what it was asked to do), and
 /// everything downstream — prefill, the chip, advice, the Summary — reads the snapshot.
+extension ProgressionEntry {
+    /// D53 (v1.5): past its last step — the one test of an entry done, where five places wrote
+    /// `step >= weeks.count` or its negation (D96, v1.12 L6).
+    var isDone: Bool { step >= weeks.count }
+}
+
 extension Progression {
     static let maxWeeks = 52
     static let periods = [4, 6, 8, 12]
@@ -30,7 +36,7 @@ extension Progression {
     func isFinished(on date: Date, calendar: Calendar = .current) -> Bool {
         switch mode {
         case .calendar: return calendar.startOfDay(for: date) >= endDate(calendar: calendar)
-        case .performance: return entries.allSatisfy { $0.step >= $0.weeks.count }
+        case .performance: return entries.allSatisfy(\.isDone)
         }
     }
 
@@ -39,7 +45,7 @@ extension Progression {
     func stepIndex(for entry: ProgressionEntry, on date: Date, calendar: Calendar = .current) -> Int? {
         switch mode {
         case .calendar: return weekIndex(on: date, calendar: calendar)
-        case .performance: return entry.step < entry.weeks.count ? entry.step : nil
+        case .performance: return entry.isDone ? nil : entry.step
         }
     }
 
@@ -51,7 +57,7 @@ extension Progression {
             return weekIndex(on: date, calendar: calendar)
         case .performance:
             let relevant = entries.filter { entry in dayName.map { normalized(entry.dayName) == normalized($0) } ?? true }
-            return relevant.compactMap { $0.step < $0.weeks.count ? $0.step : nil }.min()
+            return relevant.filter { !$0.isDone }.map(\.step).min()
         }
     }
 
@@ -79,6 +85,11 @@ extension Progression {
 
     func entry(day: String, exercise: String) -> ProgressionEntry? {
         entries.first { normalized($0.dayName) == normalized(day) && normalized($0.exerciseName) == normalized(exercise) }
+    }
+
+    /// A day's exercises that carry an entry, in the day's order — the progression screen's rows.
+    func entries(on day: Day) -> [(exercise: Exercise, entry: ProgressionEntry)] {
+        day.exercises.compactMap { exercise in entry(day: day.name, exercise: exercise.name).map { (exercise, $0) } }
     }
 
     /// The day with the week's targets applied, and which exercises it touched. An exercise,
@@ -192,7 +203,7 @@ enum ProgressionText {
     static func word(_ mode: ProgressionMode) -> String { mode == .performance ? "Step" : "Week" }
 
     /// The chip's reason: "Week 3 of 8 of your progression", or "Step 3 of 8 …" (D53).
-    static func reason(week: Int, of weeks: Int?, mode: ProgressionMode = .calendar) -> String {
+    static func reason(week: Int, of weeks: Int?, mode: ProgressionMode) -> String {
         weeks.map { "\(word(mode)) \(week) of \($0) of your progression" } ?? "\(word(mode)) \(week) of your progression"
     }
 
@@ -210,9 +221,46 @@ enum ProgressionText {
         }.joined(separator: " · ")
     }
 
+    /// The progression screen's second line (D53): a calendar progression ends on a date; one
+    /// you earn ends when every exercise is past its last step — "Started 3 Sep 2026 · ends
+    /// 29 Oct 2026", "Started 3 Sep 2026 · 2 of 5 exercises done".
+    static func started(_ progression: Progression, calendar: Calendar = .current) -> String {
+        let started = "Started \(progression.startDate.formatted(date: .abbreviated, time: .omitted))"
+        switch progression.mode {
+        case .performance:
+            let done = progression.entries.filter(\.isDone).count
+            return "\(started) · \(done) of \(TargetText.counted(progression.entries.count, "exercise")) done"
+        case .calendar:
+            return "\(started) · ends \(progression.endDate(calendar: calendar).formatted(date: .abbreviated, time: .omitted))"
+        }
+    }
+
+    /// An entry's change now: "This step: 8 × 82.5 kg", "This week: same", or nil when it is on
+    /// no step — before the start, after the end, or past its last.
+    static func now(_ entry: ProgressionEntry, in progression: Progression, units: WeightUnit,
+                    bodyweight: Bool, on date: Date, calendar: Calendar = .current) -> String? {
+        guard let step = progression.stepIndex(for: entry, on: date, calendar: calendar),
+              let change = entry.weeks[safe: step] else { return nil }
+        return "This \(word(progression.mode).lowercased()): "
+            + self.change(change, units: units, bodyweight: bodyweight)
+    }
+
+    /// An entry's steps in one line, as its mode reads them: the ladder with the step it is on
+    /// marked (D53), or the calendar's weeks.
+    static func steps(_ entry: ProgressionEntry, in progression: Progression, units: WeightUnit,
+                      bodyweight: Bool, on date: Date, calendar: Calendar = .current) -> String {
+        switch progression.mode {
+        case .performance:
+            return ladder(entry, units: units, bodyweight: bodyweight,
+                          current: progression.stepIndex(for: entry, on: date, calendar: calendar))
+        case .calendar:
+            return weeksLine(entry, units: units, bodyweight: bodyweight)
+        }
+    }
+
     /// D53: "Step 3 of 8", "Step 3 of 8 · 2 tries", or "Done" once an entry is past its last.
     static func entryStatus(_ entry: ProgressionEntry, of weeks: Int) -> String {
-        guard entry.step < entry.weeks.count else { return "Done" }
+        guard !entry.isDone else { return "Done" }
         var text = "Step \(entry.step + 1) of \(weeks)"
         if entry.tries > 0 { text += " · \(entry.tries) \(entry.tries == 1 ? "try" : "tries")" }
         return text
@@ -266,7 +314,7 @@ enum ProgressionImport {
 
     /// `mode` is the user's choice on the planning screen (D53), not the reply's.
     static func run(_ text: String, plan: Plan, settings: Settings, now: Date = Date(),
-                    calendar: Calendar = .current, mode: ProgressionMode = .calendar) -> Result {
+                    calendar: Calendar = .current, mode: ProgressionMode) -> Result {
         func failure(_ code: String, _ path: String, _ message: String) -> Result {
             Result(progression: nil, issues: [Issue(severity: .error, code: code, path: path, message: message)])
         }
@@ -280,7 +328,7 @@ enum ProgressionImport {
         guard let raw = decoded.value else { return Result(progression: nil, issues: extracted.issues + decoded.issues) }
         var issues = extracted.issues + decoded.issues
         func issue(_ code: String, _ path: String, _ message: String) {
-            issues.append(Issue(severity: code.hasPrefix("E_") ? .error : .warning, code: code, path: path, message: message))
+            issues.append(Issue(code: code, path: path, message: message))
         }
 
         // The object, wherever it was put: under "progression", bare, or as a bare list.
@@ -345,7 +393,7 @@ enum ProgressionImport {
             var valid = true
             for (offset, rawWeek) in weeksList.enumerated() {
                 let weekPath = "\(path).\(listKey)[\(offset)]"
-                guard let parsed = week(rawWeek, weekPath, issue: issue) else { valid = false; break }
+                guard let parsed = week(rawWeek, weekPath, units: plan.units, issue: issue) else { valid = false; break }
                 weeks.append(parsed)
             }
             guard valid else { continue }
@@ -391,9 +439,7 @@ enum ProgressionImport {
             }
         }
         if aliasUsed { issue("W_PROGRESSION_WEEKS_ALIAS", "", "\"weeks\" was read as steps.") }
-        issues = issues.enumerated().sorted { a, b in
-            a.element.path == b.element.path ? a.offset < b.offset : a.element.path < b.element.path
-        }.map(\.element)
+        issues = issues.sortedByPath()
         guard issues.allSatisfy({ $0.severity == .warning }) else { return Result(progression: nil, issues: issues) }
         guard !entries.isEmpty else {
             issue("E_PROGRESSION_EMPTY", "exercises", "None of the exercises in the reply match this plan.")
@@ -406,8 +452,8 @@ enum ProgressionImport {
 
     /// One week object: `null` or `{}` is "same as the plan"; otherwise weight and/or reps or
     /// durationSeconds for every set, or `sets` for per-set values.
-    private static func week(_ raw: RawJSON, _ path: String,
-                             issue: (String, String, String) -> Void) -> ProgressionWeek? {
+    private static func week(_ raw: RawJSON, _ path: String, units: WeightUnit,
+                             issue: TargetGrammar.Report) -> ProgressionWeek? {
         if raw == .null { return ProgressionWeek() }
         guard let fields = raw.object else {
             issue("E_PROGRESSION_WEEK_INVALID", path, "Each step must be an object like {\"weight\": 62.5, \"reps\": \"8-12\"}, or {} for no change.")
@@ -417,7 +463,7 @@ enum ProgressionImport {
             issue("W_UNKNOWN_FIELD", "\(path).\(key)", "Unknown field \"\(key)\" was ignored.")
         }
         var result = ProgressionWeek()
-        guard let weekWeight = Self.weight(raw["weight"], "\(path).weight", issue: issue) else { return nil }
+        guard let weekWeight = Self.weight(raw["weight"], "\(path).weight", units: units, issue: issue) else { return nil }
         result.weight = weekWeight
         guard let weekWork = Self.work(raw, path, issue: issue) else { return nil }
         result.work = weekWork
@@ -431,7 +477,7 @@ enum ProgressionImport {
                 guard item.object != nil else {
                     issue("E_SETS_INVALID", setPath, "Each set must be an object."); return nil
                 }
-                guard let setWeight = Self.weight(item["weight"], "\(setPath).weight", issue: issue),
+                guard let setWeight = Self.weight(item["weight"], "\(setPath).weight", units: units, issue: issue),
                       let setWork = Self.work(item, setPath, issue: issue) else { return nil }
                 parsed.append(ProgressionSet(weight: setWeight, work: setWork))
             }
@@ -440,60 +486,30 @@ enum ProgressionImport {
         return result
     }
 
-    /// `.some(nil)` for no weight, `.some(w)` for one, `nil` for an invalid value.
-    private static func weight(_ raw: RawJSON?, _ path: String,
-                               issue: (String, String, String) -> Void) -> Double?? {
-        guard let raw else { return .some(nil) }
-        if let number = raw.number, raw.string == nil {
-            guard number.isFinite, (0...10_000).contains(number) else {
-                issue("E_WEIGHT_INVALID", path, "weight must be between 0 and 10000, got \(raw.display)."); return nil
-            }
-            return .some(number)
-        }
-        guard let text = raw.string?.trimmed.lowercased() else {
-            issue("E_WEIGHT_INVALID", path, "weight must be a number, got \(raw.display)."); return nil
-        }
-        if ["", "bw", "bodyweight", "body weight", "none", "same"].contains(text) { return .some(nil) }
-        let stripped = text.replacing("\\s*(kgs?|kilograms?|lbs?|pounds?)$", with: "").replacingOccurrences(of: ",", with: ".")
-        guard let number = Double(stripped), number.isFinite, (0...10_000).contains(number) else {
-            issue("E_WEIGHT_INVALID", path, "weight must be a number, got \(raw.display)."); return nil
-        }
-        return .some(number)
+    /// `.some(nil)` for no weight — none written, "same", or bodyweight — `.some(w)` for one,
+    /// `nil` for an invalid value. Read as a plan's weight is, but not rounded: `run` snaps it.
+    private static func weight(_ raw: RawJSON?, _ path: String, units: WeightUnit,
+                               issue: TargetGrammar.Report) -> Double?? {
+        guard let raw, raw.string?.trimmed.lowercased() != "same" else { return .some(nil) }
+        guard let read = TargetGrammar.weight(raw, path, units, roundsToTenth: false, issue: issue) else { return nil }
+        return .some(read.weight)
     }
 
-    /// `.some(nil)` for no target, `.some(work)` for one, `nil` for an invalid one.
+    /// `.some(nil)` for no target, `.some(work)` for one, `nil` for an invalid one — read as a
+    /// plan's reps and durationSeconds are.
     private static func work(_ raw: RawJSON, _ path: String,
-                             issue: (String, String, String) -> Void) -> WorkTarget?? {
+                             issue: TargetGrammar.Report) -> WorkTarget?? {
         let reps = raw["reps"], duration = raw["durationSeconds"]
         if reps != nil, duration != nil {
             issue("E_TARGET_CONFLICT", path, "Give reps or durationSeconds, not both."); return nil
         }
         if let reps {
-            let text = reps.string ?? reps.integer.map(String.init) ?? reps.display
-            let word = text.trimmed.lowercased().replacing("\\s*reps?$", with: "")
-            let parsed = ["max", "failure", "to failure", "as many as possible"].contains(word)
-                ? WorkTarget.reps(.amrap(min: nil))
-                : PlanEdit.parseWork(word.replacingOccurrences(of: " to ", with: "-").replacingOccurrences(of: "–", with: "-"))
-            guard let parsed, case .reps = parsed else {
-                issue("E_REPS_INVALID", "\(path).reps", "\(reps.display) is not a valid reps value. Use a whole number, a range like \"8-12\", \"AMRAP\" or \"10+\".")
-                return nil
-            }
-            return .some(parsed)
+            guard let target = TargetGrammar.reps(reps, "\(path).reps", issue: issue) else { return nil }
+            return .some(.reps(target))
         }
         if let duration {
-            if let seconds = duration.integer, duration.string == nil || duration.string?.trimmed.matches("^\\d+$") == true {
-                guard (1...86_400).contains(seconds) else {
-                    issue("E_DURATION_INVALID", "\(path).durationSeconds", "durationSeconds must be 1 to 86400 seconds."); return nil
-                }
-                return .some(.duration(seconds: seconds))
-            }
-            let text = duration.string?.trimmed.lowercased() ?? duration.display
-            if ["max", "open", "amsap", "as long as possible", "to failure"].contains(text) { return .some(.openDuration(minSeconds: nil)) }
-            if text.hasSuffix("+"), let minimum = Int(text.dropLast()), (1...86_400).contains(minimum) {
-                return .some(.openDuration(minSeconds: minimum))
-            }
-            issue("E_DURATION_INVALID", "\(path).durationSeconds", "\(duration.display) is not a valid duration. Use seconds, \"max\", or \"30+\".")
-            return nil
+            guard let work = TargetGrammar.duration(duration, "\(path).durationSeconds", issue: issue) else { return nil }
+            return .some(work)
         }
         return .some(nil)
     }

@@ -15,17 +15,16 @@ struct OverviewView: View {
             Group {
                 if let session = model.session {
                     List {
-                        ForEach(Array(SessionBlocks.indices(session).enumerated()), id: \.offset) { _, indices in
+                        ForEach(Array(SessionBlocks.blocks(session).enumerated()), id: \.offset) { _, block in
                             Section {
-                                let mixed = SessionBlocks.namesRows(session, indices)
-                                ForEach(indices, id: \.self) { index in
+                                ForEach(block.steps, id: \.self) { index in
                                     Button { tapped(index) } label: {
-                                        row(session: session, index: index, nameRows: mixed)
+                                        row(session: session, index: index, nameRows: block.namesRows)
                                     }
                                     .buttonStyle(.plain)
                                 }
                             } header: {
-                                header(session: session, block: indices)
+                                Text(block.title)
                             }
                         }
                     }
@@ -44,8 +43,7 @@ struct OverviewView: View {
                     Task { await model.apply(.editSet(step: target.step, result: result)) }
                 }
             }
-            .confirmationDialog("Recover this set", isPresented: Binding(
-                get: { recovering != nil }, set: { if !$0 { recovering = nil } }), titleVisibility: .visible) {
+            .confirmationDialog("Recover this set", isPresented: Binding(isPresent: $recovering), titleVisibility: .visible) {
                 if let index = recovering {
                     Button("Do this set") { Task { await model.apply(.jumpTo(step: index)) }; dismiss() }
                     Button("Add result") { editing = index }
@@ -53,10 +51,6 @@ struct OverviewView: View {
                 Button("Cancel", role: .cancel) {}
             }
         }
-    }
-
-    private func header(session: Session, block indices: [Int]) -> some View {
-        Text(SessionBlocks.title(session, indices))
     }
 
     /// In a superset every row would otherwise read "A · Set 1 of 3", so when a block holds

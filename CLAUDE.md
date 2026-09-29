@@ -281,6 +281,86 @@ extension and the tests, and the bundle regenerated. What remains is the owner's
 v1.7 to v1.11 rows all need the phone), the Developer Program, a release Xcode and the submission
 (`docs/APP_STORE.md` §1 and §6).
 
+`docs/ITERATION_13_PLAN.md` is the v1.12 plan (milestones **L0–L8**), written 2026-09-17 from the
+owner's note after a review of the whole codebase — *"I want logic to be reused wherever possible, I
+don't want logic duplicates anywhere"*. The rule is **one owner for each piece of logic** (D96): every
+rule, parser, formatter, lookup and piece of text lives once, Core owns it unless it draws, and where
+two copies disagreed SPEC decides, else the stricter rule, logged. `tools/reference_import.py` stays as
+the sanctioned copy (the owner's choice: it is the fixtures' independent oracle). Nothing changes on
+disk. L1 one parser per value, L2 one JSON grammar, L3 plans and the schedule, L4 the session and the
+Workout screen, L5 the chatbot screens, L6 the other views, L7 tools and the tests' support, L8 the
+documents. Dead code, misnamed files and long functions the review found are parked at the plan's end,
+with two bugs first in line. L0–L8 are built and green on `v1.12-one-of-each`: L1 made
+`TargetGrammar` (`Core/PlanImport.swift`) the one reader of reps, a hold and a weight — for the
+importer, a progression step and the exercise sheet — with `PlanJSON.string` the one JSON escaper,
+`TargetText.number` the one number, `RawJSON.jsonText` the one encoder, `Issue.isPlanInWords` the one
+reading of a plan in words and `ProgressionScreen.defaultMode` the one default mode (TL1–TL5,
+`JimmsBroTests/OneOwnerTests.swift`). Before L2 came **F**, fix-first, from a
+2026-09-24 audit of the screens against each other (F1–F4 in `docs/DECISIONS_LOG.md`, TF1–TF5,
+`JimmsBroTests/ScreenAuditTests.swift`), built and green on `fix-first`: **Edit the text** keeps the
+progression, as Apply does (F1 — `PlanLibrary.replace` goes through `ChangeRequest.applied`); Skip
+exercise, a swipe-delete on Plan detail and the day editor's Back ask first (F2); a sheet or the day
+editor holding edits ignores the swipe and asks before discarding them (F3, `View.discardGuard` in
+`RootView.swift`); and a set standing alone reads reps first — *"10 × 60 kg"* — everywhere (F4,
+`StepCard.setText`). L2 is built and green on `v1.12-one-of-each`, fast-forwarded to F first:
+`JSONGrammar` (`Core/JSONGrammar.swift`) is the one JSON parser — the importer's check before
+Foundation decodes a paste, the offsets `JSONLocator` walks to mark a line, and the extraction's cut
+(`JSONGrammar.valueEnd`) — in place of `StrictJSON`, `LocatorParser` and `PlanImport.valueEnd`; a
+refusal carries its place (`JSONGrammar.Failure`), and the cut reads code points, as the grammar and
+the oracle do (TL6–TL8). L3 is built and green on the same branch: a plan hands on its identity one way,
+`Plan.carried(into:as:)` — `.edit` for every edit, Apply and Edit the text, `.newPlan` for a name-conflict
+Replace, the anchor always going with its place — and one of each for the schedule: `Plan.dayIndex(named:)`,
+`Weekday(_:calendar:)` with `WeekdayText` and `MonthText` (English whatever the phone's language),
+`finished(on:…)` over sessions, `PlanSchedule.firstDay` through today and 62 days, `CycleSquare.of` with
+`Plan.cycleDays` and `cycleNames` for a cycle as squares and words, and `ExerciseNames.known` as the one
+exercise search (TL9–TL13). L4 is built and green on the same branch: the session and the Workout
+screen say each thing once — the rest after a set is `RestResolution.betweenSets`, which the idle line
+and a built-in day's estimate now ask; a step said away from its card is `StepCard.stepLine`, for the
+strip's "Next: …", the rest's notification (which now carries the target and weight) and the Lock
+Screen; the step that is on is `ActiveSession.currentStep` and the walk `ActiveSession.walk`, one reading
+of its two stages; Skip exercise starts the walk through `advance`, as a skipped last set does; the counts
+are `SessionBlocks.place` and `SessionStats`; last time is `Prefill.lastResult` over one scan; the limits
+are `TargetGrammar.isWeight` and `.cleanName`; a step is a `SessionStep` and its target a `StepTarget`;
+`ActiveSession` and `RestState` decode in Persistence.swift; and the Overview and Session detail draw
+`SessionBlocks.blocks` (TL14–TL21). L5 is built and green on the same branch: the chatbot screens say
+each thing once — a refused reply is one `TripRefusal` (`Core/TripRefusal.swift`, beside `Trip.swift`
+because the extension compiles that one) with the fix a `TripFix`, `.chat` or `.paste`, and each screen's
+way back its one argument, and a refusal that names no error is fixed at Chat (SPEC §6.60); the ··· is
+`TripMenuItem`, drawn by one `TripMenu`; each screen type chooses its prompt and subject, so
+`AppModel.progressionPrompt`, `outlinePrompt` and `dayPrompt` are gone; every text sheet is built in
+`JSONPoint`, and Plan detail's Edit the text is a `.plan` fragment target saved as
+`PlanEdit.Operation.replacePlanJSON`, the unit kept by `ImportResult.planKeepingUnits(of:)` (so
+`ImportView(replacingPlanId:)` and `AppModel.replacePlan` are gone); a draft's day is tried once
+(`PlanDrafting.preview`, held by `DraftTrip` from `pasted(_:settings:)`); and the refusal with its Details,
+Worth knowing, the tidying and Paste are drawn once in `Features/Shared/TripParts.swift` (TL22–TL27).
+L6 is built and green on the same branch: the other views say each thing once — the Summary's
+lines are `SummaryText.headline` and `.exercises`, worked out once per draw with the records, and
+Progression's are `ProgressionText.started`, `.now` and `.steps` with `ProgressionEntry.isDone`; every
+plural is `TargetText.counted`, the restore question `RestoreText.title` and `.detail`; D17's question
+is `SessionSwitch.prompt`, drawn by one `switchWorkoutAlert` with `beginWorkout` catching the refusal,
+for Today and Plan detail; `Binding(isPresent:)`, `problemAlert` and one `shareSheet` — the prompt's,
+the backup's and the CSV's — live in `Features/Shared/Presenting.swift`; and the exercise sheet saves
+once, `PlanEdit.Operation.editExercise`, all of its fields or none (TL28–TL33).
+L7 is built and green on the same branch: one script edits the project — `tools/add_sources.py` adds
+(to `app`, `tests`, `activity` or `resource`, a file its group already holds gaining the target),
+`remove`s and `remove-group`s, `tools/pbxproj_edit.py` is gone, and `add_activity_target.py` adds its
+files through it — and the tests' helpers are written once: reading the checkout is `FixtureLoader`'s
+(`requiredDoc`, `swiftSources`, `section`, `block`, `withoutComments`), building things
+`CoreTestSupport`'s (`importing`, `imported`, `engine(history:)`, `logged`, `days`, `warmUp`, the two
+rotations), and a one-line forward to the owner stays as a name. L8 made the documents say so:
+the three things a person can see change are `manual` cases beside the change each checks — **TF6**
+(Find an exercise in the rows' words and the notation's) in F's block, **TL34** (Change exercise's
+search) and **TL35** (the day's name on a German phone) in L3's — and `docs/DEVICE_CHECKLIST.md`'s
+**v1.12 rows**; the L8 lines in `docs/DECISIONS_LOG.md`, no screenshot changed, version **1.12** on the
+app, the extension and the tests, and the bundle regenerated. What remains is the owner's: the device
+checklist (the v1.7 to v1.12 rows all need the phone), the Developer Program, a release Xcode and the
+submission (`docs/APP_STORE.md` §1 and §6); and the review's parked findings are the plan after this
+one, its two bugs first.
+Before the pull request, a review of the branch found three things, fixed on the same branch: a
+date's day and month read in the Gregorian calendar whatever the phone's (`MonthText`, TL10), L37
+pointed back at the path Plan detail saves by (`AppModel.editPlan` with `.replacePlanJSON`), and
+Rename made an edit (`PlanEdit.Operation.renamePlan`), so a plan's text says its name (TL36).
+
 Three v1.2 rules are worth knowing before touching anything:
 
 - **`Core/Persistence.swift` is the on-disk contract.** Identity is required; anything with a
@@ -305,9 +385,9 @@ Three v1.2 rules are worth knowing before touching anything:
 
 ## Working style
 
-- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25). CI runs the three routes and `tools/check_bundle.py` on every push, so a milestone that edits a bundled document regenerates the bundle in the same commit (`python3 tools/build_bundle.py`); v1.6's U1–U3 were red on that job until U5 did.
+- Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25). `tools/check_all.sh` runs all of it — the three routes, the Release build and the Python checks, `tools/check_bundle.py` among them — so run it before every push; a milestone that edits a bundled document regenerates the bundle in the same commit (`python3 tools/build_bundle.py`), or the bundle check fails, as v1.6's U1–U3 did until U5.
 - Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author — no `Co-Authored-By` trailer of any kind, whatever a harness suggests; the history was rewritten once (2026-09-08) to remove them.
-- The repository is public under the MIT license (`LICENSE`), with a landing page at the top of `README.md` and CI in `.github/workflows/ci.yml` running the three routes on every push. Keep the README's landing section for people and its lower half for you; keep `docs/screenshots/` to what the README shows.
+- The repository is public under the MIT license (`LICENSE`), with a landing page at the top of `README.md` and CI in `.github/workflows/ci.yml` that runs only when started by hand: pushes start nothing, because Actions minutes on a private repository cost money and the owner spends none. Keep the README's landing section for people and its lower half for you; keep `docs/screenshots/` to what the README shows.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.
 - Use the fixtures in `examples/` verbatim in tests. Do not edit fixtures to make tests pass; if a fixture looks wrong, say so.
 - Use the iOS Simulator for visual checks. The owner installs on the physical iPhone (BUILD_PLAN §Device).

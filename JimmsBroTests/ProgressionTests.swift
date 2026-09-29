@@ -42,22 +42,21 @@ final class ProgressionTests: XCTestCase {
         ])
     }
 
-    private func days(_ count: Int) -> Date { now.addingTimeInterval(Double(count) * 86_400) }
 
     // W31: the week is calendar weeks from the start date; the last one ends, it does not linger.
     func testTheWeekIsCountedFromTheStartDate() {
         let p = progression()
         XCTAssertEqual(p.weekIndex(on: now, calendar: calendar), 0)
-        XCTAssertEqual(p.weekIndex(on: days(6), calendar: calendar), 0)
-        XCTAssertEqual(p.weekIndex(on: days(7), calendar: calendar), 1)
-        XCTAssertEqual(p.weekIndex(on: days(27), calendar: calendar), 3)
-        XCTAssertNil(p.weekIndex(on: days(28), calendar: calendar))
-        XCTAssertNil(p.weekIndex(on: days(-1), calendar: calendar))
-        XCTAssertFalse(p.isFinished(on: days(27), calendar: calendar))
-        XCTAssertTrue(p.isFinished(on: days(28), calendar: calendar))
-        XCTAssertEqual(ProgressionText.status(p, on: days(8), calendar: calendar), "Week 2 of 4")
-        XCTAssertEqual(ProgressionText.status(p, on: days(30), calendar: calendar), "Finished")
-        XCTAssertEqual(ProgressionText.reason(week: 2, of: 4), "Week 2 of 4 of your progression")
+        XCTAssertEqual(p.weekIndex(on: CoreTestSupport.days(6), calendar: calendar), 0)
+        XCTAssertEqual(p.weekIndex(on: CoreTestSupport.days(7), calendar: calendar), 1)
+        XCTAssertEqual(p.weekIndex(on: CoreTestSupport.days(27), calendar: calendar), 3)
+        XCTAssertNil(p.weekIndex(on: CoreTestSupport.days(28), calendar: calendar))
+        XCTAssertNil(p.weekIndex(on: CoreTestSupport.days(-1), calendar: calendar))
+        XCTAssertFalse(p.isFinished(on: CoreTestSupport.days(27), calendar: calendar))
+        XCTAssertTrue(p.isFinished(on: CoreTestSupport.days(28), calendar: calendar))
+        XCTAssertEqual(ProgressionText.status(p, on: CoreTestSupport.days(8), calendar: calendar), "Week 2 of 4")
+        XCTAssertEqual(ProgressionText.status(p, on: CoreTestSupport.days(30), calendar: calendar), "Finished")
+        XCTAssertEqual(ProgressionText.reason(week: 2, of: 4, mode: .calendar), "Week 2 of 4 of your progression")
     }
 
     // W32: a week changes only what it says; everything else keeps the plan's own target.
@@ -96,7 +95,7 @@ final class ProgressionTests: XCTestCase {
     func testStartingADayAppliesTheCurrentWeek() throws {
         var plan = plan()
         plan.progression = progression()
-        let session = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: days(8), calendar: calendar))
+        let session = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: CoreTestSupport.days(8), calendar: calendar))
         XCTAssertEqual(session.progressionWeek, 2)
         XCTAssertEqual(session.progressionWeeks, 4)
         XCTAssertEqual(session.exercises[0].progressionWeek, 2)
@@ -105,7 +104,7 @@ final class ProgressionTests: XCTestCase {
         XCTAssertTrue(ExerciseText.summary(session).hasSuffix("week 2 of 4"), ExerciseText.summary(session))
         XCTAssertEqual(ProgressionText.weekLine(session), "week 2 of 4")
 
-        let after = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: days(40), calendar: calendar))
+        let after = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: CoreTestSupport.days(40), calendar: calendar))
         XCTAssertNil(after.progressionWeek)
         XCTAssertEqual(after.exercises[0].targets.map(\.weight), [60, 60, 60], "the plan's own targets are back")
 
@@ -124,7 +123,7 @@ final class ProgressionTests: XCTestCase {
         earlier.days[0].exercises[0].name = "Bench Press"
         let history = [CoreTestSupport.completed([10, 10, 10], weights: [70, 70, 70], plan: earlier)]
 
-        let session = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: days(8), calendar: calendar))
+        let session = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: CoreTestSupport.days(8), calendar: calendar))
         let values = Prefill.values(session: session, step: 0, history: history, settings: settings)
         XCTAssertEqual(values.weight, 62.5)
         XCTAssertEqual(values.reps, 8)
@@ -134,7 +133,7 @@ final class ProgressionTests: XCTestCase {
         XCTAssertEqual(chip.reason, "Week 2 of 4 of your progression")
         XCTAssertTrue(chip.isProgression)
 
-        let after = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: days(40), calendar: calendar))
+        let after = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: CoreTestSupport.days(40), calendar: calendar))
         let later = Prefill.values(session: after, step: 0, history: history, settings: settings)
         XCTAssertEqual(later.weight, 70)
         // D55 (v1.6): last time is back in the fields, so there is nothing left to suggest.
@@ -164,7 +163,7 @@ final class ProgressionTests: XCTestCase {
         ] }
         ```
         """
-        let result = ProgressionImport.run(reply, plan: plan(), settings: settings, now: now, calendar: calendar)
+        let result = ProgressionImport.run(reply, plan: plan(), settings: settings, now: now, calendar: calendar, mode: .calendar)
         let p = try XCTUnwrap(result.progression, "\(result.issues)")
         XCTAssertEqual(p.weeks, 4)
         XCTAssertEqual(p.startDate, calendar.startOfDay(for: now))
@@ -187,10 +186,10 @@ final class ProgressionTests: XCTestCase {
     func testWhatAReplyIsRefusedFor() {
         let plan = plan()
         func run(_ text: String) -> ProgressionImport.Result {
-            ProgressionImport.run(text, plan: plan, settings: settings, now: now, calendar: calendar)
+            ProgressionImport.run(text, plan: plan, settings: settings, now: now, calendar: calendar, mode: .calendar)
         }
         XCTAssertEqual(run("just words").errors.first?.code, "E_NOT_JSON")
-        let prompt = Prompts.progression(plan: plan, history: [], weeks: 8, settings: settings, now: now)
+        let prompt = Prompts.progression(plan: plan, history: [], weeks: 8, settings: settings, now: now, mode: .calendar)
         XCTAssertEqual(run(prompt).errors.first?.code, "E_PROMPT_PASTED")
         XCTAssertEqual(run(#"{ "weeks": 0, "exercises": [] }"#).errors.first?.code, "E_PROGRESSION_WEEKS_INVALID")
         XCTAssertEqual(run(#"{ "weeks": 4, "exercises": [ { "name": "Nothing", "weeks": [ {} ] } ] }"#).errors.first?.code, "E_PROGRESSION_EMPTY")
@@ -214,10 +213,10 @@ final class ProgressionTests: XCTestCase {
         let plan = plan()
         var earlier = CoreTestSupport.plan(sets: 3, weight: 60)
         earlier.days[0].exercises[0].name = "Bench Press"
-        var done = CoreTestSupport.completed([12, 12, 12], weights: [60, 60, 60], plan: earlier, start: days(-3))
+        var done = CoreTestSupport.completed([12, 12, 12], weights: [60, 60, 60], plan: earlier, start: CoreTestSupport.days(-3))
         done.exercises[0].advice = .increase(to: 62.5)
 
-        let text = Prompts.progression(plan: plan, history: [done], weeks: 8, settings: settings, now: now)
+        let text = Prompts.progression(plan: plan, history: [done], weeks: 8, settings: settings, now: now, mode: .calendar)
         XCTAssertTrue(text.hasPrefix(Prompts.progressionMarker))
         XCTAssertTrue(text.contains("as 8 steps"))
         XCTAssertTrue(text.contains("\"steps\": 8"))
@@ -235,7 +234,7 @@ final class ProgressionTests: XCTestCase {
         XCTAssertLessThan(text.count, Prompts.progressionBound)
 
         // v1.11 (J5): no switch leaves the history out; a plan with none has no block.
-        let without = Prompts.progression(plan: plan, history: [], weeks: 4, settings: settings, now: now)
+        let without = Prompts.progression(plan: plan, history: [], weeks: 4, settings: settings, now: now, mode: .calendar)
         XCTAssertFalse(without.contains("MY HISTORY"))
         XCTAssertTrue(without.contains("as 4 steps"))
         XCTAssertFalse(without.hasSuffix("\n\n"), "no dangling history block")
@@ -266,7 +265,11 @@ final class ProgressionTests: XCTestCase {
 
         var library = PlanLibrary()
         library.save(plan, makeActive: true)
+        // F1 (2026-09-24): Edit the text is an edit, so it keeps the progression as Apply does;
+        // only a name-conflict Replace on import starts a new plan without one (§6.21).
         library.replace(plan.id, with: self.plan())
+        XCTAssertEqual(library.plans[0].progression, plan.progression)
+        library.save(self.plan(), conflict: .replace)
         XCTAssertNil(library.plans[0].progression)
     }
 
@@ -280,16 +283,16 @@ final class ProgressionTests: XCTestCase {
         library.save(plan, makeActive: true)
         let saved = try XCTUnwrap(library.plans[0].progression)
 
-        let card = HomeStart.current(library: library, now: days(8), calendar: calendar)
-        XCTAssertEqual(ProgressionText.status(saved, on: days(8), calendar: calendar), "Week 2 of 4")
+        let card = HomeStart.current(library: library, now: CoreTestSupport.days(8), calendar: calendar)
+        XCTAssertEqual(ProgressionText.status(saved, on: CoreTestSupport.days(8), calendar: calendar), "Week 2 of 4")
         XCTAssertFalse(card.progressionFinished)
 
-        let later = HomeStart.current(library: library, now: days(30), calendar: calendar)
+        let later = HomeStart.current(library: library, now: CoreTestSupport.days(30), calendar: calendar)
         XCTAssertTrue(later.progressionFinished)
-        XCTAssertEqual(ProgressionText.status(saved, on: days(30), calendar: calendar), "Finished")
+        XCTAssertEqual(ProgressionText.status(saved, on: CoreTestSupport.days(30), calendar: calendar), "Finished")
 
         library.plans[0].progression = nil
-        let none = HomeStart.current(library: library, now: days(8), calendar: calendar)
+        let none = HomeStart.current(library: library, now: CoreTestSupport.days(8), calendar: calendar)
         XCTAssertFalse(none.progressionFinished)
     }
 }

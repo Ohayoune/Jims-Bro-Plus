@@ -6,12 +6,32 @@ enum Severity: String, Codable { case error, warning }
 enum Weekday: String, Codable, CaseIterable {
     case monday, tuesday, wednesday, thursday, friday, saturday, sunday
     var calendarValue: Int { (Self.allCases.firstIndex(of: self).map { ($0 + 1) % 7 + 1 }) ?? 2 }
+    /// D96 (v1.12 L3): the weekday `date` falls on in `calendar`'s zone — the one reading of a
+    /// date's weekday. `.weekday` is 1…7, Sunday first, so the fallback is never taken.
+    init(_ date: Date, calendar: Calendar) {
+        let value = calendar.component(.weekday, from: date)
+        self = Self.allCases.first { $0.calendarValue == value } ?? .monday
+    }
 }
 struct Issue: Codable, Equatable {
     var severity: Severity
     var code: String
     var path: String
     var message: String
+}
+extension Issue {
+    /// An issue whose code says its severity: `E_` is an error, anything else a warning.
+    init(code: String, path: String, message: String) {
+        self.init(severity: code.hasPrefix("E_") ? .error : .warning, code: code, path: path, message: message)
+    }
+}
+extension Array where Element == Issue {
+    /// By path, in the order they were found within a path — how every reader lists them.
+    func sortedByPath() -> [Issue] {
+        enumerated().sorted { a, b in
+            a.element.path == b.element.path ? a.offset < b.offset : a.element.path < b.element.path
+        }.map(\.element)
+    }
 }
 struct Plan: Codable, Identifiable, Equatable {
     var id = UUID()
@@ -40,6 +60,27 @@ struct Plan: Codable, Identifiable, Equatable {
         case id, name, units, schedule, days, importedAt, sourceText, warnings, cycle,
              cyclePosition, cycleAnchor, progression, restBetweenExercises
     }
+}
+extension Plan {
+    /// D96 (v1.12 L3): the day named `name`, compared as the app compares names everywhere
+    /// (`normalized`), or nil when the plan has no such day — the one lookup of a day by name.
+    func dayIndex(named name: String) -> Int? {
+        days.firstIndex { normalized($0.name) == normalized(name) }
+    }
+    /// D96 (v1.12 L3): the day each entry of the cycle names, in order — nil for a rest, and for
+    /// an entry naming a day the plan no longer has, which the projection draws as a rest
+    /// (§6.12). The one reading of the cycle as days: `cycleNames` is it in words, and
+    /// `CycleSquare.of` in squares.
+    var cycleDays: [Int?] {
+        cycle.map { entry in
+            guard case let .day(index) = entry, days.indices.contains(index) else { return nil }
+            return index
+        }
+    }
+    /// The cycle's day names in order, nil for a rest: each caller spells a rest its own way —
+    /// "rest" in the plan's JSON and the prompt, "Rest" under a square — so a day named Rest
+    /// stays a day.
+    var cycleNames: [String?] { cycleDays.map { $0.map { days[$0].name } } }
 }
 
 /// D44 (v1.3): a progression — what the chatbot planned for the next N weeks, per exercise.
@@ -125,14 +166,6 @@ enum WorkTarget: Codable, Equatable {
     var isTimed: Bool { if case .reps = self { return false }; return true }
 }
 enum RepTarget: Codable, Equatable { case fixed(Int), range(min: Int, max: Int), amrap(min: Int?) }
-struct Step: Equatable {
-    let exerciseIndex: Int
-    let setIndex: Int
-    let dropIndex: Int
-    let blockIndex: Int
-    let isLastInRound: Bool
-    let isLastInBlock: Bool
-}
 enum CycleEntry: Codable, Equatable { case day(Int), rest }
 struct Session: Codable, Identifiable, Equatable {
     var id = UUID()
@@ -154,6 +187,21 @@ struct Session: Codable, Identifiable, Equatable {
     enum CodingKeys: String, CodingKey {
         case id, planId, planName, dayName, units, startedAt, endedAt, exercises, steps,
              progressionWeek, progressionWeeks, progressionMode
+    }
+}
+extension Sequence where Element == Session {
+    /// D96 (v1.12 L3): whether a workout was finished on `date` — the calendar's own test for a
+    /// done day (§6.44) — narrowed, when they are given, to `planId`'s workouts of the day named
+    /// `dayName`, and leaving out `except`. The one test, where Today's card, the swap's question
+    /// and its settling each wrote their own.
+    func finished(on date: Date, plan planId: UUID? = nil, day dayName: String? = nil,
+                  except: UUID? = nil, calendar: Calendar) -> Bool {
+        contains { session in
+            session.endedAt != nil && session.id != except
+                && calendar.isDate(session.startedAt, inSameDayAs: date)
+                && (planId.map { session.planId == $0 } ?? true)
+                && (dayName.map { normalized(session.dayName) == normalized($0) } ?? true)
+        }
     }
 }
 struct SessionExercise: Codable, Identifiable, Equatable {
@@ -228,9 +276,11 @@ enum SetResult: Codable, Equatable {
     var reps: Int? { if case let .reps(n, _) = self { return n }; return nil }
     var seconds: Int? { if case let .duration(n, _) = self { return n }; return nil }
 }
-/// The status strip's "block just finished" state (SPEC §4.7, D14 v1.1). Overlaid on a
-/// `.working` phase rather than being its own phase, so the next set's card never waits on it;
-/// it is cleared by the next log, skip, jump, undo or an explicit `dismissBlockDone`.
+/// The status strip's "block just finished" state (SPEC §4.7, D14 v1.1): the walk between
+/// exercises. Not a phase of its own, so the next set's card never waits on it: since D33 it sits
+/// on the `.betweenExercises` rest that runs the walk's minimum, then on `.working` once that has
+/// passed (§6.4; `ActiveSession.walk` reads both). It is cleared by the next log, skip, jump,
+/// undo, timer start or an explicit `dismissBlockDone`.
 struct BlockDone: Codable, Equatable { var finishedBlock: Int; var startedAt: Date }
 
 struct ActiveSession: Codable, Equatable {
@@ -258,44 +308,6 @@ struct ActiveSession: Codable, Equatable {
         return status != .pending
     }
 
-
-    init(session: Session, phase: Phase, lastRestEndedAt: Date? = nil, workWeight: Double? = nil,
-         timerRunning: Bool = false, deliveredBeeps: Set<TimerBeep> = [], blockDone: BlockDone? = nil,
-         lastCompletedStep: Int? = nil) {
-        self.session = session; self.phase = phase; self.lastRestEndedAt = lastRestEndedAt
-        self.workWeight = workWeight; self.timerRunning = timerRunning; self.deliveredBeeps = deliveredBeeps
-        self.blockDone = blockDone; self.lastCompletedStep = lastCompletedStep
-    }
-
-    /// A v1 file has no `blockDone` key; if its phase was the old `.transition`, reconstruct one
-    /// from that payload so a session saved mid-transition survives the v1.1 upgrade (G53).
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        session = try container.decode(Session.self, forKey: .session)
-        phase = try container.decode(Phase.self, forKey: .phase)
-        lastRestEndedAt = try container.decodeIfPresent(Date.self, forKey: .lastRestEndedAt)
-        workWeight = try container.decodeIfPresent(Double.self, forKey: .workWeight)
-        timerRunning = try container.decodeIfPresent(Bool.self, forKey: .timerRunning) ?? false
-        deliveredBeeps = try container.decodeIfPresent(Set<TimerBeep>.self, forKey: .deliveredBeeps) ?? []
-        if let blockDone = try container.decodeIfPresent(BlockDone.self, forKey: .blockDone) {
-            self.blockDone = blockDone
-        } else {
-            self.blockDone = try? Phase.legacyBlockDone(from: container.superDecoder(forKey: .phase))
-        }
-        lastCompletedStep = try container.decodeIfPresent(Int.self, forKey: .lastCompletedStep)
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(session, forKey: .session)
-        try container.encode(phase, forKey: .phase)
-        try container.encodeIfPresent(lastRestEndedAt, forKey: .lastRestEndedAt)
-        try container.encodeIfPresent(workWeight, forKey: .workWeight)
-        try container.encode(timerRunning, forKey: .timerRunning)
-        try container.encode(deliveredBeeps, forKey: .deliveredBeeps)
-        try container.encodeIfPresent(blockDone, forKey: .blockDone)
-        try container.encodeIfPresent(lastCompletedStep, forKey: .lastCompletedStep)
-    }
 }
 /// SPEC §4.6 (v1.2): the app has one rest, and it says which of three things it is. The
 /// warm-up before the first set and the gap between two exercises are mechanically rests —
@@ -337,20 +349,6 @@ struct RestState: Codable, Equatable {
     var kind: RestKind = .betweenSets
 
     enum CodingKeys: String, CodingKey { case startedAt, endsAt, nextStep, kind }
-
-    init(startedAt: Date, endsAt: Date, nextStep: Int, kind: RestKind = .betweenSets) {
-        self.startedAt = startedAt; self.endsAt = endsAt; self.nextStep = nextStep; self.kind = kind
-    }
-
-    /// A v1.1 file has no `kind` (it had an unused `isWork` instead); every rest it could have
-    /// been holding was a rest between sets.
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(startedAt: try container.decode(Date.self, forKey: .startedAt),
-                  endsAt: try container.decode(Date.self, forKey: .endsAt),
-                  nextStep: try container.decode(Int.self, forKey: .nextStep),
-                  kind: container.value(.kind, or: .betweenSets))
-    }
 }
 
 /// SPEC §6.6 (v1.1): the `.transition` phase is gone — a finished block advances straight to
@@ -365,6 +363,14 @@ enum Phase: Codable, Equatable {
     /// The v1 shape of the removed `TransitionState`, decoded only for migration.
     private struct LegacyTransition: Decodable { var startedAt: Date; var nextStep: Int; var finishedBlock: Int }
 
+    /// A v1 `.transition` payload, read once for both of the things it becomes: the phase
+    /// (`working(nextStep)`) and the strip's `BlockDone`. Nil when the phase is another.
+    private static func legacyTransition(_ container: KeyedDecodingContainer<Key>) throws -> LegacyTransition? {
+        guard container.contains(.transition) else { return nil }
+        let inner = try container.nestedContainer(keyedBy: ZeroKey.self, forKey: .transition)
+        return try inner.decode(LegacyTransition.self, forKey: ._0)
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Key.self)
         if let payload = try container.decodeIfPresent(WorkingPayload.self, forKey: .working) {
@@ -373,9 +379,7 @@ enum Phase: Codable, Equatable {
         if let state = try container.decodeIfPresent(RestState.self, forKey: .resting) {
             self = .resting(state); return
         }
-        if container.contains(.transition) {
-            let inner = try container.nestedContainer(keyedBy: ZeroKey.self, forKey: .transition)
-            let legacy = try inner.decode(LegacyTransition.self, forKey: ._0)
+        if let legacy = try Self.legacyTransition(container) {
             self = .working(step: legacy.nextStep); return
         }
         guard container.contains(.completed) else {
@@ -397,11 +401,8 @@ enum Phase: Codable, Equatable {
 
     /// Reconstructs a v1.1 `BlockDone` from a v1 `.transition` phase payload, if present.
     static func legacyBlockDone(from decoder: Decoder) throws -> BlockDone? {
-        let container = try decoder.container(keyedBy: Key.self)
-        guard container.contains(.transition) else { return nil }
-        let inner = try container.nestedContainer(keyedBy: ZeroKey.self, forKey: .transition)
-        let legacy = try inner.decode(LegacyTransition.self, forKey: ._0)
-        return BlockDone(finishedBlock: legacy.finishedBlock, startedAt: legacy.startedAt)
+        try legacyTransition(decoder.container(keyedBy: Key.self))
+            .map { BlockDone(finishedBlock: $0.finishedBlock, startedAt: $0.startedAt) }
     }
 }
 private struct EmptyPayload: Codable, Equatable {}

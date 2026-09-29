@@ -189,19 +189,19 @@ final class SettingsAndHomeTests: XCTestCase {
     // O35 / O38: the repeat block chips, caption, and highlighted position.
     func testRepeatBlockChips() throws {
         let plan = try XCTUnwrap(PlanImport.run(try sample()).plan)
-        let chips = RepeatBlock.chips(plan)
+        let chips = CycleSquare.of(plan).map(\.name)
         XCTAssertEqual(chips, ["Push", "Pull", "Legs", "Push", "Pull", "Legs", "Rest"])
         XCTAssertEqual(RepeatBlock.caption(plan), "repeats every 7 days")
-        XCTAssertEqual(RepeatBlock.highlighted(plan), 0, "with no position yet, Next up is the first day")
+        XCTAssertEqual(RepeatBlock.highlighted(plan, today: Date()), 0, "with no position yet, Next up is the first day")
 
         var advanced = plan
         PlanSchedule.advance(&advanced, completedDayName: "Push")
-        XCTAssertEqual(RepeatBlock.highlighted(advanced), 1, "after Push, Pull is next")
+        XCTAssertEqual(RepeatBlock.highlighted(advanced, today: Date()), 1, "after Push, Pull is next")
 
         var weekly = plan
         weekly.schedule = .weekday
         XCTAssertEqual(RepeatBlock.caption(weekly), "Every week")
-        XCTAssertNil(RepeatBlock.highlighted(weekly))
+        XCTAssertNil(RepeatBlock.highlighted(weekly, today: Date()))
     }
 
     // O4: every error row carries a path, a message and a code, and drives the fix-it prompt.
@@ -304,6 +304,7 @@ final class SettingsAndHomeTests: XCTestCase {
         XCTAssertEqual(model.activePlanId, second)
         await model.renamePlan(second, to: "  Renamed  ")
         XCTAssertEqual(model.plans.last?.name, "Renamed")
+        XCTAssertTrue(model.plans.last?.sourceText.contains("\"Renamed\"") == true, "the text follows the name (TL36)")
         await model.renamePlan(second, to: "   ")
         XCTAssertEqual(model.plans.last?.name, "Renamed", "an empty name is ignored")
 
@@ -343,22 +344,24 @@ final class SettingsAndHomeTests: XCTestCase {
         XCTAssertEqual(reloaded.activePlanId, thirdId)
     }
 
-    /// L37 (D25, v1.1): Plan detail's Replace keeps the plan's id and active status, unlike the
-    /// name-based conflict flow, and persists.
+    /// L37 (D25, v1.1): a whole plan put in a plan's place — Plan detail's Replace then, its Edit
+    /// the text since v1.12's L5, saved as `PlanEdit.Operation.replacePlanJSON` through
+    /// `AppModel.editPlan` — keeps the plan's id and active status, unlike the name-based conflict
+    /// flow, and persists. (Say what should change's Apply is TN35's.)
     @MainActor func testReplacePlanKeepsIdAndActiveStatus() async throws {
         let root = makeRoot()
         defer { discard(root) }
         let model = AppModel(store: Store(root: root), sampleJSON: { nil })
         await model.load()
-        let text = try sample()
-        let original = try XCTUnwrap(model.runImport(text).plan)
+        let original = try XCTUnwrap(model.runImport(try sample()).plan)
         await model.save(original, makeActive: true)
         let id = try XCTUnwrap(model.activePlanId)
 
-        var revised = try XCTUnwrap(model.runImport(text).plan)
+        var revised = original
         revised.name = "A Completely Different Name"
-        let result = await model.replacePlan(id, with: revised)
-        XCTAssertEqual(result, id)
+        let text = PlanJSON.render(revised)
+        let issues = await model.editPlan(id, .replacePlanJSON(text: text))
+        XCTAssertEqual(issues, [])
         XCTAssertEqual(model.plans.count, 1, "replace does not add a second plan")
         XCTAssertEqual(model.plans.first?.id, id)
         XCTAssertEqual(model.plans.first?.name, "A Completely Different Name")
@@ -369,8 +372,9 @@ final class SettingsAndHomeTests: XCTestCase {
         XCTAssertEqual(reloaded.plans.first?.name, "A Completely Different Name")
         XCTAssertEqual(reloaded.activePlanId, id)
 
-        let missingResult = await model.replacePlan(UUID(), with: revised)
-        XCTAssertNil(missingResult, "a missing id is a no-op")
+        let missing = await model.editPlan(UUID(), .replacePlanJSON(text: text))
+        XCTAssertEqual(missing.map(\.code), ["E_EDIT_INVALID"], "a missing id is a no-op")
+        XCTAssertEqual(model.plans.map(\.id), [id])
     }
 
     // SPEC §8.3: a corrupt file surfaces as one alert and the app carries on.

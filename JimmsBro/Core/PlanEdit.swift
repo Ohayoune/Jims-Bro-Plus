@@ -16,11 +16,7 @@ enum PlanJSON {
         if let walk = plan.restBetweenExercises { out += "  \"restBetweenExercises\": \(walk),\n" }
         out += "  \"schedule\": \"\(plan.schedule.rawValue)\",\n"
         if !plan.cycle.isEmpty {
-            let names = plan.cycle.map { entry -> String in
-                guard case let .day(index) = entry, let day = plan.days[safe: index] else { return "rest" }
-                return day.name
-            }
-            out += "  \"cycle\": [\(names.map(string).joined(separator: ", "))],\n"
+            out += "  \"cycle\": [\(plan.cycleNames.map { string($0 ?? "rest") }.joined(separator: ", "))],\n"
         }
         out += "  \"days\": [\n"
         out += plan.days.map(day).joined(separator: ",\n")
@@ -80,7 +76,7 @@ enum PlanJSON {
 
     private static func set(_ target: SetTarget) -> String {
         var fields = ["              " + work(target.work)]
-        if let weight = target.weight { fields.append("              \"weight\": \(number(weight))") }
+        if let weight = target.weight { fields.append("              \"weight\": \(TargetText.number(weight))") }
         fields.append("              \"restSeconds\": \(target.restSeconds)")
         // D51 (v1.5): the effort target, per set — the importer defaults it from the exercise,
         // but the rendering is the explicit form, so every set says its own.
@@ -95,7 +91,7 @@ enum PlanJSON {
         if !target.drops.isEmpty {
             let drops = target.drops.map { drop -> String in
                 var parts = ["                  " + work(drop.work)]
-                if let weight = drop.weight { parts.append("                  \"weight\": \(number(weight))") }
+                if let weight = drop.weight { parts.append("                  \"weight\": \(TargetText.number(weight))") }
                 return "                {\n" + parts.joined(separator: ",\n") + "\n                }"
             }
             fields.append("              \"drops\": [\n" + drops.joined(separator: ",\n") + "\n              ]")
@@ -119,14 +115,9 @@ enum PlanJSON {
         }
     }
 
-    private static func number(_ value: Double) -> String {
-        value == value.rounded() && abs(value) < 1e15
-            ? String(Int(value))
-            : String(format: "%.1f", locale: Locale(identifier: "en_US_POSIX"), value)
-    }
-
-    /// A JSON string literal. Only the escapes JSON requires; plan text is ordinary prose.
-    private static func string(_ value: String) -> String {
+    /// A JSON string literal. Only the escapes JSON requires; plan text is ordinary prose. The
+    /// one escaper (D96): every piece of JSON the app writes by hand quotes its text here.
+    static func string(_ value: String) -> String {
         var out = "\""
         for character in value.unicodeScalars {
             switch character {
@@ -149,6 +140,10 @@ enum PlanJSON {
 /// pipeline, so an edit is validated and normalized by exactly the code an import is — an edit
 /// can never produce a plan the app would have refused to import.
 enum PlanEdit {
+    /// E_EDIT_INVALID: the operation names a day, exercise or set the plan does not have.
+    static let notApplicable = Issue(severity: .error, code: "E_EDIT_INVALID", path: "",
+                                     message: "That edit doesn't apply to this plan.")
+
     enum Operation: Equatable {
         case renameExercise(day: Int, exercise: Int, name: String)
         case setSetCount(day: Int, exercise: Int, count: Int)
@@ -158,10 +153,17 @@ enum PlanEdit {
         case setRest(day: Int, exercise: Int, seconds: Int)
         /// D51 (v1.5): the effort target for every set of the exercise; nil clears it.
         case setInReserve(day: Int, exercise: Int, value: Int?)
+        /// D96 (v1.12 L6): the exercise sheet's Save — every field it changed, as one edit and
+        /// one pipeline run. The sheet sent one operation per field until then: N runs, N writes,
+        /// and a refusal part-way left the fields before it saved and the ones after it not.
+        case editExercise(day: Int, exercise: Int, changes: [ExerciseChange])
         case moveExercise(day: Int, from: Int, to: Int)
         case deleteExercise(day: Int, exercise: Int)
         case duplicateDay(day: Int)
         case renameDay(day: Int, name: String)
+        /// Plan detail's Rename. An edit like the others (v1.12's review), so the plan's text says
+        /// the new name: set beside it, the text kept the old one, and Edit the text saved it back.
+        case renamePlan(name: String)
         /// D43 (v1.3): the JSON edits. Each takes text, spliced into the plan's own JSON and
         /// re-imported, so the errors it can raise are the import pipeline's, with full paths.
         case replaceExerciseJSON(day: Int, exercise: Int, text: String)
@@ -170,6 +172,10 @@ enum PlanEdit {
         case insertExercisesJSON(day: Int, at: Int?, text: String)
         /// Appended after the last day, and added to a rotation's repeat block.
         case insertDaysJSON(text: String)
+        /// D95, F1 (v1.12): the whole plan's text — Plan detail's **Edit the text** — read as a
+        /// paste and carried as an edit. A text that names no unit keeps the plan's (D57 asks only
+        /// on a new plan's review).
+        case replacePlanJSON(text: String)
     }
 
     /// The edited plan, or the errors that stopped it. The plan keeps its id, its position in
@@ -178,35 +184,34 @@ enum PlanEdit {
     static func apply(_ operation: Operation, to plan: Plan, settings: Settings,
                       now: Date = Date()) -> ImportResult {
         let text: String
+        // The plan as the edit left it, before the importer reads it back: its day names are the
+        // re-import's, so the cycle's place, which follows its day by name, follows a rename.
+        var edited = plan
         switch operation {
         case .replaceExerciseJSON, .replaceDayJSON, .insertExercisesJSON, .insertDaysJSON:
             let splice = spliced(plan, operation)
             guard let spliced = splice.text else { return ImportResult(plan: nil, issues: splice.issues) }
             text = spliced
+        case let .replacePlanJSON(whole):
+            text = whole
         default:
-            guard var edited = mutated(operation, plan) else {
-                return ImportResult(plan: nil, issues: [Issue(
-                    severity: .error, code: "E_EDIT_INVALID", path: "",
-                    message: "That edit doesn't apply to this plan.")])
+            guard let changed = mutated(operation, plan) else {
+                return ImportResult(plan: nil, issues: [notApplicable])
             }
-            edited.sourceText = PlanJSON.render(edited)
-            text = edited.sourceText
+            edited = changed
+            text = PlanJSON.render(edited)
         }
         var result = PlanImport.run(text, settings: settings, now: now)
-        guard var reimported = result.plan else { return result }
-        reimported.id = plan.id
-        reimported.importedAt = plan.importedAt
-        reimported.cyclePosition = plan.cyclePosition
-        // v1.3: an edit used to drop the anchor, so the next launch re-anchored the rotation
-        // to that day and the calendar moved — the compounding D37 had just fixed.
-        reimported.cycleAnchor = plan.cycleAnchor
-        // D44: an edit to the plan is not a reason to lose the progression attached to it;
-        // entries match by name, so a renamed exercise simply stops matching.
-        reimported.progression = plan.progression
-        // A spliced tree is JSON in the encoder's key order; what the plan keeps as its text
-        // is the canonical rendering, the same as after any other edit.
-        reimported.sourceText = PlanJSON.render(reimported)
-        result.plan = reimported
+        guard let reimported = result.planKeepingUnits(of: plan) else { return result }
+        // A day pasted in its own place keeps it, and a renamed one took its old name's place in
+        // the repeat block (`spliced`).
+        if case let .replaceDayJSON(day, _) = operation, let renamed = reimported.days[safe: day] {
+            edited.days[day].name = renamed.name
+        }
+        // D96 (v1.12 L3): an edit, as Apply is — the id, the import date, the cycle's place and its
+        // anchor (v1.3: an edit used to drop the anchor, and the calendar moved), the progression
+        // (D44), and the canonical text: a spliced tree is JSON in the encoder's key order.
+        result.plan = edited.carried(into: reimported, as: .edit)
         return result
     }
 
@@ -294,15 +299,9 @@ enum PlanEdit {
     /// errors that stopped it. Works on the tree rather than the text so a fragment lands at a
     /// real path and the pipeline's errors name it — `days[1].exercises[2].sets[0].reps`.
     static func spliced(_ plan: Plan, _ operation: Operation) -> (text: String?, issues: [Issue]) {
+        func invalid() -> (String?, [Issue]) { (nil, [notApplicable]) }
         guard var tree = PlanImport.decode(PlanJSON.render(plan)).value?.object,
-              var days = tree["days"]?.array else {
-            return (nil, [Issue(severity: .error, code: "E_EDIT_INVALID", path: "",
-                                message: "That edit doesn't apply to this plan.")])
-        }
-        func invalid() -> (String?, [Issue]) {
-            (nil, [Issue(severity: .error, code: "E_EDIT_INVALID", path: "",
-                         message: "That edit doesn't apply to this plan.")])
-        }
+              var days = tree["days"]?.array else { return invalid() }
         func cycleNames() -> [RawJSON] { tree["cycle"]?.array ?? [] }
         var issues: [Issue] = []
 
@@ -382,10 +381,8 @@ enum PlanEdit {
             return invalid()
         }
         tree["days"] = .array(days)
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        guard let data = try? encoder.encode(RawJSON.object(tree)),
-              let text = String(data: data, encoding: .utf8) else { return invalid() }
+        let text = RawJSON.object(tree).jsonText
+        guard !text.isEmpty else { return invalid() }
         return (text, issues)
     }
 
@@ -394,8 +391,8 @@ enum PlanEdit {
         var plan = plan
         switch operation {
         case let .renameExercise(day, exercise, name):
-            guard let target = exerciseIndex(plan, day, exercise), !name.trimmed.isEmpty else { return nil }
-            plan.days[target.day].exercises[target.exercise].name = String(name.trimmed.prefix(100))
+            guard let target = exerciseIndex(plan, day, exercise), let name = TargetGrammar.cleanName(name) else { return nil }
+            plan.days[target.day].exercises[target.exercise].name = name
 
         case let .setSetCount(day, exercise, count):
             guard let target = exerciseIndex(plan, day, exercise), (1...50).contains(count) else { return nil }
@@ -408,7 +405,7 @@ enum PlanEdit {
 
         case let .setWeight(day, exercise, weight):
             guard let target = exerciseIndex(plan, day, exercise) else { return nil }
-            if let weight, !(0...10_000).contains(weight) { return nil }
+            if let weight, !TargetGrammar.isWeight(weight) { return nil }
             for index in plan.days[target.day].exercises[target.exercise].sets.indices {
                 plan.days[target.day].exercises[target.exercise].sets[index].weight = weight
             }
@@ -451,6 +448,14 @@ enum PlanEdit {
                 plan.days[target.day].exercises[target.exercise].sets[index].inReserve = value
             }
 
+        case let .editExercise(day, exercise, changes):
+            // Each field as its own edit makes it, in the order the sheet lists them, so a rest
+            // in a superset still reaches the round (`setRest`); all of them or none.
+            for change in changes {
+                guard let next = mutated(change.operation(day: day, exercise: exercise), plan) else { return nil }
+                plan = next
+            }
+
         case let .moveExercise(day, from, to):
             guard plan.days.indices.contains(day) else { return nil }
             var exercises = plan.days[day].exercises
@@ -471,18 +476,22 @@ enum PlanEdit {
             // Named rather than left to the importer's duplicate-name suffix, so the copy says
             // what it is. It is deliberately not added to the cycle: duplicating a day is not a
             // request to change how often you train.
-            copy.name = String("\(copy.name) copy".prefix(100))
+            copy.name = TargetGrammar.cleanName("\(copy.name) copy") ?? copy.name
             copy.exercises = copy.exercises.map { var e = $0; e.id = UUID(); return e }
             plan.days.insert(copy, at: day + 1)
 
         case let .renameDay(day, name):
-            guard plan.days.indices.contains(day), !name.trimmed.isEmpty else { return nil }
+            guard plan.days.indices.contains(day), let name = TargetGrammar.cleanName(name) else { return nil }
             // `CycleEntry.day` holds an index, not a name, so the cycle needs no fixup here;
             // `PlanJSON.render` writes the day's current name into it on the way out.
-            plan.days[day].name = String(name.trimmed.prefix(100))
+            plan.days[day].name = name
 
-        case .replaceExerciseJSON, .replaceDayJSON, .insertExercisesJSON, .insertDaysJSON:
-            // Text edits are spliced (`spliced`), never mutated here.
+        case let .renamePlan(name):
+            guard let name = TargetGrammar.cleanName(name) else { return nil }
+            plan.name = name
+
+        case .replaceExerciseJSON, .replaceDayJSON, .insertExercisesJSON, .insertDaysJSON, .replacePlanJSON:
+            // Text edits are spliced (`spliced`) or read whole, never mutated here.
             return nil
         }
         return plan
@@ -517,25 +526,22 @@ enum PlanEdit {
     static func parseWork(_ text: String) -> WorkTarget? {
         let value = text.trimmed.lowercased()
         guard !value.isEmpty else { return nil }
-        // Open duration, no minimum. "max" is deliberately not here: the plan format lets it
-        // mean either, and in a field you type reps into, reps is the commoner meaning.
-        if ["open", "amsap", "as long as possible"].contains(value) {
+        // Open duration, no minimum. The words that mean either in the plan format ("max",
+        // "to failure") are reps here: in a field you type reps into, reps is the commoner meaning.
+        if TargetGrammar.openHoldWords.subtracting(TargetGrammar.amrapWords).contains(value) {
             return .openDuration(minSeconds: nil)
         }
-        if value == "max" || value == "amrap" || value == "failure" { return .reps(.amrap(min: nil)) }
         // "30s+": an open hold with a minimum.
-        if value.hasSuffix("s+"), let minimum = Int(value.dropLast(2)), (1...86_400).contains(minimum) {
+        if value.hasSuffix("s+"), let minimum = Int(value.dropLast(2)), TargetGrammar.seconds.contains(minimum) {
             return .openDuration(minSeconds: minimum)
         }
-        if value.hasSuffix("s"), let seconds = Int(value.dropLast()), (1...86_400).contains(seconds) {
+        if value.hasSuffix("s"), let seconds = Int(value.dropLast()), TargetGrammar.seconds.contains(seconds) {
             return .duration(seconds: seconds)
         }
-        if let range = parseRange(value) { return .reps(.range(min: range.min, max: range.max)) }
-        if value.hasSuffix("+"), let minimum = Int(value.dropLast()), minimum > 0 {
-            return .reps(.amrap(min: minimum))
-        }
-        if let reps = Int(value), (0...999).contains(reps) { return .reps(.fixed(reps)) }
-        return nil
+        // Reps as the plan format reads them — except a range written high to low, which the
+        // sheet refuses rather than swaps: it has no warning to say so.
+        guard let read = TargetGrammar.reps(value), !read.swapped else { return nil }
+        return .reps(read.target)
     }
 
     /// What the edit sheet shows for a target, in the vocabulary `parseWork` accepts back.
@@ -552,12 +558,11 @@ enum PlanEdit {
         }
     }
 
-    /// "8-12" or "8–12".
+    /// A rep range as a plan's `repRange` is read — "8-12", "8–12", "8 to 12", or one number
+    /// for a range of one — except written high to low, which the sheet refuses.
     static func parseRange(_ text: String) -> RepRange? {
-        let parts = text.trimmed.replacingOccurrences(of: "–", with: "-").split(separator: "-")
-        guard parts.count == 2, let low = Int(String(parts[0]).trimmed), let high = Int(String(parts[1]).trimmed),
-              low > 0, high >= low, high <= 999 else { return nil }
-        return RepRange(min: low, max: high)
+        guard let read = TargetGrammar.reps(text, rangeOnly: true), !read.swapped else { return nil }
+        return TargetGrammar.range(read.target)
     }
 }
 
@@ -645,12 +650,8 @@ extension PlanEdit {
     /// (`ChangeDay.ownDay`), where an exercise out of its day cannot be judged. Nil when a change
     /// does not apply, as the operation form refuses it with `E_EDIT_INVALID`.
     static func edited(_ exercise: Exercise, _ changes: [ExerciseChange]) -> Exercise? {
-        var plan = Plan(name: "", units: .kg, schedule: .rotation, days: [Day(name: "", exercises: [exercise])],
+        let plan = Plan(name: "", units: .kg, schedule: .rotation, days: [Day(name: "", exercises: [exercise])],
                         importedAt: Date(timeIntervalSince1970: 0), sourceText: "", cycle: [.day(0)])
-        for change in changes {
-            guard let next = mutated(change.operation(day: 0, exercise: 0), plan) else { return nil }
-            plan = next
-        }
-        return plan.days.first?.exercises.first
+        return mutated(.editExercise(day: 0, exercise: 0, changes: changes), plan)?.days.first?.exercises.first
     }
 }

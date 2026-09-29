@@ -167,11 +167,8 @@ struct HomeView: View {
             }
             // D17 (O36): starting a day from the strip mid-session asks rather than switching
             // silently — the same alert, with the same three answers, as Plan detail's.
-            .alert(switchPrompt, isPresented: Binding(get: { switching != nil },
-                                                      set: { if !$0 { switching = nil } })) {
-                Button("Keep going", role: .cancel) { switching = nil }
-                Button("Finish and start") { switchDay(.finish) }
-                Button("Discard and start", role: .destructive) { switchDay(.discard) }
+            .switchWorkoutAlert($switching, open: model.session) { route, choice in
+                start(route, switching: choice)
             }
             // D70 (v1.8): a workout started from anywhere — the strip, Do it now, Plan detail —
             // takes the tapped day with it; Today shows today behind the cover and after it.
@@ -258,14 +255,6 @@ struct HomeView: View {
         }
     }
 
-    /// D17: the switch popup's words, as Plan detail says them.
-    private var switchPrompt: String {
-        guard let session = model.session else { return "Switch workout?" }
-        let logged = SessionStats.loggedCount(session)
-        return "You're in the middle of \(session.dayName) (\(logged) of \(session.steps.count) sets). "
-            + "Switching workouts mid-session isn't recommended."
-    }
-
     /// P5: Start is never blind — the day's exercises are named before you tap it. D61
     /// (v1.7): the block is the preview. D69 (v1.8): the names at body size in ink, each with
     /// its sets as blocks at the right edge. D75 (v1.9, the owner's 13): the preview and
@@ -315,9 +304,9 @@ struct HomeView: View {
                     Button("Do it now") {
                         guard let plan = model.activePlan else { return }
                         if let own = missed.own {
-                            startOwn(own, on: plan.id)
+                            start(PlanRoute(id: plan.id, dayIndex: 0, own: own))
                         } else if let dayIndex = missed.dayIndex {
-                            start(planId: missed.planId ?? plan.id, dayIndex: dayIndex)
+                            start(PlanRoute(id: missed.planId ?? plan.id, dayIndex: dayIndex))
                         }
                     }
                     .font(.footnote.weight(.medium))
@@ -384,47 +373,25 @@ struct HomeView: View {
         // the screen itself since D90 (v1.11).
         if card.isEmpty { addPlan = .plan; return }
         if card.isInProgress { showWorkout = true; return }
-        if let own = card.ownDay, let planId = card.planId { startOwn(own, on: planId); return }
+        if let own = card.ownDay, let planId = card.planId {
+            start(PlanRoute(id: planId, dayIndex: 0, own: own))
+            return
+        }
         guard let planId = card.planId, let dayIndex = card.dayIndex else { return }
-        start(planId: planId, dayIndex: dayIndex)
+        start(PlanRoute(id: planId, dayIndex: dayIndex))
     }
 
     /// D48 (v1.4): the cover opens on `startedWorkouts`, the moment the engine exists; this
     /// task carries on telling the system behind it. D70 (v1.8): a day started from the strip
     /// while a session is open is refused before anything changes, and that raises the popup.
-    private func start(planId: UUID, dayIndex: Int, switching choice: SessionSwitch? = nil) {
-        Task {
-            do {
-                try await model.startDay(planId: planId, dayIndex: dayIndex, switching: choice)
-            } catch LibraryError.sessionInProgress {
-                switching = PlanRoute(id: planId, dayIndex: dayIndex)
-            } catch {
-                switching = nil
+    /// D76 (v1.9, §6.50): a day written just for a date is started as it is, with the same popup.
+    private func start(_ route: PlanRoute, switching choice: SessionSwitch? = nil) {
+        beginWorkout(route, asking: $switching) {
+            if let own = route.own {
+                try await model.startOwnDay(own, on: route.id, switching: choice)
+            } else {
+                try await model.startDay(planId: route.id, dayIndex: route.dayIndex, switching: choice)
             }
-        }
-    }
-
-    /// D76 (v1.9, §6.50): a day written just for a date, started as it is — with the switch
-    /// popup when a session is open, as every start has.
-    private func startOwn(_ day: Day, on planId: UUID, switching choice: SessionSwitch? = nil) {
-        Task {
-            do {
-                try await model.startOwnDay(day, on: planId, switching: choice)
-            } catch LibraryError.sessionInProgress {
-                switching = PlanRoute(id: planId, dayIndex: 0, own: day)
-            } catch {
-                switching = nil
-            }
-        }
-    }
-
-    private func switchDay(_ choice: SessionSwitch) {
-        guard let route = switching else { return }
-        switching = nil
-        if let own = route.own {
-            startOwn(own, on: route.id, switching: choice)
-        } else {
-            start(planId: route.id, dayIndex: route.dayIndex, switching: choice)
         }
     }
 

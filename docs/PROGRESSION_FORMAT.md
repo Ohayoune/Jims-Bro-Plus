@@ -46,8 +46,8 @@ still a step: the workout has to achieve the plan's own targets to move on.
 
 | Field | Type | Notes |
 |---|---|---|
-| `weight` | number or string | For every set at this step, in the plan's units. `"62.5 kg"` is accepted; `"bw"` / `"bodyweight"` / `"none"` mean no weight. Snapped to the smallest loadable change (D35, `W_PROGRESSION_ROUNDED`). Ignored on a bodyweight exercise (`W_PROGRESSION_WEIGHT_IGNORED`). Over 10000 or negative → `E_WEIGHT_INVALID`. |
-| `reps` | int or string | For every set at this step: `8`, `"8-12"`, `"8 to 12"`, `"AMRAP"`, `"10+"`, `"max"`. A range also becomes the rep range advice judges by. Else `E_REPS_INVALID`. |
+| `weight` | number or string | For every set at this step, in the plan's units, read as a plan's weight is (PLAN_FORMAT §2): `"62.5 kg"` and `"+10"` are accepted, and another unit is ignored with `W_WEIGHT_UNIT_IGNORED`; `"bw"` / `"bodyweight"` / `"none"` / `"same"` mean no weight. Snapped to the smallest loadable change (D35, `W_PROGRESSION_ROUNDED`). Ignored on a bodyweight exercise (`W_PROGRESSION_WEIGHT_IGNORED`). Over 10000 or negative → `E_WEIGHT_INVALID`. |
+| `reps` | int or string | For every set at this step, read as a plan's reps are (1–1000): `8`, `"8-12"`, `"8 to 12"`, `"AMRAP"`, `"10+"`, `"max"`. A range written high to low is swapped (`W_RANGE_SWAPPED`). A range also becomes the rep range advice judges by. Else `E_REPS_INVALID`. |
 | `durationSeconds` | int or string | For timed exercises: seconds, `"max"`, `"30+"`. With `reps` as well → `E_TARGET_CONFLICT`. |
 | `sets` | array of { `weight`, `reps` / `durationSeconds` } | Per-set values instead of `weight`/`reps`; set *n* of the plan's exercise takes entry *n*; extra entries are ignored. 1–50 objects, else `E_SETS_INVALID`. |
 
@@ -68,4 +68,4 @@ The reply goes through the same extract and decode stages as a plan (PLAN_FORMAT
 
 Errors: `E_PROMPT_PASTED`, `E_NOT_JSON`, `E_MULTIPLE_OBJECTS`, `E_EMPTY`, `E_TOO_LARGE` (as for a plan); `E_PROGRESSION_INVALID`, `E_PROGRESSION_WEEKS_INVALID` (the steps count or list — the code keeps v1.3's name), `E_PROGRESSION_EXERCISE_INVALID`, `E_PROGRESSION_WEEK_INVALID` (a step that is not an object), `E_PROGRESSION_EMPTY`, `E_REPS_INVALID`, `E_DURATION_INVALID`, `E_TARGET_CONFLICT`, `E_WEIGHT_INVALID`, `E_SETS_INVALID`.
 
-Warnings, **material** (shown on the review): `W_PROGRESSION_UNMATCHED`, `W_PROGRESSION_SHORT`, `W_PROGRESSION_WEIGHT_IGNORED`. **Cleanup** (behind Details): `W_PROGRESSION_ROUNDED`, `W_PROGRESSION_LONG`, `W_PROGRESSION_DAY_ASSUMED`, `W_PROGRESSION_WEEKS_ALIAS`, `W_UNKNOWN_FIELD`, `W_SURROUNDING_TEXT`, `W_CURLY_QUOTES_FIXED`.
+Warnings, **material** (shown on the review): `W_PROGRESSION_UNMATCHED`, `W_PROGRESSION_SHORT`, `W_PROGRESSION_WEIGHT_IGNORED`, `W_WEIGHT_UNIT_IGNORED`, `W_RANGE_SWAPPED` (as for a plan). **Cleanup** (behind Details): `W_PROGRESSION_ROUNDED`, `W_PROGRESSION_LONG`, `W_PROGRESSION_DAY_ASSUMED`, `W_PROGRESSION_WEEKS_ALIAS`, `W_UNKNOWN_FIELD`, `W_SURROUNDING_TEXT`, `W_CURLY_QUOTES_FIXED`.

@@ -116,6 +116,15 @@ enum DaySlot: Equatable {
         }
     }
 
+    /// A day to train — the pattern's day, a borrowed one or one written for the date — not a
+    /// rest, and not a date the plan says nothing about.
+    var isTrainingDay: Bool {
+        switch self {
+        case .day, .own, .borrowed: return true
+        case .rest, .none: return false
+        }
+    }
+
     /// Whether a workout named `dayName` is this slot's.
     func matches(_ dayName: String, in plan: Plan) -> Bool {
         name(in: plan).map { normalized($0) == normalized(dayName) } ?? false
@@ -139,8 +148,8 @@ extension PlanSchedule {
     static func base(_ plan: Plan, on date: Date, today: Date,
                      calendar: Calendar = .current) -> DaySlot {
         if plan.schedule == .weekday {
-            let weekday = calendar.component(.weekday, from: date)
-            if let index = plan.days.firstIndex(where: { $0.weekday?.calendarValue == weekday }) {
+            let weekday = Weekday(date, calendar: calendar)
+            if let index = plan.days.firstIndex(where: { $0.weekday == weekday }) {
                 return .day(index)
             }
             // A weekday plan names every training day, so the remaining weekdays are rest days.
@@ -177,25 +186,30 @@ extension PlanSchedule {
         switch slot {
         case .rest: return .rest
         case let .day(name):
-            return plan.days.firstIndex { normalized($0.name) == normalized(name) }.map(DaySlot.day) ?? .none
+            return plan.dayIndex(named: name).map(DaySlot.day) ?? .none
         case let .borrowed(planId, name): return .borrowed(planId: planId, name: name)
         case let .own(day): return .own(day)
         case .slide: return base
         }
     }
 
-    /// The first date at or after `start`, within the horizon, whose slot is a day to train —
-    /// the pattern's or a swap's. `today` is the calendar's today, for the anchor (D37).
+    /// D96 (v1.12 L3): the first date from `start` to the horizon's last — today and 62 days, the
+    /// last date the calendar paints (§6.12) — whose projected slot, swaps read, passes `test`:
+    /// a day to train by default, for Today's card and the Summary's "Next:" line; the day whose
+    /// workout was taken, for a completion (§6.46). `today` is the calendar's today, for the
+    /// anchor (D37). One search, where two counted the horizon from `start`, one day apart.
     static func firstDay(_ plan: Plan, from start: Date, swaps: [DaySwap], today: Date,
-                         calendar: Calendar = .current) -> (date: Date, slot: DaySlot)? {
+                         calendar: Calendar = .current,
+                         where test: (DaySlot) -> Bool = { $0.isTrainingDay }) -> (date: Date, slot: DaySlot)? {
         let first = calendar.startOfDay(for: start)
-        for offset in 0...horizonDays {
-            guard let date = calendar.date(byAdding: .day, value: offset, to: first) else { continue }
+        guard let last = calendar.date(byAdding: .day, value: horizonDays, to: calendar.startOfDay(for: today))
+        else { return nil }
+        var date = first
+        while date <= last {
             let slot = slot(plan, on: date, swaps: swaps, today: today, calendar: calendar)
-            switch slot {
-            case .rest, .none: continue
-            case .day, .own, .borrowed: return (date, slot)
-            }
+            if test(slot) { return (date, slot) }
+            guard let next = calendar.date(byAdding: .day, value: 1, to: date) else { return nil }
+            date = next
         }
         return nil
     }
@@ -315,18 +329,14 @@ extension PlanLibrary {
         }
         if slot.matches(done, in: plan) { return }
         guard planId == activePlanId,
-              let dayIndex = plan.days.firstIndex(where: { normalized($0.name) == normalized(done) })
+              let dayIndex = plan.dayIndex(named: done)
         else { return }
         let dayName = plan.days[dayIndex].name
 
         // Today's own day already done today: today's colour is taken, so the date keeps what
         // it has and the question's default is rest (the owner's 8).
         let baseDoneToday = base.name(in: plan).map { name in
-            sessions.contains {
-                $0.id != completed.id && $0.planId == planId && $0.endedAt != nil
-                    && calendar.isDate($0.startedAt, inSameDayAs: date)
-                    && normalized($0.dayName) == normalized(name)
-            }
+            sessions.finished(on: date, plan: planId, day: name, except: completed.id, calendar: calendar)
         } ?? false
         let original: DaySwap.Slot
         var todaysOption: DaySwap.Slot = .rest
@@ -344,8 +354,8 @@ extension PlanLibrary {
         }
         // The day whose workout was taken: the next date within the horizon projecting X.
         guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: date),
-              let taken = PlanSchedule.firstDate(plan, from: tomorrow, swaps: swaps, today: date,
-                                                 calendar: calendar, where: { $0 == .day(dayIndex) })
+              let taken = PlanSchedule.firstDay(plan, from: tomorrow, swaps: swaps, today: date,
+                                                calendar: calendar, where: { $0 == .day(dayIndex) })?.date
         else { return }
         write(DaySwap(planId: planId, date: taken, original: .day(name: dayName),
                       replacement: todaysOption, askedOn: date, answered: false))
@@ -410,9 +420,7 @@ extension PlanLibrary {
               let plan = plans.first(where: { $0.id == swap.planId }),
               case let .day(originalName) = swap.original,
               swap.date >= calendar.startOfDay(for: now),
-              !sessions.contains(where: {
-                  $0.endedAt != nil && calendar.isDate($0.startedAt, inSameDayAs: swap.date)
-              }) else { return nil }
+              !sessions.finished(on: swap.date, calendar: calendar) else { return nil }
         var options: [SwapQuestion.Option] = []
         // Today's day as the pattern said when the question was asked — before a slide (D73)
         // moved the anchor — so a reopened question offers what it first offered (D74).
@@ -424,12 +432,7 @@ extension PlanLibrary {
         let base = PlanSchedule.base(pattern, on: askedOn, today: askedOn, calendar: calendar)
         var todays: String?
         if case let .day(index) = base, let name = plan.days[safe: index]?.name {
-            let doneOnAskedOn = sessions.contains {
-                $0.planId == plan.id && $0.endedAt != nil
-                    && calendar.isDate($0.startedAt, inSameDayAs: askedOn)
-                    && normalized($0.dayName) == normalized(name)
-            }
-            if !doneOnAskedOn { todays = name }
+            if !sessions.finished(on: askedOn, plan: plan.id, day: name, calendar: calendar) { todays = name }
         }
         options.append(.init(kind: .rest, slot: .rest, title: "Rest", isDefault: todays == nil))
         if let todays {
@@ -448,8 +451,7 @@ extension PlanLibrary {
         }
         // By its weekday even when the date is today or tomorrow: it is that day's Legs that
         // was done, earlier, and the strip never reaches a day a weekday would misname (D55).
-        let weekday = calendar.component(.weekday, from: swap.date)
-        let day = Weekday.allCases.first { $0.calendarValue == weekday }.map(WeekdayText.full) ?? "That day"
+        let day = WeekdayText.full(Weekday(swap.date, calendar: calendar))
         return SwapQuestion(swapId: swap.id, date: swap.date, originalName: originalName,
                             heading: "\(day)'s \(originalName) is done. Make \(day):",
                             options: options, chosen: swap.replacement, answered: swap.answered,
@@ -471,19 +473,5 @@ extension PlanLibrary {
         return SwapQuestion.SlidePreview(
             colours: slots.map(\.colour),
             spoken: "Slide: " + slots.map { $0.name(in: plan) ?? "rest" }.joined(separator: ", "))
-    }
-}
-
-extension PlanSchedule {
-    /// The first date at or after `start`, within the horizon, whose projected slot satisfies
-    /// `test` — how completion finds the day whose workout was taken.
-    static func firstDate(_ plan: Plan, from start: Date, swaps: [DaySwap], today: Date,
-                          calendar: Calendar = .current, where test: (DaySlot) -> Bool) -> Date? {
-        let first = calendar.startOfDay(for: start)
-        for offset in 0..<horizonDays {
-            guard let date = calendar.date(byAdding: .day, value: offset, to: first) else { continue }
-            if test(slot(plan, on: date, swaps: swaps, today: today, calendar: calendar)) { return date }
-        }
-        return nil
     }
 }

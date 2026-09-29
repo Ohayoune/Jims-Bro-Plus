@@ -4,9 +4,9 @@ Every `manual` case from `TEST_CASES.md`, to run on the owner's iPhone. The simu
 notifications while locked, real haptics, the silent switch, or the free-account expiry, which is why
 these are here rather than automated.
 
-Everything else — 438 automated tests plus the simulator screen checks — is green; see
+Everything else — 475 automated tests plus the simulator screen checks — is green; see
 `BUILD_STATUS.md`. **v1.3** added the rows W3, W12, W21, W30 and W40 at the end; none has been run yet.
-**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37, **v1.7** T5, T9, T13, T24 and T29, **v1.8** TS5, TS11, TS12 and TS16, **v1.9** TQ18, TQ19, TQ20, TQ24, TQ29, TQ33, TQ38 and TQ39, **v1.10** TP7, TP16, TP23, TP29, TP35 and TP42, and **v1.11** TN15, TN16, TN22, TN31 and TN39. Y19 needs a TestFlight build, which needs the paid
+**v1.4** added Y3, Y11, Y16 and Y19 after them, **v1.5** Z4, Z10, Z17, Z25 and Z31, **v1.6** U9, U10, U13, U22, U23, U28, U33 and U37, **v1.7** T5, T9, T13, T24 and T29, **v1.8** TS5, TS11, TS12 and TS16, **v1.9** TQ18, TQ19, TQ20, TQ24, TQ29, TQ33, TQ38 and TQ39, **v1.10** TP7, TP16, TP23, TP29, TP35 and TP42, **v1.11** TN15, TN16, TN22, TN31 and TN39, and **v1.12** TF6, TL34 and TL35. Y19 needs a TestFlight build, which needs the paid
 Developer Program (`APP_STORE.md` §1); with it, the free-account expiry (O24) is n/a, and every
 other row is best run against the TestFlight build, which is the Release binary reviewers get.
 
@@ -280,6 +280,28 @@ large-text half; on TN31 at `DayEditorView`'s `.onMove` / `.onDelete` and at `Da
 (`Core/DayEdit.swift`); on TN39 at `TripStripView` in `DaySquare.swift` — the strip needs
 `accessibilityElement(children: .ignore)` with `TripStrip.spoken` as its label, and must not be a
 control (§6.62).
+
+
+## v1.12 rows (changed in F and L3, written with L8)
+
+v1.12 moved logic, not screens: each piece now has one owner (D96), and a person can see the change
+only where two copies had disagreed and one side won. These three are the ones a phone shows; the
+rest is pinned by unit tests. Use the built-in **Full Body**, with a few workouts logged, one of
+them with a weight on every set.
+
+| Case | What to do | Expected | Result | Notes |
+|---|---|---|---|---|
+| **TF6** | History → **Find an exercise** → an exercise you logged with a weight. Read a date's row; then the gear → Settings → **Compact notation** on, and back | Each date lists its sets reps first, *"10 × 60, 8 × 60"*, then *"… kg · top 10 × 60 kg"*, under **Best: 10 × 60 kg**. With Compact notation on the sets read *"10 @ 60, 8 @ 60"*. Nothing reads *"10@60"* with the switch off, or *"60 kg × 10"* anywhere |  |  |
+| **TL34** | In a workout, ··· → **Change exercise**, type *Développé couché*, log a set and finish. Start the next workout, ··· → **Change exercise** and type *developpe*; clear it and type *COUCHE*; clear it and type a space, then *développé*. Then History → **Find an exercise** with the same three | Each time **Done before** lists *Développé couché* — no accent, the wrong case or a stray space loses it — and Find an exercise finds it for all three. Cancel the sheet so the workout keeps its own exercise |  |  |
+| **TL35** | iPhone Settings → General → Language & Region → **iPhone Language → Deutsch** (the phone restarts its screens). Open the app, finish a Full Body workout on its day — one logged set is enough — and read the Summary's last line. If Today shows a missed workout, read that too. Set the language back afterwards | The line names the day in English: *"Next: Full Body B, Friday"* (or *tomorrow*, or *on 17 Sep*), not *Freitag*; a missed workout reads *"… was due Tuesday"*. The app's own words stay English throughout. History's month headings and the calendar's header follow the phone's formatting and are not this row |  |  |
+
+For the v1.12 rows: a `fail` on TF6 points at `ExerciseHistoryView.sets` and `.detail`
+(`Features/ExerciseHistory/ExerciseHistoryView.swift`), which must go through `StepCard.resultText`
+with the setting's `wording` and `StepCard.setText`, and at `ExerciseText.best`; on TL34 at
+`ExerciseNames.known` (`Core/ExerciseNames.swift`), which `ChangeExerciseSheet` and `HistoryView`
+must both call; on TL35 at `WeekdayText.full` and `MonthText` in `Core/HomeCard.swift` and at
+`SummaryText.next(after:library:)` — anything that reads `weekdaySymbols` or a `DateFormatter` for a line of
+the app's own words brings the phone's language back.
 
 
 ## When you are done

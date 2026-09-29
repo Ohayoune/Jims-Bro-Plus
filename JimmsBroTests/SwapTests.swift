@@ -16,20 +16,6 @@ final class SwapTests: XCTestCase {
 
     private static let set = SetTarget(work: .reps(.fixed(5)), weight: 60, restSeconds: 90)
 
-    /// The seven-day rotation, Push done on the 7th.
-    private func rotation() -> Plan {
-        func day(_ name: String, _ exercise: String) -> Day {
-            Day(name: name, exercises: [Exercise(name: exercise, sets: [Self.set])])
-        }
-        var plan = Plan(name: "Push Pull Legs", units: .kg, schedule: .rotation,
-                        days: [day("Push", "Bench Press"), day("Pull", "Row"), day("Legs", "Squat")],
-                        importedAt: self.day(1), sourceText: "",
-                        cycle: [.day(0), .day(1), .day(2), .rest, .day(0), .day(1), .day(2)])
-        plan.cyclePosition = 0
-        plan.cycleAnchor = start(7)
-        return plan
-    }
-
     /// Mon Push / Wed Pull / Fri Legs.
     private func weekdayPlan() -> Plan {
         func day(_ name: String, _ weekday: Weekday, _ exercise: String) -> Day {
@@ -50,7 +36,12 @@ final class SwapTests: XCTestCase {
 
     /// A workout of `plan`'s `dayIndex`-th day, every set logged, on the `n`th at noon.
     private func finished(_ plan: Plan, dayIndex: Int, on n: Int) throws -> Session {
-        var session = try XCTUnwrap(Session.start(plan: plan, dayIndex: dayIndex, now: day(n)))
+        logged(try XCTUnwrap(Session.start(plan: plan, dayIndex: dayIndex, now: day(n))), on: n)
+    }
+
+    /// Every step of `session` done, 5 at 60, on the nth.
+    private func logged(_ session: Session, on n: Int) -> Session {
+        var session = session
         for i in session.steps.indices {
             session.steps[i].status = .logged
             session.steps[i].result = .reps(count: 5, weight: 60)
@@ -95,7 +86,7 @@ final class SwapTests: XCTestCase {
 
     /// The plan's example: Legs on Monday the 14th, which expected Push.
     private func legsOnMonday() throws -> PlanLibrary {
-        var library = library(rotation())
+        var library = library(CoreTestSupport.sevenDayRotation())
         try complete(&library, dayIndex: 2, on: 14)
         return library
     }
@@ -186,7 +177,7 @@ final class SwapTests: XCTestCase {
     // TQ3: the same workout on a Thursday rest day: the original is rest, the default is
     // rest, and the options are Rest, Keep and Slide.
     func testAnOffDayWorkoutOnARestDay() throws {
-        var library = library(rotation())
+        var library = library(CoreTestSupport.sevenDayRotation())
         try complete(&library, dayIndex: 2, on: 17)
         XCTAssertEqual(library.activePlan?.cycleAnchor, start(7))
         let thursday = try XCTUnwrap(swap(library, on: 17))
@@ -217,7 +208,7 @@ final class SwapTests: XCTestCase {
     // TQ4: Push already done Monday, then Legs: Monday keeps its Push, and Wednesday's
     // options are Rest and Keep (and Slide), default Rest (the owner's 8).
     func testTodaysOwnDayDoneFirstKeepsTodaysColour() throws {
-        var library = library(rotation())
+        var library = library(CoreTestSupport.sevenDayRotation())
         try complete(&library, dayIndex: 0, on: 14)
         XCTAssertEqual(library.activePlan?.cycleAnchor, start(14), "the expected day re-anchors")
         XCTAssertEqual(library.swaps, [])
@@ -324,7 +315,7 @@ final class SwapTests: XCTestCase {
         XCTAssertEqual(swapped.swaps, swapsBefore)
         XCTAssertEqual(swapped.sessions.count, 2)
 
-        var expected = library(rotation())
+        var expected = library(CoreTestSupport.sevenDayRotation())
         let grid = week(expected, from: 14)
         try complete(&expected, dayIndex: 0, on: 14)
         XCTAssertEqual(expected.swaps, [])
@@ -336,8 +327,8 @@ final class SwapTests: XCTestCase {
 
     // TQ8: a session of another plan, or a discarded one, writes nothing.
     func testOtherPlansAndDiscardsWriteNothing() throws {
-        var library = library(rotation())
-        var other = rotation()
+        var library = library(CoreTestSupport.sevenDayRotation())
+        var other = CoreTestSupport.sevenDayRotation()
         other.name = "Other"
         other.cycleAnchor = nil
         other.cyclePosition = nil
@@ -347,14 +338,14 @@ final class SwapTests: XCTestCase {
         XCTAssertEqual(library.swaps, [], "the owner's 8")
         XCTAssertEqual(library.activePlan, active)
 
-        var discarded = self.library(rotation())
+        var discarded = self.library(CoreTestSupport.sevenDayRotation())
         try discarded.startDay(planId: try XCTUnwrap(discarded.activePlanId), dayIndex: 2, now: day(14))
         discarded.discardSession()
         XCTAssertEqual(discarded.swaps, [])
         XCTAssertEqual(discarded.activePlan?.cycleAnchor, start(7))
 
         // And a finished workout with nothing logged records nothing either.
-        var nothing = self.library(rotation())
+        var nothing = self.library(CoreTestSupport.sevenDayRotation())
         let session = try XCTUnwrap(Session.start(plan: try XCTUnwrap(nothing.activePlan), dayIndex: 2, now: day(14)))
         nothing.engine = SessionEngine(active: ActiveSession(session: session, phase: .completed),
                                        settings: nothing.settings)
@@ -494,11 +485,9 @@ final class SwapTests: XCTestCase {
     // TQ12 (pin): the projection's three functions, the strip and the missed rule take the
     // swaps with no default, so no caller can forget them.
     func testTheSwapsHaveNoDefault() throws {
-        guard let projection = FixtureLoader.doc("JimmsBro/Core/CalendarProjection.swift"),
-              let strip = FixtureLoader.doc("JimmsBro/Core/WeekStrip.swift"),
-              let schedule = FixtureLoader.doc("JimmsBro/Core/PlanLibrary.swift") else {
-            throw XCTSkip("the checkout is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let projection = try FixtureLoader.requiredDoc("JimmsBro/Core/CalendarProjection.swift")
+        let strip = try FixtureLoader.requiredDoc("JimmsBro/Core/WeekStrip.swift")
+        let schedule = try FixtureLoader.requiredDoc("JimmsBro/Core/PlanLibrary.swift")
         let signatures = [
             (projection, "static func entries(month:"), (projection, "static func next(days count:"),
             (projection, "static func week(containing date:"), (strip, "static func days(plan:"),
@@ -540,7 +529,7 @@ final class SwapTests: XCTestCase {
         XCTAssertEqual(month[9].entry, .none)
         guard case .completed = month[13].entry else { return XCTFail("Monday is done") }
         // A swap only counts for its own plan.
-        var other = rotation()
+        var other = CoreTestSupport.sevenDayRotation()
         other.name = "Other"
         library.write(DaySwap(planId: other.id, date: start(15), original: .day(name: "Pull"),
                               replacement: .rest, askedOn: nil, answered: true))
@@ -616,7 +605,7 @@ final class SwapTests: XCTestCase {
         XCTAssertEqual(after.slide, slide, "once slid, the preview is the pattern as it is")
 
         // A rest day: Legs on Thursday takes Sunday's, and today's day is rest, so rest is chosen.
-        var rest = self.library(rotation())
+        var rest = self.library(CoreTestSupport.sevenDayRotation())
         try complete(&rest, dayIndex: 2, on: 17)
         let sunday = try XCTUnwrap(card(rest, on: 17, showing: 3).question)
         XCTAssertEqual(sunday.heading, "Sunday's Legs is done. Make Sunday:")
@@ -702,7 +691,7 @@ final class SwapTests: XCTestCase {
         answered.answer(swap: try XCTUnwrap(squares[2].swapId), with: .day(name: "Push"))
         XCTAssertEqual(strip(answered, on: 14)[2].spoken, "Wednesday, Push", "answered, it asks nothing")
 
-        var rest = self.library(rotation())
+        var rest = self.library(CoreTestSupport.sevenDayRotation())
         try complete(&rest, dayIndex: 2, on: 17)
         let thursday = strip(rest, on: 17)
         XCTAssertEqual(thursday[0].was, "was rest")
@@ -731,14 +720,7 @@ final class SwapTests: XCTestCase {
     /// Every step of the open session logged, finished on the `n`th, through the library's own
     /// completion.
     private func finishOpen(_ library: inout PlanLibrary, on n: Int) throws {
-        var session = try XCTUnwrap(library.engine?.session)
-        for i in session.steps.indices {
-            session.steps[i].status = .logged
-            session.steps[i].result = .reps(count: 5, weight: 60)
-            session.steps[i].startedAt = day(n)
-            session.steps[i].loggedAt = day(n).addingTimeInterval(34)
-        }
-        session.endedAt = day(n).addingTimeInterval(60)
+        let session = logged(try XCTUnwrap(library.engine?.session), on: n)
         library.engine = SessionEngine(active: ActiveSession(session: session, phase: .completed),
                                        settings: library.settings)
         library.completeSession()
@@ -748,7 +730,7 @@ final class SwapTests: XCTestCase {
     // strip's words for when, with the date in full. D85 (v1.10): named after the day it
     // changes, and Custom in place of the own-day row.
     func testThePickerListsThisPlanThenTheOthersThenADayOfItsOwn() throws {
-        var library = library(rotation())
+        var library = library(CoreTestSupport.sevenDayRotation())
         let alone = try XCTUnwrap(library.dayChoices(for: day(16), now: day(14)))
         XCTAssertEqual(alone.title, "Change Legs")
         XCTAssertEqual(alone.day, DayChoices.Face(name: "Legs", colour: .purple, outlined: false))
@@ -800,7 +782,7 @@ final class SwapTests: XCTestCase {
     // TQ26: choosing Pull writes `.day(Pull)` for the date, answered and asked by nobody; the
     // pattern's own day removes the swap; a date carrying a question is answered, not replaced.
     func testChoosingADayWritesTheDateAndThePatternsOwnDayRemovesIt() throws {
-        var library = library(rotation())
+        var library = library(CoreTestSupport.sevenDayRotation())
         library.choose(.day(name: "Pull"), for: day(16), now: day(14))
         let written = try XCTUnwrap(swap(library, on: 16))
         XCTAssertEqual(written.date, start(16))
@@ -848,7 +830,7 @@ final class SwapTests: XCTestCase {
     // TQ27: a day of another plan projects as that plan's day, outlined in that plan's colour;
     // its session is that plan's, and finishing it moves neither plan and writes nothing.
     func testABorrowedDayIsThatPlansDayOutlinedAndMovesNeitherPlan() throws {
-        var library = library(rotation())
+        var library = library(CoreTestSupport.sevenDayRotation())
         library.save(upperLower())
         let other = try XCTUnwrap(library.plans.first { $0.name == "Upper Lower" })
         library.choose(.borrowed(planId: other.id, name: "Lower"), for: day(16), now: day(14))
@@ -901,7 +883,7 @@ final class SwapTests: XCTestCase {
         XCTAssertEqual(card(library, on: 16).buttonTitle, HomeStart.doneTitle)
 
         // Chosen for today, the card behind the first square is Upper, started as its plan's.
-        var today = self.library(rotation())
+        var today = self.library(CoreTestSupport.sevenDayRotation())
         today.save(upperLower())
         let upper = try XCTUnwrap(today.plans.first { $0.name == "Upper Lower" })
         today.choose(.borrowed(planId: upper.id, name: "Upper"), for: day(14), now: day(14))
@@ -947,7 +929,7 @@ final class SwapTests: XCTestCase {
         XCTAssertNil(two.day, "one day only")
         XCTAssertEqual(two.issues.map(\.severity), [.error])
 
-        var library = library(rotation())
+        var library = library(CoreTestSupport.sevenDayRotation())
         let planId = try XCTUnwrap(library.activePlanId)
         library.choose(.own(own), for: day(16), now: day(14))
         XCTAssertEqual(swap(library, on: 16)?.replacement, .own(own), "the swap holds the day")
@@ -980,7 +962,7 @@ final class SwapTests: XCTestCase {
         XCTAssertEqual(card(named, on: 14, showing: 2).buttonTitle, "Start Wednesday's own day")
 
         // Chosen for today, it is today's card.
-        var today = self.library(rotation())
+        var today = self.library(CoreTestSupport.sevenDayRotation())
         let todayPlan = try XCTUnwrap(today.activePlanId)
         today.choose(.own(own), for: day(14), now: day(14))
         XCTAssertEqual(StartCard.current(library: today, now: day(14), calendar: calendar),
@@ -1013,7 +995,7 @@ final class SwapTests: XCTestCase {
     // swapped day's name once the date is swapped, and outlined for a borrowed day as the strip
     // draws it.
     func testChangeDayIsNamedAfterTheDayShown() throws {
-        var library = library(rotation())
+        var library = library(CoreTestSupport.sevenDayRotation())
         let cycle = DayColour.cycle(of: try XCTUnwrap(library.activePlan))
         XCTAssertEqual(card(library, on: 14).alternatives,
                        [.changePlan(cycle: cycle), .changeExercises(dayName: "Push", colour: .green, outlined: false)])
@@ -1039,7 +1021,7 @@ final class SwapTests: XCTestCase {
     // tile the date already is), "Legs → Pull" with both squares, "Write a day for Wednesday"
     // for Custom.
     func testTheButtonNamesItsEffect() throws {
-        var library = library(rotation())
+        var library = library(CoreTestSupport.sevenDayRotation())
         library.save(upperLower())
         let other = try XCTUnwrap(library.plans.first { $0.name == "Upper Lower" })
         let choices = try XCTUnwrap(library.dayChoices(for: day(16), now: day(14)))
@@ -1080,7 +1062,7 @@ final class SwapTests: XCTestCase {
     // TP38: marking writes nothing; the button writes the swap Q4's tap wrote, and the pattern's
     // own day, confirmed, still deletes it (TQ26).
     func testMarkingWritesNothingAndTheButtonWritesTheSwap() throws {
-        var library = library(rotation())
+        var library = library(CoreTestSupport.sevenDayRotation())
         let plans = library.plans
         let choices = try XCTUnwrap(library.dayChoices(for: day(16), now: day(14)))
         for tile in choices.strips.flatMap(\.tiles) {
@@ -1110,7 +1092,7 @@ final class SwapTests: XCTestCase {
     // TP39: the date's exercises open the sheet pre-filled with the day as it stands, and its
     // Save makes that text the date's own day — named as it was, the plan untouched (TQ28).
     func testTodaysExercisesOpenTheSheetOnTheDayAsItStands() throws {
-        var library = library(rotation())
+        var library = library(CoreTestSupport.sevenDayRotation())
         let plan = try XCTUnwrap(library.activePlan)
         let choices = try XCTUnwrap(library.dayChoices(for: day(16), now: day(14)))
         let exercises = try XCTUnwrap(choices.exercises)

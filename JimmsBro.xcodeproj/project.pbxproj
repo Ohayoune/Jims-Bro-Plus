@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		99E3256F0DF14078BCFE358D /* Presenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 354DD7A56BA14719979BDDB3 /* Presenting.swift */; };
+		E62BA78107114014B470FE37 /* TripParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32EDBBC23E994463AD65C8AB /* TripParts.swift */; };
+		1E8215B52F904A4D97D7AFD3 /* TripRefusal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93D78584E7E04F5B85393A8E /* TripRefusal.swift */; };
+		34644F2F3E0747A2A89AC448 /* JSONGrammar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C85973815D642D197C6A014 /* JSONGrammar.swift */; };
+		F7F8BA0794884451B694F465 /* OneOwnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD9507C75914D11933AAA27 /* OneOwnerTests.swift */; };
+		3BFBFF2D69A98B1D09E45D15 /* ScreenAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E44A79B882A72AF184D6D1 /* ScreenAuditTests.swift */; };
 		E16F441EDAB243F9BCC66CA8 /* Trip.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5119285A20A4585838ABDB6 /* Trip.swift */; };
 		3EC58CC2C20144CC95029349 /* PlanDiffTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 462A36633BAA4B6AA4F25957 /* PlanDiffTests.swift */; };
 		40253CAA47094B5FB9DA3E6B /* DayEditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46802729DBEF4909B87775E9 /* DayEditTests.swift */; };
@@ -198,6 +204,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		354DD7A56BA14719979BDDB3 /* Presenting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presenting.swift; sourceTree = "<group>"; };
+		32EDBBC23E994463AD65C8AB /* TripParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripParts.swift; sourceTree = "<group>"; };
+		93D78584E7E04F5B85393A8E /* TripRefusal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripRefusal.swift; sourceTree = "<group>"; };
+		6C85973815D642D197C6A014 /* JSONGrammar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONGrammar.swift; sourceTree = "<group>"; };
+		FBD9507C75914D11933AAA27 /* OneOwnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneOwnerTests.swift; sourceTree = "<group>"; };
+		50E44A79B882A72AF184D6D1 /* ScreenAuditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenAuditTests.swift; sourceTree = "<group>"; };
 		462A36633BAA4B6AA4F25957 /* PlanDiffTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanDiffTests.swift; sourceTree = "<group>"; };
 		46802729DBEF4909B87775E9 /* DayEditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayEditTests.swift; sourceTree = "<group>"; };
 		5826B19BE4BD4291B107BA79 /* RoundTripProgressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundTripProgressionTests.swift; sourceTree = "<group>"; };
@@ -449,6 +461,8 @@
 		78D40496FDA349D1B69E71B9 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				354DD7A56BA14719979BDDB3 /* Presenting.swift */,
+				32EDBBC23E994463AD65C8AB /* TripParts.swift */,
 				D60F07072E1D42CDA53A8CC2 /* PromptButtons.swift */,
 			);
 			path = Shared;
@@ -504,6 +518,8 @@
 		8B7A6DECC0651D269EA794C7 /* JimmsBroTests */ = {
 			isa = PBXGroup;
 			children = (
+				FBD9507C75914D11933AAA27 /* OneOwnerTests.swift */,
+				50E44A79B882A72AF184D6D1 /* ScreenAuditTests.swift */,
 				462A36633BAA4B6AA4F25957 /* PlanDiffTests.swift */,
 				46802729DBEF4909B87775E9 /* DayEditTests.swift */,
 				5826B19BE4BD4291B107BA79 /* RoundTripProgressionTests.swift */,
@@ -583,6 +599,8 @@
 		94A0426E8D3203DA5468CCF0 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				93D78584E7E04F5B85393A8E /* TripRefusal.swift */,
+				6C85973815D642D197C6A014 /* JSONGrammar.swift */,
 				31FDCA675B824705B92E379E /* ChangeRequest.swift */,
 				DF8F27959AF0431088F22004 /* PlanDiff.swift */,
 				3C2D1030A73748AD8435B1DD /* ExerciseNames.swift */,
@@ -838,6 +856,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				99E3256F0DF14078BCFE358D /* Presenting.swift in Sources */,
+				E62BA78107114014B470FE37 /* TripParts.swift in Sources */,
+				1E8215B52F904A4D97D7AFD3 /* TripRefusal.swift in Sources */,
+				34644F2F3E0747A2A89AC448 /* JSONGrammar.swift in Sources */,
 				4804A52836724DA8AD3E3DD4 /* ExerciseEditSheet.swift in Sources */,
 				DE066E8142954A9C96E2C6F2 /* ChangePlanView.swift in Sources */,
 				64B06166D42144DBBC54C69E /* DayEditorView.swift in Sources */,
@@ -933,6 +955,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F7F8BA0794884451B694F465 /* OneOwnerTests.swift in Sources */,
+				3BFBFF2D69A98B1D09E45D15 /* ScreenAuditTests.swift in Sources */,
 				3EC58CC2C20144CC95029349 /* PlanDiffTests.swift in Sources */,
 				40253CAA47094B5FB9DA3E6B /* DayEditTests.swift in Sources */,
 				0A962ADD41184E81A51923F9 /* RoundTripProgressionTests.swift in Sources */,
@@ -1030,7 +1054,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.11;
+				MARKETING_VERSION = 1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohayoune.jimmsbro.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1055,7 +1079,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.11;
+				MARKETING_VERSION = 1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohayoune.jimmsbro.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1089,7 +1113,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.11;
+				MARKETING_VERSION = 1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohayoune.jimmsbro;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1215,7 +1239,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.11;
+				MARKETING_VERSION = 1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohayoune.jimmsbro;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1243,7 +1267,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.11;
+				MARKETING_VERSION = 1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohayoune.jimmsbro.activity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1271,7 +1295,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.11;
+				MARKETING_VERSION = 1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ohayoune.jimmsbro.activity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

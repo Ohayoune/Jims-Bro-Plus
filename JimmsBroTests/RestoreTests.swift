@@ -14,7 +14,7 @@ final class RestoreTests: XCTestCase {
 
     private func session(_ name: String, daysAgo: Int) -> Session {
         var s = CoreTestSupport.completed([10, 10, 8],
-                                          start: now.addingTimeInterval(Double(-daysAgo) * 86_400))
+                                          start: CoreTestSupport.days(-daysAgo))
         s.id = UUID()
         s.dayName = name
         return s

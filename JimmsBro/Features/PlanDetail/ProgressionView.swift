@@ -19,7 +19,6 @@ struct ProgressionView: View {
     /// A reply the text sheet read cleanly, applied once the sheet has closed, so the review
     /// never opens under a sheet that is still going.
     @State private var pendingRead: ProgressionImport.Result?
-    @State private var showDetails = false
     @State private var confirmRemove = false
 
     private var plan: Plan? { model.plans.first { $0.id == planId } }
@@ -42,7 +41,12 @@ struct ProgressionView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Done") { dismiss() } }
                 if let plan {
-                    ToolbarItem(placement: .topBarTrailing) { moreMenu(plan) }
+                    // The ··· (D95, §6.68): its items Core's, Edit the text last.
+                    ToolbarItem(placement: .topBarTrailing) {
+                        TripMenu(items: screen.menu(hasProgression: plan.progression != nil, planning: planning),
+                                 choose: choose)
+                    }
+                    .quietBackground()
                 }
             }
             // D56 (v1.6): an alert — from a menu, a dialog's Cancel is not drawn on iOS 26.
@@ -56,7 +60,7 @@ struct ProgressionView: View {
             }
             .sheet(isPresented: reviewing) {
                 if let plan, let progression = screen.progression {
-                    ProgressionReviewSheet(progression: progression, plan: plan, warnings: screen.issues,
+                    ProgressionReviewSheet(progression: progression, plan: plan, warnings: screen.warnings,
                                            startTitle: screen.startTitle) { start() }
                 }
             }
@@ -66,7 +70,7 @@ struct ProgressionView: View {
                 screen.read(result)
             }) {
                 if let plan {
-                    JSONFragmentSheet(point: ProgressionScreen.textPoint(plan: plan, steps: screen.steps, text: lastText)) { text in
+                    JSONFragmentSheet(point: JSONPoint.progression(plan, steps: screen.steps, text: lastText)) { text in
                         lastText = text
                         let result = model.runProgressionImport(text, planId: planId, mode: screen.mode)
                         guard result.errors.isEmpty, result.progression != nil else { return result.errors }
@@ -84,35 +88,18 @@ struct ProgressionView: View {
                 set: { if !$0 { screen.cancelReview() } })
     }
 
-    /// The ··· (D95, §6.68): the ways out of a state's one control, and **Edit the text** last.
-    /// It appears with the screen and is never earned (§6.40).
-    private func moreMenu(_ plan: Plan) -> some View {
-        Menu {
-            if planning || plan.progression == nil {
-                if screen.stage == .paste || screen.stage == .refused {
-                    // D88 (§6.61): the way back to Ask, where Send the prompt and Copy the prompt
-                    // are one tap each — never a share sheet opened from inside a menu, which
-                    // would close under the thumb (N6).
-                    Button(TripText.sendAgain, systemImage: "square.and.arrow.up") { screen.restart() }
-                }
-                if plan.progression != nil {
-                    Button("Keep the current one", systemImage: "arrow.uturn.backward") {
-                        planning = false
-                        screen = ProgressionScreen()
-                    }
-                }
-            }
-            if plan.progression != nil {
-                Button("Remove progression", systemImage: "trash", role: .destructive) { confirmRemove = true }
-            }
-            if planning || plan.progression == nil {
-                Divider()
-                Button(TripText.editText, systemImage: "curlybraces") { editingText = true }
-            }
-        } label: {
-            QuietGlyph(systemName: "ellipsis")
+    private func choose(_ item: TripMenuItem) {
+        switch item {
+        // D88 (§6.61): the way back to Ask, where Send the prompt and Copy the prompt are one tap
+        // each — never a share sheet opened from inside a menu, which would close under the thumb.
+        case .sendAgain: screen.restart()
+        case .keepCurrent:
+            planning = false
+            screen = ProgressionScreen()
+        case .removeProgression: confirmRemove = true
+        case .editText: editingText = true
+        case .openFile, .keepWithoutUsing, .discardDraft: break
         }
-        .accessibilityLabel("More")
     }
 
     // MARK: - With one
@@ -123,26 +110,18 @@ struct ProgressionView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(ProgressionText.status(current, on: Date()))
                         .font(.title3.weight(.semibold))
-                    // D53: a calendar progression ends on a date; one you earn ends when every
-                    // exercise is past its last step.
-                    Text(current.mode == .performance
-                         ? "Started \(current.startDate.formatted(date: .abbreviated, time: .omitted)) · "
-                           + "\(current.entries.filter { $0.step >= $0.weeks.count }.count) of \(current.entries.count) exercises done"
-                         : "Started \(current.startDate.formatted(date: .abbreviated, time: .omitted)) · "
-                           + "ends \(current.endDate().formatted(date: .abbreviated, time: .omitted))")
+                    Text(ProgressionText.started(current))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 2)
             }
             ForEach(plan.days) { day in
-                let entries = day.exercises.compactMap { exercise -> (Exercise, ProgressionEntry)? in
-                    current.entry(day: day.name, exercise: exercise.name).map { (exercise, $0) }
-                }
+                let entries = current.entries(on: day)
                 if !entries.isEmpty {
                     Section(day.name) {
-                        ForEach(Array(entries.enumerated()), id: \.offset) { _, pair in
-                            entryRow(pair.0, pair.1, current: current, units: plan.units)
+                        ForEach(Array(entries.enumerated()), id: \.offset) { _, row in
+                            entryRow(row.exercise, row.entry, current: current, units: plan.units)
                         }
                     }
                 }
@@ -155,7 +134,7 @@ struct ProgressionView: View {
 
     private func entryRow(_ exercise: Exercise, _ entry: ProgressionEntry, current: Progression,
                           units: WeightUnit) -> some View {
-        let step = current.stepIndex(for: entry, on: Date())
+        let now = Date()
         return VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline) {
                 Text(exercise.name)
@@ -167,14 +146,12 @@ struct ProgressionView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            if let step, let change = entry.weeks[safe: step] {
-                Text((current.mode == .performance ? "This step: " : "This week: ")
-                     + ProgressionText.change(change, units: units, bodyweight: exercise.bodyweight))
-                    .font(.footnote)
+            if let line = ProgressionText.now(entry, in: current, units: units,
+                                              bodyweight: exercise.bodyweight, on: now) {
+                Text(line).font(.footnote)
             }
-            Text(current.mode == .performance
-                 ? ProgressionText.ladder(entry, units: units, bodyweight: exercise.bodyweight, current: step)
-                 : ProgressionText.weeksLine(entry, units: units, bodyweight: exercise.bodyweight))
+            Text(ProgressionText.steps(entry, in: current, units: units,
+                                       bodyweight: exercise.bodyweight, on: now))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -204,40 +181,18 @@ struct ProgressionView: View {
         VStack(spacing: 14) {
             TripStripView(strip: screen.strip, side: 30)
                 .frame(maxWidth: 200)
-            if let refusal = screen.refusal {
-                VStack(alignment: .leading, spacing: 6) {
-                    RefusedBand(sentence: refusal)
-                    if showDetails {
-                        ForEach(Array(screen.issues.enumerated()), id: \.offset) { _, issue in
-                            VStack(alignment: .leading, spacing: 1) {
-                                if !issue.path.isEmpty { Text(issue.path).font(.caption.monospaced()) }
-                                Text("\(issue.code) · \(issue.message)").font(.caption2.monospaced())
-                            }
-                            .foregroundStyle(.secondary)
-                        }
-                    }
-                    Button(showDetails ? "Hide details" : "Details") { showDetails.toggle() }
-                        .font(.footnote)
-                }
-            }
+            if let refusal = screen.refusal { RefusalDetails(refusal: refusal) }
             switch screen.stage {
             case .ask, .refused:
-                PromptButtons(text: model.progressionPrompt(for: planId, weeks: screen.steps, mode: screen.mode) ?? "",
-                              subject: "Progression for \(plan.name)", buttons: screen.buttons) {
-                    showDetails = false
+                PromptButtons(text: screen.prompt(plan: plan, history: model.sessions, settings: model.settings),
+                              subject: ProgressionScreen.subject(plan), buttons: screen.buttons) {
                     screen.sent()
                 }
             case .paste, .review:
-                PasteButton(payloadType: String.self) { strings in
-                    guard let first = strings.first else { return }
-                    lastText = first
-                    showDetails = false
-                    screen.read(model.runProgressionImport(first, planId: planId, mode: screen.mode))
+                TripPasteButton { text in
+                    lastText = text
+                    screen.read(model.runProgressionImport(text, planId: planId, mode: screen.mode))
                 }
-                .labelStyle(.titleAndIcon)
-                .buttonBorderShape(.capsule)
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
             }
         }
     }
@@ -311,10 +266,6 @@ struct ProgressionReviewSheet: View {
     var startTitle = ProgressionScreen.startTitle(.performance)
     let start: () -> Void
 
-    @State private var showCleanup = false
-
-    private var split: (material: [Issue], cleanup: [Issue]) { IssueText.split(warnings) }
-
     var body: some View {
         NavigationStack {
             List {
@@ -324,19 +275,7 @@ struct ProgressionReviewSheet: View {
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4))
                 }
-                if !split.material.isEmpty {
-                    Section("Worth knowing") {
-                        ForEach(Array(split.material.enumerated()), id: \.offset) { _, warning in
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(warning.message).font(.footnote).fixedSize(horizontal: false, vertical: true)
-                                if let where_ = IssueText.location(warning.path) {
-                                    Text(where_).font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                            .listRowBackground(Color.yellow.opacity(0.15))
-                        }
-                    }
-                }
+                WorthKnowing(warnings: warnings)
                 ForEach(Array(ProgressionLadder.of(progression, plan).enumerated()), id: \.offset) { _, day in
                     Section {
                         ForEach(Array(day.exercises.enumerated()), id: \.offset) { _, ladder in
@@ -349,21 +288,7 @@ struct ProgressionReviewSheet: View {
                         }
                     }
                 }
-                if !split.cleanup.isEmpty {
-                    Section {
-                        DisclosureGroup("Details (\(split.cleanup.count))", isExpanded: $showCleanup) {
-                            ForEach(Array(split.cleanup.enumerated()), id: \.offset) { _, warning in
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(warning.message).font(.caption)
-                                    if !warning.path.isEmpty {
-                                        Text(warning.path).font(.caption2.monospaced()).foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                        }
-                        .font(.footnote)
-                    }
-                }
+                Tidying(warnings: warnings)
             }
             .navigationTitle("Review progression")
             .navigationBarTitleDisplayMode(.inline)

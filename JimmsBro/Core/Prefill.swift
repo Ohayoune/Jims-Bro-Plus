@@ -43,30 +43,33 @@ enum Prefill {
     static func targetReps(_ work: WorkTarget) -> Int? {
         switch work { case let .reps(.fixed(n)): return n; case let .reps(.range(min:n,max:_)): return n; default: return nil }
     }
+    /// The one scan of history for a step (§6.5): the last session before this one that did
+    /// the step's exercise, and that exercise's steps in it.
     static func lastSteps(session: Session, step index: Int, history: [Session]) -> (session: Session, steps: [SessionStep])? {
         guard let step = session.steps[safe:index], let e = session.exercises[safe:step.exerciseIndex], let last = ExerciseHistory.last(name:e.name,units:session.units,sessions:history.filter { $0.id != session.id && $0.startedAt < session.startedAt }) else { return nil }
         return (last, ExerciseHistory.steps(name:e.name,session:last))
     }
+    /// Last time's result for `step`, among `last` — the same set and drop, else, for a main set,
+    /// the last main set logged. `keep` is what the caller needs of it: a weight, for the
+    /// weight's own lookup, which passes over a set logged without one.
+    static func lastResult(for step: SessionStep, in last: [SessionStep],
+                           keep: (SetResult) -> Bool = { _ in true }) -> SetResult? {
+        let logged = last.filter { $0.status == .logged && $0.result.map(keep) == true }
+        if let same = logged.first(where: { $0.setIndex == step.setIndex && $0.dropIndex == step.dropIndex }) { return same.result }
+        // Missing/skipped main set indices use the last logged main set.
+        guard step.dropIndex == 0 else { return nil }
+        return logged.last { $0.dropIndex == 0 }?.result
+    }
     static func historicalResult(session: Session, step index: Int, history: [Session]) -> SetResult? {
         guard let step = session.steps[safe:index], let last = lastSteps(session:session,step:index,history:history) else { return nil }
-        let matching = last.steps.first { $0.setIndex == step.setIndex && $0.dropIndex == step.dropIndex }
-        if let matching, matching.status == .logged { return matching.result }
-        if step.dropIndex > 0 { return nil }
-        // Missing/skipped main set indices use the last logged main set.
-        return last.steps.last { $0.status == .logged && $0.dropIndex == step.dropIndex }?.result
-    }
-    static func historicalWeight(session: Session, step index: Int, history: [Session]) -> Double? {
-        guard let step = session.steps[safe:index], let last = lastSteps(session:session,step:index,history:history) else { return nil }
-        let matching = last.steps.first { $0.setIndex == step.setIndex && $0.dropIndex == step.dropIndex && $0.status == .logged }
-        if let weight = matching?.result?.weight { return weight }
-        guard step.dropIndex == 0 else { return nil }
-        return last.steps.last { $0.status == .logged && $0.dropIndex == 0 && $0.result?.weight != nil }?.result?.weight
+        return lastResult(for: step, in: last.steps)
     }
     static func values(session: Session, step index: Int, history: [Session],
                        settings: Settings = Settings()) -> PrefillValues {
         guard let step = session.steps[safe:index], let e = session.exercises[safe:step.exerciseIndex], let target = session.target(at:index) else { return PrefillValues(showsWeight:false) }
-        let last = historicalResult(session:session,step:index,history:history)
-        let lastWeight = historicalWeight(session:session,step:index,history:history)
+        let lastTime = lastSteps(session:session,step:index,history:history)
+        let last = lastTime.flatMap { lastResult(for: step, in: $0.steps) }
+        let lastWeight = lastTime.flatMap { lastResult(for: step, in: $0.steps, keep: { $0.weight != nil }) }?.weight
         let previousSteps = session.steps.prefix(index).filter { $0.status == .logged && $0.exerciseIndex == step.exerciseIndex }
         let weight: Double?
         if e.bodyweight { weight = nil }
@@ -94,7 +97,7 @@ enum Prefill {
         if case let .duration(n) = target.work { seconds = last?.seconds ?? n } else { seconds = nil }
         var suggestion: Double?
         var adviceReason: String?
-        if let lastSession = lastSteps(session:session,step:index,history:history)?.session,
+        if let lastSession = lastTime?.session,
            let advice = lastSession.exercises.first(where: { normalized($0.name) == normalized(e.name) })?.advice {
             switch advice {
             case let .increase(w):
@@ -145,7 +148,7 @@ enum Prefill {
     /// Nil for a set with nothing to say beyond its target — an unloaded bodyweight set whose
     /// target the card is already showing.
     static func setSuggestion(session: Session, step index: Int, exercise: SessionExercise,
-                              target: (work: WorkTarget, weight: Double?, warning: Int?, reserve: Int?),
+                              target: StepTarget,
                               last: SetResult?, lastWeight: Double?, advice: Double?,
                               adviceReason: String?, units: WeightUnit,
                               progression: (week: Int, weeks: Int?, mode: ProgressionMode)? = nil) -> SetSuggestion? {
@@ -153,7 +156,7 @@ enum Prefill {
         func line(_ reps: Int?, _ weight: Double?) -> String {
             switch (reps, weight) {
             case let (reps?, weight?): return "\(reps) × \(TargetText.number(weight)) \(unit)"
-            case let (reps?, nil): return "\(reps) rep\(reps == 1 ? "" : "s")"
+            case let (reps?, nil): return "\(TargetText.counted(reps, "rep"))"
             case let (nil, weight?): return "\(TargetText.number(weight)) \(unit)"
             case (nil, nil): return ""
             }
@@ -199,7 +202,7 @@ enum Prefill {
         }
         if let lastReps = last?.reps, exercise.bodyweight {
             return SetSuggestion(reps: lastReps, weight: nil, text: line(lastReps, nil),
-                                 reason: "Last time \(lastReps) rep\(lastReps == 1 ? "" : "s")",
+                                 reason: "Last time \(TargetText.counted(lastReps, "rep"))",
                                  isProgression: false)
         }
         guard let reps else { return nil }

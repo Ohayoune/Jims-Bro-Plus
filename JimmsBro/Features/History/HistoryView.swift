@@ -95,8 +95,7 @@ struct HistoryView: View {
                     ProgressionView(planId: plan.id).environment(model)
                 }
             }
-            .confirmationDialog("Delete this workout?", isPresented: Binding(
-                get: { confirmDeleteId != nil }, set: { if !$0 { confirmDeleteId = nil } }),
+            .confirmationDialog("Delete this workout?", isPresented: Binding(isPresent: $confirmDeleteId),
                                 titleVisibility: .visible) {
                 Button("Delete", role: .destructive) {
                     if let id = confirmDeleteId { Task { await model.deleteHistorySession(id) } }
@@ -184,7 +183,7 @@ struct ExercisesListView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        List(ExerciseText.search("", sessions: model.sessions), id: \.self) { name in
+        List(ExerciseNames.known(plans: [], history: model.sessions, query: "").map(\.name), id: \.self) { name in
             NavigationLink(value: HistoryRoute.exercise(name: name, units: model.displayUnits)) {
                 Text(name)
             }

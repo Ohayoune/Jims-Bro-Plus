@@ -15,14 +15,14 @@ struct PlanDetailView: View {
     @State private var switching: Int?
     /// D78 (v1.9): the rows open, by their place on the page — the screen's, never stored.
     @State private var open: Set<Int> = []
-    /// D25/D26 (v1.1): Replace opens Import pre-filled with this plan's JSON, targeting its id.
-    @State private var replacing = false
     /// D94 (v1.11): Say what should change pushes its screen.
     @State private var changing = false
     /// D25 (v1.1): Delete now confirms here too, matching every other delete path.
     @State private var confirmDelete = false
     /// D29 (v1.1): basic plan editing, so a one-word change doesn't mean a round trip to a chatbot.
     @State private var editing: ExerciseAddress?
+    /// F2 (2026-09-24): the exercise a swipe asked to delete, until the alert answers.
+    @State private var deletingExercise: ExerciseAddress?
     @State private var renamingDay: Int?
     @State private var draftDayName = ""
     @State private var editError: String?
@@ -74,14 +74,15 @@ struct PlanDetailView: View {
                         ExerciseEditSheet(exercise: exercise, units: plan.units, editAsJSON: {
                             pendingFragment = .exercise(day: address.day, exercise: address.exercise)
                             editing = nil
-                        }) { operation in
-                            edit(operation(address))
+                        }) { changes in
+                            edit(.editExercise(day: address.day, exercise: address.exercise, changes: changes))
                         }
                     }
                 }
                 // D43 (v1.3): one sheet for every JSON edit; Save is a `PlanEdit.Operation`
                 // through the import pipeline, and a refusal stays in the sheet with the text.
                 // D77 (v1.9): the point says what the JSON is, where it lands and what Save does.
+                // D95 (v1.12, L5): the whole plan's Edit the text is one of them.
                 .sheet(item: $fragment) { target in
                     if let point = target.point(plan) {
                         JSONFragmentSheet(point: point) { text in
@@ -90,8 +91,7 @@ struct PlanDetailView: View {
                         }
                     }
                 }
-                .alert("Rename day", isPresented: Binding(get: { renamingDay != nil },
-                                                          set: { if !$0 { renamingDay = nil } })) {
+                .alert("Rename day", isPresented: Binding(isPresent: $renamingDay)) {
                     TextField("Name", text: $draftDayName)
                     Button("Cancel", role: .cancel) { renamingDay = nil }
                     Button("Rename") {
@@ -101,17 +101,9 @@ struct PlanDetailView: View {
                 }
                 // D29: an edit that the import pipeline refuses says why, rather than
                 // appearing to work and changing nothing.
-                .alert("That change wasn't saved", isPresented: Binding(
-                    get: { editError != nil }, set: { if !$0 { editError = nil } })) {
-                    Button("OK", role: .cancel) { editError = nil }
-                } message: {
-                    Text(editError ?? "")
-                }
-                .alert(switchPrompt, isPresented: Binding(get: { switching != nil },
-                                                          set: { if !$0 { switching = nil } })) {
-                    Button("Keep going", role: .cancel) { switchDay(nil) }
-                    Button("Finish and start") { switchDay(.finish) }
-                    Button("Discard and start", role: .destructive) { switchDay(.discard) }
+                .problemAlert("That change wasn't saved", message: $editError)
+                .switchWorkoutAlert($switching, open: model.session) { dayIndex, choice in
+                    start(dayIndex, switching: choice)
                 }
                 .alert("Rename plan", isPresented: $renaming) {
                     TextField("Name", text: $draftName)
@@ -124,8 +116,15 @@ struct PlanDetailView: View {
                     Button("Delete", role: .destructive) { Task { await model.deletePlan(planId); dismiss() } }
                     Button("Cancel", role: .cancel) {}
                 }
-                .sheet(isPresented: $replacing) {
-                    ImportView(replacingPlanId: planId, prefillText: plan.sourceText).environment(model)
+                // F2 (2026-09-24): a swipe asks before an exercise leaves the plan, as a plan's and
+                // a workout's do — the edit is written at once, and nothing brings it back.
+                .alert(deletingExercise.flatMap { PlanText.deleteExercise(plan, day: $0.day, exercise: $0.exercise) } ?? "",
+                       isPresented: Binding(isPresent: $deletingExercise)) {
+                    Button("Delete", role: .destructive) {
+                        guard let address = deletingExercise else { return }
+                        edit(.deleteExercise(day: address.day, exercise: address.exercise))
+                    }
+                    Button("Cancel", role: .cancel) {}
                 }
                 .navigationDestination(isPresented: $changing) { ChangePlanView(planId: planId) }
             } else {
@@ -139,13 +138,6 @@ struct PlanDetailView: View {
             let errors = await model.editPlan(planId, operation)
             if let first = errors.first { editError = IssueText.friendly(first) }
         }
-    }
-
-    private var switchPrompt: String {
-        guard let session = model.session else { return "Switch workout?" }
-        let logged = SessionStats.loggedCount(session)
-        return "You're in the middle of \(session.dayName) (\(logged) of \(session.steps.count) sets). "
-            + "Switching workouts mid-session isn't recommended."
     }
 
     private func repeatBlock(_ plan: Plan) -> some View {
@@ -165,7 +157,7 @@ struct PlanDetailView: View {
                 let square = squares[index]
                 VStack(spacing: 4) {
                     if let weekday = square.weekday {
-                        Text(weekday)
+                        Text(WeekdayText.short(weekday))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -187,7 +179,7 @@ struct PlanDetailView: View {
     /// A row of the cycle: the day's square and name, a weekday plan's weekday beside it, and on
     /// a day a chevron that turns down while it is open. A day opens in place rather than onto a
     /// screen, so its chevron is grey, not the accent of a row that opens one.
-    private func rowLabel(_ row: PlanPage.Row, isOpen: Bool?) -> some View {
+    private func rowLabel(_ row: CycleSquare, isOpen: Bool?) -> some View {
         HStack(spacing: 12) {
             DaySquare(colour: row.colour, size: 14)
             Text(row.name)
@@ -195,7 +187,7 @@ struct PlanDetailView: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
             if let weekday = row.weekday {
-                Text(weekday).foregroundStyle(.secondary)
+                Text(WeekdayText.full(weekday)).foregroundStyle(.secondary)
             }
             if let isOpen {
                 Image(systemName: "chevron.right")
@@ -254,14 +246,15 @@ struct PlanDetailView: View {
         }
         .onDelete { offsets in
             guard let position = offsets.first else { return }
-            edit(.deleteExercise(day: index, exercise: position))
+            // F2 (2026-09-24): asked first, as a plan's and a workout's swipe are.
+            deletingExercise = ExerciseAddress(day: index, exercise: position)
         }
         // D59 (v1.6): Add exercise as a row, not only behind the day's ···;
         // Start as a button, not a text link at the end of a list.
         Button { fragment = .addExercise(day: index) } label: {
             Label("Add exercise", systemImage: "plus")
         }
-        Button("Start \(day.name)") { start(plan, index) }
+        Button("Start \(day.name)") { start(index) }
             .buttonStyle(.bordered)
             .buttonBorderShape(.capsule)
             .tint(Color.accentColor)
@@ -277,7 +270,7 @@ struct PlanDetailView: View {
                 Button(ChangeRequest.menuItem) { changing = true }
                 // D43 (v1.3): the plan's text, editable — Edit the text since D95 (§6.68); and a
                 // day pasted in whole — the way to finish a week the chatbot cut short.
-                Button(TripText.editText) { replacing = true }
+                Button(TripText.editText) { fragment = .plan }
                 Button("Add day from JSON") { fragment = .addDay }
                 Button("Delete", role: .destructive) { confirmDelete = true }
             } label: {
@@ -290,23 +283,10 @@ struct PlanDetailView: View {
     /// D17: starting a day mid-session raises the popup rather than switching silently.
     /// D48 (v1.4): the cover opens on `startedWorkouts`, not after the await — the refusal is
     /// thrown before anything changes, so the popup still comes from here.
-    private func start(_ plan: Plan, _ dayIndex: Int) {
-        Task {
-            do {
-                try await model.startDay(planId: planId, dayIndex: dayIndex)
-            } catch LibraryError.sessionInProgress {
-                switching = dayIndex
-            } catch {
-                switching = nil
-            }
+    private func start(_ dayIndex: Int, switching choice: SessionSwitch? = nil) {
+        beginWorkout(dayIndex, asking: $switching) {
+            try await model.startDay(planId: planId, dayIndex: dayIndex, switching: choice)
         }
-    }
-
-    private func switchDay(_ choice: SessionSwitch?) {
-        guard let dayIndex = switching else { return }
-        switching = nil
-        guard let choice else { return }
-        Task { try? await model.startDay(planId: planId, dayIndex: dayIndex, switching: choice) }
     }
 }
 

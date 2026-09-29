@@ -11,23 +11,18 @@ final class RoundTripImportTests: XCTestCase {
     private let now = CoreTestSupport.now
     private let settings = Settings()
 
-    private func imported(_ fixture: String) throws -> ImportResult {
-        PlanImport.run(try FixtureLoader.text(fixture), settings: settings, now: now)
-    }
-
     // TN7: the transitions, on the fixtures: a valid paste, the prompt, nothing, a reply cut
     // short, a plan in words, any other refusal, the fix, a built-in.
     func testAddPlansTransitions() throws {
         var trip = ImportTrip()
         XCTAssertEqual(trip.stage, .ask)
         XCTAssertEqual(trip.buttons, .ask())
-        XCTAssertEqual(trip.outgoing, .prompt)
-        XCTAssertEqual(trip.sendButtons, .ask())
+        XCTAssertEqual(trip.prompt(settings: settings), Prompts.render(settings: settings))
+        XCTAssertEqual(trip.subject, "A workout plan")
 
         trip.sent()
         XCTAssertEqual(trip.stage, .paste)
-        XCTAssertEqual(trip.buttons, .paste)
-        XCTAssertNil(trip.outgoing, "Paste sends nothing; its one button is the system's")
+        XCTAssertEqual(trip.buttons, .paste, "Paste sends nothing; its one button is the system's")
 
         let valid = CoreTestSupport.planJSON()
         trip.pasted(result: PlanImport.run(valid, settings: settings, now: now), text: valid)
@@ -40,12 +35,13 @@ final class RoundTripImportTests: XCTestCase {
         for fixture in ["invalid/prompt-pasted.txt", "invalid/empty.txt"] {
             var refused = ImportTrip()
             refused.sent()
-            refused.pasted(result: try imported(fixture))
+            refused.pasted(result: try CoreTestSupport.importing(fixture: fixture))
             XCTAssertEqual(refused.stage, .refused, fixture)
-            XCTAssertEqual(refused.refusal?.fixAt, 2, fixture)
+            XCTAssertEqual(refused.refusal?.fix, .paste, fixture)
             XCTAssertEqual(refused.strip.marks, [.done, .done, .now], fixture)
             XCTAssertEqual(refused.buttons, .ask(), fixture)
-            XCTAssertEqual(refused.outgoing, .prompt, fixture)
+            XCTAssertEqual(refused.refusal?.sends, .prompt, fixture)
+            XCTAssertEqual(refused.prompt(settings: settings), Prompts.render(settings: settings), fixture)
             XCTAssertEqual(refused.refusal?.offersDayByDay, false, fixture)
             XCTAssertNil(refused.review, fixture)
         }
@@ -53,21 +49,22 @@ final class RoundTripImportTests: XCTestCase {
         // A reply cut short: asked for whole at Chat, or day by day.
         var cut = ImportTrip()
         cut.sent()
-        cut.pasted(result: try imported("invalid/truncated.txt"))
-        XCTAssertEqual(cut.refusal?.fixAt, 1)
+        cut.pasted(result: try CoreTestSupport.importing(fixture: "invalid/truncated.txt"))
+        XCTAssertEqual(cut.refusal?.fix, .chat)
         XCTAssertEqual(cut.strip.marks, [.done, .now, .todo])
-        XCTAssertEqual(cut.buttons, TripButtons(primary: "Ask for the whole plan", secondary: "Get it day by day"))
-        XCTAssertEqual(cut.refusal?.offersDayByDay, true)
-        XCTAssertEqual(cut.outgoing, .wholePlan)
-        XCTAssertEqual(cut.sendButtons, TripButtons(primary: "Ask for the whole plan", secondary: "Copy the prompt"))
+        XCTAssertEqual(cut.buttons, TripButtons(primary: "Ask for the whole plan", secondary: "Copy the prompt"))
+        XCTAssertEqual(cut.refusal?.offersDayByDay, true, "Get it day by day, a button of its own beneath")
+        XCTAssertEqual(TripRefusal.dayByDay, "Get it day by day")
+        XCTAssertEqual(cut.refusal?.sends, .wholePlan)
+        XCTAssertEqual(cut.prompt(settings: settings), Prompts.render(errors: try CoreTestSupport.importing(fixture: "invalid/truncated.txt").errors))
         XCTAssertEqual(cut.refusal?.sentences.first,
                        "The plan isn't complete — the chatbot's reply looks cut off. Ask it to send the whole plan again.",
                        "the refusal offers day by day exactly where IssueText says cut off")
 
         // A plan in words has not met the prompt yet: its sentence says to send it one (D55).
         var words = ImportTrip()
-        words.pasted(result: try imported("invalid/not-json-at-all.txt"))
-        XCTAssertEqual(words.refusal?.fixAt, 1)
+        words.pasted(result: try CoreTestSupport.importing(fixture: "invalid/not-json-at-all.txt"))
+        XCTAssertEqual(words.refusal?.fix, .chat)
         XCTAssertEqual(words.buttons, .ask())
         XCTAssertEqual(words.refusal?.offersDayByDay, false)
         XCTAssertTrue(words.refusal?.sentences.first?.hasPrefix("This is a plan in words.") == true)
@@ -75,15 +72,16 @@ final class RoundTripImportTests: XCTestCase {
         // Any other refusal: Ask for the whole plan, alone.
         for fixture in ["invalid/no-days.json", "invalid/multi-error.json", "invalid/cycle-unknown-day.json"] {
             var other = ImportTrip()
-            other.pasted(result: try imported(fixture))
+            other.pasted(result: try CoreTestSupport.importing(fixture: fixture))
             XCTAssertEqual(other.stage, .refused, fixture)
-            XCTAssertEqual(other.refusal?.fixAt, 1, fixture)
-            XCTAssertEqual(other.buttons, TripButtons(primary: "Ask for the whole plan", secondary: nil), fixture)
-            XCTAssertEqual(other.outgoing, .wholePlan, fixture)
+            XCTAssertEqual(other.refusal?.fix, .chat, fixture)
+            XCTAssertEqual(other.buttons, TripButtons(primary: "Ask for the whole plan", secondary: "Copy the prompt"), fixture)
+            XCTAssertEqual(other.refusal?.offersDayByDay, false, fixture)
+            XCTAssertEqual(other.refusal?.sends, .wholePlan, fixture)
         }
 
         // The fix went back to the chatbot: the screen waits for its reply.
-        cut.fix()
+        cut.sent()
         XCTAssertEqual(cut.stage, .paste)
         XCTAssertNil(cut.refusal)
 
@@ -108,10 +106,10 @@ final class RoundTripImportTests: XCTestCase {
         XCTAssertEqual(trip.strip, TripStrip.of(.ask))
         trip.sent()
         XCTAssertEqual(trip.strip, TripStrip.of(.paste))
-        trip.pasted(result: try imported("invalid/no-days.json"))
-        XCTAssertEqual(trip.strip, TripStrip.of(.refused, fixAt: 1))
-        trip.pasted(result: try imported("invalid/prompt-pasted.txt"))
-        XCTAssertEqual(trip.strip, TripStrip.of(.refused, fixAt: 2))
+        trip.pasted(result: try CoreTestSupport.importing(fixture: "invalid/no-days.json"))
+        XCTAssertEqual(trip.strip, TripStrip.of(.refused, fix: .chat))
+        trip.pasted(result: try CoreTestSupport.importing(fixture: "invalid/prompt-pasted.txt"))
+        XCTAssertEqual(trip.strip, TripStrip.of(.refused, fix: .paste))
         trip.pasted(result: PlanImport.run(CoreTestSupport.planJSON(), settings: settings, now: now))
         XCTAssertEqual(trip.strip, TripStrip.of(.review))
         XCTAssertEqual(trip.strip.marks.count, 3)
@@ -165,7 +163,7 @@ final class RoundTripImportTests: XCTestCase {
         var prompt = ImportTrip()
         let promptText = try FixtureLoader.text("invalid/prompt-pasted.txt")
         prompt.pasted(result: PlanImport.run(promptText, settings: settings, now: now), text: promptText)
-        XCTAssertEqual(prompt.textPoint.template, ImportTrip.examplePlan)
+        XCTAssertEqual(prompt.textPoint.template, JSONPoint.examplePlan)
 
         // A whole plan's error is marked at its line.
         let broken = """
@@ -179,9 +177,9 @@ final class RoundTripImportTests: XCTestCase {
         """
         let refusal = PlanImport.run(broken, settings: settings, now: now).errors
         XCTAssertFalse(refusal.isEmpty)
-        let marks = ImportTrip.replacing("Two days", text: broken).marks(for: refusal, in: broken)
+        let marks = JSONPoint.replacing("Two days", text: broken).marks(for: refusal, in: broken)
         XCTAssertEqual(marks.marked.map(\.line), [5], "B's line, counted from 1: \(refusal) → \(marks)")
-        XCTAssertEqual(ImportTrip.replacing("Two days", text: broken).saveTitle, "Replace Two days")
+        XCTAssertEqual(JSONPoint.replacing("Two days", text: broken).saveTitle, "Replace Two days")
     }
 
     // TN10: a plan that named no unit asks kg / lb on the review, and Use writes the one chosen.
@@ -225,15 +223,17 @@ final class RoundTripImportTests: XCTestCase {
     // a refused day left hollow with its sentence, and Use once none is.
     func testDayByDayOnTheReview() throws {
         let outline = PlanDrafting.outline(outlineJSON, settings: settings, now: now)
-        var trip = DraftTrip(draft: try XCTUnwrap(outline.draft))
+        var trip = DraftTrip(draft: try XCTUnwrap(outline.draft), settings: settings, now: now)
         XCTAssertEqual(trip.stage, .ask)
         XCTAssertEqual(trip.hollow, [0, 1, 2])
         XCTAssertEqual(trip.next, 0)
         XCTAssertEqual(trip.buttons, TripButtons(primary: "Send the prompt for Push", secondary: "Copy the prompt for Push"))
         XCTAssertEqual(trip.menu.map(\.title), ["Discard the draft", "Edit the text"])
+        XCTAssertEqual(trip.prompt(settings: settings), Prompts.day(outline: try XCTUnwrap(outline.draft).outline, dayIndex: 0, settings: settings))
+        XCTAssertEqual(trip.subject, "Push, one day")
 
         // The review's squares: the cycle, every day hollow, the rest not.
-        let preview = try XCTUnwrap(trip.preview(settings: settings, now: now))
+        let preview = try XCTUnwrap(trip.preview)
         let squares = ImportTrip.squares(preview, hollow: trip.hollow)
         XCTAssertEqual(squares.map(\.name), ["Push", "Pull", "Legs", "Push", "Pull", "Legs", "Rest"])
         XCTAssertEqual(squares.map(\.hollow), [true, true, true, true, true, true, false])
@@ -242,20 +242,20 @@ final class RoundTripImportTests: XCTestCase {
         XCTAssertEqual(trip.stage, .paste)
         XCTAssertEqual(trip.buttons.primary, "Paste Push")
         var draft = try XCTUnwrap(trip.draft)
-        trip.pasted(index: 0, read: PlanDrafting.day(pushDay, into: draft, index: 0, settings: settings, now: now))
+        trip.pasted(PlanDrafting.day(pushDay, into: draft, index: 0, settings: settings, now: now), settings: settings, now: now)
         XCTAssertEqual(trip.stage, .ask)
         XCTAssertEqual(trip.hollow, [1, 2])
         XCTAssertEqual(trip.buttons.primary, "Send the prompt for Pull")
-        XCTAssertEqual(ImportTrip.squares(try XCTUnwrap(trip.preview(settings: settings, now: now)), hollow: trip.hollow).map(\.hollow),
+        XCTAssertEqual(ImportTrip.squares(try XCTUnwrap(trip.preview), hollow: trip.hollow).map(\.hollow),
                        [false, true, true, false, true, true, false])
-        XCTAssertEqual(trip.preview(settings: settings, now: now)?.days[0].exercises.map(\.name), ["Barbell Bench Press"],
+        XCTAssertEqual(trip.preview?.days[0].exercises.map(\.name), ["Barbell Bench Press"],
                        "a pasted day shows its exercises on the review")
 
         // A day the pipeline refuses stays hollow, with the sentence under the strip.
         trip.sent()
         draft = try XCTUnwrap(trip.draft)
         let bad = #"{ "name": "Pull", "exercises": [ { "name": "Row", "sets": 3, "reps": "lots" } ] }"#
-        trip.pasted(index: 1, read: PlanDrafting.day(bad, into: draft, index: 1, settings: settings, now: now))
+        trip.pasted(PlanDrafting.day(bad, into: draft, index: 1, settings: settings, now: now), settings: settings, now: now)
         XCTAssertEqual(trip.stage, .refused)
         XCTAssertEqual(trip.hollow, [1, 2])
         XCTAssertEqual(trip.next, 1)
@@ -263,18 +263,19 @@ final class RoundTripImportTests: XCTestCase {
         XCTAssertTrue(trip.refusal?.sentences.first?.contains("Day 2") == true, "\(trip.refusal?.sentences ?? [])")
         XCTAssertEqual(trip.buttons.primary, "Send the prompt for Pull")
         // The prompt pasted in a day's place is fixed at Paste.
-        trip.pasted(index: 1, read: PlanDrafting.day(try FixtureLoader.text("invalid/prompt-pasted.txt"), into: draft, index: 1, settings: settings, now: now))
-        XCTAssertEqual(trip.strip, TripStrip.of(.refused, fixAt: 2))
+        trip.pasted(PlanDrafting.day(try FixtureLoader.text("invalid/prompt-pasted.txt"), into: draft, index: 1, settings: settings, now: now),
+                    settings: settings, now: now)
+        XCTAssertEqual(trip.strip, TripStrip.of(.refused, fix: .paste))
 
         trip.sent()
-        trip.pasted(index: 1, read: PlanDrafting.day(pullDay, into: draft, index: 1, settings: settings, now: now))
+        trip.pasted(PlanDrafting.day(pullDay, into: draft, index: 1, settings: settings, now: now), settings: settings, now: now)
         draft = try XCTUnwrap(trip.draft)
         XCTAssertEqual(trip.textPoint(assembled: nil).title, "One day")
         XCTAssertEqual(trip.textPoint(assembled: nil).saveTitle, "Add Legs")
         XCTAssertNotNil(PlanDrafting.day(trip.textPoint(assembled: nil).template, into: draft, index: 2, settings: settings, now: now).draft,
                         "the day's example saves as it stands")
         trip.sent()
-        trip.pasted(index: 2, read: PlanDrafting.day(legsDay, into: draft, index: 2, settings: settings, now: now))
+        trip.pasted(PlanDrafting.day(legsDay, into: draft, index: 2, settings: settings, now: now), settings: settings, now: now)
         XCTAssertEqual(trip.stage, .review)
         XCTAssertTrue(trip.hollow.isEmpty)
         XCTAssertNil(trip.next)
@@ -286,19 +287,22 @@ final class RoundTripImportTests: XCTestCase {
         let assembled = PlanDrafting.assemble(try XCTUnwrap(trip.draft), settings: settings, now: now)
         let plan = try XCTUnwrap(assembled.plan, "\(assembled.issues)")
         XCTAssertEqual(plan.days.map { $0.exercises.map(\.name) },
-                       trip.preview(settings: settings, now: now)?.days.map { $0.exercises.map(\.name) })
+                       trip.preview?.days.map { $0.exercises.map(\.name) })
         XCTAssertEqual(trip.textPoint(assembled: assembled.plan?.sourceText).title, "The plan")
 
         // A draft in progress reopens where it was.
-        XCTAssertEqual(DraftTrip(draft: trip.draft).stage, .review)
-        XCTAssertEqual(DraftTrip(draft: outline.draft).buttons.primary, "Send the prompt for Push")
+        XCTAssertEqual(DraftTrip(draft: trip.draft, settings: settings).stage, .review)
+        XCTAssertEqual(DraftTrip(draft: outline.draft, settings: settings).buttons.primary, "Send the prompt for Push")
     }
 
     // TN12: Get it day by day starts a draft on the outline prompt; the outline's paste opens
     // the review with every day hollow, or refuses as a plan would.
     func testGetItDayByDay() throws {
-        var trip = DraftTrip(draft: nil)
+        var trip = DraftTrip(draft: nil, settings: settings)
         XCTAssertEqual(trip.stage, .ask)
+        XCTAssertEqual(trip.prompt(settings: settings), Prompts.outline(settings: settings))
+        XCTAssertEqual(trip.subject, "A plan's outline")
+        XCTAssertNil(trip.preview)
         XCTAssertEqual(trip.strip, TripStrip.of(.ask))
         XCTAssertEqual(trip.buttons, TripButtons(primary: "Send the outline prompt", secondary: "Copy the outline prompt"))
         XCTAssertEqual(trip.menu, [.editText])
@@ -308,38 +312,37 @@ final class RoundTripImportTests: XCTestCase {
 
         trip.sent()
         XCTAssertEqual(trip.buttons.primary, "Paste the outline")
-        trip.pastedOutline(PlanDrafting.outline(try FixtureLoader.text("invalid/prompt-pasted.txt"), settings: settings, now: now))
+        trip.pasted(PlanDrafting.outline(try FixtureLoader.text("invalid/prompt-pasted.txt"), settings: settings, now: now),
+                    settings: settings, now: now)
         XCTAssertEqual(trip.stage, .refused)
-        XCTAssertEqual(trip.refusal?.fixAt, 2)
+        XCTAssertEqual(trip.refusal?.fix, .paste)
         XCTAssertNil(trip.draft)
         XCTAssertEqual(trip.buttons.primary, "Send the outline prompt")
 
         trip.sent()
-        trip.pastedOutline(PlanDrafting.outline(outlineJSON, settings: settings, now: now))
+        trip.pasted(PlanDrafting.outline(outlineJSON, settings: settings, now: now), settings: settings, now: now)
         XCTAssertEqual(trip.stage, .ask)
         XCTAssertEqual(trip.hollow, [0, 1, 2])
         XCTAssertEqual(trip.buttons.primary, "Send the prompt for Push")
 
         // A chatbot that wrote the whole plan anyway: nothing hollow, straight to Use.
-        var whole = DraftTrip(draft: nil)
-        whole.pastedOutline(PlanDrafting.outline(CoreTestSupport.planJSON(), settings: settings, now: now))
+        var whole = DraftTrip(draft: nil, settings: settings)
+        whole.pasted(PlanDrafting.outline(CoreTestSupport.planJSON(), settings: settings, now: now), settings: settings, now: now)
         XCTAssertEqual(whole.stage, .review)
         XCTAssertEqual(whole.buttons.primary, "Use Training")
 
         // The refusal that offers it is the cut-short one, and only that one.
-        let cut = ImportTrip.Refusal.of(try imported("invalid/truncated.txt").errors)
+        let cut = TripRefusal.of(try CoreTestSupport.importing(fixture: "invalid/truncated.txt").errors, way: .wholePlanOrDayByDay)
         XCTAssertTrue(cut.offersDayByDay)
         for fixture in ["invalid/not-json-at-all.txt", "invalid/no-days.json", "invalid/prompt-pasted.txt", "invalid/empty.txt"] {
-            XCTAssertFalse(ImportTrip.Refusal.of(try imported(fixture).errors).offersDayByDay, fixture)
+            XCTAssertFalse(TripRefusal.of(try CoreTestSupport.importing(fixture: fixture).errors, way: .wholePlanOrDayByDay).offersDayByDay, fixture)
         }
     }
 
     // TN13 (pin): Add plan's footers, Show text, Import file row and Build it day by day row are
     // gone from the source — and no title or placeholder says JSON.
     func testAddPlanLostItsInstructionManual() throws {
-        guard let source = FixtureLoader.doc("JimmsBro/Features/Import/ImportView.swift") else {
-            throw XCTSkip("ImportView.swift is outside the simulator's sandbox; this pin runs on the host routes")
-        }
+        let source = try FixtureLoader.requiredDoc("JimmsBro/Features/Import/ImportView.swift")
         for gone in ["footer:", "Show text", "Import file", "Build it day by day", "Copy prompt\"", "\"Copied\"",
                      "Toggle(", "Review plan\"", "Save plan\""] {
             XCTAssertFalse(source.contains(gone), "ImportView still shows \(gone)")

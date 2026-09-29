@@ -19,7 +19,7 @@ enum StartCard: Equatable {
 
     static func current(library: PlanLibrary, now: Date = Date(), calendar: Calendar = .current) -> StartCard {
         if let engine = library.engine, engine.phase != .completed {
-            return .inProgress(dayName: engine.session.dayName, elapsed: engine.elapsed(now: now))
+            return .inProgress(dayName: engine.session.dayName, elapsed: SessionStats.duration(engine.session, now: now))
         }
         guard let plan = library.activePlan else { return .noPlan }
         // D37 (v1.2): the same anchored projection the calendar draws, so "Next up" and the
@@ -33,7 +33,7 @@ enum StartCard: Equatable {
         // day you had to count to.
         let daysAway = calendar.dateComponents([.day], from: calendar.startOfDay(for: now),
                                                to: next.date).day ?? 0
-        let weekday = Weekday.allCases.first { $0.calendarValue == calendar.component(.weekday, from: next.date) }
+        let weekday = Weekday(next.date, calendar: calendar)
         // D76 (v1.9, §6.50): a borrowed day is its own plan's day, started as that plan's; a
         // day written just for the date is in no plan, and has a case of its own.
         let target: (planId: UUID, dayIndex: Int, day: Day)
@@ -116,21 +116,42 @@ enum WeekdayText {
     static func full(_ weekday: Weekday) -> String { weekday.rawValue.capitalized }
 }
 
-/// The chips under Plan detail's repeat block (SPEC §4.3).
-enum RepeatBlock {
-    static func chips(_ plan: Plan) -> [String] {
-        plan.cycle.map { entry in
-            guard case let .day(index) = entry, let day = plan.days[safe: index] else { return "Rest" }
-            return day.name
-        }
+/// D96 (v1.12 L3): a date as a day and a month. The app speaks English whatever the phone's language (§2,
+/// "English only"), so the names are a fixed list, as `WeekdayText`'s are — where a formatter in
+/// the phone's language put "17. Sept." or "Freitag" beside English words. The names are the
+/// Gregorian months, so the numbers are read in a Gregorian calendar in `calendar`'s zone: a phone
+/// set to the Hebrew or Islamic calendar would otherwise put its own month's number on a
+/// Gregorian name — "1 Feb" for 12 October.
+enum MonthText {
+    private static let names = ["January", "February", "March", "April", "May", "June", "July",
+                                "August", "September", "October", "November", "December"]
+    /// "17 September": the day `date` falls on, in `calendar`'s zone.
+    static func full(_ date: Date, calendar: Calendar) -> String {
+        let (day, month) = dayAndMonth(date, calendar: calendar)
+        return "\(day) \(month)"
     }
+    /// "17 Sep".
+    static func short(_ date: Date, calendar: Calendar) -> String {
+        let (day, month) = dayAndMonth(date, calendar: calendar)
+        return "\(day) \(month.prefix(3))"
+    }
+    private static func dayAndMonth(_ date: Date, calendar: Calendar) -> (Int, String) {
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = calendar.timeZone
+        let parts = gregorian.dateComponents([.day, .month], from: date)
+        return (parts.day ?? 0, names[safe: (parts.month ?? 0) - 1] ?? "")
+    }
+}
+
+/// Plan detail's repeat block (SPEC §4.3): its caption, and its squares (`RepeatBlock.squares`).
+enum RepeatBlock {
     static func caption(_ plan: Plan) -> String? {
         guard !plan.cycle.isEmpty else { return nil }
         return plan.schedule == .weekday ? "Every week" : "repeats every \(plan.cycle.count) days"
     }
     /// The highlighted chip: the entry Next up would start, not the last completed one.
-    static func highlighted(_ plan: Plan) -> Int? {
-        plan.schedule == .weekday ? nil : PlanSchedule.nextInPattern(plan)?.cycleIndex
+    static func highlighted(_ plan: Plan, today: Date, calendar: Calendar = .current) -> Int? {
+        plan.schedule == .weekday ? nil : PlanSchedule.nextInPattern(plan, today: today, calendar: calendar)?.cycleIndex
     }
 }
 
@@ -389,8 +410,7 @@ struct HomeStart: Equatable {
         if let plan = library.activePlan, plan.schedule == .rotation, library.engine == nil,
            let missed = PlanSchedule.missed(plan, sessions: library.sessions, swaps: library.swaps,
                                             today: now, calendar: calendar) {
-            let weekday = calendar.component(.weekday, from: missed.date)
-            let name = calendar.weekdaySymbols[safe: weekday - 1] ?? "then"
+            let name = WeekdayText.full(Weekday(missed.date, calendar: calendar))
             var workout = MissedWorkout(dayIndex: missed.dayIndex, dayName: missed.name,
                                         date: missed.date, text: "\(missed.name) was due \(name)")
             // D76 (v1.9, §6.50): Do it now starts a borrowed day as its own plan's, and a day
@@ -491,7 +511,7 @@ struct HomeStart: Equatable {
                 // D71 (v1.8, the owner's reading): once a workout was finished today, today says
                 // so on every plan — a weekday plan's own day keeps its day after the workout,
                 // and would otherwise offer the same workout again.
-                if trainedToday(library.sessions, now: now, calendar: calendar) {
+                if library.sessions.finished(on: now, calendar: calendar) {
                     return rest(start, doneToday: true, library: library, now: now, calendar: calendar,
                                 notificationsOff: notificationsOff, missedDismissed: missedDismissed)
                 }
@@ -504,7 +524,7 @@ struct HomeStart: Equatable {
             case let .own(planId, day, daysAway, _):
                 // D76 (v1.9, §6.50): today's own day is today's card, as a plan's day is; one
                 // on a later date leaves today a rest day (D71), one tap away on the strip.
-                let done = trainedToday(library.sessions, now: now, calendar: calendar)
+                let done = library.sessions.finished(on: now, calendar: calendar)
                 if daysAway > 0 || done {
                     return rest(start, doneToday: done, library: library, now: now, calendar: calendar,
                                 notificationsOff: notificationsOff, missedDismissed: missedDismissed)
@@ -524,7 +544,7 @@ struct HomeStart: Equatable {
                 // the card just no longer starts it. A rotation re-anchors on the day its
                 // workout is done, so the rest of that day lands here too — and then the button
                 // says **Done Today** under a check, which is true (the owner's reading).
-                return rest(start, doneToday: trainedToday(library.sessions, now: now, calendar: calendar),
+                return rest(start, doneToday: library.sessions.finished(on: now, calendar: calendar),
                             library: library, now: now, calendar: calendar,
                             notificationsOff: notificationsOff, missedDismissed: missedDismissed)
             }
@@ -602,12 +622,6 @@ struct HomeStart: Equatable {
         return start
     }
 
-    /// A workout was finished today — the calendar's own test for a done day, so "Done Today"
-    /// is said exactly when today's square carries a workout (§6.44).
-    private static func trainedToday(_ sessions: [Session], now: Date, calendar: Calendar) -> Bool {
-        sessions.contains { $0.endedAt != nil && calendar.isDate($0.startedAt, inSameDayAs: now) }
-    }
-
     /// The first five rows, the count of the rest, and what VoiceOver reads for the block — the
     /// preview and nothing more since D75, so the label no longer ends "Opens Push".
     private static func preview(_ start: inout HomeStart, rows: [PreviewRow]) {
@@ -665,7 +679,7 @@ enum HomeActivity {
         }
         guard !week.isEmpty else { return "No workouts yet this week" }
         let seconds = week.reduce(0.0) { $0 + SessionStats.duration($1) }
-        return "\(week.count) workout\(week.count == 1 ? "" : "s") this week · \(duration(seconds))"
+        return "\(TargetText.counted(week.count, "workout")) this week · \(duration(seconds))"
     }
 
     /// "48 min", "1 h 32 min", "2 h".
@@ -680,6 +694,79 @@ enum HomeActivity {
 /// D57 (v1.6): the Summary's one line about what comes next, from the same schedule the
 /// calendar draws — read after the rotation has advanced, so "next" is never the day just done.
 enum SummaryText {
+    /// SPEC §4.9: "Push · 48 min · 16 of 18 sets · Volume 12,400 kg · week 3 of 8", each part
+    /// only when it has data (§4.0). D96 (v1.12 L6): Core's, where the view built it.
+    static func headline(_ session: Session) -> String {
+        var parts = [session.dayName,
+                     HomeActivity.duration(SessionStats.duration(session)),
+                     "\(SessionStats.loggedCount(session)) of \(session.steps.count) sets"]
+        // P5: a bare number is not a label. Zero volume is a bodyweight day, not a failure.
+        let volume = SessionStats.volume(session.steps)
+        if volume > 0 { parts.append("Volume \(TargetText.grouped(volume)) \(session.units.rawValue)") }
+        // D44 (v1.3): which week of the progression this was, when it was one.
+        if let week = ProgressionText.weekLine(session) { parts.append(week) }
+        return parts.joined(separator: " · ")
+    }
+
+    /// One exercise's lines on the Summary.
+    struct ExerciseLines: Equatable {
+        var name: String
+        var comparison: ExerciseComparison
+        /// D30: "PR 5 × 85 kg" for the best record the exercise set today, nil when it set none.
+        var record: String?
+        /// D42 (v1.3): what it stood in for, said once.
+        var insteadOf: String?
+        /// The plan's advice for next time, when it carries one and a range.
+        var advice: String?
+        /// D19: how long the exercise took, behind Details — "Took 6:12 · 0:48 a set".
+        var took: String?
+    }
+
+    /// Every exercise's lines, worked out once per screen (D96, v1.12 L6) — the view read the
+    /// records again for every exercise, and the history without this session for each one.
+    static func exercises(_ session: Session, history: [Session],
+                          wording: Wording = .plain) -> [ExerciseLines] {
+        let earlier = history.filter { $0.id != session.id }
+        let records = SessionStats.personalRecords(session: session, history: earlier)
+        return session.exercises.enumerated().map { index, exercise in
+            let steps = session.steps.filter { $0.exerciseIndex == index }
+            return ExerciseLines(
+                name: exercise.name,
+                comparison: SessionStats.comparison(for: exercise.name, session: session,
+                                                    history: earlier, wording: wording),
+                record: record(session, exercise: index, records: records),
+                insteadOf: exercise.substitutedFor.map { "Instead of \($0)" },
+                advice: advice(exercise, steps: steps, units: session.units),
+                took: took(session, steps: steps))
+        }
+    }
+
+    private static func record(_ session: Session, exercise index: Int, records: Set<Int>) -> String? {
+        let mine = records.sorted().filter { session.steps[$0].exerciseIndex == index }
+        guard !mine.isEmpty else { return nil }
+        let steps = mine.map { session.steps[$0] }
+        guard let best = SessionStats.best(steps) ?? steps.compactMap(\.result).last else { return nil }
+        // F4 (2026-09-24): the record in the words every best set uses.
+        return ExerciseText.bestSet(best, units: session.units).map { "PR \($0)" } ?? "PR"
+    }
+
+    private static func advice(_ exercise: SessionExercise, steps: [SessionStep], units: WeightUnit) -> String? {
+        guard let advice = exercise.advice, let range = exercise.repRange else { return nil }
+        let logged = steps.filter { $0.status == .logged }
+        return ProgressionAdvice.message(advice, range: range, loggedSets: logged.count,
+                                         currentWeight: logged.first?.result?.weight, units: units)
+    }
+
+    private static func took(_ session: Session, steps: [SessionStep]) -> String? {
+        guard let block = steps.first?.blockIndex,
+              let seconds = SessionStats.blockDuration(block, session: session) else { return nil }
+        var text = "Took \(TargetText.time(seconds))"
+        if let average = mean(steps.compactMap(\.setSeconds).map(Double.init)) {
+            text += " · \(TargetText.time(Int(average.rounded()))) a set"
+        }
+        return text
+    }
+
     static func next(after session: Session, library: PlanLibrary, now: Date = Date(),
                      calendar: Calendar = .current) -> String? {
         guard let planId = session.planId,
@@ -697,22 +784,11 @@ enum SummaryText {
         let when: String
         switch days {
         case 1: when = "tomorrow"
-        case 2...6: when = formatted(found.date, template: "EEEE", calendar: calendar)
-        default: when = "on " + formatted(found.date, template: "d MMM", calendar: calendar)
+        // In English, in the calendar's own zone (D96, v1.12 L3): "Friday", "on 17 Sep".
+        case 2...6: when = WeekdayText.full(Weekday(found.date, calendar: calendar))
+        default:
+            when = "on \(MonthText.short(found.date, calendar: calendar))"
         }
         return "Next: \(found.name), \(when)"
-    }
-
-    /// "Friday" or "17 Sep", in the calendar's own zone and locale — `weekdaySymbols` on a
-    /// calendar without a locale is not reliably the full name.
-    private static func formatted(_ date: Date, template: String, calendar: Calendar) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        // A calendar built from an identifier carries a nameless "fixed" locale that formats
-        // "EEEE" as "Fri"; the device's current locale is the one that says "Friday".
-        formatter.locale = calendar.locale.flatMap { $0.identifier.isEmpty ? nil : $0 } ?? .current
-        formatter.setLocalizedDateFormatFromTemplate(template)
-        return formatter.string(from: date)
     }
 }

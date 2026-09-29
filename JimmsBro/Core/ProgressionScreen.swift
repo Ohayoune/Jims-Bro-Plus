@@ -24,8 +24,11 @@ struct ProgressionScreen: Equatable {
     private(set) var steps = defaultSteps
     private(set) var mode = defaultMode
     private(set) var stage = TripStage.ask
-    /// Refused: what stopped the paste. Review: the reply's warnings.
-    private(set) var issues: [Issue] = []
+    /// What stopped the paste, while the screen is on Refused. A progression has no fix-it prompt
+    /// of its own, so the trouble goes back as the prompt.
+    private(set) var refusal: TripRefusal?
+    /// The reply's warnings, while it is reviewed.
+    private(set) var warnings: [Issue] = []
     /// The progression drawn from the reply, while it is reviewed.
     private(set) var progression: Progression?
     /// **Start step 1** was tapped: the progression is the plan's.
@@ -65,22 +68,14 @@ struct ProgressionScreen: Equatable {
 
     // MARK: - The trip
 
-    /// Where the fix is on a refusal: at Paste when what was pasted was the prompt itself or
-    /// nothing, at Chat for a reply the chatbot must write again.
-    var fixAt: Int { Self.fixAt(issues) }
+    var strip: TripStrip { TripStrip.of(stage, fix: refusal?.fix ?? .chat) }
 
-    static func fixAt(_ issues: [Issue]) -> Int {
-        issues.contains { $0.code == "E_PROMPT_PASTED" || $0.code == "E_EMPTY" } ? 2 : 1
-    }
-
-    var strip: TripStrip { TripStrip.of(stage, fixAt: fixAt) }
-
-    /// The bottom slot: Send and Copy on Ask, and again on Refused — a progression has no fix-it
-    /// prompt of its own, so the trouble goes back as the prompt — the system's Paste on Paste,
+    /// The bottom slot: Send and Copy on Ask, and again on Refused, the system's Paste on Paste,
     /// and **Start step 1** on Review.
     var buttons: TripButtons {
         switch stage {
-        case .ask, .refused: return .ask()
+        case .ask: return .ask()
+        case .refused: return refusal?.buttons() ?? .ask()
         case .paste: return .paste
         case .review: return .effect(startTitle)
         }
@@ -94,22 +89,33 @@ struct ProgressionScreen: Equatable {
         "Start \(ProgressionText.word(mode).lowercased()) 1"
     }
 
-    /// Refused's sentence, for the red band (D26's friendly words; the path behind Details).
-    var refusal: String? {
-        guard stage == .refused else { return nil }
-        return issues.first { $0.severity == .error }.map(IssueText.friendly)
-    }
-
     /// The prompt for the marked tiles, with the plan's last sessions whenever there are any (J5).
     func prompt(plan: Plan, history: [Session], settings: Settings, now: Date = Date()) -> String {
         Prompts.progression(plan: plan, history: history, weeks: steps, settings: settings, now: now, mode: mode)
+    }
+
+    /// The share sheet's subject.
+    static func subject(_ plan: Plan) -> String { "Progression for \(plan.name)" }
+
+    /// The ··· (D95, §6.68): on the planning screen, **Send the prompt again** once the prompt has
+    /// gone and **Keep the current one** when there is one; **Remove progression** whenever there
+    /// is one; and **Edit the text** last while planning. It appears with the screen and is never
+    /// earned (§6.40).
+    func menu(hasProgression: Bool, planning: Bool) -> [TripMenuItem] {
+        let onPlanning = planning || !hasProgression
+        var items: [TripMenuItem] = []
+        if onPlanning, stage == .paste || stage == .refused { items.append(.sendAgain) }
+        if onPlanning, hasProgression { items.append(.keepCurrent) }
+        if hasProgression { items.append(.removeProgression) }
+        if onPlanning { items.append(.editText) }
+        return items
     }
 
     /// Send or Copy (D88): Ask — or Refused, sending the prompt again — becomes Paste.
     mutating func sent() {
         guard stage == .ask || stage == .refused, !started else { return }
         stage = .paste
-        issues = []
+        refusal = nil
     }
 
     /// The ···'s **Send the prompt again** (`TripText.sendAgain`): back to Ask with the tiles as
@@ -119,7 +125,8 @@ struct ProgressionScreen: Equatable {
     mutating func restart() {
         guard stage == .paste || stage == .refused, !started else { return }
         stage = .ask
-        issues = []
+        refusal = nil
+        warnings = []
         progression = nil
     }
 
@@ -129,11 +136,13 @@ struct ProgressionScreen: Equatable {
         guard !started else { return }
         if let drawn = result.progression, result.errors.isEmpty {
             progression = drawn
-            issues = result.issues.filter { $0.severity == .warning }
+            refusal = nil
+            warnings = result.issues.filter { $0.severity == .warning }
             stage = .review
         } else {
             progression = nil
-            issues = result.errors
+            refusal = TripRefusal.of(result.issues, way: .prompt)
+            warnings = []
             stage = .refused
         }
     }
@@ -142,7 +151,7 @@ struct ProgressionScreen: Equatable {
     mutating func cancelReview() {
         guard stage == .review, !started else { return }
         stage = .paste
-        issues = []
+        warnings = []
         progression = nil
     }
 
@@ -158,36 +167,6 @@ struct ProgressionScreen: Equatable {
     /// The review's header, the one place the mode is said: *6 steps · when you hit it*.
     static func header(_ progression: Progression) -> String {
         let count = progression.weeks
-        return "\(count) step\(count == 1 ? "" : "s") · " + (progression.mode == .performance ? "when you hit it" : "every week")
-    }
-
-    // MARK: - The text behind the ··· (D95, §6.68)
-
-    /// **Edit the text**'s sheet: named, pre-filled with the last text read or else a reply that
-    /// reads as it stands — every exercise of the plan, each step `{}` — and a Save that says its
-    /// effect. The kind is `.progression` (N6): one object whose paths start at its root, which
-    /// is how a progression's paths are written, so a refusal marks its line.
-    static func textPoint(plan: Plan, steps: Int, text: String) -> JSONPoint {
-        JSONPoint(kind: .progression, title: "The progression",
-                  place: "Steps for \(plan.name). Nothing changes until you start.",
-                  template: text.trimmed.isEmpty ? exampleReply(plan: plan, steps: steps) : text,
-                  saveTitle: "Review the steps",
-                  footer: "Each step gives a weight, reps or both; {} keeps the plan's own.")
-    }
-
-    /// A reply for `plan` that holds every exercise where it is for `steps` steps, so a change is
-    /// one number written into a `{}`.
-    static func exampleReply(plan: Plan, steps: Int) -> String {
-        let empty = Array(repeating: "{}", count: max(1, steps)).joined(separator: ", ")
-        let lines = plan.days.flatMap { day in
-            day.exercises.map { exercise in
-                "    { \"day\": \(quoted(day.name)), \"name\": \(quoted(exercise.name)), \"steps\": [\(empty)] }"
-            }
-        }
-        return "{\n  \"steps\": \(max(1, steps)),\n  \"exercises\": [\n" + lines.joined(separator: ",\n") + "\n  ]\n}\n"
-    }
-
-    private static func quoted(_ text: String) -> String {
-        "\"" + text.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
+        return "\(TargetText.counted(count, "step")) · " + (progression.mode == .performance ? "when you hit it" : "every week")
     }
 }

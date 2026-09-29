@@ -11,11 +11,6 @@ struct ChangeRequest: Equatable {
     static let placeholder = "What should change?"
     /// Under *Nothing changed*, with the strip lit at Chat.
     static let nothingChanged = "The reply is the plan as it was. Say it differently, or ask the chatbot again."
-    /// A refused reply's way back: the fix-it prompt (`Prompts.render(errors:)`), as on Add plan.
-    static let askAgain = TripButtons(primary: "Ask for the whole plan", secondary: "Copy the prompt")
-    /// The codes that mean the fix is at Paste — the prompt itself, or nothing, was pasted — rather
-    /// than at Chat.
-    static let pasteCodes: Set<String> = ["E_PROMPT_PASTED", "E_EMPTY"]
 
     /// The plan on the page when the screen opened: what the prompt carries and the reply is
     /// compared with.
@@ -26,8 +21,9 @@ struct ChangeRequest: Equatable {
     /// The reply, read as a plan, while the screen is on Review.
     private(set) var reply: Plan?
     private(set) var diff: PlanDiff?
-    /// The errors that refused the reply; empty unless the screen is on Refused.
-    private(set) var refusal: [Issue] = []
+    /// What refused the reply, while the screen is on Refused. Its way back is **Ask for the
+    /// whole plan** (§6.67), as on Add plan.
+    private(set) var refusal: TripRefusal?
 
     init(plan: Plan, wording: Wording = .plain) {
         self.plan = plan
@@ -38,19 +34,13 @@ struct ChangeRequest: Equatable {
 
     /// Send is disabled until something is typed — but for the fix-it prompt of a refused reply,
     /// which asks for the whole plan whatever the request was.
-    var canSend: Bool { (stage == .refused && fixAt == 1) || !request.trimmed.isEmpty }
+    var canSend: Bool { refusal?.sends == .wholePlan || !request.trimmed.isEmpty }
 
     /// A review whose reply is the plan as it was.
     var isNothingChanged: Bool { stage == .review && diff?.count == 0 }
 
-    /// Where the fix is: 1, Chat — ask again; 2, Paste — what was pasted was the prompt or nothing.
-    var fixAt: Int {
-        if stage == .refused, refusal.contains(where: { Self.pasteCodes.contains($0.code) }) { return 2 }
-        return 1
-    }
-
     /// *Nothing changed* lights Chat, as a refusal there would.
-    var strip: TripStrip { isNothingChanged ? .of(.refused, fixAt: 1) : .of(stage, fixAt: fixAt) }
+    var strip: TripStrip { isNothingChanged ? .of(.refused, fix: .chat) : .of(stage, fix: refusal?.fix ?? .chat) }
 
     /// The bottom slot; nil for *Nothing changed*, which has no button.
     var buttons: TripButtons? {
@@ -60,7 +50,7 @@ struct ChangeRequest: Equatable {
         case .review:
             guard let diff, diff.count > 0 else { return nil }
             return .effect(Self.apply(count: diff.count))
-        case .refused: return fixAt == 2 ? .ask() : Self.askAgain
+        case .refused: return refusal?.buttons() ?? .ask()
         }
     }
 
@@ -71,18 +61,17 @@ struct ChangeRequest: Equatable {
     var heading: String { title ?? Self.menuItem }
 
     /// The sentence under the strip: the refusal's, or *Nothing changed*'s.
-    var sentence: String? {
-        if isNothingChanged { return Self.nothingChanged }
-        guard stage == .refused, let first = refusal.first(where: { $0.severity == .error }) ?? refusal.first else { return nil }
-        return IssueText.friendly(first)
-    }
+    var sentence: String? { isNothingChanged ? Self.nothingChanged : refusal?.sentence }
 
     /// The text the bottom slot sends: the fix-it prompt for a refused reply, the change prompt
     /// otherwise.
     func prompt(settings: Settings) -> String {
-        if stage == .refused, fixAt == 1 { return Prompts.render(errors: refusal) }
-        return Prompts.change(plan: plan, request: request, settings: settings)
+        let change = Prompts.change(plan: plan, request: request, settings: settings)
+        return refusal?.prompt(or: change) ?? change
     }
+
+    /// The ··· (D95): **Send the prompt again** once the prompt has gone, and **Edit the text** last.
+    var menu: [TripMenuItem] { stage == .ask ? [.editText] : [.sendAgain, .editText] }
 
     /// The share sheet's subject.
     var subject: String { "Change \(plan.name)" }
@@ -104,7 +93,7 @@ struct ChangeRequest: Equatable {
         stage = .ask
         reply = nil
         diff = nil
-        refusal = []
+        refusal = nil
     }
 
     /// The ···'s **Send the prompt again**: back to Ask, the request kept, so Send is one tap.
@@ -112,7 +101,7 @@ struct ChangeRequest: Equatable {
         stage = .ask
         reply = nil
         diff = nil
-        refusal = []
+        refusal = nil
     }
 
     /// Send or Copy went (D88): the screen waits for the reply.
@@ -124,62 +113,24 @@ struct ChangeRequest: Equatable {
     /// The reply, through the import pipeline: a plan is reviewed as what changed, anything else is
     /// refused.
     mutating func pasted(result: ImportResult) {
-        guard var replied = result.plan else {
+        guard let replied = result.planKeepingUnits(of: plan) else {
             stage = .refused
             reply = nil
             diff = nil
-            refusal = result.errors.isEmpty ? result.issues : result.errors
+            refusal = TripRefusal.of(result.issues, way: .wholePlan)
             return
         }
-        // A reply that dropped `units` took the setting's; the plan it was asked to change says
-        // which unit its numbers are in.
-        if !result.unitsStated { replied.units = plan.units }
         stage = .review
         reply = replied
         diff = PlanDiff.between(old: plan, new: replied, wording: wording)
-        refusal = []
-    }
-
-    // MARK: - Apply
-
-    /// §6.67: **Apply is an edit, not a Replace.** The reply keeps the plan's id, its import date,
-    /// its place in the cycle with the date that place is anchored to (D37), and its progression,
-    /// whose entries match by name as every edit's do (§6.21) — a renamed exercise simply stops
-    /// matching. Its text becomes the canonical rendering, as after any edit (D43).
-    ///
-    /// The place is kept where the reply's cycle still has the same day there; where it does not —
-    /// the cycle changed under it — it follows the day by name, as a replace's does.
-    static func applied(_ reply: Plan, to current: Plan) -> Plan {
-        var plan = reply
-        plan.id = current.id
-        plan.importedAt = current.importedAt
-        if let position = current.cyclePosition,
-           case let .day(old)? = current.cycle[safe: position], case let .day(new)? = plan.cycle[safe: position],
-           let oldDay = current.days[safe: old], let newDay = plan.days[safe: new],
-           normalized(oldDay.name) == normalized(newDay.name) {
-            plan.cyclePosition = position
-        } else {
-            plan.cyclePosition = PlanSchedule.positionAfterReplacement(old: current, new: plan)
-        }
-        plan.cycleAnchor = plan.cyclePosition == nil ? nil : current.cycleAnchor
-        plan.progression = current.progression
-        plan.sourceText = PlanJSON.render(plan)
-        return plan
+        refusal = nil
     }
 
     // MARK: - The text behind the ···
 
     /// D95 (§6.68): **Edit the text** opens the sheet on the whole plan — the reply when there is
     /// one, else the plan as it stands — and its Save reviews what changed, as a paste would.
-    ///
-    /// The kind is `.plan`, whose marks read a whole plan's paths — `days[1].exercises[0]`, and
-    /// the plan's own fields — at their own lines (N6).
     func textPoint() -> JSONPoint {
-        JSONPoint(kind: .plan,
-                  title: "The plan",
-                  place: "\(plan.name), changed. Nothing is saved until you apply it.",
-                  template: reply?.sourceText ?? PlanJSON.render(plan),
-                  saveTitle: "See what changed",
-                  footer: "The whole plan, as the chatbot writes it back.")
+        JSONPoint.changing(plan.name, text: reply?.sourceText ?? PlanJSON.render(plan))
     }
 }

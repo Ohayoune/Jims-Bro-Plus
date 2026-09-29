@@ -10,19 +10,6 @@ final class UsabilityTests: XCTestCase {
     private let calendar = CoreTestSupport.utc()
     private func day(_ number: Int) -> Date { CoreTestSupport.date(number) }
 
-    /// Push / Pull / Legs / rest, imported on the 1st.
-    private func rotation(anchor: Int?, position: Int? = nil, imported: Int = 1) -> Plan {
-        var plan = Plan(name: "PPL", units: .kg, schedule: .rotation,
-                        days: [Day(name: "Push", exercises: []),
-                               Day(name: "Pull", exercises: []),
-                               Day(name: "Legs", exercises: [])],
-                        importedAt: day(imported), sourceText: "",
-                        cycle: [.day(0), .day(1), .day(2), .rest])
-        plan.cyclePosition = position
-        plan.cycleAnchor = anchor.map { calendar.startOfDay(for: day($0)) }
-        return plan
-    }
-
     private func missed(_ plan: Plan, today: Int, sessions: [Session] = []) -> Int? {
         PlanSchedule.missed(plan, sessions: sessions, swaps: [], today: day(today), calendar: calendar)?.dayIndex
     }
@@ -31,35 +18,35 @@ final class UsabilityTests: XCTestCase {
     func testAMissedDayIsAfterTheImportAndAfterTheAnchor() {
         // A fresh plan: nothing completed, no anchor. Three minutes old, it has missed nothing —
         // v1.5 projected the pattern backwards over the week before it existed.
-        XCTAssertNil(missed(rotation(anchor: nil, imported: 9), today: 9))
-        XCTAssertNil(missed(rotation(anchor: nil, imported: 9), today: 10))
+        XCTAssertNil(missed(CoreTestSupport.fourDayRotation(anchor: nil, imported: 9), today: 9))
+        XCTAssertNil(missed(CoreTestSupport.fourDayRotation(anchor: nil, imported: 9), today: 10))
         // Imported ten days ago and never started: still nothing missed. You never began.
-        XCTAssertNil(missed(rotation(anchor: nil, imported: 1), today: 11))
+        XCTAssertNil(missed(CoreTestSupport.fourDayRotation(anchor: nil, imported: 1), today: 11))
 
         // Push done on the 7th (the anchor), today the 9th: Pull on the 8th was missed.
-        XCTAssertEqual(missed(rotation(anchor: 7, position: 0), today: 9), 1)
+        XCTAssertEqual(missed(CoreTestSupport.fourDayRotation(anchor: 7, position: 0), today: 9), 1)
         // The anchor day itself is never "missed" — it is the day that was done.
-        XCTAssertNil(missed(rotation(anchor: 7, position: 0), today: 8))
+        XCTAssertNil(missed(CoreTestSupport.fourDayRotation(anchor: 7, position: 0), today: 8))
 
         // A day run out of order re-anchors the pattern: Legs done on the 9th puts Pull on the
         // 8th in the projection, but the 8th was lived through before the anchor moved.
-        XCTAssertNil(missed(rotation(anchor: 9, position: 2), today: 10))
+        XCTAssertNil(missed(CoreTestSupport.fourDayRotation(anchor: 9, position: 2), today: 10))
         // And the import day is a floor of its own: a plan imported on the 8th and anchored the
         // same day cannot have missed the 7th.
-        XCTAssertNil(missed(rotation(anchor: 8, position: 1, imported: 8), today: 9))
+        XCTAssertNil(missed(CoreTestSupport.fourDayRotation(anchor: 8, position: 1, imported: 8), today: 9))
 
         // The v1.2 rule still holds within those bounds: having trained on the 8th, nothing.
         var trained = CoreTestSupport.session(CoreTestSupport.plan(), start: day(8))
         trained.endedAt = day(8)
-        XCTAssertNil(missed(rotation(anchor: 7, position: 0), today: 9, sessions: [trained]))
+        XCTAssertNil(missed(CoreTestSupport.fourDayRotation(anchor: 7, position: 0), today: 9, sessions: [trained]))
         // And it still looks no further back than a week: anchored on the 1st and away until
         // the 20th, only the most recent projected day is reported, not the 2nd.
-        XCTAssertNotEqual(PlanSchedule.missed(rotation(anchor: 1, position: 0), sessions: [], swaps: [], today: day(20),
+        XCTAssertNotEqual(PlanSchedule.missed(CoreTestSupport.fourDayRotation(anchor: 1, position: 0), sessions: [], swaps: [], today: day(20),
                                               calendar: calendar)?.date, calendar.startOfDay(for: day(2)))
 
         // Home says the same thing the schedule does.
         var library = PlanLibrary()
-        library.save(rotation(anchor: nil, imported: 9), makeActive: true)
+        library.save(CoreTestSupport.fourDayRotation(anchor: nil, imported: 9), makeActive: true)
         XCTAssertNil(HomeStart.current(library: library, now: day(9), calendar: calendar).missed)
     }
 
@@ -240,7 +227,7 @@ final class UsabilityTests: XCTestCase {
                        PrimaryAction(title: "Log set", kind: .log), "a set has been done by then")
         XCTAssertEqual(WorkoutScreen.primary(work: .reps(.fixed(5)), running: false, resting: .betweenExercises).kind, .log)
 
-        var engine = CoreTestSupport.engine(CoreTestSupport.plan(sets: 3), settings: Settings(warmUpSeconds: 300))
+        var engine = CoreTestSupport.engine(CoreTestSupport.plan(sets: 3), settings: CoreTestSupport.warmUp)
         let warming = try XCTUnwrap(WorkoutScreen.model(active: engine.active, history: [], now: now))
         XCTAssertEqual(warming.stage, .warmUp)
         XCTAssertEqual(warming.primary.kind, .startSet)
@@ -308,7 +295,7 @@ final class UsabilityTests: XCTestCase {
     func testARestDaySaysRestAndTheWorkoutIsOneTapAway() throws {
         // Push / Pull / Legs / rest with Legs done on the 7th: the 8th is a rest day, Push is the 9th.
         var library = PlanLibrary()
-        library.save(rotation(anchor: 7, position: 2), makeActive: true)
+        library.save(CoreTestSupport.fourDayRotation(anchor: 7, position: 2), makeActive: true)
         let card = HomeStart.current(library: library, now: day(8), calendar: calendar)
         XCTAssertEqual(card.title, "Rest")
         XCTAssertEqual(card.buttonTitle, "No exercise Today")
@@ -423,33 +410,33 @@ final class UsabilityTests: XCTestCase {
     // U34: the grammar itself. Every form the audit named as unreadable, said in words — and
     // the numbers a coach acts on still on the same line, in the same order.
     func testThePlainGrammar() throws {
-        let range = SetTarget(work: .reps(.range(min: 4, max: 6)), weight: 100, restSeconds: 90)
+        let range = StepTarget(work: .reps(.range(min: 4, max: 6)), weight: 100)
         XCTAssertEqual(TargetText.target(range, range: nil, units: .kg), "Aim 4–6 reps · 100 kg")
 
         // A fixed count inside a range says the range: it is what is being asked of you, and
         // the prefill puts the exact number in the field.
-        let fixed = SetTarget(work: .reps(.fixed(5)), weight: 100, restSeconds: 90)
+        let fixed = StepTarget(work: .reps(.fixed(5)), weight: 100)
         XCTAssertEqual(TargetText.target(fixed, range: RepRange(min: 4, max: 6), units: .kg),
                        "Aim 4–6 reps · 100 kg")
         XCTAssertEqual(TargetText.target(fixed, range: nil, units: .kg), "Aim 5 reps · 100 kg")
 
         // "AMRAP" is the audit's own example of a word nobody outside a gym knows.
-        let amrap = SetTarget(work: .reps(.amrap(min: nil)), weight: 20, restSeconds: 60)
+        let amrap = StepTarget(work: .reps(.amrap(min: nil)), weight: 20)
         XCTAssertEqual(TargetText.target(amrap, range: nil, units: .kg),
                        "As many reps as you can · 20 kg")
-        let atLeast = SetTarget(work: .reps(.amrap(min: 10)), weight: 20, restSeconds: 60)
+        let atLeast = StepTarget(work: .reps(.amrap(min: 10)), weight: 20)
         XCTAssertEqual(TargetText.target(atLeast, range: nil, units: .kg),
                        "Aim at least 10 reps · 20 kg")
 
         // Timed work is a duration, not "45 s".
-        let held = SetTarget(work: .duration(seconds: 45), weight: nil, restSeconds: 60)
+        let held = StepTarget(work: .duration(seconds: 45), weight: nil)
         XCTAssertEqual(TargetText.target(held, range: nil, units: .kg), "For 45 seconds")
-        let open = SetTarget(work: .openDuration(minSeconds: 30), weight: nil, restSeconds: 60)
+        let open = StepTarget(work: .openDuration(minSeconds: 30), weight: nil)
         XCTAssertEqual(TargetText.target(open, range: nil, units: .kg), "For at least 30 seconds")
 
         // The effort target says what being "in reserve" means.
         var reserved = range
-        reserved.inReserve = 2
+        reserved.reserve = 2
         XCTAssertEqual(TargetText.target(reserved, range: nil, units: .kg),
                        "Aim 4–6 reps · 100 kg · stop 2 short of failure")
 

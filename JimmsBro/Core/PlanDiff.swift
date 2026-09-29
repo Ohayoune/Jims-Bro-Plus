@@ -154,7 +154,7 @@ struct PlanDiff: Equatable {
         case let .dayAdded(day):
             let count = day.exercises.count
             return Row(mark: .added, struck: nil, name: day.name,
-                       detail: "added · \(count) exercise\(count == 1 ? "" : "s")")
+                       detail: "added · \(TargetText.counted(count, "exercise"))")
         case let .dayRemoved(name):
             return Row(mark: .removed, struck: name, name: nil, detail: "removed")
         case let .dayUnchanged(name):
@@ -299,10 +299,7 @@ struct PlanDiff: Equatable {
     static func scheduleText(_ plan: Plan) -> String {
         switch plan.schedule {
         case .rotation:
-            return plan.cycle.map { entry in
-                if case let .day(index) = entry { return plan.days[safe: index]?.name ?? "?" }
-                return "rest"
-            }.joined(separator: " · ")
+            return plan.cycleNames.map { $0 ?? "rest" }.joined(separator: " · ")
         case .weekday:
             func place(_ day: Day) -> Int { day.weekday.flatMap { Weekday.allCases.firstIndex(of: $0) } ?? 7 }
             return plan.days.sorted { place($0) < place($1) }

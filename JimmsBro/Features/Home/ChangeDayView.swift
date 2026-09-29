@@ -86,7 +86,7 @@ struct ChangeDayView: View {
         .bottomAction {
             confirmButton(confirm, choices: choices)
         }
-        .navigationDestination(isPresented: Binding(get: { editor != nil }, set: { if !$0 { editor = nil } })) {
+        .navigationDestination(isPresented: Binding(isPresent: $editor)) {
             if let editor {
                 // The day written or removed: back to Today past the picker, in one pop.
                 DayEditorView(date: date, exercises: editor) { dismiss() }
@@ -103,7 +103,7 @@ struct ChangeDayView: View {
                 ? .custom : choices.strips.flatMap(\.tiles).first { $0.name == name }.map { .day($0.slot) }
         }
         #endif
-        .sheet(isPresented: Binding(get: { writing != nil }, set: { if !$0 { writing = nil } }),
+        .sheet(isPresented: Binding(isPresent: $writing),
                onDismiss: { if used { dismiss() } }) {
             if let point = writing {
                 JSONFragmentSheet(point: point) { text in

@@ -24,11 +24,6 @@ final class DefectFixesTests: XCTestCase {
       ] } ] }
     """
 
-    private func imported(_ text: String) throws -> Plan {
-        let result = PlanImport.run(text, settings: settings, now: now)
-        return try XCTUnwrap(result.plan, "\(result.issues)")
-    }
-
     /// The rest the engine would actually take after the last step of the group's first round.
     private func roundRest(_ plan: Plan) throws -> Int {
         let session = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: now))
@@ -46,7 +41,7 @@ final class DefectFixesTests: XCTestCase {
     // exercise-level rest, the re-import found none, and the round rest fell back to the
     // last member's own 90 s.
     func testEditingAPlanKeepsASupersetsRoundRest() throws {
-        let original = try imported(Self.supersetJSON)
+        let original = try CoreTestSupport.imported(Self.supersetJSON)
         XCTAssertEqual(try roundRest(original), 120)
 
         let result = PlanEdit.apply(.renameExercise(day: 0, exercise: 0, name: "Bench Press"),
@@ -61,7 +56,7 @@ final class DefectFixesTests: XCTestCase {
     // Q2: the same, through every edit operation — each one re-imports, so each one could
     // have dropped it.
     func testEveryEditKeepsASupersetsRoundRest() throws {
-        let plan = try imported(Self.supersetJSON)
+        let plan = try CoreTestSupport.imported(Self.supersetJSON)
         let operations: [PlanEdit.Operation] = [
             .renameExercise(day: 0, exercise: 1, name: "Cable Row"),
             .setWeight(day: 0, exercise: 0, weight: 65),
@@ -83,7 +78,7 @@ final class DefectFixesTests: XCTestCase {
     // one member is an edit to the round rest the group shares. Before v1.2 it wrote only the
     // per-set value, which nothing in a superset ever reads.
     func testEditingRestOnASupersetMemberChangesTheRoundRest() throws {
-        let plan = try imported(Self.supersetJSON)
+        let plan = try CoreTestSupport.imported(Self.supersetJSON)
         let result = PlanEdit.apply(.setRest(day: 0, exercise: 1, seconds: 45),
                                     to: plan, settings: settings, now: now)
         let edited = try XCTUnwrap(result.plan, "\(result.issues)")
@@ -98,7 +93,7 @@ final class DefectFixesTests: XCTestCase {
     // Q4: an ungrouped exercise gains no exercise-level rest — the round-rest fix must not
     // change what the renderer writes for everything else.
     func testRenderOnlyWritesAnExerciseLevelRestForAGroup() throws {
-        let rendered = PlanJSON.render(try imported(Self.supersetJSON))
+        let rendered = PlanJSON.render(try CoreTestSupport.imported(Self.supersetJSON))
         let curl = try XCTUnwrap(rendered.range(of: "\"name\": \"Curl\""))
         let afterCurl = String(rendered[curl.upperBound...])
         let bench = try XCTUnwrap(rendered.range(of: "\"name\": \"Bench Press\""))
@@ -134,9 +129,8 @@ final class DefectFixesTests: XCTestCase {
     // Q7: reading the store to export or to inspect a backup must not quietly rename a file
     // aside. That is a change, and the only place the user is told about it is the launch alert.
     func testExportingDoesNotSetCorruptFilesAside() async throws {
-        let root = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("JimmsBroV1Tests-\(UUID().uuidString)", isDirectory: true)
-        defer { try? FileManager.default.removeItem(at: root) }
+        let root = CoreTestSupport.makeRoot("V1Tests")
+        defer { CoreTestSupport.discard(root) }
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         let settingsFile = root.appendingPathComponent("settings.json")
         try Data("not json at all".utf8).write(to: settingsFile)
@@ -155,9 +149,8 @@ final class DefectFixesTests: XCTestCase {
     // Q8: Retry is handed the failure, because dismissing the alert clears it first. Calling
     // it the old way — reading `saveFailure` after the dismissal — did nothing at all.
     @MainActor func testRetryWorksAfterTheAlertHasClearedTheFailure() async throws {
-        let root = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("JimmsBroV1Tests-\(UUID().uuidString)", isDirectory: true)
-        defer { try? FileManager.default.removeItem(at: root) }
+        let root = CoreTestSupport.makeRoot("V1Tests")
+        defer { CoreTestSupport.discard(root) }
         let recorder = RecordingAlerts()
         let model = AppModel(store: Store(root: root), scheduler: recorder, alerts: recorder,
                              sampleJSON: { nil }, practiceJSON: { nil })
@@ -177,7 +170,7 @@ final class DefectFixesTests: XCTestCase {
     // Q20: one grouping rule, two screens. The Overview and Session detail had each written
     // this out, and a superset is where the two disagreed.
     func testSessionBlocksGroupsAndNamesTheSameWayForEveryScreen() throws {
-        let plan = try imported(Self.supersetJSON)
+        let plan = try CoreTestSupport.imported(Self.supersetJSON)
         let session = try XCTUnwrap(Session.start(plan: plan, dayIndex: 0, now: now))
         let blocks = SessionBlocks.indices(session)
         XCTAssertEqual(blocks.count, 2, "the superset is one block, the curl another")
@@ -189,7 +182,8 @@ final class DefectFixesTests: XCTestCase {
         XCTAssertEqual(SessionBlocks.names(session, blocks[1]), ["Curl"])
         XCTAssertTrue(SessionBlocks.namesRows(session, blocks[0]), "a superset must name its rows")
         XCTAssertFalse(SessionBlocks.namesRows(session, blocks[1]))
-        XCTAssertEqual(SessionBlocks.title(session, blocks[0]), "Bench Press + Row",
+        XCTAssertEqual(SessionBlocks.blocks(session).map(\.steps), blocks, "the list both screens draw")
+        XCTAssertEqual(SessionBlocks.blocks(session)[0].title, "Bench Press + Row",
                        "no duration until the block is finished")
     }
 

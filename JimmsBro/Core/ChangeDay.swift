@@ -79,6 +79,10 @@ struct DayChoices: Equatable {
     struct Back: Equatable {
         /// "Back to Push as written", after the pattern's day for the date.
         var title: String
+        /// F2 (2026-09-24): Back discards what was written for the date, so it asks first —
+        /// "Discard Wednesday's exercises?" — and says what the date becomes.
+        var question: String
+        var message: String
         var slot: DaySwap.Slot
     }
 
@@ -108,9 +112,6 @@ struct DayChoices: Equatable {
     static let customTitle = "Custom"
     /// A nameless own day's name ends so, and already says when (`HomeStart.ownStartTitle`).
     static let ownSuffix = "'s own day"
-    /// The app speaks English whatever the phone's language, and so does the date line.
-    static let months = ["January", "February", "March", "April", "May", "June", "July",
-                         "August", "September", "October", "November", "December"]
 
     /// "Change Push": the ··· item and the picker's title, after the day the date is now (D85).
     static func title(dayName: String) -> String { "Change \(dayName)" }
@@ -206,6 +207,12 @@ enum ChangeDayText {
 
     /// The ···'s item that removes the date's own day: "Back to Push as written".
     static func back(dayName: String) -> String { "Back to \(dayName) as written" }
+    /// F2 (2026-09-24): Back's alert — it discards what was written for the date — and the
+    /// line beneath, which says what the date becomes.
+    static func discardOwn(weekday: String) -> String { "Discard \(weekday)'s exercises?" }
+    static func backResult(weekday: String, dayName: String) -> String {
+        "\(weekday) goes back to \(dayName) as written."
+    }
 
     /// Edit the text's Save: the text's day goes back into the editor, and nothing is written.
     static func replace(dayName: String) -> String { "Replace \(dayName)" }
@@ -223,12 +230,10 @@ extension PlanLibrary {
         guard let plan = activePlan else { return nil }
         let day = calendar.startOfDay(for: date)
         let offset = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: day).day ?? 0
-        let weekdayValue = calendar.component(.weekday, from: day)
-        let weekday = Weekday.allCases.first { $0.calendarValue == weekdayValue }
+        let weekday = Weekday(day, calendar: calendar)
         let when = WeekStrip.when(offset: offset, weekday: weekday)
-        let weekdayName = weekday.map(WeekdayText.full) ?? when
-        let month = DayChoices.months[safe: calendar.component(.month, from: day) - 1] ?? ""
-        let fullDate = "\(weekdayName) \(calendar.component(.day, from: day)) \(month)"
+        let weekdayName = WeekdayText.full(weekday)
+        let fullDate = "\(weekdayName) \(MonthText.full(day, calendar: calendar))"
         let slot = PlanSchedule.slot(plan, on: day, swaps: swaps, today: now, calendar: calendar)
 
         func strip(_ source: Plan) -> DayChoices.Strip {
@@ -272,7 +277,10 @@ extension PlanLibrary {
         let back = own.map { _ -> DayChoices.Back in
             let base = PlanSchedule.base(plan, on: day, today: now, calendar: calendar)
             let name = base.name(in: plan)
-            return DayChoices.Back(title: ChangeDayText.back(dayName: name ?? HomeStart.restTitle),
+            let dayName = name ?? HomeStart.restTitle
+            return DayChoices.Back(title: ChangeDayText.back(dayName: dayName),
+                                   question: ChangeDayText.discardOwn(weekday: weekdayName),
+                                   message: ChangeDayText.backResult(weekday: weekdayName, dayName: dayName),
                                    slot: name.map { .day(name: $0) } ?? .rest)
         }
         let exercises = current.map { shown in
@@ -323,7 +331,7 @@ extension PlanLibrary {
     /// and the day — or nil when that plan, or that day, is gone.
     func borrowed(planId: UUID, name: String) -> (planId: UUID, dayIndex: Int, day: Day)? {
         guard let source = plans.first(where: { $0.id == planId }),
-              let index = source.days.firstIndex(where: { normalized($0.name) == normalized(name) })
+              let index = source.dayIndex(named: name)
         else { return nil }
         return (planId, index, source.days[index])
     }
@@ -347,7 +355,7 @@ extension PlanLibrary {
         let tree = RawJSON.object(["schemaVersion": .number(1), "name": .string(name),
                                    "units": .string(units.rawValue), "schedule": .string("rotation"),
                                    "days": .array([.object(object)])])
-        let trial = PlanImport.run(PlanDrafting.render(tree), settings: settings, now: now)
+        let trial = PlanImport.run(tree.jsonText, settings: settings, now: now)
         guard var day = trial.plan?.days.first else {
             // The paths are the day's own — "exercises[0].reps" — not the trial plan's.
             let errors = (read.issues + trial.issues).filter { $0.severity == .error }.map { issue -> Issue in

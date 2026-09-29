@@ -58,8 +58,7 @@ struct PlansView: View {
         // Pushed from Today's inline bar it would inherit an inline title; it is a place, not a
         // detail page, so it keeps the large title it had as a tab (D62).
         .navigationBarTitleDisplayMode(.large)
-        .confirmationDialog(deletePrompt, isPresented: Binding(
-            get: { confirmDeleteId != nil }, set: { if !$0 { confirmDeleteId = nil } }),
+        .confirmationDialog(deletePrompt, isPresented: Binding(isPresent: $confirmDeleteId),
                             titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 if let id = confirmDeleteId { Task { await model.deletePlan(id) } }

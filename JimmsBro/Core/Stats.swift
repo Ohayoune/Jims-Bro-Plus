@@ -46,6 +46,8 @@ enum SessionStats {
         }
     }
     static func loggedCount(_ session: Session) -> Int { session.steps.filter { $0.status == .logged }.count }
+    /// Steps logged or skipped — how far through the day the bar and the Lock Screen say you are.
+    static func finishedCount(_ session: Session) -> Int { session.steps.filter { $0.status != .pending }.count }
     static func averageSetSeconds(_ session: Session) -> Double? {
         let values = session.steps.compactMap(\.setSeconds).map(Double.init)
         return mean(values)
@@ -255,6 +257,18 @@ enum TargetText {
     }
     static func time(_ seconds: Int) -> String { "\(max(0, seconds) / 60):" + String(format:"%02d",max(0, seconds) % 60) }
 
+    /// D96 (v1.12 L6): a count and its noun, "1 plan", "3 workouts" — the one plural, where
+    /// every screen spelled `== 1 ? "" : "s"` for itself.
+    static func counted(_ count: Int, _ noun: String) -> String { "\(count) \(noun)\(count == 1 ? "" : "s")" }
+
+    /// A duration setting, as Settings reads it in minutes: "Off", "45 s", "5 min", "1 min 30 s".
+    static func setting(_ seconds: Int) -> String {
+        guard seconds > 0 else { return "Off" }
+        guard seconds >= 60 else { return "\(seconds) s" }
+        let minutes = seconds / 60, remainder = seconds % 60
+        return remainder == 0 ? "\(minutes) min" : "\(minutes) min \(remainder) s"
+    }
+
     /// A volume total, grouped: "12,400". Weights and reps stay ungrouped — they are never
     /// four digits — but a session's volume routinely is, and "12400 kg" is hard to read.
     static func grouped(_ value: Double) -> String {
@@ -278,7 +292,7 @@ enum TargetText {
         case let .reps(r):
             switch r {
             case let .fixed(n):
-                return wording == .compact ? "\(n)" : "\(n) rep\(n == 1 ? "" : "s")"
+                return wording == .compact ? "\(n)" : "\(TargetText.counted(n, "rep"))"
             case let .range(a, b):
                 return wording == .compact ? "\(a)–\(b)" : "\(a)–\(b) reps"
             case let .amrap(n):
@@ -305,7 +319,7 @@ enum TargetText {
         }
     }
 
-    static func target(_ target: SetTarget, range: RepRange?, units: WeightUnit,
+    static func target(_ target: StepTarget, range: RepRange?, units: WeightUnit,
                        wording: Wording = .plain) -> String {
         var text = workWithRange(work: target.work, range: range, wording: wording)
         if wording == .plain {
@@ -315,7 +329,7 @@ enum TargetText {
         }
         if let w = target.weight { text += " · \(number(w)) \(units.rawValue)" }
         // D51 (v1.5): the effort target, said as body text after the numbers you act on.
-        if let n = target.inReserve { text += " · \(reserve(n, wording: wording))" }
+        if let n = target.reserve { text += " · \(reserve(n, wording: wording))" }
         return text
     }
     /// "2 in reserve" — reps on a rep set, seconds on a hold; the number says which. Plain says
@@ -339,7 +353,7 @@ enum TargetText {
         // D58 (v1.6): "3 × 8–12" is multiplication to a coach and nothing at all to a stranger;
         // "3 sets of 8–12 reps" is the same fact in words. A list of climbing weights reads
         // "24, then 26, then 28 kg" rather than "24 / 26 / 28".
-        let sets = wording == .compact ? "\(count) × " : "\(count) set\(count == 1 ? "" : "s") of "
+        let sets = wording == .compact ? "\(count) × " : "\(TargetText.counted(count, "set")) of "
         let and = wording == .compact ? " / " : ", then "
 
         var text: String
@@ -363,7 +377,7 @@ enum TargetText {
         }
         let drops = exercise.sets.reduce(0) { $0 + $1.drops.count }
         if drops > 0 {
-            text += wording == .compact ? " · \(drops) drop\(drops == 1 ? "" : "s")"
+            text += wording == .compact ? " · \(TargetText.counted(drops, "drop"))"
                                         : " · then lighter, as many as you can"
         }
         // D51 (v1.5): one effort target for the whole exercise is said once; sets that differ
