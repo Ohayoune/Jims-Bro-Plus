@@ -405,7 +405,7 @@ Three v1.2 rules are worth knowing before touching anything:
 
 - Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25). `tools/check_all.sh` runs all of it — the three routes, the Release build and the Python checks, `tools/check_bundle.py` among them — so run it before every push; a milestone that edits a bundled document regenerates the bundle in the same commit (`python3 tools/build_bundle.py`), or the bundle check fails, as v1.6's U1–U3 did until U5.
 - Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author — no `Co-Authored-By` trailer of any kind, whatever a harness suggests; the history was rewritten once (2026-09-08) to remove them.
-- The repository is public under the MIT license (`LICENSE`), with a landing page at the top of `README.md` and CI in `.github/workflows/ci.yml` that runs only when started by hand: pushes start nothing, because Actions minutes on a private repository cost money and the owner spends none. Keep the README's landing section for people and its lower half for you; keep `docs/screenshots/` to what the README shows.
+- The repository is public under the MIT license (`LICENSE`), with `README.md` as the landing page and CI in `.github/workflows/ci.yml` that runs only when started by hand: pushes start nothing, because Actions minutes on a private repository cost money and the owner spends none. Keep `README.md` for people and the developer notes in `docs/DEVELOPING.md`; keep `docs/screenshots/` to what the README shows.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.
 - Use the fixtures in `examples/` verbatim in tests. Do not edit fixtures to make tests pass; if a fixture looks wrong, say so.
 - Use the iOS Simulator for visual checks. The owner installs on the physical iPhone (BUILD_PLAN §Device).
@@ -417,48 +417,90 @@ Three v1.2 rules are worth knowing before touching anything:
 ### FILE: README.md
 
 `````markdown
-# Jimm's Bro+
-
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-An iPhone app that runs your workout for you. Pick a plan and tap Start; it walks you through the day one set at a time, times your rest on the Lock Screen, remembers what you lifted, and tells you when to add weight. Plans come from four built-in routines or from a prompt a chatbot answers. No account, no server, no network connection.
-
 <p align="center">
-  <img src="docs/screenshots/intro.png" width="125" alt="The introduction: a plan, then Start">
-  <img src="docs/screenshots/add-plan.png" width="125" alt="Add plan: Send the prompt, and the built-in plans as squares">
-  <img src="docs/screenshots/today.png" width="125" alt="Today: the day's card, and Start">
-  <img src="docs/screenshots/workout.png" width="125" alt="The workout in symbols: the bar, a dot per set, the card of cells, a rest counting down">
-  <img src="docs/screenshots/progression.png" width="125" alt="A progression of steps, one exercise on its second">
-  <img src="docs/screenshots/history.png" width="125" alt="History: the month, each day in its own colour">
+  <img src="docs/screenshots/icon.png" width="128" alt="Jimm's Bro+ icon">
 </p>
 
-## What it does
+<h1 align="center">Jimm's Bro+</h1>
 
-- **Runs the workout.** In marks rather than sentences: a bar for the day, a dot per set, and a card with a cell per rep — the target solid, a line where you reached last time — with the weight you used already filled in. Swipe to look at the exercises before and after. Log what you did and the rest timer starts on its own — on the Lock Screen and in the Dynamic Island, with a notification when the phone is in your pocket. Warm-up, timed holds, supersets, drop sets, a walk between exercises.
-- **Remembers.** Next time the weight is already filled in. Hit the top of your rep range and it suggests the next weight, snapped to what your plates can make. Every set is kept: a calendar with each day in its own colour, history, personal records, a chart per exercise, metrics over time.
-- **Gets plans from a chatbot.** Tap **Send the prompt** and the share sheet hands it to ChatGPT or Claude — or copy it for a chatbot in a browser — then paste the reply back and use the plan. The same three steps ask for a progression, or for a change said in one sentence. A reply that came cut short can be finished one day at a time. Four built-in routines — Full Body, Upper Lower, Push Pull Legs, At Home — to start from.
-- **Progresses.** Ask the chatbot for a progression from what you actually lifted, then earn each step by hitting it.
-- **Keeps your data on the phone.** Back up to a file, export history as a spreadsheet, import from Strong or Hevy. Nothing leaves the phone unless you send it. [Privacy policy](docs/PRIVACY.md).
+<p align="center"><strong>Rest timed. Sets logged. Weight remembered.</strong></p>
 
-## Status
+<p align="center">
+  <img src="https://img.shields.io/badge/iOS-17%2B-black" alt="iOS 17 or later">
+  <img src="https://img.shields.io/badge/SwiftUI-blue" alt="SwiftUI">
+  <img src="https://img.shields.io/badge/dependencies-none-brightgreen" alt="No dependencies">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
+</p>
 
-**v1.12**, built and green on every route ([docs/BUILD_STATUS.md](docs/BUILD_STATUS.md)). Not yet on the App Store: the submission is prepared in [docs/APP_STORE.md](docs/APP_STORE.md) and waits on the paid Developer Program and a release Xcode. Until then, build it yourself.
+An iPhone app that runs your workout for you. Log a set and the rest is timed on the Lock Screen and in the Dynamic Island, with a notification when the phone is in your pocket. It walks you through the day one set at a time, remembers what you lifted, and tells you when to add weight. Pick a plan from four built-in routines, or ask a chatbot for one. No account, no server, no network connection.
 
-## Build it
+<p align="center">
+  <img src="docs/screenshots/workout.gif" width="300" alt="Start the day, log a set, and the rest counts down on the Lock Screen">
+  <br>
+  <sub>Start, log a set, and the rest runs on its own.</sub>
+</p>
 
-Xcode 26 or later on a Mac, an iPhone on iOS 17 or later.
+## Features
+
+- **A chatbot writes the plan.** Tap **Send the prompt**, hand it to ChatGPT or Claude from the share sheet, paste the reply back, and the plan is in. The same three steps ask for a progression, or for a change said in one sentence.
+- **Marks instead of sentences.** A bar for the day, a dot per set, a cell per rep, and the weight you used last time already filled in. You can read it mid-set.
+- **Progress you earn.** Hit the top of your rep range and the next weight is suggested, snapped to what your plates can make. A progression's steps are earned by hitting them.
+- **Your data stays on the phone.** Back up to a file, export history as a spreadsheet, import from Strong or Hevy. Nothing leaves the phone unless you send it.
+
+## Screens
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/screenshots/today.png" width="240" alt="Today"></td>
+    <td align="center"><img src="docs/screenshots/workout.png" width="240" alt="Workout"></td>
+    <td align="center"><img src="docs/screenshots/lock-screen.png" width="240" alt="Lock Screen"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Today: the day's card, one tap to start</sub></td>
+    <td align="center"><sub>The workout in marks: a bar, dots, cells</sub></td>
+    <td align="center"><sub>The rest on the Lock Screen</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/history.png" width="240" alt="History"></td>
+    <td align="center"><img src="docs/screenshots/add-plan.png" width="240" alt="Add plan"></td>
+    <td align="center"><img src="docs/screenshots/progression.png" width="240" alt="Progression"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>History: the month, each day in its colour</sub></td>
+    <td align="center"><sub>Add plan: send the prompt, paste the reply</sub></td>
+    <td align="center"><sub>Progression: steps earned by hitting them</sub></td>
+  </tr>
+</table>
+
+## Get it
+
+Not on the App Store yet: the submission is prepared and waits on the Developer Program. Until then, build it on your own phone with Xcode 26 or later on a Mac and an iPhone on iOS 17 or later:
 
 1. Open `JimmsBro.xcodeproj` and pick the shared `JimmsBro` scheme.
-2. Signing & Capabilities → choose your team (a free Apple ID works for seven days at a time).
-3. Plug in the phone, choose it as the destination, press Run. [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) has the one-time steps on the phone.
+2. Signing & Capabilities → choose your team. A free Apple ID works for seven days at a time.
+3. Plug in the phone, choose it as the destination, press Run.
 
-The tests run on three routes — the simulator, `swift test` on the host, and a portable runner that needs no Xcode — all run on this Mac by `tools/check_all.sh`. [GitHub Actions](.github/workflows/ci.yml) can run the same checks, but only when started by hand. The commands are below.
+## Privacy
+
+Nothing leaves the phone unless you send it. [Privacy policy](docs/PRIVACY.md).
 
 ## License
 
 [MIT](LICENSE).
 
 ---
+
+<sub>Built from a design package in <code>docs/</code>, with 475 tests on three routes. Developer notes: <a href="docs/DEVELOPING.md">docs/DEVELOPING.md</a>.</sub>
+`````
+
+---
+
+### FILE: docs/DEVELOPING.md
+
+`````markdown
+# Developing Jimm's Bro+
+
+The notes for whoever builds the app next, moved here from the README so the README can be the landing page.
 
 ## For the implementing agent
 
@@ -12703,7 +12745,7 @@ Three v1.2 rules are worth knowing before touching anything:
 
 - Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25). `tools/check_all.sh` runs all of it — the three routes, the Release build and the Python checks, `tools/check_bundle.py` among them — so run it before every push; a milestone that edits a bundled document regenerates the bundle in the same commit (`python3 tools/build_bundle.py`), or the bundle check fails, as v1.6's U1–U3 did until U5.
 - Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author — no `Co-Authored-By` trailer of any kind, whatever a harness suggests; the history was rewritten once (2026-09-08) to remove them.
-- The repository is public under the MIT license (`LICENSE`), with a landing page at the top of `README.md` and CI in `.github/workflows/ci.yml` that runs only when started by hand: pushes start nothing, because Actions minutes on a private repository cost money and the owner spends none. Keep the README's landing section for people and its lower half for you; keep `docs/screenshots/` to what the README shows.
+- The repository is public under the MIT license (`LICENSE`), with `README.md` as the landing page and CI in `.github/workflows/ci.yml` that runs only when started by hand: pushes start nothing, because Actions minutes on a private repository cost money and the owner spends none. Keep `README.md` for people and the developer notes in `docs/DEVELOPING.md`; keep `docs/screenshots/` to what the README shows.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.
 - Use the fixtures in `examples/` verbatim in tests. Do not edit fixtures to make tests pass; if a fixture looks wrong, say so.
 - Use the iOS Simulator for visual checks. The owner installs on the physical iPhone (BUILD_PLAN §Device).
