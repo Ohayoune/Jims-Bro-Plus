@@ -405,7 +405,7 @@ Three v1.2 rules are worth knowing before touching anything:
 
 - Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25). `tools/check_all.sh` runs all of it — the three routes, the Release build and the Python checks, `tools/check_bundle.py` among them — so run it before every push; a milestone that edits a bundled document regenerates the bundle in the same commit (`python3 tools/build_bundle.py`), or the bundle check fails, as v1.6's U1–U3 did until U5.
 - Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author — no `Co-Authored-By` trailer of any kind, whatever a harness suggests; the history was rewritten once (2026-09-08) to remove them.
-- The repository is public under the MIT license (`LICENSE`), with a landing page at the top of `README.md` and CI in `.github/workflows/ci.yml` that runs only when started by hand: pushes start nothing, because Actions minutes on a private repository cost money and the owner spends none. Keep the README's landing section for people and its lower half for you; keep `docs/screenshots/` to what the README shows.
+- The repository is public under the MIT license (`LICENSE`), with `README.md` as the landing page and CI in `.github/workflows/ci.yml` that runs only when started by hand: pushes start nothing, because Actions minutes on a private repository cost money and the owner spends none. Keep `README.md` for people and the developer notes in `docs/DEVELOPING.md`; keep `docs/screenshots/` to what the README shows.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.
 - Use the fixtures in `examples/` verbatim in tests. Do not edit fixtures to make tests pass; if a fixture looks wrong, say so.
 - Use the iOS Simulator for visual checks. The owner installs on the physical iPhone (BUILD_PLAN §Device).
@@ -459,6 +459,20 @@ The tests run on three routes — the simulator, `swift test` on the host, and a
 [MIT](LICENSE).
 
 ---
+
+## For developers
+
+The design package, the test routes and the tools are described in [docs/DEVELOPING.md](docs/DEVELOPING.md).
+`````
+
+---
+
+### FILE: docs/DEVELOPING.md
+
+`````markdown
+# Developing Jimm's Bro+
+
+The notes for whoever builds the app next, moved here from the README so the README can be the landing page.
 
 ## For the implementing agent
 
@@ -12703,7 +12717,7 @@ Three v1.2 rules are worth knowing before touching anything:
 
 - Finish each milestone with its tests green before starting the next. Run the tests; do not declare a milestone done without running them. There are three routes and they check different things: `xcodebuild test` (the app, on a simulator), `swift test` (Core on the host — where the doc-pinning tests actually run), and `python3 tools/check_core.py` (Core with no Xcode at all). From v1.4 a milestone is also a Release build (`xcodebuild build -scheme JimmsBro -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17'`) and `python3 tools/check_release.py` (SPEC §6.25). `tools/check_all.sh` runs all of it — the three routes, the Release build and the Python checks, `tools/check_bundle.py` among them — so run it before every push; a milestone that edits a bundled document regenerates the bundle in the same commit (`python3 tools/build_bundle.py`), or the bundle check fails, as v1.6's U1–U3 did until U5.
 - Work on a branch, commit per milestone with the tests green, and write commit messages that say *why*. Never add an AI as a co-author — no `Co-Authored-By` trailer of any kind, whatever a harness suggests; the history was rewritten once (2026-09-08) to remove them.
-- The repository is public under the MIT license (`LICENSE`), with a landing page at the top of `README.md` and CI in `.github/workflows/ci.yml` that runs only when started by hand: pushes start nothing, because Actions minutes on a private repository cost money and the owner spends none. Keep the README's landing section for people and its lower half for you; keep `docs/screenshots/` to what the README shows.
+- The repository is public under the MIT license (`LICENSE`), with `README.md` as the landing page and CI in `.github/workflows/ci.yml` that runs only when started by hand: pushes start nothing, because Actions minutes on a private repository cost money and the owner spends none. Keep `README.md` for people and the developer notes in `docs/DEVELOPING.md`; keep `docs/screenshots/` to what the README shows.
 - Keep views thin. Views call into an `AppModel`/store; they do not parse, validate, or compute.
 - Use the fixtures in `examples/` verbatim in tests. Do not edit fixtures to make tests pass; if a fixture looks wrong, say so.
 - Use the iOS Simulator for visual checks. The owner installs on the physical iPhone (BUILD_PLAN §Device).

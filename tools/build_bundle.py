@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BUNDLED = [
     "AGENTS.md",
     "README.md",
+    "docs/DEVELOPING.md",
     "docs/SPEC.md",
     "docs/PLAN_FORMAT.md",
     "docs/PROMPT.md",
